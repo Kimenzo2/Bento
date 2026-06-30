@@ -87,7 +87,6 @@ export default function SocialProof() {
           Built by an independent developer. No investors. No tracking. No catch.
         </p>
       </div>
-
     </section>
   );
 }

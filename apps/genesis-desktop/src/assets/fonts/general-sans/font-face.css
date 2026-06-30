@@ -2,32 +2,32 @@
 /* Source: Indian Type Foundry (Fontshare) — https://fontshare.com/fonts/general-sans */
 
 @font-face {
-  font-family: 'General Sans';
-  src: url('/fonts/general-sans/GeneralSans-Regular.woff2') format('woff2');
+  font-family: "General Sans";
+  src: url("/fonts/general-sans/GeneralSans-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'General Sans';
-  src: url('/fonts/general-sans/GeneralSans-Medium.woff2') format('woff2');
+  font-family: "General Sans";
+  src: url("/fonts/general-sans/GeneralSans-Medium.woff2") format("woff2");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'General Sans';
-  src: url('/fonts/general-sans/GeneralSans-Semibold.woff2') format('woff2');
+  font-family: "General Sans";
+  src: url("/fonts/general-sans/GeneralSans-Semibold.woff2") format("woff2");
   font-weight: 600;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'General Sans';
-  src: url('/fonts/general-sans/GeneralSans-Bold.woff2') format('woff2');
+  font-family: "General Sans";
+  src: url("/fonts/general-sans/GeneralSans-Bold.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -37,9 +37,9 @@
    Source: Atipo (Google Fonts) — https://fonts.google.com/specimen/Bricolage+Grotesque */
 
 @font-face {
-  font-family: 'Bricolage Grotesque Variable';
-  src: url('/fonts/bricolage/bricolage-grotesque-latin-wght-normal.woff2')
-    format('woff2-variations');
+  font-family: "Bricolage Grotesque Variable";
+  src: url("/fonts/bricolage/bricolage-grotesque-latin-wght-normal.woff2")
+    format("woff2-variations");
   font-weight: 200 800;
   font-style: normal;
   font-display: swap;

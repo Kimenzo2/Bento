@@ -1,6 +1,6 @@
-import { browser } from '$app/environment';
-import { invoke, isTauri } from '@tauri-apps/api/core';
-import { z } from 'zod';
+import { browser } from "$app/environment";
+import { invoke, isTauri } from "@tauri-apps/api/core";
+import { z } from "zod";
 
 const installedModuleSchema = z
   .object({
@@ -38,7 +38,7 @@ export async function getInstalledModules(): Promise<InstalledModule[]> {
     return [];
   }
 
-  const result = await invoke<unknown[]>('get_installed_modules');
+  const result = await invoke<unknown[]>("get_installed_modules");
   return z.array(installedModuleSchema).parse(result);
 }
 
@@ -47,6 +47,6 @@ export async function fetchModuleRegistry(): Promise<ModuleRegistryEntry[]> {
     return [];
   }
 
-  const result = await invoke<unknown[]>('fetch_module_registry');
+  const result = await invoke<unknown[]>("fetch_module_registry");
   return z.array(registryEntrySchema).parse(result);
 }

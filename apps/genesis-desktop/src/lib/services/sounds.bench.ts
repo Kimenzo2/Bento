@@ -13,16 +13,18 @@
 
 const sounds = {
   tiny: ["correct"] as const,
-  ambient: ["gentle-rain", "ocean-waves", "river-flow", "fire-crackling", "forest-wind", "guitar-loop"] as const,
+  ambient: [
+    "gentle-rain",
+    "ocean-waves",
+    "river-flow",
+    "fire-crackling",
+    "forest-wind",
+    "guitar-loop",
+  ] as const,
   alarm: ["alarm", "ringtone"] as const,
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────
-
-function elapsed(start: number): string {
-  const ms = performance.now() - start;
-  return ms < 1 ? `${(ms * 1000).toFixed(0)} µs` : `${ms.toFixed(2)} ms`;
-}
 
 function avg(arr: number[]): string {
   if (arr.length === 0) return "N/A";
@@ -64,7 +66,7 @@ async function benchAudioContext() {
     (window as any).__benchCtx = ctx;
 
     console.log(
-      `  Run ${i + 1}:  new AudioContext() → ${(t1 - t0).toFixed(2)} ms, resume() → ${(t2 - t1).toFixed(2)} ms`
+      `  Run ${i + 1}:  new AudioContext() → ${(t1 - t0).toFixed(2)} ms, resume() → ${(t2 - t1).toFixed(2)} ms`,
     );
   }
 
@@ -88,7 +90,7 @@ async function benchPreload() {
     const buf = buffers[0];
     console.log(
       `  Single (correct.mp3):  ${(t1 - t0).toFixed(2)} ms  |  ` +
-        `${buf.duration.toFixed(1)}s @ ${buf.sampleRate}Hz  |  ${(buf.length * 4 / 1024).toFixed(0)} KB`
+        `${buf.duration.toFixed(1)}s @ ${buf.sampleRate}Hz  |  ${((buf.length * 4) / 1024).toFixed(0)} KB`,
     );
   }
 
@@ -103,10 +105,10 @@ async function benchPreload() {
       totalSamples += b.length;
       totalDuration += b.duration;
     }
-    const memKB = (totalSamples * 4 / 1024).toFixed(0);
+    const memKB = ((totalSamples * 4) / 1024).toFixed(0);
     console.log(
       `  All ambient (6 files):  ${(t1 - t0).toFixed(2)} ms  |  ` +
-        `${totalDuration.toFixed(0)}s total  |  ~${memKB} KB decoded`
+        `${totalDuration.toFixed(0)}s total  |  ~${memKB} KB decoded`,
     );
   }
 
@@ -116,7 +118,7 @@ async function benchPreload() {
     await preloadSounds(sounds.ambient as any);
     const t1 = performance.now();
     console.log(
-      `  Cache hit (6 files, 2nd call):  ${(t1 - t0).toFixed(3)} ms  |  ${isSoundLoaded("gentle-rain") ? "✓" : "✗"}`
+      `  Cache hit (6 files, 2nd call):  ${(t1 - t0).toFixed(3)} ms  |  ${isSoundLoaded("gentle-rain") ? "✓" : "✗"}`,
     );
   }
 }
@@ -135,7 +137,7 @@ async function benchAmbientStart() {
   const times: number[] = [];
   for (const name of sounds.ambient) {
     const t0 = performance.now();
-    const player = await startAmbient(name as any, { volume: 0.2, fadeInMs: 0 });
+    const _player = await startAmbient(name as any, { volume: 0.2, fadeInMs: 0 });
     const t1 = performance.now();
     times.push(t1 - t0);
     console.log(`  ${name.padEnd(16)}  ${(t1 - t0).toFixed(2)} ms`);
@@ -184,7 +186,7 @@ async function benchAlarmPlay() {
 async function benchCrossfade() {
   divider("5. Crossfade stop timing accuracy");
 
-  const { startAmbient, stopAmbientImmediate } = await import("./sounds");
+  const { startAmbient, stopAmbientImmediate: _stopAmbientImmediate } = await import("./sounds");
   const { preloadSounds } = await import("./sounds");
   await preloadSounds(sounds.ambient as any);
 
@@ -202,7 +204,9 @@ async function benchCrossfade() {
   const drift = actual - rampMs;
   console.log(`  Requested ramp: ${rampMs} ms`);
   console.log(`  Actual stop:    ${actual.toFixed(2)} ms`);
-  console.log(`  Drift:          ${drift > 0 ? "+" : ""}${drift.toFixed(2)} ms  ${Math.abs(drift) < 20 ? "✓ Good" : "⚠ Needs tuning"}`);
+  console.log(
+    `  Drift:          ${drift > 0 ? "+" : ""}${drift.toFixed(2)} ms  ${Math.abs(drift) < 20 ? "✓ Good" : "⚠ Needs tuning"}`,
+  );
 }
 
 // ── Benchmark 6: Memory estimate ─────────────────────────────────────
@@ -210,7 +214,7 @@ async function benchCrossfade() {
 async function benchMemory() {
   divider("6. Decoded buffer memory estimate");
 
-  const { preloadSounds, isSoundLoaded } = await import("./sounds");
+  const { preloadSounds, isSoundLoaded: _isSoundLoaded } = await import("./sounds");
 
   // Ensure everything is loaded
   const allSounds = [...sounds.tiny, ...sounds.ambient, ...sounds.alarm];
@@ -226,7 +230,9 @@ async function benchMemory() {
 
   console.log(`  Files decoded:     ${buffers.length}`);
   console.log(`  Total samples:     ${totalSamples.toLocaleString()}`);
-  console.log(`  Estimated memory:  ${(totalBytes / 1024 / 1024).toFixed(2)} MB (float32, all channels)`);
+  console.log(
+    `  Estimated memory:  ${(totalBytes / 1024 / 1024).toFixed(2)} MB (float32, all channels)`,
+  );
   console.log(`  Longest sound:     ${Math.max(...buffers.map((b) => b.duration)).toFixed(1)}s`);
   console.log(`  Shortest sound:    ${Math.min(...buffers.map((b) => b.duration)).toFixed(1)}s`);
 }

@@ -96,8 +96,8 @@ export default function Hero({
               maxWidth: '520px',
             }}
           >
-            Seventeen mini-apps &mdash; mood, focus, habits, sleep, budget, tasks, notes, and more &mdash;
-            in one calm desktop app that stays out of your way.
+            Seventeen mini-apps &mdash; mood, focus, habits, sleep, budget, tasks, notes, and more
+            &mdash; in one calm desktop app that stays out of your way.
           </p>
 
           <div
@@ -134,7 +134,7 @@ export default function Hero({
                     textDecoration: 'none',
                     opacity: detecting ? 0.6 : 1,
                     transition: 'color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease',
-                    pointerEvents: detecting ? 'none' as const : undefined,
+                    pointerEvents: detecting ? ('none' as const) : undefined,
                   }}
                 >
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -146,7 +146,9 @@ export default function Hero({
                       strokeLinejoin="round"
                     />
                   </svg>
-                  {detecting ? 'Detecting…' : `Download for ${active ? active.label : platforms.windows.label}`}
+                  {detecting
+                    ? 'Detecting…'
+                    : `Download for ${active ? active.label : platforms.windows.label}`}
                 </a>
                 <Link
                   href="/pricing"
@@ -222,7 +224,7 @@ export default function Hero({
                     textDecoration: 'none',
                     opacity: detecting ? 0.6 : 1,
                     transition: 'color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease',
-                    pointerEvents: detecting ? 'none' as const : undefined,
+                    pointerEvents: detecting ? ('none' as const) : undefined,
                   }}
                 >
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -234,7 +236,9 @@ export default function Hero({
                       strokeLinejoin="round"
                     />
                   </svg>
-                  {detecting ? 'Detecting…' : `Download for ${active ? active.label : platforms.windows.label}`}
+                  {detecting
+                    ? 'Detecting…'
+                    : `Download for ${active ? active.label : platforms.windows.label}`}
                 </a>
               </>
             )}

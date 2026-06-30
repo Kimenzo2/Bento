@@ -6,13 +6,13 @@
 // All timers use real Rust-side timestamps, not frontend setInterval.
 // ═══════════════════════════════════════════════════════════════════════
 
-import { invoke } from '@tauri-apps/api/core';
-import { writable } from 'svelte/store';
+import { invoke } from "@tauri-apps/api/core";
+import { writable } from "svelte/store";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
-export type RecordingStatus = 'idle' | 'recording' | 'paused';
-export type PlaybackStatus = 'idle' | 'playing' | 'paused';
+export type RecordingStatus = "idle" | "recording" | "paused";
+export type PlaybackStatus = "idle" | "playing" | "paused";
 
 export interface AudioDevice {
   id: string;
@@ -52,7 +52,7 @@ export interface RecordingMeta {
 // ─── Reactive Stores ──────────────────────────────────────────────────
 
 /** Current recording status (polled from Rust). */
-export const recordingStatus = writable<RecordingStatus>('idle');
+export const recordingStatus = writable<RecordingStatus>("idle");
 
 /** Current session details (null when idle). */
 export const currentSession = writable<RecordingSession | null>(null);
@@ -75,7 +75,7 @@ function startPolling(): void {
   if (pollTimer) return;
   pollTimer = setInterval(async () => {
     try {
-      const session = await invoke<RecordingSession | null>('get_current_session');
+      const session = await invoke<RecordingSession | null>("get_current_session");
       // Only update stores if we're still recording (avoids race where
       // stop_recording already set stores to idle but in-flight poll returns data)
       if (session) {
@@ -84,7 +84,7 @@ function startPolling(): void {
       } else {
         // Session cleared on Rust side — ensure stores reflect idle
         currentSession.set(null);
-        recordingStatus.set('idle');
+        recordingStatus.set("idle");
         stopPolling();
       }
     } catch {
@@ -109,13 +109,13 @@ function stopPolling(): void {
  */
 export async function startRecording(
   moduleId: string,
-  deviceName?: string
+  deviceName?: string,
 ): Promise<RecordingSession> {
-  const session = await invoke<RecordingSession>('start_recording', {
+  const session = await invoke<RecordingSession>("start_recording", {
     moduleId,
     deviceName: deviceName ?? null,
   });
-  recordingStatus.set('recording');
+  recordingStatus.set("recording");
   currentSession.set(session);
   startPolling();
   return session;
@@ -125,12 +125,12 @@ export async function startRecording(
  * Stop the current recording and finalize the WAV file.
  */
 export async function stopRecording(): Promise<RecordingSession> {
-  const session = await invoke<RecordingSession>('stop_recording');
+  const session = await invoke<RecordingSession>("stop_recording");
   const moduleId = session.moduleId;
-  recordingStatus.set('idle');
+  recordingStatus.set("idle");
   stopPolling();
   currentSession.set(null);
-  await refreshRecordings(moduleId ?? 'voice-memos');
+  await refreshRecordings(moduleId ?? "voice-memos");
   return session;
 }
 
@@ -138,8 +138,8 @@ export async function stopRecording(): Promise<RecordingSession> {
  * Pause the current recording (samples stop writing to WAV).
  */
 export async function pauseRecording(): Promise<RecordingSession> {
-  const session = await invoke<RecordingSession>('pause_recording');
-  recordingStatus.set('paused');
+  const session = await invoke<RecordingSession>("pause_recording");
+  recordingStatus.set("paused");
   currentSession.set(session);
   return session;
 }
@@ -148,8 +148,8 @@ export async function pauseRecording(): Promise<RecordingSession> {
  * Resume a paused recording.
  */
 export async function resumeRecording(): Promise<RecordingSession> {
-  const session = await invoke<RecordingSession>('resume_recording');
-  recordingStatus.set('recording');
+  const session = await invoke<RecordingSession>("resume_recording");
+  recordingStatus.set("recording");
   currentSession.set(session);
   return session;
 }
@@ -158,16 +158,16 @@ export async function resumeRecording(): Promise<RecordingSession> {
  * Get the current recording session without polling.
  */
 export async function getCurrentSession(): Promise<RecordingSession | null> {
-  return invoke<RecordingSession | null>('get_current_session');
+  return invoke<RecordingSession | null>("get_current_session");
 }
 
 /**
  * Cancel the current recording — stop and delete the WAV file without persisting.
  */
 export async function cancelRecording(): Promise<void> {
-  await invoke('cancel_recording');
+  await invoke("cancel_recording");
   stopPolling();
-  recordingStatus.set('idle');
+  recordingStatus.set("idle");
   currentSession.set(null);
 }
 
@@ -176,13 +176,13 @@ export async function cancelRecording(): Promise<void> {
  */
 export async function retryRecording(
   moduleId: string,
-  deviceName?: string
+  deviceName?: string,
 ): Promise<RecordingSession> {
-  const session = await invoke<RecordingSession>('retry_recording', {
+  const session = await invoke<RecordingSession>("retry_recording", {
     moduleId,
     deviceName: deviceName ?? null,
   });
-  recordingStatus.set('recording');
+  recordingStatus.set("recording");
   currentSession.set(session);
   startPolling();
   return session;
@@ -192,19 +192,19 @@ export async function retryRecording(
  * Check if a microphone is available and ready.
  */
 export async function checkMicrophonePermission(): Promise<boolean> {
-  return invoke<boolean>('check_microphone_permission');
+  return invoke<boolean>("check_microphone_permission");
 }
 
 export async function pickTranscriptionModel(): Promise<string | null> {
-  return invoke<string | null>('pick_transcription_model');
+  return invoke<string | null>("pick_transcription_model");
 }
 
 export async function transcribeRecording(
   recordingId: string,
   modelPath: string,
-  language?: string
+  language?: string,
 ): Promise<string> {
-  return invoke<string>('transcribe_recording', {
+  return invoke<string>("transcribe_recording", {
     recording_id: recordingId,
     model_path: modelPath,
     language,
@@ -215,7 +215,7 @@ export async function transcribeRecording(
  * List available audio input devices.
  */
 export async function listAudioDevices(): Promise<AudioDevice[]> {
-  const devices = await invoke<AudioDevice[]>('list_audio_devices');
+  const devices = await invoke<AudioDevice[]>("list_audio_devices");
   audioDevices.set(devices);
   return devices;
 }
@@ -227,9 +227,9 @@ export async function listAudioDevices(): Promise<AudioDevice[]> {
  */
 export async function listRecordings(
   moduleId?: string,
-  limit: number = 50
+  limit: number = 50,
 ): Promise<RecordingMeta[]> {
-  const recordings = await invoke<RecordingMeta[]>('list_recordings', {
+  const recordings = await invoke<RecordingMeta[]>("list_recordings", {
     moduleId: moduleId ?? null,
     limit,
   });
@@ -253,14 +253,14 @@ export async function refreshRecordings(moduleId: string): Promise<RecordingMeta
  * Delete a recording by ID (removes file + metadata).
  */
 export async function deleteRecording(id: string): Promise<void> {
-  await invoke('delete_recording', { id });
+  await invoke("delete_recording", { id });
 }
 
 /**
  * Update a recording's title.
  */
 export async function updateRecordingTitle(id: string, title: string): Promise<void> {
-  await invoke('update_recording_title', { id, title });
+  await invoke("update_recording_title", { id, title });
 }
 
 // ─── Playback Commands ────────────────────────────────────────────────
@@ -269,35 +269,35 @@ export async function updateRecordingTitle(id: string, title: string): Promise<v
  * Start playback of a WAV file.
  */
 export async function playbackStart(filePath: string): Promise<void> {
-  await invoke('playback_start', { filePath });
+  await invoke("playback_start", { filePath });
 }
 
 /**
  * Pause current playback.
  */
 export async function playbackPause(): Promise<void> {
-  await invoke('playback_pause');
+  await invoke("playback_pause");
 }
 
 /**
  * Resume paused playback.
  */
 export async function playbackResume(): Promise<void> {
-  await invoke('playback_resume');
+  await invoke("playback_resume");
 }
 
 /**
  * Stop playback and release resources.
  */
 export async function playbackStop(): Promise<void> {
-  await invoke('playback_stop');
+  await invoke("playback_stop");
 }
 
 /**
  * Check if playback is currently active.
  */
 export async function playbackIsPlaying(): Promise<boolean> {
-  return invoke<boolean>('playback_is_playing');
+  return invoke<boolean>("playback_is_playing");
 }
 
 // ─── Cleanup ──────────────────────────────────────────────────────────
@@ -307,6 +307,6 @@ export async function playbackIsPlaying(): Promise<boolean> {
  */
 export function cleanupRecordingBridge(): void {
   stopPolling();
-  recordingStatus.set('idle');
+  recordingStatus.set("idle");
   currentSession.set(null);
 }

@@ -14,10 +14,10 @@
 //   makeObservable()  →  handled by runes  (automatic)
 // ═══════════════════════════════════════════════════════════════════════
 
-import { invoke } from '@tauri-apps/api/core';
-import { SvelteMap } from 'svelte/reactivity';
-import type { Block, ContentText, TextStyle, Mark, TextRange } from './block';
-import { BlockType as BT, TextStyle as TS, MarkType, isTextBlock } from './block';
+import { invoke } from "@tauri-apps/api/core";
+import { SvelteMap } from "svelte/reactivity";
+import type { Block, ContentText, TextStyle, Mark, TextRange } from "./block";
+import { BlockType as BT, TextStyle as TS, MarkType, isTextBlock } from "./block";
 
 // ─── Interface types ─────────────────────────────────────────────────
 
@@ -59,29 +59,29 @@ function parseContentText(s: string): ContentText {
   try {
     const p = JSON.parse(s);
     return {
-      text: p.text ?? '',
+      text: p.text ?? "",
       style: normStyle(p.style),
       marks: p.marks ?? [],
       checked: p.checked ?? false,
-      color: p.color ?? '',
-      iconEmoji: p.iconEmoji ?? '',
-      iconImage: p.iconImage ?? '',
+      color: p.color ?? "",
+      iconEmoji: p.iconEmoji ?? "",
+      iconImage: p.iconImage ?? "",
     };
   } catch {
     return {
-      text: '',
+      text: "",
       style: TS.Paragraph,
       marks: [],
       checked: false,
-      color: '',
-      iconEmoji: '',
-      iconImage: '',
+      color: "",
+      iconEmoji: "",
+      iconImage: "",
     };
   }
 }
 function normStyle(style: unknown): TextStyle {
-  if (typeof style === 'number') return style as TextStyle;
-  if (typeof style === 'string') {
+  if (typeof style === "number") return style as TextStyle;
+  if (typeof style === "string") {
     const n = Number(style);
     if (Number.isFinite(n)) return n as TextStyle;
     const m: Record<string, TextStyle> = {
@@ -137,37 +137,37 @@ function mkContent(text: string, style: TextStyle, marks?: Mark[], checked?: boo
     style,
     marks: marks ?? [],
     checked: checked ?? false,
-    color: '',
-    iconEmoji: '',
-    iconImage: '',
+    color: "",
+    iconEmoji: "",
+    iconImage: "",
   };
 }
 
 const SYSTEM_TYPES: TypeDef[] = [
-  { id: 'type-note', name: 'Note', layout: 'note', icon: '📄', description: 'Rich text document' },
-  { id: 'type-task', name: 'Task', layout: 'task', icon: '✅', description: 'Task' },
+  { id: "type-note", name: "Note", layout: "note", icon: "📄", description: "Rich text document" },
+  { id: "type-task", name: "Task", layout: "task", icon: "✅", description: "Task" },
   {
-    id: 'type-journal',
-    name: 'Journal',
-    layout: 'journal',
-    icon: '📓',
-    description: 'Daily journal',
+    id: "type-journal",
+    name: "Journal",
+    layout: "journal",
+    icon: "📓",
+    description: "Daily journal",
   },
-  { id: 'type-set', name: 'Set', layout: 'set', icon: '📁', description: 'Collection' },
+  { id: "type-set", name: "Set", layout: "set", icon: "📁", description: "Collection" },
   {
-    id: 'type-bookmark',
-    name: 'Bookmark',
-    layout: 'bookmark',
-    icon: '🔖',
-    description: 'Saved link',
+    id: "type-bookmark",
+    name: "Bookmark",
+    layout: "bookmark",
+    icon: "🔖",
+    description: "Saved link",
   },
 ];
 const SYSTEM_RELATIONS: RelationDef[] = [
-  { id: 'rel-tags', key: 'tags', name: 'Tags', type: 11, format: 'multiSelect' },
-  { id: 'rel-priority', key: 'priority', name: 'Priority', type: 3, format: 'select' },
-  { id: 'rel-dueDate', key: 'dueDate', name: 'Due Date', type: 4, format: 'date' },
-  { id: 'rel-status', key: 'status', name: 'Status', type: 3, format: 'select' },
-  { id: 'rel-assignee', key: 'assignee', name: 'Assignee', type: 5, format: 'object' },
+  { id: "rel-tags", key: "tags", name: "Tags", type: 11, format: "multiSelect" },
+  { id: "rel-priority", key: "priority", name: "Priority", type: 3, format: "select" },
+  { id: "rel-dueDate", key: "dueDate", name: "Due Date", type: 4, format: "date" },
+  { id: "rel-status", key: "status", name: "Status", type: 3, format: "select" },
+  { id: "rel-assignee", key: "assignee", name: "Assignee", type: 5, format: "object" },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -210,7 +210,7 @@ let loading = $state(false);
 
 /** Derived: root-level blocks in order — Anytype's `@computed get rootBlocks()` */
 const _rootBlocks: Block[] = $derived(
-  rootChildren.map((id) => blocks.get(id)).filter((b): b is Block => !!b)
+  rootChildren.map((id) => blocks.get(id)).filter((b): b is Block => !!b),
 );
 export function getRootBlocks(): Block[] {
   return _rootBlocks;
@@ -218,7 +218,7 @@ export function getRootBlocks(): Block[] {
 
 /** Derived: title block — Anytype's `@computed get titleBlock()` */
 const _titleBlock: Block | null = $derived(
-  titleBlockId ? (blocks.get(titleBlockId) ?? null) : null
+  titleBlockId ? (blocks.get(titleBlockId) ?? null) : null,
 );
 export function getTitleBlock(): Block | null {
   return _titleBlock;
@@ -280,10 +280,10 @@ async function flushSaves() {
 
   flushingSaves = Promise.all(
     entries.map(([blockId, { text, marks, noteId }]) =>
-      invoke('notes_set_text_content', { noteId, blockId, text, marks: marks ?? [] }).catch((e) =>
-        console.error('[editor-state] flush failed', e)
-      )
-    )
+      invoke("notes_set_text_content", { noteId, blockId, text, marks: marks ?? [] }).catch((e) =>
+        console.error("[editor-state] flush failed", e),
+      ),
+    ),
   ).then(() => {
     flushingSaves = null;
   });
@@ -300,7 +300,7 @@ function scheduleSave(blockId: string, text: string, marks: Mark[] | undefined, 
 }
 
 function getCurrentObjectId(): string {
-  return objectId ?? '';
+  return objectId ?? "";
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -330,7 +330,7 @@ function applyRows(newObjectId: string, rows: BlockRow[]) {
       if (!byParent.has(row.parentId)) byParent.set(row.parentId, []);
       byParent.get(row.parentId)!.push(b.id!);
     }
-    if (b.content && 'style' in b.content) {
+    if (b.content && "style" in b.content) {
       const ct = b.content as ContentText;
       if (ct.style === TS.Title && !tid) tid = b.id!;
       else if (ct.style === TS.Description && !did) did = b.id!;
@@ -385,13 +385,13 @@ function initEmpty(newObjectId: string) {
     id: tid,
     type: BT.Text,
     childrenIds: [],
-    content: mkContent('', TS.Title) as ContentText,
+    content: mkContent("", TS.Title) as ContentText,
   });
   newBlocks.set(pid, {
     id: pid,
     type: BT.Text,
     childrenIds: [],
-    content: mkContent('', TS.Paragraph) as ContentText,
+    content: mkContent("", TS.Paragraph) as ContentText,
   });
   blocks = newBlocks;
   rootChildren = [tid, pid];
@@ -408,8 +408,8 @@ function initEmpty(newObjectId: string) {
  */
 export async function init(
   objectIdParam: string,
-  source: 'notes' | 'journal' = 'notes',
-  forceEmpty = false
+  source: "notes" | "journal" = "notes",
+  forceEmpty = false,
 ) {
   pendingInitId = objectIdParam;
   const cur = () => pendingInitId === objectIdParam;
@@ -429,7 +429,7 @@ export async function init(
   }
 
   try {
-    if (source === 'journal') {
+    if (source === "journal") {
       // Try Tauri backend first — objectIdParam is now a UUID, so use `id`
       const journalEntry: {
         id: string;
@@ -439,7 +439,7 @@ export async function init(
         mood: string | null;
         createdAt: number;
         updatedAt: number;
-      } | null = await invoke('get_journal_entry', { id: objectIdParam });
+      } | null = await invoke("get_journal_entry", { id: objectIdParam });
       if (!cur()) return;
       if (journalEntry?.blocks) {
         try {
@@ -449,14 +449,14 @@ export async function init(
               id: b.id ?? crypto.randomUUID(),
               objectId: objectIdParam,
               parentId: null,
-              type: b.type ?? 'text',
+              type: b.type ?? "text",
               content:
-                typeof b.content === 'string'
+                typeof b.content === "string"
                   ? b.content
-                  : JSON.stringify(b.content ?? { text: '', style: 0, marks: [], checked: false }),
-              fields: '{}',
+                  : JSON.stringify(b.content ?? { text: "", style: 0, marks: [], checked: false }),
+              fields: "{}",
               align: 0,
-              bgColor: '',
+              bgColor: "",
               position: i,
               createdAt: 0,
               updatedAt: 0,
@@ -484,14 +484,14 @@ export async function init(
               id: b.id ?? crypto.randomUUID(),
               objectId: objectIdParam,
               parentId: null,
-              type: b.type ?? 'text',
+              type: b.type ?? "text",
               content:
-                typeof b.content === 'string'
+                typeof b.content === "string"
                   ? b.content
-                  : JSON.stringify(b.content ?? { text: '', style: 0, marks: [], checked: false }),
-              fields: '{}',
+                  : JSON.stringify(b.content ?? { text: "", style: 0, marks: [], checked: false }),
+              fields: "{}",
               align: 0,
-              bgColor: '',
+              bgColor: "",
               position: i,
               createdAt: 0,
               updatedAt: 0,
@@ -512,7 +512,7 @@ export async function init(
       return;
     }
 
-    const full = await invoke<NoteWithBlocks>('notes_object_full', { noteId: objectIdParam });
+    const full = await invoke<NoteWithBlocks>("notes_object_full", { noteId: objectIdParam });
     if (!cur()) return;
 
     if (full.blocks.length === 0) {
@@ -525,7 +525,7 @@ export async function init(
     loaded = true;
   } catch (e) {
     if (!cur()) return;
-    console.error('[editor-state] init failed:', e);
+    console.error("[editor-state] init failed:", e);
     initEmpty(objectIdParam);
   }
 }
@@ -581,19 +581,19 @@ export async function toggleMark(
   blockId: string,
   markType: MarkType,
   range: TextRange,
-  param?: string
+  param?: string,
 ) {
   const block = blocks.get(blockId);
   if (!block || !isTextBlock(block)) return;
   const ct = block.content as ContentText;
   let marks = [...(ct.marks ?? [])];
   const ei = marks.findIndex(
-    (m) => m.type === markType && m.range.from === range.from && m.range.to === range.to
+    (m) => m.type === markType && m.range.from === range.from && m.range.to === range.to,
   );
   if (ei >= 0) marks.splice(ei, 1);
   else {
     marks = marks.filter(
-      (m) => m.type !== markType || !(m.range.from < range.to && m.range.to > range.from)
+      (m) => m.type !== markType || !(m.range.from < range.to && m.range.to > range.from),
     );
     marks.push({ type: markType, range, param });
   }
@@ -602,14 +602,14 @@ export async function toggleMark(
   blocks.set(blockId, { ...block!, content: { ...ct, marks } });
 
   try {
-    await invoke('notes_set_text_content', {
+    await invoke("notes_set_text_content", {
       noteId: getCurrentObjectId(),
       blockId,
       text: ct.text,
       marks,
     });
   } catch (e) {
-    console.error('[editor-state] toggleMark', e);
+    console.error("[editor-state] toggleMark", e);
   }
 }
 
@@ -643,7 +643,7 @@ export function hasMarkAtSelection(blockId: string, markType: MarkType): boolean
   const block = blocks.get(blockId);
   if (!block || !isTextBlock(block)) return false;
   return ((block.content as ContentText).marks ?? []).some(
-    (m) => m.type === markType && m.range.from <= from && m.range.to >= to
+    (m) => m.type === markType && m.range.from <= from && m.range.to >= to,
   );
 }
 
@@ -655,9 +655,9 @@ export async function setBlockChecked(blockId: string, checked: boolean) {
   const ct = b.content as ContentText;
   blocks.set(blockId, { ...b!, content: { ...ct, checked } });
   try {
-    await invoke('notes_set_text_checked', { noteId: getCurrentObjectId(), blockId, checked });
+    await invoke("notes_set_text_checked", { noteId: getCurrentObjectId(), blockId, checked });
   } catch (e) {
-    console.error('[editor-state] setBlockChecked', e);
+    console.error("[editor-state] setBlockChecked", e);
   }
 }
 
@@ -681,23 +681,23 @@ export async function convertBlockStyle(blockId: string, newStyle: TextStyle) {
 
   blocks.set(blockId, { ...b!, content: { ...ct, style: newStyle } });
   try {
-    await invoke('notes_set_text_style', {
+    await invoke("notes_set_text_style", {
       noteId: getCurrentObjectId(),
       blockIds: [blockId],
       style: String(newStyle),
     });
   } catch (e) {
-    console.error('[editor-state] convertBlockStyle', e);
+    console.error("[editor-state] convertBlockStyle", e);
   }
 }
 
 export async function addBlock(
   afterId?: string,
-  text = '',
-  style: TextStyle = TS.Paragraph
+  text = "",
+  style: TextStyle = TS.Paragraph,
 ): Promise<string> {
   const oid = objectId;
-  if (!oid) return '';
+  if (!oid) return "";
   const children = rootChildren;
   let position = children.length;
   if (afterId) {
@@ -705,12 +705,12 @@ export async function addBlock(
     if (idx !== -1) position = idx + 1;
   }
   try {
-    const result: BlockRow = await invoke('notes_block_create', {
+    const result: BlockRow = await invoke("notes_block_create", {
       params: {
         noteId: oid,
         parentId: null,
         targetId: afterId ?? null,
-        blockType: 'text',
+        blockType: "text",
         content: mkContent(text, style),
         position,
         align: 0,
@@ -727,8 +727,8 @@ export async function addBlock(
     } else rootChildren.push(newId);
     return newId;
   } catch (e) {
-    console.error('[editor-state] addBlock', e);
-    return '';
+    console.error("[editor-state] addBlock", e);
+    return "";
   }
 }
 
@@ -746,9 +746,9 @@ export async function deleteBlock(blockId: string) {
   }
   if (focusedId === blockId) focusedId = null;
   try {
-    await invoke('notes_block_unlink', { noteId: oid, blockIds: [blockId, ...childIds] });
+    await invoke("notes_block_unlink", { noteId: oid, blockIds: [blockId, ...childIds] });
   } catch (e) {
-    console.error('[editor-state] deleteBlock', e);
+    console.error("[editor-state] deleteBlock", e);
   }
 }
 
@@ -760,23 +760,23 @@ export async function moveBlock(blockId: string, newIndex: number) {
   rootChildren.splice(idx, 1);
   rootChildren.splice(Math.min(newIndex, rootChildren.length), 0, blockId);
   try {
-    await invoke('notes_block_move', {
+    await invoke("notes_block_move", {
       params: { noteId: oid, blockIds: [blockId], targetParentId: null, position: newIndex },
     });
   } catch (e) {
-    console.error('[editor-state] moveBlock', e);
+    console.error("[editor-state] moveBlock", e);
   }
 }
 
 export async function duplicateBlock(blockId: string): Promise<string> {
   const oid = objectId;
-  if (!oid || !blocks.get(blockId)) return '';
+  if (!oid || !blocks.get(blockId)) return "";
   try {
-    const rows = await invoke<BlockRow[]>('notes_block_duplicate', {
+    const rows = await invoke<BlockRow[]>("notes_block_duplicate", {
       params: { noteId: oid, blockIds: [blockId], targetId: blockId },
     });
     const first = rows[0];
-    if (!first) return '';
+    if (!first) return "";
     const nb2 = rowToBlock(first);
     blocks.set(nb2.id!, nb2);
     const idx = rootChildren.indexOf(blockId);
@@ -784,26 +784,26 @@ export async function duplicateBlock(blockId: string): Promise<string> {
     else rootChildren.push(nb2.id!);
     return nb2.id!;
   } catch (e) {
-    console.error('[editor-state] duplicateBlock', e);
-    return '';
+    console.error("[editor-state] duplicateBlock", e);
+    return "";
   }
 }
 
 export async function addChildBlock(
   parentId: string,
-  text = '',
-  style: TextStyle = TS.Paragraph
+  text = "",
+  style: TextStyle = TS.Paragraph,
 ): Promise<string> {
   const oid = objectId;
-  if (!oid) return '';
+  if (!oid) return "";
   const position = (blocks.get(parentId)?.childrenIds ?? []).length;
   try {
-    const result: BlockRow = await invoke('notes_block_create', {
+    const result: BlockRow = await invoke("notes_block_create", {
       params: {
         noteId: oid,
         parentId,
         targetId: null,
-        blockType: 'text',
+        blockType: "text",
         content: mkContent(text, style),
         position,
         align: 0,
@@ -817,8 +817,8 @@ export async function addChildBlock(
     if (ep) blocks.set(parentId, { ...ep, childrenIds: [...(ep.childrenIds ?? []), newId] });
     return newId;
   } catch (e) {
-    console.error('[editor-state] addChildBlock', e);
-    return '';
+    console.error("[editor-state] addChildBlock", e);
+    return "";
   }
 }
 
@@ -828,28 +828,28 @@ export async function setBlockColor(blockId: string, color: string) {
   const ct = b.content as ContentText;
   blocks.set(blockId, { ...b!, content: { ...ct, color } });
   try {
-    await invoke('notes_set_text_color', {
+    await invoke("notes_set_text_color", {
       noteId: getCurrentObjectId(),
       blockIds: [blockId],
       color,
     });
   } catch (e) {
-    console.error('[editor-state] setBlockColor', e);
+    console.error("[editor-state] setBlockColor", e);
   }
 }
 
 export async function setBlockBgColor(blockId: string, bgColor: string) {
   const b = blocks.get(blockId);
   if (!b) return;
-  blocks.set(blockId, { ...b!, bgColor: bgColor === 'default' ? undefined : bgColor });
+  blocks.set(blockId, { ...b!, bgColor: bgColor === "default" ? undefined : bgColor });
   try {
-    await invoke('notes_set_background_color', {
+    await invoke("notes_set_background_color", {
       noteId: getCurrentObjectId(),
       blockIds: [blockId],
       color: bgColor,
     });
   } catch (e) {
-    console.error('[editor-state] setBlockBgColor', e);
+    console.error("[editor-state] setBlockBgColor", e);
   }
 }
 
@@ -860,13 +860,13 @@ export async function setBlockAlign(blockId: string, align: string) {
     blocks.set(blockId, { ...b, fields: { ...b.fields, hAlign: align } });
   }
   try {
-    await invoke('notes_set_align', {
+    await invoke("notes_set_align", {
       noteId: getCurrentObjectId(),
       blockIds: [blockId],
       align: aMap[align] ?? 0,
     });
   } catch (e) {
-    console.error('[editor-state] setBlockAlign', e);
+    console.error("[editor-state] setBlockAlign", e);
   }
 }
 
@@ -874,11 +874,11 @@ export async function clearBlockStyle(blockId: string) {
   const b = blocks.get(blockId);
   if (!b || !isTextBlock(b)) return;
   const ct = b.content as ContentText;
-  blocks.set(blockId, { ...b!, content: { ...ct, marks: [], color: '' } });
+  blocks.set(blockId, { ...b!, content: { ...ct, marks: [], color: "" } });
   try {
-    await invoke('notes_clear_text_style', { noteId: getCurrentObjectId(), blockIds: [blockId] });
+    await invoke("notes_clear_text_style", { noteId: getCurrentObjectId(), blockIds: [blockId] });
   } catch (e) {
-    console.error('[editor-state] clearBlockStyle', e);
+    console.error("[editor-state] clearBlockStyle", e);
   }
 }
 
@@ -900,7 +900,7 @@ export function getBlockChildren(pid: string): Block[] {
 
 /** Get current objectId — for imperative use */
 export function getObjectId(): string {
-  return objectId ?? '';
+  return objectId ?? "";
 }
 
 // ─── Toggle state ─────────────────────────────────────────────────────
@@ -936,7 +936,7 @@ export function clearBlocks() {
     id: pid,
     type: BT.Text,
     childrenIds: [],
-    content: mkContent('', TS.Paragraph) as ContentText,
+    content: mkContent("", TS.Paragraph) as ContentText,
   });
   blocks = newBlocks;
   rootChildren = [pid];

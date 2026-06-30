@@ -286,7 +286,7 @@
 }
 
 .tasks-resize-handle::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0 -6px;
 }
@@ -333,7 +333,7 @@
 }
 
 .tasks-group-header::after {
-  content: '';
+  content: "";
   flex: 1;
   height: 1px;
   background: color-mix(in srgb, var(--foreground) 4%, transparent);
@@ -546,7 +546,7 @@
 }
 
 .tasks-checkbox--checked::after {
-  content: '';
+  content: "";
   width: 7px;
   height: 7px;
   background: var(--background);

@@ -12,13 +12,16 @@ function getPaystackSecretKey() {
 
 async function verifyTransaction(reference: string): Promise<boolean> {
   try {
-    const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
-      headers: {
-        Authorization: `Bearer ${getPaystackSecretKey()}`,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-    });
+    const res = await fetch(
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${getPaystackSecretKey()}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      }
+    );
     const body = await res.json();
     return body?.status === true && body?.data?.status === 'success';
   } catch {
@@ -59,9 +62,7 @@ export default async function PricingSuccessPage({
         <p className="pricing-success__eyebrow">Payment received</p>
         <h1>Thanks for subscribing.</h1>
         <p className="pricing-success__copy text-body">
-          {email
-            ? `We sent a confirmation to ${email}.`
-            : 'Your payment was successful.'}
+          {email ? `We sent a confirmation to ${email}.` : 'Your payment was successful.'}
         </p>
         <p className="pricing-success__copy text-body">
           Your apps will unlock automatically in the desktop app. This usually takes a minute.

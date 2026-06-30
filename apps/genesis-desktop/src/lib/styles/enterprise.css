@@ -17,7 +17,7 @@
 input,
 textarea,
 [contenteditable],
-[contenteditable='true'],
+[contenteditable="true"],
 .notes-editor,
 .note-body,
 .block-text,
@@ -58,9 +58,9 @@ kbd,
 
 button,
 a,
-[role='button'],
-[role='tab'],
-[role='menuitem'],
+[role="button"],
+[role="tab"],
+[role="menuitem"],
 label,
 summary,
 .clickable,
@@ -81,26 +81,26 @@ summary,
   cursor: default !important;
 }
 
-input[type='text'],
-input[type='email'],
-input[type='password'],
-input[type='search'],
-input[type='url'],
-input[type='number'],
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="url"],
+input[type="number"],
 textarea,
-[contenteditable='true'] {
+[contenteditable="true"] {
   cursor: text !important;
 }
 
-input[type='range'] {
+input[type="range"] {
   cursor: default !important;
 }
-input[type='color'] {
+input[type="color"] {
   cursor: default !important;
 }
 
 [disabled],
-[aria-disabled='true'] {
+[aria-disabled="true"] {
   cursor: default !important;
   opacity: 0.5;
 }
@@ -259,7 +259,7 @@ body {
 
 button,
 a,
-[role='button'],
+[role="button"],
 .nav-item,
 .sidebar-item {
   transition:

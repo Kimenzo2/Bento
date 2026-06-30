@@ -52,9 +52,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="theme-color" content="#f7f7f7" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)" />
         <link rel="icon" href="/bento-icon.png" type="image/png" />
-        <script dangerouslySetInnerHTML={{
-          __html: `(function(){try{var t=localStorage.getItem("theme");if(t==="dark"||t==="light"){document.documentElement.setAttribute("data-theme",t)}else if(window.matchMedia("(prefers-color-scheme:dark)").matches){document.documentElement.setAttribute("data-theme","dark")}}catch(e){}})()`,
-        }} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("theme");if(t==="dark"||t==="light"){document.documentElement.setAttribute("data-theme",t)}else if(window.matchMedia("(prefers-color-scheme:dark)").matches){document.documentElement.setAttribute("data-theme","dark")}}catch(e){}})()`,
+          }}
+        />
       </head>
       <body className={`${inter.variable} ${dmSans.variable} ${biscotti.variable}`}>
         <a href="#main-content" className="skip-link">

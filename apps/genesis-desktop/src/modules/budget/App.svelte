@@ -258,7 +258,7 @@
       });
       showAddAi = false;
       resetNewAi();
-      await Promise.all([loadAiCosts()]);
+      await loadAiCosts();
     } catch (e) { error = String(e); }
   }
 

@@ -1,39 +1,39 @@
-import type { Component } from 'svelte';
-import { starterModuleIds, type StarterModuleId } from '$lib/data/module-catalog';
+import type { Component } from "svelte";
+import { starterModuleIds, type StarterModuleId } from "$lib/data/module-catalog";
 
 type StarterModule = {
   default: Component<any>;
 };
 
 export const starterModuleLoaders = {
-  journal: () => import('../../modules/journal/App.svelte') as unknown as Promise<StarterModule>,
-  tasks: () => import('../../modules/tasks/App.svelte') as unknown as Promise<StarterModule>,
-  habits: () => import('../../modules/habits/App.svelte') as unknown as Promise<StarterModule>,
-  focus: () => import('../../modules/focus/App.svelte') as unknown as Promise<StarterModule>,
+  journal: () => import("../../modules/journal/App.svelte") as unknown as Promise<StarterModule>,
+  tasks: () => import("../../modules/tasks/App.svelte") as unknown as Promise<StarterModule>,
+  habits: () => import("../../modules/habits/App.svelte") as unknown as Promise<StarterModule>,
+  focus: () => import("../../modules/focus/App.svelte") as unknown as Promise<StarterModule>,
   passwords: () =>
-    import('../../modules/passwords/App.svelte') as unknown as Promise<StarterModule>,
-  health: () => import('../../modules/health/App.svelte') as unknown as Promise<StarterModule>,
-  sleep: () => import('../../modules/sleep/App.svelte') as unknown as Promise<StarterModule>,
+    import("../../modules/passwords/App.svelte") as unknown as Promise<StarterModule>,
+  health: () => import("../../modules/health/App.svelte") as unknown as Promise<StarterModule>,
+  sleep: () => import("../../modules/sleep/App.svelte") as unknown as Promise<StarterModule>,
   nutrition: () =>
-    import('../../modules/nutrition/App.svelte') as unknown as Promise<StarterModule>,
-  mood: () => import('../../modules/mood/App.svelte') as unknown as Promise<StarterModule>,
-  budget: () => import('../../modules/budget/App.svelte') as unknown as Promise<StarterModule>,
+    import("../../modules/nutrition/App.svelte") as unknown as Promise<StarterModule>,
+  mood: () => import("../../modules/mood/App.svelte") as unknown as Promise<StarterModule>,
+  budget: () => import("../../modules/budget/App.svelte") as unknown as Promise<StarterModule>,
   flashcards: () =>
-    import('../../modules/flashcards/App.svelte') as unknown as Promise<StarterModule>,
-  grocery: () => import('../../modules/grocery/App.svelte') as unknown as Promise<StarterModule>,
-  recipes: () => import('../../modules/recipes/App.svelte') as unknown as Promise<StarterModule>,
-  time: () => import('../../modules/time/App.svelte') as unknown as Promise<StarterModule>,
-  goals: () => import('../../modules/goals/App.svelte') as unknown as Promise<StarterModule>,
+    import("../../modules/flashcards/App.svelte") as unknown as Promise<StarterModule>,
+  grocery: () => import("../../modules/grocery/App.svelte") as unknown as Promise<StarterModule>,
+  recipes: () => import("../../modules/recipes/App.svelte") as unknown as Promise<StarterModule>,
+  time: () => import("../../modules/time/App.svelte") as unknown as Promise<StarterModule>,
+  goals: () => import("../../modules/goals/App.svelte") as unknown as Promise<StarterModule>,
   clipboard: () =>
-    import('../../modules/clipboard/App.svelte') as unknown as Promise<StarterModule>,
+    import("../../modules/clipboard/App.svelte") as unknown as Promise<StarterModule>,
   breathing: () =>
-    import('../../modules/breathing/App.svelte') as unknown as Promise<StarterModule>,
-  'voice-memos': () =>
-    import('../../modules/voice-memos/App.svelte') as unknown as Promise<StarterModule>,
+    import("../../modules/breathing/App.svelte") as unknown as Promise<StarterModule>,
+  "voice-memos": () =>
+    import("../../modules/voice-memos/App.svelte") as unknown as Promise<StarterModule>,
   countdown: () =>
-    import('../../modules/countdown/App.svelte') as unknown as Promise<StarterModule>,
+    import("../../modules/countdown/App.svelte") as unknown as Promise<StarterModule>,
   telemetry: () =>
-    import('../../modules/telemetry/App.svelte') as unknown as Promise<StarterModule>,
+    import("../../modules/telemetry/App.svelte") as unknown as Promise<StarterModule>,
 };
 
 const starterModuleIdSet = new Set<string>(starterModuleIds);

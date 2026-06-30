@@ -133,7 +133,8 @@ function AccordionItem({
           maxHeight: open ? '500px' : '0px',
           opacity: open ? 1 : 0,
           overflow: 'hidden',
-          transition: 'max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          transition:
+            'max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         <div
@@ -230,9 +231,7 @@ export default function FAQ() {
           </p>
         </header>
 
-        <div
-          className="faq-grid"
-        >
+        <div className="faq-grid">
           <FAQColumn items={faqsLeft} startIndex={0} />
           <FAQColumn items={faqsRight} startIndex={faqsLeft.length} />
         </div>

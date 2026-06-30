@@ -54,7 +54,8 @@ const DEFAULT_METHOD_RULES: PaystackMethodRule[] = [
     checkoutVisible: true,
     fallbackToCard: true,
     sortOrder: 5,
-    notes: 'Apple Pay is available globally on supported Apple devices via Paystack hosted checkout.',
+    notes:
+      'Apple Pay is available globally on supported Apple devices via Paystack hosted checkout.',
   },
   {
     methodKey: 'bank',
@@ -216,7 +217,9 @@ const METHOD_LABELS: Record<PaystackMethodKey, string> = {
   payattitude: 'Payattitude',
 };
 
-function normalizeRule(rule: Partial<PaystackMethodRule> & { methodKey: string; countryCode: string }): PaystackMethodRule | null {
+function normalizeRule(
+  rule: Partial<PaystackMethodRule> & { methodKey: string; countryCode: string }
+): PaystackMethodRule | null {
   const normalizedMethod = rule.methodKey.trim().toLowerCase();
   if (!PAYSTACK_METHOD_KEYS.includes(normalizedMethod as PaystackMethodKey)) return null;
 
@@ -247,7 +250,9 @@ export function toPaystackMethodViews(rules: PaystackMethodRule[]) {
 export async function loadPaystackMethodRules(supabase: any): Promise<PaystackMethodRule[]> {
   const { data, error } = await supabase
     .from('paystack_payment_method_rules')
-    .select('method_key, country_code, channel, enabled, checkout_visible, fallback_to_card, sort_order, notes')
+    .select(
+      'method_key, country_code, channel, enabled, checkout_visible, fallback_to_card, sort_order, notes'
+    )
     .order('sort_order', { ascending: true })
     .order('country_code', { ascending: true });
 
@@ -300,7 +305,10 @@ export function getPaystackMethodsForCountry(
   });
 }
 
-export function getPaystackChannelsForCountry(countryCode: string | null, rules: PaystackMethodRule[]): string[] {
+export function getPaystackChannelsForCountry(
+  countryCode: string | null,
+  rules: PaystackMethodRule[]
+): string[] {
   return getPaystackMethodsForCountry(countryCode, rules).map((rule) => rule.channel);
 }
 

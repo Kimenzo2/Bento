@@ -128,13 +128,23 @@ async function resolveProfileId(
   update: ReturnType<typeof buildBillingUpdate>
 ) {
   if (update?.profileId) {
-    const { data } = await supabase.from('profiles').select('id').eq('id', update.profileId).maybeSingle();
+    const { data } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', update.profileId)
+      .maybeSingle();
     if (data?.id) return data.id;
   }
 
   const data = payload.data ?? {};
-  const metadata = (data.metadata && typeof data.metadata === 'object' ? (data.metadata as Record<string, unknown>) : {}) ?? {};
-  const customer = (data.customer && typeof data.customer === 'object' ? (data.customer as Record<string, unknown>) : {}) ?? {};
+  const metadata =
+    (data.metadata && typeof data.metadata === 'object'
+      ? (data.metadata as Record<string, unknown>)
+      : {}) ?? {};
+  const customer =
+    (data.customer && typeof data.customer === 'object'
+      ? (data.customer as Record<string, unknown>)
+      : {}) ?? {};
   const email =
     (typeof metadata.customer_email === 'string' && metadata.customer_email) ||
     (typeof metadata.email === 'string' && metadata.email) ||
@@ -144,7 +154,11 @@ async function resolveProfileId(
 
   if (!email) return null;
 
-  const { data: profile } = await supabase.from('profiles').select('id').eq('email', email).maybeSingle();
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('email', email)
+    .maybeSingle();
   return profile?.id ?? null;
 }
 
@@ -174,11 +188,20 @@ export async function POST(request: Request) {
 
   if (!isSupportedPaystackEvent(eventName)) {
     console.info('[paystack:webhook] unsupported event ignored', eventName, eventHash);
-    return NextResponse.json({ received: true, ignored: true, unsupported: true, event: eventName });
+    return NextResponse.json({
+      received: true,
+      ignored: true,
+      unsupported: true,
+      event: eventName,
+    });
   }
 
   if (!update) {
-    console.warn('[paystack:webhook] supported event had no billable payload', eventName, eventHash);
+    console.warn(
+      '[paystack:webhook] supported event had no billable payload',
+      eventName,
+      eventHash
+    );
     return NextResponse.json({ received: true, ignored: true, malformed: true, event: eventName });
   }
 
@@ -202,7 +225,13 @@ export async function POST(request: Request) {
 
   if (!update.affectsBilling) {
     try {
-      await upsertPaymentsRecord(supabase, eventHash, { ...update, profileId }, payload, 'processing');
+      await upsertPaymentsRecord(
+        supabase,
+        eventHash,
+        { ...update, profileId },
+        payload,
+        'processing'
+      );
       await storeAuditEvent(supabase, eventHash, payload);
       await syncCheckoutIntentFromWebhook(supabase, {
         reference: update.paystackReference,
@@ -212,8 +241,16 @@ export async function POST(request: Request) {
         processedAt: new Date().toISOString(),
         eventHash,
       });
-      await upsertPaymentsRecord(supabase, eventHash, { ...update, profileId }, payload, 'completed');
-      console.info('[paystack:webhook] audit-only event persisted', eventName, eventHash, { profileId });
+      await upsertPaymentsRecord(
+        supabase,
+        eventHash,
+        { ...update, profileId },
+        payload,
+        'completed'
+      );
+      console.info('[paystack:webhook] audit-only event persisted', eventName, eventHash, {
+        profileId,
+      });
       return NextResponse.json({ received: true, ignored: true, event: eventName });
     } catch (error) {
       console.error('[paystack:webhook] audit-only persistence failed', error);
@@ -224,7 +261,13 @@ export async function POST(request: Request) {
   if (!profileId) {
     console.warn('[paystack:webhook] could not resolve profile for event', eventName);
     try {
-      await upsertPaymentsRecord(supabase, eventHash, { ...update, profileId: null }, payload, 'processing');
+      await upsertPaymentsRecord(
+        supabase,
+        eventHash,
+        { ...update, profileId: null },
+        payload,
+        'processing'
+      );
       await storeAuditEvent(supabase, eventHash, payload);
       await syncCheckoutIntentFromWebhook(supabase, {
         reference: update.paystackReference,
@@ -234,7 +277,13 @@ export async function POST(request: Request) {
         processedAt: new Date().toISOString(),
         eventHash,
       });
-      await upsertPaymentsRecord(supabase, eventHash, { ...update, profileId: null }, payload, 'completed');
+      await upsertPaymentsRecord(
+        supabase,
+        eventHash,
+        { ...update, profileId: null },
+        payload,
+        'completed'
+      );
       return NextResponse.json({ received: true, unresolved_profile: true, event: eventName });
     } catch (error) {
       console.error('[paystack:webhook] unresolved profile persistence failed', error);
@@ -251,9 +300,17 @@ export async function POST(request: Request) {
       billingStatus: update.billingStatus,
     });
 
-    await upsertPaymentsRecord(supabase, eventHash, { ...update, profileId }, payload, 'processing');
+    await upsertPaymentsRecord(
+      supabase,
+      eventHash,
+      { ...update, profileId },
+      payload,
+      'processing'
+    );
 
-    const { error: profileError } = await supabase.from('profiles').upsert(profilePatch, { onConflict: 'id' });
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .upsert(profilePatch, { onConflict: 'id' });
     if (profileError) throw profileError;
 
     console.info('[paystack:webhook] profile updated', profileId, update.billingStatus);

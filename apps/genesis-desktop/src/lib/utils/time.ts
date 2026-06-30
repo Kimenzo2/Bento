@@ -25,14 +25,14 @@
 
 /** Mirrors Anytype's I.DateFormat enum values */
 export type DateFormatId =
-  | 'MM/DD/YYYY'
-  | 'DD/MM/YYYY'
-  | 'YYYY-MM-DD'
-  | 'DD.MM.YYYY'
-  | 'MMMM D, YYYY';
+  | "MM/DD/YYYY"
+  | "DD/MM/YYYY"
+  | "YYYY-MM-DD"
+  | "DD.MM.YYYY"
+  | "MMMM D, YYYY";
 
 /** Mirrors Anytype's I.TimeFormat enum values */
-export type TimeFormatId = '12h' | '24h';
+export type TimeFormatId = "12h" | "24h";
 
 /** Options passed to `time.format()` */
 export interface FormatOptions {
@@ -73,7 +73,7 @@ function fromComponents(
   hours = 0,
   minutes = 0,
   seconds = 0,
-  ms = 0
+  ms = 0,
 ): number {
   return new Date(year, month - 1, day, hours, minutes, seconds, ms).getTime();
 }
@@ -88,13 +88,13 @@ function parseDate(value: string, format?: DateFormatId): number {
   if (!value) return NaN;
 
   // Try ISO first (fast path)
-  if (!format || format === 'YYYY-MM-DD') {
+  if (!format || format === "YYYY-MM-DD") {
     const d = new Date(value);
     if (!isNaN(d.getTime())) return d.getTime();
   }
 
   // Manual parsing
-  const [datePart, timePart] = value.split(' ');
+  const [datePart, timePart] = value.split(" ");
   let d = 0,
     m = 0,
     y = 0,
@@ -102,18 +102,18 @@ function parseDate(value: string, format?: DateFormatId): number {
     i = 0,
     s = 0;
 
-  const parts = (datePart || '').split(/[./-]/);
+  const parts = (datePart || "").split(/[./-]/);
   switch (format) {
-    case 'YYYY-MM-DD':
+    case "YYYY-MM-DD":
       [y, m, d] = parts.map(Number);
       break;
-    case 'MM/DD/YYYY':
+    case "MM/DD/YYYY":
       [m, d, y] = parts.map(Number);
       break;
-    case 'DD/MM/YYYY':
+    case "DD/MM/YYYY":
       [d, m, y] = parts.map(Number);
       break;
-    case 'DD.MM.YYYY':
+    case "DD.MM.YYYY":
       [d, m, y] = parts.map(Number);
       break;
     default:
@@ -122,7 +122,7 @@ function parseDate(value: string, format?: DateFormatId): number {
   }
 
   if (timePart) {
-    const tParts = timePart.split(':');
+    const tParts = timePart.split(":");
     h = Number(tParts[0]) || 0;
     i = Number(tParts[1]) || 0;
     s = Number(tParts[2]) || 0;
@@ -145,8 +145,8 @@ function today(): number {
 function dateKey(ts?: number): string {
   const d = ts !== undefined ? new Date(ts) : new Date();
   const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 
@@ -175,10 +175,10 @@ function monthStart(ts: number): number {
 // ── Formatting: date (Anytype's date() + dateFormat() + dateWithFormat()) ───
 
 function _pad(n: number, len = 2): string {
-  return String(n).padStart(len, '0');
+  return String(n).padStart(len, "0");
 }
 
-function _formatIntl(ts: number, opts: Intl.DateTimeFormatOptions, locale = 'en-US'): string {
+function _formatIntl(ts: number, opts: Intl.DateTimeFormatOptions, locale = "en-US"): string {
   return new Intl.DateTimeFormat(locale, opts).format(new Date(ts));
 }
 
@@ -186,35 +186,10 @@ function _formatIntl(ts: number, opts: Intl.DateTimeFormatOptions, locale = 'en-
  * Format a timestamp using a custom format string (PHP-style, like Anytype's date()).
  * Supports: Y, y, m, n, d, j, F, M, D, l, H, h, g, i, s, A, a
  */
-function formatCustom(ts: number, fmt: string, locale = 'en-US'): string {
+function formatCustom(ts: number, fmt: string, locale = "en-US"): string {
   const d = new Date(ts);
   const pad = _pad;
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const monthNames = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
 
-  // Use locale for localized names when available
-  let localizedDayNames = dayNames;
-  let localizedMonthNames = monthNames;
-  try {
-    const dtf = new Intl.DateTimeFormat(locale, { weekday: 'long', month: 'long' });
-    // Just get the format parts to verify locale is valid
-    dtf.format(new Date(0));
-  } catch {
-    // fall back to English
-  }
   // We'll use Intl for localized names in specific format modes below
 
   const tokens: Record<string, () => string> = {
@@ -224,13 +199,13 @@ function formatCustom(ts: number, fmt: string, locale = 'en-US'): string {
     // Month
     m: () => pad(d.getMonth() + 1),
     n: () => String(d.getMonth() + 1),
-    F: () => _formatIntl(ts, { month: 'long' }, locale),
-    M: () => _formatIntl(ts, { month: 'short' }, locale),
+    F: () => _formatIntl(ts, { month: "long" }, locale),
+    M: () => _formatIntl(ts, { month: "short" }, locale),
     // Day
     d: () => pad(d.getDate()),
     j: () => String(d.getDate()),
-    D: () => _formatIntl(ts, { weekday: 'short' }, locale),
-    l: () => _formatIntl(ts, { weekday: 'long' }, locale),
+    D: () => _formatIntl(ts, { weekday: "short" }, locale),
+    l: () => _formatIntl(ts, { weekday: "long" }, locale),
     N: () => String(d.getDay() || 7),
     w: () => String(d.getDay()),
     // Hour
@@ -242,13 +217,13 @@ function formatCustom(ts: number, fmt: string, locale = 'en-US'): string {
     // Second
     s: () => pad(d.getSeconds()),
     // AM/PM
-    A: () => (d.getHours() >= 12 ? 'PM' : 'AM'),
-    a: () => (d.getHours() >= 12 ? 'pm' : 'am'),
+    A: () => (d.getHours() >= 12 ? "PM" : "AM"),
+    a: () => (d.getHours() >= 12 ? "pm" : "am"),
     // Escaped character
-    '\\': () => '',
+    "\\": () => "",
   };
 
-  let result = '';
+  let result = "";
   let escape = false;
   for (let ci = 0; ci < fmt.length; ci++) {
     const ch = fmt[ci];
@@ -257,7 +232,7 @@ function formatCustom(ts: number, fmt: string, locale = 'en-US'): string {
       escape = false;
       continue;
     }
-    if (ch === '\\') {
+    if (ch === "\\") {
       escape = true;
       continue;
     }
@@ -273,40 +248,40 @@ function formatCustom(ts: number, fmt: string, locale = 'en-US'): string {
 /** Resolve a DateFormatId to a PHP-style format string (Anytype's dateFormat()) */
 function _dateFormatString(fmt: DateFormatId): string {
   switch (fmt) {
-    case 'MM/DD/YYYY':
-      return 'm/d/Y';
-    case 'DD/MM/YYYY':
-      return 'd/m/Y';
-    case 'YYYY-MM-DD':
-      return 'Y-m-d';
-    case 'DD.MM.YYYY':
-      return 'd.m.Y';
-    case 'MMMM D, YYYY':
-      return 'F j, Y';
+    case "MM/DD/YYYY":
+      return "m/d/Y";
+    case "DD/MM/YYYY":
+      return "d/m/Y";
+    case "YYYY-MM-DD":
+      return "Y-m-d";
+    case "DD.MM.YYYY":
+      return "d.m.Y";
+    case "MMMM D, YYYY":
+      return "F j, Y";
   }
 }
 
 /** Format a timestamp using the user's date format setting */
-function formatDate(ts: number, dateFormat?: DateFormatId, locale = 'en-US'): string {
-  if (!isFinite(ts)) return '';
-  const fmt = dateFormat ?? 'MM/DD/YYYY';
+function formatDate(ts: number, dateFormat?: DateFormatId, locale = "en-US"): string {
+  if (!isFinite(ts)) return "";
+  const fmt = dateFormat ?? "MM/DD/YYYY";
 
-  if (fmt === 'MMMM D, YYYY') {
-    return _formatIntl(ts, { year: 'numeric', month: 'long', day: 'numeric' }, locale);
+  if (fmt === "MMMM D, YYYY") {
+    return _formatIntl(ts, { year: "numeric", month: "long", day: "numeric" }, locale);
   }
 
   return formatCustom(ts, _dateFormatString(fmt), locale);
 }
 
 /** Format a timestamp using the user's time format setting */
-function formatTime(ts: number, timeFormat?: TimeFormatId, locale = 'en-US'): string {
-  if (!isFinite(ts)) return '';
-  const fmt = timeFormat ?? '12h';
+function formatTime(ts: number, timeFormat?: TimeFormatId, locale = "en-US"): string {
+  if (!isFinite(ts)) return "";
+  const fmt = timeFormat ?? "12h";
 
-  if (fmt === '12h') {
-    return _formatIntl(ts, { hour: 'numeric', minute: '2-digit', hour12: true }, locale);
+  if (fmt === "12h") {
+    return _formatIntl(ts, { hour: "numeric", minute: "2-digit", hour12: true }, locale);
   }
-  return _formatIntl(ts, { hour: '2-digit', minute: '2-digit', hour12: false }, locale);
+  return _formatIntl(ts, { hour: "2-digit", minute: "2-digit", hour12: false }, locale);
 }
 
 /**
@@ -314,20 +289,20 @@ function formatTime(ts: number, timeFormat?: TimeFormatId, locale = 'en-US'): st
  * Returns e.g. "05/22/2026 2:30 PM"
  */
 function format(ts: number, opts?: FormatOptions): string {
-  if (!isFinite(ts)) return '';
-  const { locale = 'en-US', dateFormat = 'MM/DD/YYYY', timeFormat = '12h' } = opts ?? {};
+  if (!isFinite(ts)) return "";
+  const { locale = "en-US", dateFormat = "MM/DD/YYYY", timeFormat = "12h" } = opts ?? {};
   const d = formatDate(ts, dateFormat, locale);
   const t = formatTime(ts, timeFormat, locale);
   return `${d} ${t}`;
 }
 
 /** Format only the date part (Anytype's dateWithFormat) */
-function formatDateOnly(ts: number, dateFormat?: DateFormatId, locale = 'en-US'): string {
+function formatDateOnly(ts: number, dateFormat?: DateFormatId, locale = "en-US"): string {
   return formatDate(ts, dateFormat, locale);
 }
 
 /** Format only the time part (Anytype's timeWithFormat) */
-function formatTimeOnly(ts: number, timeFormat?: TimeFormatId, locale = 'en-US'): string {
+function formatTimeOnly(ts: number, timeFormat?: TimeFormatId, locale = "en-US"): string {
   return formatTime(ts, timeFormat, locale);
 }
 
@@ -335,12 +310,12 @@ function formatTimeOnly(ts: number, timeFormat?: TimeFormatId, locale = 'en-US')
 
 /** Returns "Today", "Tomorrow", "Yesterday", or empty (Anytype's dayString) */
 function dayString(ts: number): string {
-  const ds = formatCustom(ts, 'Y-m-d');
-  const td = formatCustom(now(), 'Y-m-d');
-  if (ds === td) return 'Today';
-  if (ds === formatCustom(now() + DAY, 'Y-m-d')) return 'Tomorrow';
-  if (ds === formatCustom(now() - DAY, 'Y-m-d')) return 'Yesterday';
-  return '';
+  const ds = formatCustom(ts, "Y-m-d");
+  const td = formatCustom(now(), "Y-m-d");
+  if (ds === td) return "Today";
+  if (ds === formatCustom(now() + DAY, "Y-m-d")) return "Tomorrow";
+  if (ds === formatCustom(now() - DAY, "Y-m-d")) return "Yesterday";
+  return "";
 }
 
 /**
@@ -348,8 +323,8 @@ function dayString(ts: number): string {
  * Today → time only; Yesterday/Tomorrow → word; This week → day name; Else → date
  */
 function timeAgo(ts: number, opts?: { locale?: string; timeFormat?: TimeFormatId }): string {
-  if (!isFinite(ts) || !ts) return '';
-  const { locale = 'en-US', timeFormat = '12h' } = opts ?? {};
+  if (!isFinite(ts) || !ts) return "";
+  const { locale = "en-US", timeFormat = "12h" } = opts ?? {};
 
   if (isToday(ts)) {
     return formatTime(ts, timeFormat, locale);
@@ -357,15 +332,15 @@ function timeAgo(ts: number, opts?: { locale?: string; timeFormat?: TimeFormatId
   const dayStr = dayString(ts);
   if (dayStr) return dayStr;
   if (isThisWeek(ts)) {
-    return formatCustom(ts, 'l', locale);
+    return formatCustom(ts, "l", locale);
   }
   // Show date with year if different year
   const thisYear = new Date(now()).getFullYear();
   const tsYear = new Date(ts).getFullYear();
   if (tsYear !== thisYear) {
-    return formatCustom(ts, 'd/m/Y');
+    return formatCustom(ts, "d/m/Y");
   }
-  return formatCustom(ts, 'd/m');
+  return formatCustom(ts, "d/m");
 }
 
 /**
@@ -373,7 +348,7 @@ function timeAgo(ts: number, opts?: { locale?: string; timeFormat?: TimeFormatId
  * → "3y", "2d", "5h", "30min", "45s"
  */
 function duration(ms: number): string {
-  if (!ms || !isFinite(ms)) return '';
+  if (!ms || !isFinite(ms)) return "";
 
   const abs = Math.abs(ms);
   if (abs >= YEAR_APPROX) return `${Math.round(abs / YEAR_APPROX)}y`;
@@ -387,9 +362,9 @@ function duration(ms: number): string {
  * Human-readable elapsed time → "2h 30m", "5m 10s", "just now"
  */
 function elapsed(ms: number): string {
-  if (!ms || !isFinite(ms)) return '';
+  if (!ms || !isFinite(ms)) return "";
   const abs = Math.abs(ms);
-  if (abs < SECONDS) return 'just now';
+  if (abs < SECONDS) return "just now";
   if (abs < MINUTES) return `${Math.floor(abs / SECONDS)}s ago`;
   if (abs < HOURS)
     return `${Math.floor(abs / MINUTES)}m ${Math.floor((abs % MINUTES) / SECONDS)}s ago`;
@@ -464,7 +439,7 @@ function mergeDateAndTime(dateTs: number, timeTs: number): number {
     date.day,
     time.hours,
     time.minutes,
-    time.seconds
+    time.seconds,
   ).getTime();
 }
 
@@ -550,7 +525,7 @@ function getMonthDays(year: number): Record<number, number> {
  * Generate calendar month grid (Anytype's getCalendarMonth).
  * Returns array of DayInfo objects including days from adjacent months.
  */
-function getCalendarMonth(ts: number, firstDay: 0 | 1 | 6 = 0, locale = 'en-US'): DayInfo[] {
+function getCalendarMonth(ts: number, firstDay: 0 | 1 | 6 = 0, _locale = "en-US"): DayInfo[] {
   const { year, month } = getCalendarDate(ts);
   const md = getMonthDays(year);
   const todayTs = today();
@@ -627,23 +602,23 @@ function getCalendarMonth(ts: number, firstDay: 0 | 1 | 6 = 0, locale = 'en-US')
 /**
  * Returns weekday names respecting firstDay preference (Anytype's getWeekDays)
  */
-function getWeekDays(firstDay: 0 | 1 | 6 = 0, locale = 'en-US'): { id: number; name: string }[] {
+function getWeekDays(firstDay: 0 | 1 | 6 = 0, locale = "en-US"): { id: number; name: string }[] {
   const days: { id: number; name: string }[] = [];
   for (let i = 1; i <= 7; i++) {
     const id = (i + firstDay - 1) % 7 || 7;
     const date = new Date(2024, 0, id); // Jan 7, 2024 is a Sunday
-    const name = new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(date);
+    const name = new Intl.DateTimeFormat(locale, { weekday: "long" }).format(date);
     days.push({ id, name });
   }
   return days;
 }
 
 /** Returns localized month names (Anytype's getMonths) */
-function getMonths(locale = 'en-US'): MonthInfo[] {
+function getMonths(locale = "en-US"): MonthInfo[] {
   const months: MonthInfo[] = [];
   for (let i = 1; i <= 12; i++) {
     const date = new Date(2024, i - 1, 1);
-    const name = new Intl.DateTimeFormat(locale, { month: 'long' }).format(date);
+    const name = new Intl.DateTimeFormat(locale, { month: "long" }).format(date);
     months.push({ id: i, name });
   }
   return months;
@@ -662,12 +637,12 @@ function getYears(start: number, end: number): YearInfo[] {
 
 /** Format a timestamp as ISO date string ("2024-07-15") */
 function toISODate(ts: number): string {
-  return formatCustom(ts, 'Y-m-d');
+  return formatCustom(ts, "Y-m-d");
 }
 
 /** Format a timestamp as ISO month string ("2026-05") */
 function toISOMonth(ts: number): string {
-  return formatCustom(ts, 'Y-m');
+  return formatCustom(ts, "Y-m");
 }
 
 /** Format a timestamp as ISO datetime string ("2024-07-15T14:30:00.000Z") */

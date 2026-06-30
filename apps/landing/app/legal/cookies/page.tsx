@@ -19,12 +19,9 @@ const sections: LegalSection[] = [
       <>
         <P>
           This Cookie Policy explains how <B>Bento</B> (&ldquo;we,&rdquo; &ldquo;our,&rdquo; or
-          &ldquo;us&rdquo;) uses cookies, local storage, and similar technologies when you visit
-          our website at{' '}
-          <a
-            href="https://iamazeyou.me"
-            className="legal-link"
-          >
+          &ldquo;us&rdquo;) uses cookies, local storage, and similar technologies when you visit our
+          website at{' '}
+          <a href="https://iamazeyou.me" className="legal-link">
             iamazeyou.me
           </a>{' '}
           or use our desktop application.
@@ -36,10 +33,7 @@ const sections: LegalSection[] = [
         </P>
         <P>
           This policy is part of our{' '}
-          <a
-            href="/legal/privacy"
-            className="legal-link"
-          >
+          <a href="/legal/privacy" className="legal-link">
             Privacy Policy
           </a>
           . By using our website or app, you consent to the use of cookies and storage as described
@@ -195,7 +189,9 @@ const sections: LegalSection[] = [
           browser&rsquo;s settings menu for options such as &ldquo;Clear browsing data,&rdquo;
           &ldquo;Block third-party cookies,&rdquo; or &ldquo;Site settings.&rdquo;
         </P>
-        <P>Keep in mind that blocking essential cookies will prevent Bento from working properly:</P>
+        <P>
+          Keep in mind that blocking essential cookies will prevent Bento from working properly:
+        </P>
         <DashList
           items={[
             'Blocking session cookies means you will not be able to log in',
@@ -250,19 +246,13 @@ const sections: LegalSection[] = [
           items={[
             <>
               <B>Cookie and privacy inquiries</B>:{' '}
-              <a
-                href="mailto:privacy@iamazeyou.me"
-                className="legal-link"
-              >
+              <a href="mailto:privacy@iamazeyou.me" className="legal-link">
                 privacy@iamazeyou.me
               </a>
             </>,
             <>
               <B>General contact</B>:{' '}
-              <a
-                href="mailto:support@iamazeyou.me"
-                className="legal-link"
-              >
+              <a href="mailto:support@iamazeyou.me" className="legal-link">
                 support@iamazeyou.me
               </a>
             </>,

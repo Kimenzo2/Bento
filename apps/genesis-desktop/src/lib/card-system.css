@@ -101,7 +101,7 @@
 /* ═══════════════════════════════════════════════════════════════════
    SHADCN CARD COMPONENT — strip ring and shadow, use bg contrast
    ═══════════════════════════════════════════════════════════════════ */
-[data-slot='card'] {
+[data-slot="card"] {
   background: var(--card);
   border: none !important;
   box-shadow: none !important;
@@ -115,7 +115,7 @@
    theme exactly. No border. No shadow. No ring. Floating is achieved
    by the overlay darkening everything else.
    ═══════════════════════════════════════════════════════════════════ */
-[data-slot='dialog-content'] {
+[data-slot="dialog-content"] {
   background: var(--background) !important;
   color: var(--foreground) !important;
   border: none !important;
@@ -127,7 +127,7 @@
 
 /* Overlay dims everything behind the dialog — that contrast IS the
    dialog's visual separation. No border needed. */
-[data-slot='dialog-overlay'] {
+[data-slot="dialog-overlay"] {
   background: color-mix(in srgb, var(--background) 20%, black 80%) !important;
   backdrop-filter: none !important;
 }
@@ -136,7 +136,7 @@
    SHEETS — same rule. Background = var(--background). No border.
    Sheet slides in from the edge, the overlay creates the separation.
    ═══════════════════════════════════════════════════════════════════ */
-[data-slot='sheet-content'] {
+[data-slot="sheet-content"] {
   background: var(--background) !important;
   color: var(--foreground) !important;
   border: none !important;
@@ -145,7 +145,7 @@
   --tw-shadow: none !important;
 }
 
-[data-slot='sheet-overlay'] {
+[data-slot="sheet-overlay"] {
   background: color-mix(in srgb, var(--background) 20%, black 80%) !important;
   backdrop-filter: none !important;
 }
@@ -155,8 +155,8 @@
    These sit above content so they DO need separation. They get it
    from background contrast + the overlay. Still no shadow or ring.
    ═══════════════════════════════════════════════════════════════════ */
-[data-slot='dropdown-menu-content'],
-[data-slot='select-content'] {
+[data-slot="dropdown-menu-content"],
+[data-slot="select-content"] {
   background: var(--background) !important;
   color: var(--foreground) !important;
   border: none !important;
@@ -167,7 +167,7 @@
 }
 
 /* Tooltip inverts: dark bg with light text — highest contrast possible */
-[data-slot='tooltip-content'] {
+[data-slot="tooltip-content"] {
   background: var(--foreground) !important;
   color: var(--background) !important;
   border: none !important;
@@ -246,8 +246,8 @@
 /* ═══════════════════════════════════════════════════════════════════
    CRASH DIALOG & DOWNGRADE DIALOG inner info blocks
    ═══════════════════════════════════════════════════════════════════ */
-[data-slot='dialog-content'] .grid.rounded-3xl,
-[data-slot='dialog-content'] .grid.gap-3.rounded-3xl {
+[data-slot="dialog-content"] .grid.rounded-3xl,
+[data-slot="dialog-content"] .grid.gap-3.rounded-3xl {
   background: color-mix(in srgb, var(--foreground) 5%, var(--background)) !important;
   border: none !important;
   box-shadow: none !important;

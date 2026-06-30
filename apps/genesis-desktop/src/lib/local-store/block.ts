@@ -15,27 +15,27 @@
 // Source: interface/block/index.ts — enum BlockType
 
 export enum BlockType {
-  Empty = '',
-  Page = 'page',
-  Dataview = 'dataview',
-  Layout = 'layout',
-  Text = 'text',
-  File = 'file',
-  Bookmark = 'bookmark',
-  IconPage = 'iconPage',
-  IconUser = 'iconUser',
-  Div = 'div',
-  Link = 'link',
-  Cover = 'cover',
-  Relation = 'relation',
-  Featured = 'featured',
-  Embed = 'latex',
-  Table = 'table',
-  TableColumn = 'tableColumn',
-  TableRow = 'tableRow',
-  TableOfContents = 'tableOfContents',
-  Widget = 'widget',
-  Chat = 'chat',
+  Empty = "",
+  Page = "page",
+  Dataview = "dataview",
+  Layout = "layout",
+  Text = "text",
+  File = "file",
+  Bookmark = "bookmark",
+  IconPage = "iconPage",
+  IconUser = "iconUser",
+  Div = "div",
+  Link = "link",
+  Cover = "cover",
+  Relation = "relation",
+  Featured = "featured",
+  Embed = "latex",
+  Table = "table",
+  TableColumn = "tableColumn",
+  TableRow = "tableRow",
+  TableOfContents = "tableOfContents",
+  Widget = "widget",
+  Chat = "chat",
 }
 
 // ─── BlockPosition ────────────────────────────────────────────────────
@@ -578,13 +578,13 @@ export enum ListSize {
 // Source: interface/common.ts — enum DropType
 
 export enum DropType {
-  None = '',
-  Block = 'block',
-  Menu = 'menu',
-  Relation = 'relation',
-  Record = 'record',
-  Widget = 'widget',
-  View = 'view',
+  None = "",
+  Block = "block",
+  Menu = "menu",
+  Relation = "relation",
+  Record = "record",
+  Widget = "widget",
+  View = "view",
 }
 
 // ─── ClipboardMode ────────────────────────────────────────────────────
@@ -744,7 +744,7 @@ export interface BlockComponent {
     node: any,
     marks: Mark[],
     getValue: () => string,
-    param?: any
+    param?: any,
   ): void;
   renderObjects?(
     rootId: string,
@@ -752,7 +752,7 @@ export interface BlockComponent {
     marks: Mark[],
     getValue: () => string,
     props: any,
-    param?: any
+    param?: any,
   ): void;
   renderLinks?(
     rootId: string,
@@ -760,7 +760,7 @@ export interface BlockComponent {
     marks: Mark[],
     getValue: () => string,
     props: any,
-    param?: any
+    param?: any,
   ): void;
   renderEmoji?(node: any, param?: any): void;
 }

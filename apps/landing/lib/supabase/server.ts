@@ -18,7 +18,9 @@ const FALLBACK_SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqam9jZm5xd3RjY3V4Ym5vdWx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2NzY3MzUsImV4cCI6MjA3OTI1MjczNX0.oPqt-rffxO2gtX7xv4RisONqIdSSJ98hl7QNDjM_Y4c';
 
 function resolveSupabaseEnv(...values: Array<string | undefined>) {
-  const resolved = values.find((value): value is string => Boolean(value && value.trim().length > 0));
+  const resolved = values.find((value): value is string =>
+    Boolean(value && value.trim().length > 0)
+  );
 
   if (!resolved) {
     throw new Error(
@@ -42,30 +44,24 @@ export async function createClient() {
     FALLBACK_SUPABASE_ANON_KEY
   );
 
-  return createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      auth: {
-        flowType: 'pkce',
+  return createServerClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      flowType: 'pkce',
+    },
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
       },
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // The `setAll` method is called from a Server Component.
-            // This can be ignored if you have middleware refreshing user sessions.
-          }
-        },
+      setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
+        } catch {
+          // The `setAll` method is called from a Server Component.
+          // This can be ignored if you have middleware refreshing user sessions.
+        }
       },
-    }
-  );
+    },
+  });
 }
 
 export function createAdminClient() {

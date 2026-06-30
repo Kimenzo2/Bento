@@ -109,7 +109,7 @@
   display: block;
   margin: 40px 0 10px;
   font-size: 58px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: "JetBrains Mono", monospace;
 }
 
 @keyframes sleep-in {
@@ -124,8 +124,8 @@
 }
 
 /* ── Card System Fix ──────────────────────────────────────────────── */
-.sleep-app [class*='-card'],
-.sleep-app [class*='-panel'],
+.sleep-app [class*="-card"],
+.sleep-app [class*="-panel"],
 .sleep-app article {
   border: none !important;
   box-shadow: none !important;

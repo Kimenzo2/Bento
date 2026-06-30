@@ -26,8 +26,8 @@ const sections: LegalSection[] = [
           Bento is a calm, private desktop app with seventeen built-in mini-apps &mdash; dashboard,
           notes, journal, tasks, voice memos, focus, habits, mood, goals, clipboard, sleep, health,
           nutrition, budget, passwords, countdowns, and settings. This policy covers every
-          interaction you have with Bento, whether you are browsing
-          the website, using the free version, or subscribed to a paid plan.
+          interaction you have with Bento, whether you are browsing the website, using the free
+          version, or subscribed to a paid plan.
         </P>
         <P>
           By accessing or using Bento, you acknowledge that you have read and understood this
@@ -37,10 +37,7 @@ const sections: LegalSection[] = [
         <P>
           This policy is governed by the laws of the jurisdiction in which Bento operates. We
           encourage you to read this document carefully and contact us at{' '}
-          <a
-            href="mailto:privacy@iamazeyou.me"
-            className="legal-link"
-          >
+          <a href="mailto:privacy@iamazeyou.me" className="legal-link">
             privacy@iamazeyou.me
           </a>{' '}
           if you have any questions.
@@ -93,8 +90,8 @@ const sections: LegalSection[] = [
         <DashList
           items={[
             <>
-              <B>Usage data</B>: which mini-apps you use, how often, session duration, and features you
-              interact with
+              <B>Usage data</B>: which mini-apps you use, how often, session duration, and features
+              you interact with
             </>,
             <>
               <B>Technical data</B>: browser type and version, device type, operating system, IP
@@ -288,10 +285,7 @@ const sections: LegalSection[] = [
         />
         <P>
           To request deletion of your data, contact us at{' '}
-          <a
-            href="mailto:privacy@iamazeyou.me"
-            className="legal-link"
-          >
+          <a href="mailto:privacy@iamazeyou.me" className="legal-link">
             privacy@iamazeyou.me
           </a>{' '}
           or use the account deletion option in your settings.
@@ -313,10 +307,7 @@ const sections: LegalSection[] = [
         <P>
           If you are a parent or guardian and believe your child has provided personal information
           to Bento without your consent, please contact us immediately at{' '}
-          <a
-            href="mailto:privacy@iamazeyou.me"
-            className="legal-link"
-          >
+          <a href="mailto:privacy@iamazeyou.me" className="legal-link">
             privacy@iamazeyou.me
           </a>
           . We will take prompt steps to delete such information.
@@ -362,10 +353,7 @@ const sections: LegalSection[] = [
         <P>
           To exercise any of these rights, use the relevant options in your account settings or
           contact us at{' '}
-          <a
-            href="mailto:privacy@iamazeyou.me"
-            className="legal-link"
-          >
+          <a href="mailto:privacy@iamazeyou.me" className="legal-link">
             privacy@iamazeyou.me
           </a>
           . We will respond to verified requests within 30 days.
@@ -416,8 +404,8 @@ const sections: LegalSection[] = [
         <DashList
           items={[
             <>
-              <B>Encryption in transit</B>: all data transmitted between your device and our
-              servers is encrypted using TLS
+              <B>Encryption in transit</B>: all data transmitted between your device and our servers
+              is encrypted using TLS
             </>,
             <>
               <B>Encryption at rest</B>: sensitive data is encrypted in our database infrastructure
@@ -458,10 +446,7 @@ const sections: LegalSection[] = [
         </P>
         <P>
           Previous versions of this policy are available upon request by emailing{' '}
-          <a
-            href="mailto:legal@iamazeyou.me"
-            className="legal-link"
-          >
+          <a href="mailto:legal@iamazeyou.me" className="legal-link">
             legal@iamazeyou.me
           </a>
           .
@@ -483,28 +468,19 @@ const sections: LegalSection[] = [
           items={[
             <>
               <B>Privacy inquiries</B>:{' '}
-              <a
-                href="mailto:privacy@iamazeyou.me"
-                className="legal-link"
-              >
+              <a href="mailto:privacy@iamazeyou.me" className="legal-link">
                 privacy@iamazeyou.me
               </a>
             </>,
             <>
               <B>General legal questions</B>:{' '}
-              <a
-                href="mailto:legal@iamazeyou.me"
-                className="legal-link"
-              >
+              <a href="mailto:legal@iamazeyou.me" className="legal-link">
                 legal@iamazeyou.me
               </a>
             </>,
             <>
               <B>Support</B>:{' '}
-              <a
-                href="mailto:support@iamazeyou.me"
-                className="legal-link"
-              >
+              <a href="mailto:support@iamazeyou.me" className="legal-link">
                 support@iamazeyou.me
               </a>
             </>,

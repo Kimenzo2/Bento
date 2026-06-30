@@ -917,7 +917,7 @@
         {:else if activeSection === "updates"}
           <div class="global-settings__section">
             <div class="global-settings__section-heading"><h3>{_t('settingsUpdatesTitle')}</h3><p>{_t('settingsUpdatesSubtitle')}</p></div>
-            <div class="global-settings__info-card"><strong>{_t('settingsUpdatesCurrentVersion')}</strong><span>1.0.0</span></div>
+            <div class="global-settings__info-card"><strong>{_t('settingsUpdatesCurrentVersion')}</strong><span>{__APP_VERSION__}</span></div>
           </div>
 
         {:else if activeSection === "about"}
@@ -925,7 +925,7 @@
             <div class="global-settings__section-heading"><h3>{_t('settingsAboutTitle')}</h3><p>{_t('settingsAboutSubtitle')}</p></div>
             <div class="global-settings__about-card">
               <h4>Bento Desktop</h4>
-              <p class="global-settings__muted">{_t('commonVersion')} 1.0.0</p>
+              <p class="global-settings__muted">{_t('commonVersion')} {__APP_VERSION__}</p>
               <p class="global-settings__muted">{_t('settingsAboutTagline')}</p>
             </div>
           </div>

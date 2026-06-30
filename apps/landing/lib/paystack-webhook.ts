@@ -1,5 +1,11 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
-import { PRICING_PLANS, findPlanByCode, type BillingPeriod, type BillingTier, type PricingPlanCode } from './billing';
+import {
+  PRICING_PLANS,
+  findPlanByCode,
+  type BillingPeriod,
+  type BillingTier,
+  type PricingPlanCode,
+} from './billing';
 
 export const SUPPORTED_PAYSTACK_EVENTS = [
   'charge.dispute.create',
@@ -111,7 +117,9 @@ export function normalizeEventName(value?: string | null): PaystackEventName {
   return (value ?? 'unknown').trim().toLowerCase();
 }
 
-export function isSupportedPaystackEvent(value?: string | null): value is SupportedPaystackEventName {
+export function isSupportedPaystackEvent(
+  value?: string | null
+): value is SupportedPaystackEventName {
   const normalized = normalizeEventName(value);
   return (SUPPORTED_PAYSTACK_EVENTS as readonly string[]).includes(normalized);
 }
@@ -144,7 +152,10 @@ function planCodeFromPayload(data: Record<string, unknown>) {
   );
 }
 
-function resolveBillingPeriod(data: Record<string, unknown>, planCode: string | null): BillingPeriod | null {
+function resolveBillingPeriod(
+  data: Record<string, unknown>,
+  planCode: string | null
+): BillingPeriod | null {
   const metadata = asRecord(data.metadata);
   const direct = getString(metadata, 'billing_period') ?? getString(data, 'billing_period');
   if (direct === 'monthly' || direct === 'yearly') return direct;
@@ -163,7 +174,11 @@ function getBillingStatusFromSubscriptionState(
   const expired = Boolean(accessExpiresAt && Date.parse(accessExpiresAt) <= Date.now());
   const normalizedInvoiceStatus = invoiceStatus?.trim().toLowerCase() ?? null;
 
-  if (eventName === 'charge.success' || eventName === 'paymentrequest.success' || eventName === 'subscription.create') {
+  if (
+    eventName === 'charge.success' ||
+    eventName === 'paymentrequest.success' ||
+    eventName === 'subscription.create'
+  ) {
     return 'active';
   }
   if (eventName === 'paymentrequest.pending' || eventName === 'invoice.create') {
@@ -171,7 +186,11 @@ function getBillingStatusFromSubscriptionState(
   }
   if (eventName === 'invoice.payment_failed') return expired ? 'expired' : 'past_due';
   if (eventName === 'invoice.update') {
-    if (normalizedInvoiceStatus === 'paid' || normalizedInvoiceStatus === 'success' || normalizedInvoiceStatus === 'active') {
+    if (
+      normalizedInvoiceStatus === 'paid' ||
+      normalizedInvoiceStatus === 'success' ||
+      normalizedInvoiceStatus === 'active'
+    ) {
       return 'active';
     }
     if (normalizedInvoiceStatus === 'failed') return expired ? 'expired' : 'past_due';
@@ -188,13 +207,21 @@ function getPaymentStatusFromSubscriptionState(
   invoiceStatus?: string | null
 ): PaymentStatus {
   const normalizedInvoiceStatus = invoiceStatus?.trim().toLowerCase() ?? null;
-  if (eventName === 'charge.success' || eventName === 'paymentrequest.success' || eventName === 'subscription.create') {
+  if (
+    eventName === 'charge.success' ||
+    eventName === 'paymentrequest.success' ||
+    eventName === 'subscription.create'
+  ) {
     return 'succeeded';
   }
   if (eventName === 'paymentrequest.pending' || eventName === 'invoice.create') return 'pending';
   if (eventName === 'invoice.payment_failed') return 'failed';
   if (eventName === 'invoice.update') {
-    if (normalizedInvoiceStatus === 'paid' || normalizedInvoiceStatus === 'success' || normalizedInvoiceStatus === 'active') {
+    if (
+      normalizedInvoiceStatus === 'paid' ||
+      normalizedInvoiceStatus === 'success' ||
+      normalizedInvoiceStatus === 'active'
+    ) {
       return 'succeeded';
     }
     if (normalizedInvoiceStatus === 'failed') return 'failed';
@@ -273,7 +300,8 @@ function resolveAccessDates(
     getString(subscription, 'created_at') ??
     getString(metadata, 'processed_at');
 
-  const startsAt = createdAt && !Number.isNaN(Date.parse(createdAt)) ? new Date(createdAt).toISOString() : null;
+  const startsAt =
+    createdAt && !Number.isNaN(Date.parse(createdAt)) ? new Date(createdAt).toISOString() : null;
 
   const nextPaymentDate =
     getString(subscription, 'next_payment_date') ??
@@ -281,9 +309,10 @@ function resolveAccessDates(
     getString(data, 'next_payment_date') ??
     getString(data, 'next_payment_at');
 
-  const explicitEnd = nextPaymentDate && !Number.isNaN(Date.parse(nextPaymentDate))
-    ? new Date(nextPaymentDate).toISOString()
-    : null;
+  const explicitEnd =
+    nextPaymentDate && !Number.isNaN(Date.parse(nextPaymentDate))
+      ? new Date(nextPaymentDate).toISOString()
+      : null;
 
   if (explicitEnd) {
     return { startsAt, expiresAt: explicitEnd };
@@ -359,16 +388,21 @@ export function buildBillingUpdate(payload: PaystackPayload): BillingUpdate | nu
   } else if (affectsBilling && tier && amountKobo && !expectedAmountSmallestUnit) {
     const matchedPlan = PRICING_PLANS.find((p) => p.key === tier);
     if (matchedPlan) {
-      const usdPriceFloat = parseFloat(matchedPlan.price[billingPeriod ?? 'monthly'].replace(/[^0-9.]/g, ''));
+      const usdPriceFloat = parseFloat(
+        matchedPlan.price[billingPeriod ?? 'monthly'].replace(/[^0-9.]/g, '')
+      );
       const usdInSmallestUnit = Math.round(usdPriceFloat * 100);
       if (amountKobo < usdInSmallestUnit * 0.5) {
-        console.warn('[paystack:webhook] amount too low (legacy check, no expected_currency in metadata)', {
-          event: eventName,
-          tier,
-          planCode,
-          expected: usdInSmallestUnit,
-          received: amountKobo,
-        });
+        console.warn(
+          '[paystack:webhook] amount too low (legacy check, no expected_currency in metadata)',
+          {
+            event: eventName,
+            tier,
+            planCode,
+            expected: usdInSmallestUnit,
+            received: amountKobo,
+          }
+        );
       }
     }
   }
@@ -377,7 +411,9 @@ export function buildBillingUpdate(payload: PaystackPayload): BillingUpdate | nu
     profileId,
     affectsBilling,
     paymentStatus: getPaymentStatusFromSubscriptionState(eventName, invoiceStatus),
-    billingStatus: affectsBilling ? getBillingStatusFromSubscriptionState(eventName, access.expiresAt, null, invoiceStatus) : 'free',
+    billingStatus: affectsBilling
+      ? getBillingStatusFromSubscriptionState(eventName, access.expiresAt, null, invoiceStatus)
+      : 'free',
     billingPeriod,
     planCode: planCode as PricingPlanCode | null,
     tier,
@@ -385,10 +421,14 @@ export function buildBillingUpdate(payload: PaystackPayload): BillingUpdate | nu
     accessExpiresAt: access.expiresAt,
     paystackEventId: paystackEventId ?? fingerprintPayload(JSON.stringify(payload.data ?? {})),
     paystackReference: resolvePaymentReference(data),
-    paystackCustomerCode: getString(asRecord(data.customer), 'customer_code') ?? getString(asRecord(data.customer), 'id'),
+    paystackCustomerCode:
+      getString(asRecord(data.customer), 'customer_code') ??
+      getString(asRecord(data.customer), 'id'),
     paystackSubscriptionCode:
-      getString(asRecord(data.subscription), 'subscription_code') ?? getString(data, 'subscription_code'),
-    paystackInvoiceCode: getString(asRecord(data.invoice), 'invoice_code') ?? getString(data, 'invoice_code'),
+      getString(asRecord(data.subscription), 'subscription_code') ??
+      getString(data, 'subscription_code'),
+    paystackInvoiceCode:
+      getString(asRecord(data.invoice), 'invoice_code') ?? getString(data, 'invoice_code'),
     amountKobo,
     currency: resolveCurrency(data),
     paymentProvider: 'paystack',
@@ -420,7 +460,9 @@ export function deriveProfilePatch(
                 ? 'cancelled'
                 : currentStatus === 'expired'
                   ? 'cancelled'
-                  : (asRecord(data?.subscription) ? 'active' : 'free'),
+                  : asRecord(data?.subscription)
+                    ? 'active'
+                    : 'free',
     billing_status: currentStatus,
     subscription_end_date: update.accessExpiresAt,
     access_expires_at: update.accessExpiresAt,
@@ -435,7 +477,8 @@ export function deriveProfilePatch(
     paystack_last4: getString(asRecord(data?.authorization), 'last4'),
     paystack_card_type: getString(asRecord(data?.authorization), 'card_type'),
     paystack_card_expiry:
-      getString(asRecord(data?.authorization), 'exp_month') && getString(asRecord(data?.authorization), 'exp_year')
+      getString(asRecord(data?.authorization), 'exp_month') &&
+      getString(asRecord(data?.authorization), 'exp_year')
         ? `${getString(asRecord(data?.authorization), 'exp_month')!.padStart(2, '0')}/${getString(asRecord(data?.authorization), 'exp_year')}`
         : null,
     paystack_next_payment_at: update.accessExpiresAt,
@@ -452,7 +495,8 @@ export function deriveProfilePatch(
   const lastCheckoutCountry = getString(metadata, 'country');
   const lastCheckoutMethod = getString(metadata, 'selected_method');
   const lastCheckoutIntentAt = getString(metadata, 'checkout_intent_at');
-  const lastCheckoutReference = getString(metadata, 'checkout_reference') ?? update.paystackReference;
+  const lastCheckoutReference =
+    getString(metadata, 'checkout_reference') ?? update.paystackReference;
 
   if (billingCountry) patch.billing_country = billingCountry;
   if (shippingCountry) patch.shipping_country = shippingCountry;

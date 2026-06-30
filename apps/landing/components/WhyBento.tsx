@@ -88,11 +88,11 @@ export default function WhyBento() {
             <p style={{ margin: 0 }}>
               The average knowledge worker now toggles between applications nearly twelve hundred
               times per day. That is one switch every four minutes, every hour, every day. Each
-              switch carries a cost not just the second it takes to click a different window, but the
-              cognitive load of reorienting. Where was I? What was I doing? What was I searching for?
-              Researchers call this the toggle tax and it consumes roughly four hours per week, or
-              nine percent of working time, per person. Across a year that adds up to five working
-              weeks erased entirely by the act of navigating between tools.
+              switch carries a cost not just the second it takes to click a different window, but
+              the cognitive load of reorienting. Where was I? What was I doing? What was I searching
+              for? Researchers call this the toggle tax and it consumes roughly four hours per week,
+              or nine percent of working time, per person. Across a year that adds up to five
+              working weeks erased entirely by the act of navigating between tools.
             </p>
             <p style={{ margin: 0 }}>
               The average organisation now runs over a hundred applications. The average employee
@@ -145,19 +145,19 @@ export default function WhyBento() {
             <p style={{ margin: 0 }}>
               The software industry has responded with integrations. Connect your calendar to your
               task manager, your task manager to your notes app, your notes app to your habit
-              tracker. But integration is not unity. It is a patchwork of API calls that break when a
-              service updates its pricing, a startup shuts down, or a privacy policy changes. The
+              tracker. But integration is not unity. It is a patchwork of API calls that break when
+              a service updates its pricing, a startup shuts down, or a privacy policy changes. The
               underlying fragmentation remains. You are still managing multiple surfaces. Your mood
               data lives in one place, your sleep data in another, your tasks in a third, and never
               the three shall meet unless you build the bridge yourself.
             </p>
             <p style={{ margin: 0 }}>
-              This fragmentation carries a hidden cost beyond the toggle tax. It prevents the kind of
-              cross-context awareness that makes a tool feel intelligent. A sleep tracker that cannot
-              talk to your mood log is not a sleep tracker that understands you. A habit streak that
-              ignores your focus sessions is a number, not insight. The promise of connected
-              productivity has been deferred to the user in the form of configuration work. The user
-              must become the integrator.
+              This fragmentation carries a hidden cost beyond the toggle tax. It prevents the kind
+              of cross-context awareness that makes a tool feel intelligent. A sleep tracker that
+              cannot talk to your mood log is not a sleep tracker that understands you. A habit
+              streak that ignores your focus sessions is a number, not insight. The promise of
+              connected productivity has been deferred to the user in the form of configuration
+              work. The user must become the integrator.
             </p>
           </div>
           <p style={{ margin: '12px 0 0' }}>

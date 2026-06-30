@@ -44,7 +44,7 @@
       osVersion = navigator.platform || 'Unknown';
     } else osVersion = 'Unknown';
 
-    appVersion = '0.1.0'; // Will be filled by Rust command server-side
+    appVersion = __APP_VERSION__;
   });
 
   // ── Validation ────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
-import { derived } from 'svelte/store';
-import { fontPairings, type FontPairing } from '$lib/data/preferences';
-import { desktopSettings, updateDesktopSettings } from '$lib/desktop/settings';
+import { derived } from "svelte/store";
+import { fontPairings, type FontPairing } from "$lib/data/preferences";
+import { desktopSettings, updateDesktopSettings } from "$lib/desktop/settings";
 
 export { fontPairings };
 export type { FontPairing };

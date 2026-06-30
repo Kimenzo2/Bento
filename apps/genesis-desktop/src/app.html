@@ -8,22 +8,22 @@
     <title>Bento</title>
     <script>
       (function () {
-        const fallback = { themeId: 'default', mode: 'light', tokens: {} };
+        const fallback = { themeId: "default", mode: "light", tokens: {} };
         let snapshot = fallback;
 
         try {
-          const raw = sessionStorage.getItem('__bento_theme_snapshot');
+          const raw = sessionStorage.getItem("__bento_theme_snapshot");
           if (raw) {
             const parsed = JSON.parse(raw);
             if (
               parsed &&
-              typeof parsed.themeId === 'string' &&
-              (parsed.mode === 'light' || parsed.mode === 'dark')
+              typeof parsed.themeId === "string" &&
+              (parsed.mode === "light" || parsed.mode === "dark")
             ) {
               snapshot = {
                 themeId: parsed.themeId,
                 mode: parsed.mode,
-                tokens: parsed.tokens && typeof parsed.tokens === 'object' ? parsed.tokens : {},
+                tokens: parsed.tokens && typeof parsed.tokens === "object" ? parsed.tokens : {},
               };
             }
           }
@@ -33,11 +33,11 @@
 
         const root = document.documentElement;
         root.dataset.theme = snapshot.themeId;
-        root.classList.toggle('dark', snapshot.mode === 'dark');
+        root.classList.toggle("dark", snapshot.mode === "dark");
         root.style.colorScheme = snapshot.mode;
 
         Object.entries(snapshot.tokens).forEach(([key, value]) => {
-          if (typeof value === 'string') {
+          if (typeof value === "string") {
             root.style.setProperty(key, value);
           }
         });

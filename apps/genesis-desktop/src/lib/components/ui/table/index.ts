@@ -1,11 +1,11 @@
-import Table from './table.svelte';
-import TableHeader from './table-header.svelte';
-import TableBody from './table-body.svelte';
-import TableFooter from './table-footer.svelte';
-import TableRow from './table-row.svelte';
-import TableHead from './table-head.svelte';
-import TableCell from './table-cell.svelte';
-import TableCaption from './table-caption.svelte';
+import Table from "./table.svelte";
+import TableHeader from "./table-header.svelte";
+import TableBody from "./table-body.svelte";
+import TableFooter from "./table-footer.svelte";
+import TableRow from "./table-row.svelte";
+import TableHead from "./table-head.svelte";
+import TableCell from "./table-cell.svelte";
+import TableCaption from "./table-caption.svelte";
 
 export {
   Table,

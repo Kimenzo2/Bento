@@ -85,7 +85,7 @@ export function getActiveAmbient(): AmbientPlayer | null {
  */
 export async function startAmbient(
   name: SoundName,
-  options?: { volume?: number; fadeInMs?: number }
+  options?: { volume?: number; fadeInMs?: number },
 ): Promise<AmbientPlayer> {
   // Stop previous with a fast fade-out
   if (activeAmbient) {
@@ -124,7 +124,11 @@ export async function startAmbient(
         gainNode.gain.setValueAtTime(current, ac.currentTime);
         gainNode.gain.linearRampToValueAtTime(0, ac.currentTime + rampMs / 1000);
         setTimeout(() => {
-          try { source.stop(); } catch { /* already stopped */ }
+          try {
+            source.stop();
+          } catch {
+            /* already stopped */
+          }
           source.disconnect();
           gainNode.disconnect();
           resolve();
@@ -145,7 +149,9 @@ export function stopAmbientImmediate() {
     try {
       p.gainNode.gain.cancelScheduledValues(0);
       p.gainNode.gain.setValueAtTime(0, getContext().currentTime);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 }
 
@@ -173,7 +179,7 @@ function prefersReduced(): boolean {
 /** Play an alarm/notification sound. Loops by default. Respects prefers-reduced-motion (halves volume). */
 export function playAlarmSound(
   name: SoundName,
-  options?: { loop?: boolean; volume?: number }
+  options?: { loop?: boolean; volume?: number },
 ): HTMLAudioElement | null {
   try {
     const audio = new Audio(SoundFiles[name]);
@@ -193,5 +199,7 @@ export function stopAlarmSound(audio: HTMLAudioElement | null) {
   try {
     audio.pause();
     audio.currentTime = 0;
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }

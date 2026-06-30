@@ -30,8 +30,7 @@ export async function GET(request: NextRequest) {
   if (!upstream.ok || !upstream.body) {
     return NextResponse.json(
       {
-        error:
-          'The Bento Windows installer is temporarily unavailable. Please try again shortly.',
+        error: 'The Bento Windows installer is temporarily unavailable. Please try again shortly.',
       },
       { status: 502 }
     );

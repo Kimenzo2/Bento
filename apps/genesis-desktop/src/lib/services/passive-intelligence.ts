@@ -8,9 +8,9 @@
 // Signals are opt-in and can be toggled by the user.
 // ═══════════════════════════════════════════════════════════════════════
 
-import { writable, derived, get } from 'svelte/store';
-import { eventBus, BentoEventType } from './event-bus';
-import { time } from '$lib/utils/time';
+import { writable, get } from "svelte/store";
+import { eventBus, BentoEventType } from "./event-bus";
+import { time } from "$lib/utils/time";
 
 // ─── Configuration ────────────────────────────────────────────────────
 
@@ -34,7 +34,7 @@ const DEFAULT_CONFIG: PassiveIntelligenceConfig = {
 
 export interface ActivityEvent {
   timestamp: number; // UTC ms
-  type: 'input' | 'focus_start' | 'focus_end' | 'module_switch' | 'idle_start' | 'idle_end';
+  type: "input" | "focus_start" | "focus_end" | "module_switch" | "idle_start" | "idle_end";
   moduleId?: string;
   duration?: number; // ms
 }
@@ -80,7 +80,7 @@ class PassiveIntelligenceEngine {
   private focusSessions: FocusSession[] = [];
   private userIdleTimer: ReturnType<typeof setTimeout> | null = null;
   private moduleEnterTime = time.now();
-  private currentModule = 'dashboard';
+  private currentModule = "dashboard";
   private dailyInputCount = 0;
   private dailyFocusMinutes = 0;
   private currentDateKey = time.dateKey(time.now());
@@ -102,7 +102,7 @@ class PassiveIntelligenceEngine {
     detected: false,
     score: 0,
     signals: [],
-    insight: 'Insufficient data to assess burnout risk.',
+    insight: "Insufficient data to assess burnout risk.",
     since: time.now(),
   });
 
@@ -127,8 +127,8 @@ class PassiveIntelligenceEngine {
       this.isIdle = false;
       this.idleStartedAt = null;
       this.idleState.set(false);
-      this.logEvent('idle_end', moduleId, idleDuration);
-      eventBus.emitSimple(BentoEventType.ActiveSessionStarted, 'passive', {
+      this.logEvent("idle_end", moduleId, idleDuration);
+      eventBus.emitSimple(BentoEventType.ActiveSessionStarted, "passive", {
         moduleId: moduleId ?? this.currentModule,
         idleDurationMs: idleDuration,
       });
@@ -150,7 +150,7 @@ class PassiveIntelligenceEngine {
 
     this.currentModule = moduleId;
     this.moduleEnterTime = now;
-    this.logEvent('module_switch', moduleId);
+    this.logEvent("module_switch", moduleId);
   }
 
   /** Get the config (read-only). */
@@ -182,9 +182,9 @@ class PassiveIntelligenceEngine {
 
     if (rhythm.totalActiveMinutes > 0) {
       if (rhythm.totalActiveMinutes < 60) {
-        insights.push('Light activity day — consider a focus session.');
+        insights.push("Light activity day — consider a focus session.");
       } else if (rhythm.totalActiveMinutes > 480) {
-        insights.push('Heavy app usage — remember to take breaks.');
+        insights.push("Heavy app usage — remember to take breaks.");
       }
     }
 
@@ -198,14 +198,14 @@ class PassiveIntelligenceEngine {
         focusSessions.slice(-10).reduce((sum, s) => sum + (s.durationMinutes || 0), 0) /
         Math.min(focusSessions.length, 10);
       if (avgDuration < 15) {
-        insights.push('Focus sessions are brief — try locking in for longer blocks.');
+        insights.push("Focus sessions are brief — try locking in for longer blocks.");
       } else if (avgDuration > 90) {
-        insights.push('Long focus sessions — make sure to take short breaks between them.');
+        insights.push("Long focus sessions — make sure to take short breaks between them.");
       }
     }
 
     if (this.dailyInputCount < 3) {
-      insights.push('Low interaction today — anything you need help with?');
+      insights.push("Low interaction today — anything you need help with?");
     }
 
     return insights;
@@ -256,7 +256,7 @@ class PassiveIntelligenceEngine {
     this.stopIdleTimer();
     this.userIdleTimer = setTimeout(
       () => this.onUserIdle(),
-      this.config.idleThresholdSeconds * 1000
+      this.config.idleThresholdSeconds * 1000,
     );
   }
 
@@ -272,18 +272,18 @@ class PassiveIntelligenceEngine {
     this.isIdle = true;
     this.idleStartedAt = time.now();
     this.idleState.set(true);
-    this.logEvent('idle_start', this.currentModule);
+    this.logEvent("idle_start", this.currentModule);
 
-    eventBus.emitSimple(BentoEventType.IdleDetected, 'passive', {
+    eventBus.emitSimple(BentoEventType.IdleDetected, "passive", {
       idleDurationMs: this.config.idleThresholdSeconds * 1000,
       moduleId: this.currentModule,
     });
 
     // If there was an active focus session, end it
     if (this.currentFocusSession) {
-      eventBus.emitSimple(BentoEventType.FocusEnded, 'passive', {
+      eventBus.emitSimple(BentoEventType.FocusEnded, "passive", {
         moduleId: this.currentModule,
-        reason: 'idle_timeout',
+        reason: "idle_timeout",
       });
     }
 
@@ -324,13 +324,13 @@ class PassiveIntelligenceEngine {
     this.dailyFocusMinutes += minutes;
     this.updateTodayRhythm();
 
-    eventBus.emitSimple(BentoEventType.ActiveSessionEnded, 'passive', {
+    eventBus.emitSimple(BentoEventType.ActiveSessionEnded, "passive", {
       moduleId,
       durationMinutes: minutes,
     });
   }
 
-  private logEvent(type: ActivityEvent['type'], moduleId?: string, duration?: number): void {
+  private logEvent(type: ActivityEvent["type"], moduleId?: string, duration?: number): void {
     this.activityLog.push({
       timestamp: time.now(),
       type,
@@ -359,7 +359,7 @@ class PassiveIntelligenceEngine {
       .map((e) => e.timestamp);
 
     const totalIdle = this.activityLog
-      .filter((e) => e.type === 'idle_start' && time.dateKey(e.timestamp) === today)
+      .filter((e) => e.type === "idle_start" && time.dateKey(e.timestamp) === today)
       .reduce((sum, e) => sum + (e.duration ?? 0), 0);
 
     const firstActive = activityTimes.length > 0 ? Math.min(...activityTimes) : null;
@@ -409,7 +409,7 @@ class PassiveIntelligenceEngine {
       return h >= 23 || h < 6;
     });
     if (lateNightActivity.length > 5) {
-      signals.push('late_night_work');
+      signals.push("late_night_work");
       score += 25;
     }
 
@@ -423,7 +423,7 @@ class PassiveIntelligenceEngine {
       const avgSecond =
         secondHalf.reduce((s, f) => s + (f.durationMinutes || 0), 0) / secondHalf.length;
       if (avgSecond < avgFirst * 0.7) {
-        signals.push('declining_focus_duration');
+        signals.push("declining_focus_duration");
         score += 20;
       }
     }
@@ -431,7 +431,7 @@ class PassiveIntelligenceEngine {
     // Signal: Missed breaks (sessions > 2 hours without idle)
     const longSessions = recentFocus.filter((s) => s.durationMinutes > 120);
     if (longSessions.length > 2) {
-      signals.push('missed_breaks');
+      signals.push("missed_breaks");
       score += 15;
     }
 
@@ -439,7 +439,7 @@ class PassiveIntelligenceEngine {
     if (recentFocus.length > 5) {
       const lowQuality = recentFocus.filter((s) => s.quality !== null && s.quality <= 2).length;
       if (lowQuality > recentFocus.length * 0.4) {
-        signals.push('low_quality_focus');
+        signals.push("low_quality_focus");
         score += 20;
       }
     }
@@ -447,25 +447,25 @@ class PassiveIntelligenceEngine {
     // Signal: Consistent late-night pattern (>3 days)
     const uniqueLateDays = new Set(lateNightActivity.map((e) => time.dateKey(e.timestamp)));
     if (uniqueLateDays.size >= 3) {
-      signals.push('consistent_late_nights');
+      signals.push("consistent_late_nights");
       score += 20;
     }
 
     const detected = score >= 30;
-    let insight = 'No burnout signals detected.';
+    let insight = "No burnout signals detected.";
 
     if (detected) {
-      if (signals.includes('late_night_work') || signals.includes('consistent_late_nights')) {
+      if (signals.includes("late_night_work") || signals.includes("consistent_late_nights")) {
         insight =
-          'You have been active late at night on multiple recent days. Consider winding down earlier to protect your sleep.';
-      } else if (signals.includes('declining_focus_duration')) {
+          "You have been active late at night on multiple recent days. Consider winding down earlier to protect your sleep.";
+      } else if (signals.includes("declining_focus_duration")) {
         insight =
-          'Your focus sessions have been getting shorter. This may indicate mental fatigue — try taking a full break day.';
-      } else if (signals.includes('missed_breaks')) {
+          "Your focus sessions have been getting shorter. This may indicate mental fatigue — try taking a full break day.";
+      } else if (signals.includes("missed_breaks")) {
         insight =
-          'Several long focus sessions without breaks detected. Regular short breaks improve long-term productivity.';
+          "Several long focus sessions without breaks detected. Regular short breaks improve long-term productivity.";
       } else {
-        insight = 'Multiple burnout signals detected. Consider scaling back and prioritizing rest.';
+        insight = "Multiple burnout signals detected. Consider scaling back and prioritizing rest.";
       }
     }
 
@@ -478,7 +478,7 @@ class PassiveIntelligenceEngine {
     });
 
     if (detected) {
-      eventBus.emitSimple(BentoEventType.BurnoutRisk, 'passive', {
+      eventBus.emitSimple(BentoEventType.BurnoutRisk, "passive", {
         score: Math.min(score, 100),
         signals,
         insight,
@@ -516,9 +516,9 @@ export function attachInputTracking(): void {
   inputHandlerAttached = true;
 
   const handler = () => passiveIntelligence.recordInput();
-  window.addEventListener('keydown', handler, { passive: true });
-  window.addEventListener('mousedown', handler, { passive: true });
-  window.addEventListener('touchstart', handler, { passive: true });
+  window.addEventListener("keydown", handler, { passive: true });
+  window.addEventListener("mousedown", handler, { passive: true });
+  window.addEventListener("touchstart", handler, { passive: true });
 }
 
 /**

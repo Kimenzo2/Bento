@@ -1960,9 +1960,9 @@ async fn read_nspasteboard_html() -> Option<String> {
 
         let pb = NSPasteboard::generalPasteboard();
         // Use the standard UTI for HTML content on NSPasteboard
-        let html_type = unsafe { NSString::from_str("public.html") };
+        let html_type = NSString::from_str("public.html");
         let html_type_ref = &html_type;
-        let ns_string = unsafe { pb.stringForType(html_type_ref) };
+        let ns_string = pb.stringForType(html_type_ref);
         ns_string.map(|s| s.to_string())
     })
     .await;

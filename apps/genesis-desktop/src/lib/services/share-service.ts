@@ -1,6 +1,6 @@
-import { invoke } from '@tauri-apps/api/core';
-import { z } from 'zod';
-import { time } from '$lib/utils/time';
+import { invoke } from "@tauri-apps/api/core";
+import { z } from "zod";
+import { time } from "$lib/utils/time";
 
 // ─── Zod schemas ──────────────────────────────────────────────────────
 
@@ -15,9 +15,9 @@ const shareResultSchema = z
 
 export type ShareResult = z.infer<typeof shareResultSchema>;
 
-export type ShareFormat = 'plainText' | 'markdown' | 'json' | 'html' | 'csv' | 'bentoManifest';
+export type ShareFormat = "plainText" | "markdown" | "json" | "html" | "csv" | "bentoManifest";
 
-export type ShareDestination = 'clipboard' | 'file';
+export type ShareDestination = "clipboard" | "file";
 
 export interface ShareOptions {
   label?: string;
@@ -29,8 +29,8 @@ export interface ShareOptions {
 // ─── Share service ────────────────────────────────────────────────────
 
 const defaultOptions: Required<ShareOptions> = {
-  label: 'Shared content',
-  filename: 'bento-export',
+  label: "Shared content",
+  filename: "bento-export",
   sanitize: true,
   metadata: {},
 };
@@ -43,11 +43,11 @@ export async function shareContent(
   content: string,
   format: ShareFormat,
   destination: ShareDestination,
-  options?: ShareOptions
+  options?: ShareOptions,
 ): Promise<ShareResult> {
   const opts = { ...defaultOptions, ...options };
 
-  const result = await invoke<unknown>('share_content', {
+  const result = await invoke<unknown>("share_content", {
     content,
     format,
     destination,
@@ -66,9 +66,9 @@ export async function shareContent(
  * Convenience: share as markdown to clipboard.
  */
 export async function shareAsMarkdown(content: string, label?: string): Promise<ShareResult> {
-  const result = await invoke<unknown>('share_markdown', {
+  const result = await invoke<unknown>("share_markdown", {
     content,
-    label: label ?? 'Shared content',
+    label: label ?? "Shared content",
   });
   return shareResultSchema.parse(result);
 }
@@ -79,12 +79,12 @@ export async function shareAsMarkdown(content: string, label?: string): Promise<
 export async function shareAsJsonToFile(
   content: string,
   filename?: string,
-  label?: string
+  label?: string,
 ): Promise<ShareResult> {
-  const result = await invoke<unknown>('share_json_to_file', {
+  const result = await invoke<unknown>("share_json_to_file", {
     content,
-    filename: filename ?? 'bento-export',
-    label: label ?? 'JSON export',
+    filename: filename ?? "bento-export",
+    label: label ?? "JSON export",
   });
   return shareResultSchema.parse(result);
 }
@@ -95,12 +95,12 @@ export async function shareAsJsonToFile(
 export async function shareAsCsvToFile(
   content: string,
   filename?: string,
-  label?: string
+  label?: string,
 ): Promise<ShareResult> {
-  const result = await invoke<unknown>('share_csv_to_file', {
+  const result = await invoke<unknown>("share_csv_to_file", {
     content,
-    filename: filename ?? 'bento-export',
-    label: label ?? 'CSV export',
+    filename: filename ?? "bento-export",
+    label: label ?? "CSV export",
   });
   return shareResultSchema.parse(result);
 }
@@ -109,8 +109,8 @@ export async function shareAsCsvToFile(
  * Share plain text to clipboard.
  */
 export async function copyToClipboard(text: string, label?: string): Promise<ShareResult> {
-  return shareContent(text, 'plainText', 'clipboard', {
-    label: label ?? 'Text copied to clipboard',
+  return shareContent(text, "plainText", "clipboard", {
+    label: label ?? "Text copied to clipboard",
   });
 }
 
@@ -128,39 +128,39 @@ export function formatTasksAsMarkdown(
     notes?: string;
     tags?: string;
   }>,
-  title = 'Task List'
+  title = "Task List",
 ): string {
   const lines: string[] = [
     `# ${title}`,
-    '',
+    "",
     `_Generated ${time.format(time.now())}_`,
-    '',
-    '---',
-    '',
+    "",
+    "---",
+    "",
   ];
 
   const incomplete = items.filter((t) => !t.done);
   const complete = items.filter((t) => t.done);
 
   if (incomplete.length > 0) {
-    lines.push('## To Do', '');
+    lines.push("## To Do", "");
     for (const t of incomplete) {
       const priorityMark =
-        t.priority === 'urgent'
-          ? ' 🔴'
-          : t.priority === 'high'
-            ? ' 🟠'
-            : t.priority === 'medium'
-              ? ' 🔵'
-              : '';
-      const dueStr = t.dueAt ? ` *(due ${time.formatCustom(t.dueAt, 'M j')})*` : '';
-      const projectStr = t.project && t.project !== 'inbox' ? ` \`[${t.project}]\`` : '';
+        t.priority === "urgent"
+          ? " 🔴"
+          : t.priority === "high"
+            ? " 🟠"
+            : t.priority === "medium"
+              ? " 🔵"
+              : "";
+      const dueStr = t.dueAt ? ` *(due ${time.formatCustom(t.dueAt, "M j")})*` : "";
+      const projectStr = t.project && t.project !== "inbox" ? ` \`[${t.project}]\`` : "";
       lines.push(`- [ ] **${t.title}**${priorityMark}${dueStr}${projectStr}`);
-      if (t.notes) lines.push(`  - ${t.notes.replace(/\n/g, '\n  ')}`);
-      if (t.tags && t.tags !== '[]') {
+      if (t.notes) lines.push(`  - ${t.notes.replace(/\n/g, "\n  ")}`);
+      if (t.tags && t.tags !== "[]") {
         try {
           const tags = JSON.parse(t.tags) as string[];
-          if (tags.length > 0) lines.push(`  \`Tags: ${tags.join(', ')}\``);
+          if (tags.length > 0) lines.push(`  \`Tags: ${tags.join(", ")}\``);
         } catch {
           /* ignore */
         }
@@ -169,14 +169,14 @@ export function formatTasksAsMarkdown(
   }
 
   if (complete.length > 0) {
-    lines.push('', '## Completed', '');
+    lines.push("", "## Completed", "");
     for (const t of complete) {
       lines.push(`- [x] **${t.title}**`);
     }
   }
 
-  lines.push('', '---', `_${items.length} total items_`);
-  return lines.join('\n');
+  lines.push("", "---", `_${items.length} total items_`);
+  return lines.join("\n");
 }
 
 /**
@@ -192,15 +192,15 @@ export function formatHealthAsMarkdown(
     symptoms: string[];
     note?: string | null;
   }>,
-  title = 'Health Log'
+  title = "Health Log",
 ): string {
   const lines: string[] = [
     `# ${title}`,
-    '',
+    "",
     `_Generated ${time.format(time.now())}_`,
-    '',
-    '---',
-    '',
+    "",
+    "---",
+    "",
   ];
 
   for (const log of logs) {
@@ -208,20 +208,20 @@ export function formatHealthAsMarkdown(
     lines.push(`- **Mood:** ${log.mood}`);
     lines.push(`- **Energy:** ${log.energy}/10`);
     lines.push(
-      `- **Water:** ${log.waterGlasses} glasses (${(log.waterGlasses * 0.25).toFixed(1)}L)`
+      `- **Water:** ${log.waterGlasses} glasses (${(log.waterGlasses * 0.25).toFixed(1)}L)`,
     );
     lines.push(`- **Sleep:** ${log.sleepHours}h`);
     if (log.symptoms.length > 0) {
-      lines.push(`- **Symptoms:** ${log.symptoms.join(', ')}`);
+      lines.push(`- **Symptoms:** ${log.symptoms.join(", ")}`);
     }
     if (log.note) {
       lines.push(`- **Note:** ${log.note}`);
     }
-    lines.push('');
+    lines.push("");
   }
 
-  lines.push('---', `_${logs.length} days logged_`);
-  return lines.join('\n');
+  lines.push("---", `_${logs.length} days logged_`);
+  return lines.join("\n");
 }
 
 /**
@@ -236,25 +236,25 @@ export function formatVitalsAsMarkdown(
     temp?: string | null;
     spo2?: string | null;
   }>,
-  title = 'Vitals Log'
+  title = "Vitals Log",
 ): string {
   const lines: string[] = [
     `# ${title}`,
-    '',
+    "",
     `_Generated ${time.format(time.now())}_`,
-    '',
-    '| Date | BP | HR | Weight | Temp | SpO₂ |',
-    '|------|----|----|--------|------|------|',
+    "",
+    "| Date | BP | HR | Weight | Temp | SpO₂ |",
+    "|------|----|----|--------|------|------|",
   ];
 
   for (const v of vitals) {
     lines.push(
-      `| ${v.dateKey} | ${v.bp ?? '—'} | ${v.hr ?? '—'} | ${v.weight ?? '—'} | ${v.temp ?? '—'} | ${v.spo2 ?? '—'} |`
+      `| ${v.dateKey} | ${v.bp ?? "—"} | ${v.hr ?? "—"} | ${v.weight ?? "—"} | ${v.temp ?? "—"} | ${v.spo2 ?? "—"} |`,
     );
   }
 
-  lines.push('', `_${vitals.length} readings_`);
-  return lines.join('\n');
+  lines.push("", `_${vitals.length} readings_`);
+  return lines.join("\n");
 }
 
 /**
@@ -268,17 +268,17 @@ export function formatMedsAsMarkdown(
     notes?: string;
     takenToday?: boolean;
   }>,
-  title = 'Medications'
+  title = "Medications",
 ): string {
-  const lines: string[] = [`# ${title}`, '', `_Generated ${time.format(time.now())}_`, '', ''];
+  const lines: string[] = [`# ${title}`, "", `_Generated ${time.format(time.now())}_`, "", ""];
 
   for (const m of meds) {
-    const status = m.takenToday ? '✅ Taken' : '⬜ Pending';
+    const status = m.takenToday ? "✅ Taken" : "⬜ Pending";
     lines.push(
-      `- **${m.name}** — ${m.dose} @ ${m.timeOfDay} (${status})${m.notes ? ` — ${m.notes}` : ''}`
+      `- **${m.name}** — ${m.dose} @ ${m.timeOfDay} (${status})${m.notes ? ` — ${m.notes}` : ""}`,
     );
   }
 
-  lines.push('', `_${meds.length} medications_`);
-  return lines.join('\n');
+  lines.push("", `_${meds.length} medications_`);
+  return lines.join("\n");
 }

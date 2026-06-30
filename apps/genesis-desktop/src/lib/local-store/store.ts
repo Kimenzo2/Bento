@@ -13,4 +13,4 @@ export {
   getToggleStateVersion,
   getObjectId,
   blockById,
-} from './editor-state.svelte';
+} from "./editor-state.svelte";

@@ -3,15 +3,15 @@
  * Uses localStorage for persistence (no Rust backend serialization needed).
  * Swapping CSS custom properties on document root ensures zero-layout-thrash switching.
  */
-import { writable } from 'svelte/store';
-import { browser } from '$app/environment';
+import { writable } from "svelte/store";
+import { browser } from "$app/environment";
 import {
   defaultJournalFontVariationId,
   getJournalFontBody,
   getJournalFontHeading,
-} from '$lib/data/preferences';
+} from "$lib/data/preferences";
 
-const STORAGE_KEY = 'bento_journal_font_variation';
+const STORAGE_KEY = "bento_journal_font_variation";
 
 function loadInitialValue(): string {
   if (!browser) return defaultJournalFontVariationId;
@@ -36,8 +36,8 @@ export function applyJournalFont(variationId: string): void {
   }
   const body = getJournalFontBody(variationId);
   const heading = getJournalFontHeading(variationId);
-  document.documentElement.style.setProperty('--je-body-font', body);
-  document.documentElement.style.setProperty('--je-heading-font', heading);
+  document.documentElement.style.setProperty("--je-body-font", body);
+  document.documentElement.style.setProperty("--je-heading-font", heading);
   journalFontVariationId.set(variationId);
 }
 

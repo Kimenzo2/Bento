@@ -8,8 +8,8 @@
  * back() pops the current entry and switches to the previous module.
  */
 
-import { writable, derived, get } from 'svelte/store';
-import type { BentoModuleId } from '$lib/data/module-catalog';
+import { writable, derived, get } from "svelte/store";
+import type { BentoModuleId } from "$lib/data/module-catalog";
 
 // ── Internal stack of module IDs ─────────────────────────────────────────────
 const _stack = writable<BentoModuleId[]>([]);
@@ -42,7 +42,7 @@ export async function back(): Promise<void> {
   // Suppress pushNav during the back-navigation
   _isGoingBack = true;
   try {
-    const { switchModule } = await import('$lib/desktop/modules');
+    const { switchModule } = await import("$lib/desktop/modules");
     await switchModule(previous);
   } finally {
     _isGoingBack = false;

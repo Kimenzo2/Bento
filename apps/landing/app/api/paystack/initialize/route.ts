@@ -43,11 +43,21 @@ async function readPlanRequest(request: Request) {
       .trim()
       .toLowerCase()
   );
-  const country = String(formData.get('country') ?? '').trim().toUpperCase();
-  const method = String(formData.get('method') ?? '').trim().toLowerCase();
-  const billingCountry = String(formData.get('billingCountry') ?? '').trim().toUpperCase();
-  const shippingCountry = String(formData.get('shippingCountry') ?? '').trim().toUpperCase();
-  const source = String(formData.get('source') ?? 'web').trim().toLowerCase();
+  const country = String(formData.get('country') ?? '')
+    .trim()
+    .toUpperCase();
+  const method = String(formData.get('method') ?? '')
+    .trim()
+    .toLowerCase();
+  const billingCountry = String(formData.get('billingCountry') ?? '')
+    .trim()
+    .toUpperCase();
+  const shippingCountry = String(formData.get('shippingCountry') ?? '')
+    .trim()
+    .toUpperCase();
+  const source = String(formData.get('source') ?? 'web')
+    .trim()
+    .toLowerCase();
   return { planCode, period, email, country, method, billingCountry, shippingCountry, source };
 }
 
@@ -94,10 +104,7 @@ export async function POST(request: Request) {
       return NextResponse.redirect(new URL('/pricing?signin=required', getAppOrigin(request)), 303);
     }
 
-    const {
-      data: profile,
-      error: profileError,
-    } = await profileQuery.maybeSingle<{
+    const { data: profile, error: profileError } = await profileQuery.maybeSingle<{
       id: string;
       email: string | null;
       user_tier: string | null;
@@ -124,11 +131,10 @@ export async function POST(request: Request) {
     if (!resolvedProfile && user) {
       const { data: newProfile, error: createError } = await supabase
         .from('profiles')
-        .upsert(
-          { id: user.id, email: user.email, user_tier: 'free' },
-          { onConflict: 'id' }
+        .upsert({ id: user.id, email: user.email, user_tier: 'free' }, { onConflict: 'id' })
+        .select(
+          'id, email, user_tier, payment_provider, subscription_status, subscription_plan_code, billing_country, shipping_country, last_checkout_country, last_checkout_method'
         )
-        .select('id, email, user_tier, payment_provider, subscription_status, subscription_plan_code, billing_country, shipping_country, last_checkout_country, last_checkout_method')
         .maybeSingle();
 
       if (createError || !newProfile) {
@@ -144,13 +150,21 @@ export async function POST(request: Request) {
 
     if (!resolvedProfile) {
       if (formEmail) {
-        const adminSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qjjocfnqwtccuxbnoult.supabase.co';
+        const adminSupabaseUrl =
+          process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qjjocfnqwtccuxbnoult.supabase.co';
         const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-        const authHeader = { Authorization: `Bearer ${serviceRole}`, 'apikey': serviceRole, 'Content-Type': 'application/json' };
+        const authHeader = {
+          Authorization: `Bearer ${serviceRole}`,
+          apikey: serviceRole,
+          'Content-Type': 'application/json',
+        };
 
         let authUserId: string | null = null;
 
-        const existingResp = await fetch(`${adminSupabaseUrl}/auth/v1/admin/users?filter=email:eq:${encodeURIComponent(formEmail)}`, { headers: authHeader });
+        const existingResp = await fetch(
+          `${adminSupabaseUrl}/auth/v1/admin/users?filter=email:eq:${encodeURIComponent(formEmail)}`,
+          { headers: authHeader }
+        );
         const existingBody = await existingResp.json().catch(() => null);
         const existingUser = existingBody?.users?.[0] ?? null;
         if (existingUser?.id) {
@@ -159,31 +173,50 @@ export async function POST(request: Request) {
           const createResp = await fetch(`${adminSupabaseUrl}/auth/v1/admin/users`, {
             method: 'POST',
             headers: authHeader,
-            body: JSON.stringify({ email: formEmail, email_confirm: true, user_metadata: { source: 'desktop_app' } }),
+            body: JSON.stringify({
+              email: formEmail,
+              email_confirm: true,
+              user_metadata: { source: 'desktop_app' },
+            }),
           });
           const createBody = await createResp.json().catch(() => null);
           if (createResp.ok && createBody?.id) {
             authUserId = createBody.id;
           } else {
-            console.error('[paystack:init] failed to create auth user', createResp.status, createBody);
-            return NextResponse.redirect(new URL('/pricing?error=auth_user', getAppOrigin(request)), 303);
+            console.error(
+              '[paystack:init] failed to create auth user',
+              createResp.status,
+              createBody
+            );
+            return NextResponse.redirect(
+              new URL('/pricing?error=auth_user', getAppOrigin(request)),
+              303
+            );
           }
         }
 
         const { data: newProfile, error: createError } = await supabase
           .from('profiles')
           .upsert({ id: authUserId, email: formEmail, user_tier: 'free' }, { onConflict: 'id' })
-          .select('id, email, user_tier, payment_provider, subscription_status, subscription_plan_code, billing_country, shipping_country, last_checkout_country, last_checkout_method')
+          .select(
+            'id, email, user_tier, payment_provider, subscription_status, subscription_plan_code, billing_country, shipping_country, last_checkout_country, last_checkout_method'
+          )
           .maybeSingle();
 
         if (createError || !newProfile) {
           console.error('[paystack:init] failed to create desktop profile', createError);
-          return NextResponse.redirect(new URL('/pricing?error=profile_creation', getAppOrigin(request)), 303);
+          return NextResponse.redirect(
+            new URL('/pricing?error=profile_creation', getAppOrigin(request)),
+            303
+          );
         }
 
         resolvedProfile = newProfile;
       } else {
-        return NextResponse.redirect(new URL('/pricing?signin=required', getAppOrigin(request)), 303);
+        return NextResponse.redirect(
+          new URL('/pricing?signin=required', getAppOrigin(request)),
+          303
+        );
       }
     }
 
@@ -208,7 +241,10 @@ export async function POST(request: Request) {
       const message = convError instanceof Error ? convError.message : 'Unknown conversion error';
       console.error('[paystack:init] currency conversion failed', message, convError);
       return NextResponse.redirect(
-        new URL(`/pricing?error=server&details=${encodeURIComponent(message)}`, getAppOrigin(request)),
+        new URL(
+          `/pricing?error=server&details=${encodeURIComponent(message)}`,
+          getAppOrigin(request)
+        ),
         303
       );
     }
@@ -258,20 +294,18 @@ export async function POST(request: Request) {
       return NextResponse.redirect(existingIntent.paystack_authorization_url, 303);
     }
 
-    const { error: profileUpdateError } = await supabase
-      .from('profiles')
-      .upsert(
-        {
-          id: resolvedProfile.id,
-          billing_country: billingCountry || resolvedProfile.billing_country || detectedCountry,
-          shipping_country: shippingCountry || resolvedProfile.shipping_country || null,
-          last_checkout_country: detectedCountry,
-          last_checkout_method: selection.selectedMethodKey,
-          last_checkout_intent_at: new Date().toISOString(),
-          last_checkout_reference: reference,
-        },
-        { onConflict: 'id' }
-      );
+    const { error: profileUpdateError } = await supabase.from('profiles').upsert(
+      {
+        id: resolvedProfile.id,
+        billing_country: billingCountry || resolvedProfile.billing_country || detectedCountry,
+        shipping_country: shippingCountry || resolvedProfile.shipping_country || null,
+        last_checkout_country: detectedCountry,
+        last_checkout_method: selection.selectedMethodKey,
+        last_checkout_intent_at: new Date().toISOString(),
+        last_checkout_reference: reference,
+      },
+      { onConflict: 'id' }
+    );
     if (profileUpdateError) {
       console.warn('[paystack:init] failed to persist checkout profile fields', profileUpdateError);
     }
@@ -340,10 +374,7 @@ export async function POST(request: Request) {
 
     if (!response.ok || !payload?.status || !payload.data?.authorization_url) {
       console.error('[paystack:init] initialize failed', response.status, payload);
-      return NextResponse.redirect(
-        new URL(`/pricing?error=paystack`, getAppOrigin(request)),
-        303
-      );
+      return NextResponse.redirect(new URL(`/pricing?error=paystack`, getAppOrigin(request)), 303);
     }
 
     await persistCheckoutIntent(supabase, {
@@ -358,8 +389,14 @@ export async function POST(request: Request) {
     return NextResponse.redirect(payload.data.authorization_url, 303);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const detail = error instanceof Error ? `${error.name}: ${error.message}` : JSON.stringify(error);
-    console.error('[paystack:init] unexpected error', { message, type: typeof error, isError: error instanceof Error, error });
+    const detail =
+      error instanceof Error ? `${error.name}: ${error.message}` : JSON.stringify(error);
+    console.error('[paystack:init] unexpected error', {
+      message,
+      type: typeof error,
+      isError: error instanceof Error,
+      error,
+    });
     return NextResponse.redirect(
       new URL(`/pricing?error=server&details=${encodeURIComponent(detail)}`, getAppOrigin(request)),
       303

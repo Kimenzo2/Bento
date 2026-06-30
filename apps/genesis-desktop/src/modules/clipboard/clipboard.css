@@ -404,7 +404,7 @@
   padding: 16px 18px;
   border-radius: 12px;
   background: color-mix(in srgb, var(--cb-ink) 5%, transparent);
-  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
   font-size: 0.82rem;
   line-height: 1.65;
   color: var(--cb-ink);
@@ -614,7 +614,7 @@
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
-  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
   max-height: 5em;
 }
 

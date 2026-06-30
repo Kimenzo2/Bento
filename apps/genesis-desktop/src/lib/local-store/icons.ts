@@ -8,7 +8,6 @@ import {
   List,
   ListOrdered,
   CheckSquare,
-  Square,
   ToggleLeft,
   Minus,
   Image,
@@ -19,13 +18,11 @@ import {
   Columns,
   Grid3X3,
   File,
-  Music,
-  Video,
   Globe,
-} from 'lucide-svelte';
-import type { ComponentType } from 'svelte';
-import type { TextStyle, BlockType } from './block';
-import { TextStyle as TS } from './block';
+} from "lucide-svelte";
+import type { ComponentType } from "svelte";
+import type { TextStyle } from "./block";
+import { TextStyle as TS } from "./block";
 
 type IconComponent = ComponentType;
 
@@ -50,23 +47,23 @@ export const styleIconMap: Partial<Record<TextStyle, IconComponent>> = {
 
 // ── Style label map ─────────────────────────────────────────────────
 export const styleLabelMap: Partial<Record<TextStyle, string>> = {
-  [TS.Paragraph]: 'Paragraph',
-  [TS.Header1]: 'Heading 1',
-  [TS.Header2]: 'Heading 2',
-  [TS.Header3]: 'Heading 3',
-  [TS.Header4]: 'Heading 4',
-  [TS.Quote]: 'Quote',
-  [TS.Code]: 'Code',
-  [TS.Title]: 'Title',
-  [TS.Checkbox]: 'Checkbox',
-  [TS.Bulleted]: 'Bulleted',
-  [TS.Numbered]: 'Numbered',
-  [TS.Toggle]: 'Toggle',
-  [TS.Description]: 'Description',
-  [TS.Callout]: 'Callout',
-  [TS.ToggleHeader1]: 'Toggle Heading 1',
-  [TS.ToggleHeader2]: 'Toggle Heading 2',
-  [TS.ToggleHeader3]: 'Toggle Heading 3',
+  [TS.Paragraph]: "Paragraph",
+  [TS.Header1]: "Heading 1",
+  [TS.Header2]: "Heading 2",
+  [TS.Header3]: "Heading 3",
+  [TS.Header4]: "Heading 4",
+  [TS.Quote]: "Quote",
+  [TS.Code]: "Code",
+  [TS.Title]: "Title",
+  [TS.Checkbox]: "Checkbox",
+  [TS.Bulleted]: "Bulleted",
+  [TS.Numbered]: "Numbered",
+  [TS.Toggle]: "Toggle",
+  [TS.Description]: "Description",
+  [TS.Callout]: "Callout",
+  [TS.ToggleHeader1]: "Toggle Heading 1",
+  [TS.ToggleHeader2]: "Toggle Heading 2",
+  [TS.ToggleHeader3]: "Toggle Heading 3",
 };
 
 // ── Block type icon map ─────────────────────────────────────────────
@@ -90,36 +87,36 @@ export const blockTypeIconMap: Partial<Record<string, IconComponent>> = {
 
 // ── Block type label map ────────────────────────────────────────────
 export const blockTypeLabelMap: Record<string, string> = {
-  page: 'Page',
-  dataview: 'Dataview',
-  layout: 'Layout',
-  text: 'Text',
-  file: 'File',
-  bookmark: 'Bookmark',
-  div: 'Divider',
-  link: 'Link',
-  relation: 'Relation',
-  featured: 'Featured',
-  embed: 'Embed',
-  table: 'Table',
-  tableColumn: 'Column',
-  tableRow: 'Row',
-  tableOfContents: 'Table of Contents',
-  widget: 'Widget',
-  chat: 'Chat',
-  cover: 'Cover',
-  iconPage: 'Icon',
-  iconUser: 'Icon',
+  page: "Page",
+  dataview: "Dataview",
+  layout: "Layout",
+  text: "Text",
+  file: "File",
+  bookmark: "Bookmark",
+  div: "Divider",
+  link: "Link",
+  relation: "Relation",
+  featured: "Featured",
+  embed: "Embed",
+  table: "Table",
+  tableColumn: "Column",
+  tableRow: "Row",
+  tableOfContents: "Table of Contents",
+  widget: "Widget",
+  chat: "Chat",
+  cover: "Cover",
+  iconPage: "Icon",
+  iconUser: "Icon",
 };
 
 // ── Style color suggestions ─────────────────────────────────────────
 export const styleColorMap: Partial<Record<TextStyle, string>> = {
-  [TS.Header1]: 'var(--foreground)',
-  [TS.Header2]: 'var(--foreground)',
-  [TS.Header3]: 'var(--foreground)',
-  [TS.Quote]: 'var(--muted)',
-  [TS.Code]: 'var(--accent)',
-  [TS.Callout]: 'var(--primary)',
+  [TS.Header1]: "var(--foreground)",
+  [TS.Header2]: "var(--foreground)",
+  [TS.Header3]: "var(--foreground)",
+  [TS.Quote]: "var(--muted)",
+  [TS.Code]: "var(--accent)",
+  [TS.Callout]: "var(--primary)",
 };
 
 // ── Style font size suggestions (in rem) ────────────────────────────

@@ -1,6 +1,6 @@
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use tauri::{AppHandle, Manager};
-use tauri::window::{Color, Effect, EffectsBuilder};
+use tauri::window::{Effect, EffectsBuilder};
 use tauri::utils::config::WindowEffectsConfig;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -103,26 +103,27 @@ pub fn configure_native_frame(_window: &impl HasWindowHandle) -> Result<(), Stri
 #[cfg(target_os = "macos")]
 pub fn configure_macos_titlebar(window: &impl HasWindowHandle) -> Result<(), String> {
     use objc2::msg_send;
-    use objc2::runtime::Object;
+    use objc2::runtime::AnyObject;
 
     let handle = window.window_handle().map_err(|e| e.to_string())?;
-    let ns_window = match handle.as_raw() {
-        RawWindowHandle::AppKit(appkit) => appkit.ns_window.ok_or("null ns_window")?,
+    let ns_view = match handle.as_raw() {
+        RawWindowHandle::AppKit(appkit) => appkit.ns_view.ok_or("null ns_view")?,
         _ => return Err("expected AppKit window handle".into()),
     };
-    let ptr = ns_window.as_ptr() as *mut Object;
+    let view_ptr = ns_view.as_ptr() as *mut AnyObject;
 
-    // SAFETY: ptr is a valid NSWindow pointer obtained from raw_window_handle.
-    // The window object is alive (we hold &impl HasWindowHandle). The
-    // msg_send! calls are standard AppKit selectors documented by Apple:
-    //   - setTitlebarAppearsTransparent:
-    //   - setTitleVisibility:
-    //   - styleMask / setStyleMask:
+    // SAFETY: view_ptr is a valid NSView. We send [view window] to get the
+    // containing NSWindow, then configure it. All pointers are alive for the
+    // duration of this call and the selectors are standard AppKit APIs.
     unsafe {
-        let () = msg_send![ptr, setTitlebarAppearsTransparent: true];
-        let () = msg_send![ptr, setTitleVisibility: 1i64]; // NSTitleVisibilityHidden
-        let mask: usize = msg_send![ptr, styleMask];
-        let () = msg_send![ptr, setStyleMask: mask | (1 << 15)]; // NSFullSizeContentViewWindowMask
+        let ns_window: *mut AnyObject = msg_send![view_ptr, window];
+        if ns_window.is_null() {
+            return Err("null NSWindow from ns_view".into());
+        }
+        let () = msg_send![ns_window, setTitlebarAppearsTransparent: true];
+        let () = msg_send![ns_window, setTitleVisibility: 1i64]; // NSTitleVisibilityHidden
+        let mask: usize = msg_send![ns_window, styleMask];
+        let () = msg_send![ns_window, setStyleMask: mask | (1 << 15)]; // NSFullSizeContentViewWindowMask
     }
 
     Ok(())
@@ -170,7 +171,7 @@ pub fn set_window_glass(app: AppHandle, enabled: bool) -> Result<(), String> {
             .set_effects(
                 EffectsBuilder::new()
                     .effects(vec![Effect::Acrylic])
-                    .color(Color(32, 32, 32, 200))
+                    .color(tauri::window::Color(32, 32, 32, 200))
                     .build(),
             )
             .map_err(|e| e.to_string())?;

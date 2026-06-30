@@ -152,16 +152,16 @@
 }
 
 /* ── Card System Fix ──────────────────────────────────────────────── */
-.mood-app [class*='-card'],
-.mood-app [class*='-panel'],
+.mood-app [class*="-card"],
+.mood-app [class*="-panel"],
 .mood-app article {
   border: none !important;
   box-shadow: none !important;
   background: var(--card);
   border-radius: 20px;
 }
-.dark .mood-app [class*='-card'],
-.dark .mood-app [class*='-panel'],
+.dark .mood-app [class*="-card"],
+.dark .mood-app [class*="-panel"],
 .dark .mood-app article {
   background: var(--card);
 }

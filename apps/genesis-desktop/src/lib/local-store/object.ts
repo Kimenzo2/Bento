@@ -10,19 +10,15 @@
 
 import {
   type Block,
-  type Sort,
-  type Filter,
   type FilterCondition,
   type FilterOperator,
   type FilterQuickOption,
   ObjectLayout,
   RelationType,
-  type ViewRelation,
-  type View,
   ViewType,
   SortType,
   BlockHAlign,
-} from './block';
+} from "./block";
 
 // ─── ObjectLayout ─────────────────────────────────────────────────────
 // Re-exported from block.ts for convenience.
@@ -187,22 +183,22 @@ export interface RelationValue {
 // These relation keys match what Anytype uses for Task objects
 
 export const TASK_RELATION_KEYS = {
-  DUE_DATE: 'dueDate',
-  PRIORITY: 'priority',
-  STATUS: 'status',
-  TAGS: 'tags',
-  ASSIGNEE: 'assignee',
-  ESTIMATED_TIME: 'estimatedTime',
-  COMPLETED_TIME: 'completedTime',
-  REPEAT: 'repeat',
-  RELATED_OBJECTS: 'relatedObjects',
+  DUE_DATE: "dueDate",
+  PRIORITY: "priority",
+  STATUS: "status",
+  TAGS: "tags",
+  ASSIGNEE: "assignee",
+  ESTIMATED_TIME: "estimatedTime",
+  COMPLETED_TIME: "completedTime",
+  REPEAT: "repeat",
+  RELATED_OBJECTS: "relatedObjects",
 } as const;
 
 // ─── Journal-specific relation ────────────────────────────────────────
 
 export const JOURNAL_RELATION_KEYS = {
-  DATE: 'date',
-  MOOD: 'mood',
-  WEATHER: 'weather',
-  TAGS: 'tags',
+  DATE: "date",
+  MOOD: "mood",
+  WEATHER: "weather",
+  TAGS: "tags",
 } as const;

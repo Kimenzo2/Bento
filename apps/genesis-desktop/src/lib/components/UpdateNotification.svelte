@@ -3,22 +3,22 @@
    * UpdateNotification.svelte
    *
    * Backend pipeline ported from Anytype's electron/ts/update.ts:
-   *   Anytype event flow:  update-available → download-started → download-progress
+   * Event flow:  update-available → download-started → download-progress
    *                        → update-downloaded → updateConfirm → quitAndInstall
    *
    * Tauri equivalent:     check() finds update → downloadAndInstall()
-   *                        "Started"  → contentLength  (= Anytype's total)
-   *                        "Progress" → chunkLength    (= Anytype's bytesPerSecond chunk)
-   *                        "Finished"                  (= Anytype's update-downloaded)
+   *                        "Started"  → contentLength
+   *                        "Progress" → chunkLength
+   *                        "Finished"
    *
-   * UI: Anytype's .updateBanner sits bottom-left fixed.
-   *     Bento's sits bottom-right fixed, uses the card system (card-surface).
-   *     Progress bar, speed, percent all mirror Anytype's DownloadProgress shape.
+   * UI: Bottom-right fixed glass card with progress bar, speed, percent.
    */
   import { browser } from "$app/environment";
   import { fly } from "svelte/transition";
   import { backOut } from "svelte/easing";
   import { check } from "@tauri-apps/plugin-updater";
+  import DownloadIcon from "@lucide/svelte/icons/download";
+  import { Button } from "$lib/components/ui/button/index.js";
   import {
     isPermissionGranted,
     requestPermission,
@@ -48,7 +48,7 @@
   let notesExpanded = $state(false);
   const MAX_PREVIEW_LINES = 4;
 
-  // Chunk timing — mirrors Anytype's bytesPerSecond calculation
+  // Chunk timing
   let lastChunkTime = 0;
 
   // ── Derived display values ─────────────────────────────────────────
@@ -207,11 +207,7 @@
     <!-- Header row — mirrors Anytype's .infoWrapper -->
     <div class="update-notification__header">
       <div class="update-notification__icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-             stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2v10M8 8l4-4 4 4" />
-          <path d="M3 15a9 9 0 1 0 18 0" />
-        </svg>
+        <DownloadIcon />
       </div>
       <div class="update-notification__meta">
         <p class="update-notification__title">{_t('updateTitle')}</p>
@@ -298,23 +294,15 @@
       <p class="update-notification__error">{errorMessage}</p>
     {/if}
 
-    <!-- Action buttons — mirrors Anytype's .buttons row -->
+    <!-- Action buttons -->
     {#if !$updateStore.installing}
       <div class="update-notification__actions">
-        <button
-          type="button"
-          class="update-notification__btn update-notification__btn--later"
-          onclick={dismiss}
-        >
+        <Button variant="secondary" size="sm" onclick={dismiss}>
           {_t('updateLater')}
-        </button>
-        <button
-          type="button"
-          class="update-notification__btn update-notification__btn--install"
-          onclick={installAndRestart}
-        >
+        </Button>
+        <Button variant="default" size="sm" onclick={installAndRestart}>
           {_t('updateInstallRestart')}
-        </button>
+        </Button>
       </div>
     {/if}
 
@@ -322,26 +310,38 @@
 {/if}
 
 <style>
-  /* ── Container — fixed bottom-right, card-surface, no border/shadow ── */
+  /* ── Container — fixed bottom-right, glass card ────────────────── */
   .update-notification {
     position: fixed;
     bottom: 1.25rem;
     right: 1.25rem;
     z-index: 999;
 
-    background: var(--card);
-    border-radius: 20px;
-    border: none;
-    box-shadow: none;
-
     width: 320px;
     max-height: min(90vh - 2.5rem, 480px);
-    padding: 1.1rem 1.15rem 1rem;
+    padding: 1rem 1.1rem;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-
+    gap: 0.65rem;
     overflow-y: auto;
+
+    border-radius: 24px;
+    border: 1px solid color-mix(in srgb, var(--border) 25%, transparent);
+    background: color-mix(in srgb, var(--card) 80%, transparent);
+    box-shadow:
+      0 4px 24px -8px rgb(0 0 0 / 0.08),
+      inset 0 1px 0 color-mix(in srgb, white 8%, transparent);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .update-notification {
+      background: var(--card);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      box-shadow: none;
+    }
   }
 
   /* ── Header row ─────────────────────────────────────────────────── */
@@ -355,14 +355,15 @@
     flex-shrink: 0;
     width: 2.25rem;
     height: 2.25rem;
-    border-radius: 10px;
+    border-radius: 12px;
     background: color-mix(in srgb, var(--foreground) 8%, transparent);
     display: grid;
     place-items: center;
     color: var(--foreground);
+    border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
   }
 
-  .update-notification__icon svg {
+  .update-notification__icon :global(svg) {
     width: 1.1rem;
     height: 1.1rem;
   }
@@ -372,7 +373,6 @@
     min-width: 0;
   }
 
-  /* Anytype: .name — font-weight 500 */
   .update-notification__title {
     margin: 0;
     font-size: 13px;
@@ -382,7 +382,6 @@
     letter-spacing: -0.01em;
   }
 
-  /* Anytype: .label — text-small, color-text-secondary */
   .update-notification__version {
     margin: 0.1rem 0 0;
     font-size: 12px;
@@ -390,7 +389,6 @@
     color: var(--muted);
   }
 
-  /* Dismiss × — Anytype has no X but Bento adds one (Later button doubles as dismiss) */
   .update-notification__close {
     flex-shrink: 0;
     width: 1.5rem;
@@ -444,7 +442,7 @@
     left: 0;
     right: 0;
     height: 1.25rem;
-    background: linear-gradient(to bottom, transparent, var(--card));
+    background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--card) 80%, transparent));
     pointer-events: none;
   }
 
@@ -465,23 +463,21 @@
     opacity: 1;
   }
 
-  /* ── Progress — mirrors Anytype's .progressBar ──────────────────── */
+  /* ── Progress ───────────────────────────────────────────────────── */
   .update-notification__progress-wrap {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
   }
 
-  /* Anytype: .bar — height 8px, border-radius 6px */
   .update-notification__bar {
     width: 100%;
     height: 6px;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--foreground) 8%, transparent);
+    background: color-mix(in srgb, var(--foreground) 10%, transparent);
     overflow: hidden;
   }
 
-  /* Anytype: .fill.isActive — accent color; .fill.empty — highlight-medium */
   .update-notification__bar-fill {
     height: 100%;
     border-radius: 999px;
@@ -493,7 +489,6 @@
     background: var(--foreground);
   }
 
-  /* Anytype: percent + speed labels row */
   .update-notification__progress-meta {
     display: flex;
     align-items: center;
@@ -520,43 +515,20 @@
     line-height: 1.4;
   }
 
-  /* ── Buttons — mirrors Anytype's .buttons row ───────────────────── */
+  /* ── Actions — matches Landing page nav bar button style ────────── */
   .update-notification__actions {
     display: flex;
     gap: 0.5rem;
+    margin-top: 0.1rem;
   }
 
-  /* Anytype: .button — flex-grow 1, background-color shape-highlight-medium */
-  .update-notification__btn {
+  .update-notification__actions :global([data-slot="button"]) {
     flex: 1;
-    height: 2.1rem;
-    border: none;
-    border-radius: 999px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: default;
-    transition: background 0.12s ease, color 0.12s ease;
-    letter-spacing: -0.01em;
-  }
-
-  /* Later — muted fill, foreground text */
-  .update-notification__btn--later {
-    background: color-mix(in srgb, var(--foreground) 6%, transparent);
-    color: var(--muted);
-  }
-
-  .update-notification__btn--later:hover {
-    background: color-mix(in srgb, var(--foreground) 10%, transparent);
-    color: var(--foreground);
-  }
-
-  /* Install — full foreground fill, inverted text — accent treatment */
-  .update-notification__btn--install {
-    background: var(--foreground);
-    color: var(--background);
-  }
-
-  .update-notification__btn--install:hover {
-    background: color-mix(in srgb, var(--foreground) 88%, transparent);
+    height: 28px;
+    border-radius: 0.75rem;
+    padding-inline: 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    gap: 8px;
   }
 </style>

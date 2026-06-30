@@ -52,13 +52,7 @@ const LegalNav: React.FC = () => (
           textDecoration: 'none',
         }}
       >
-        <img
-          src="/bento-icon.png"
-          alt="Bento"
-          width={28}
-          height={28}
-          style={{ borderRadius: 6 }}
-        />
+        <img src="/bento-icon.png" alt="Bento" width={28} height={28} style={{ borderRadius: 6 }} />
         <span style={{ fontFamily: F.sans, fontSize: 14, fontWeight: 500, color: '#3c2e22' }}>
           Bento
         </span>
@@ -194,10 +188,7 @@ const LegalContactBlock: React.FC = () => (
       }}
     >
       If you have questions about this document or your data, reach out to us at{' '}
-      <a
-        href="mailto:legal@iamazeyou.me"
-        className="legal-link"
-      >
+      <a href="mailto:legal@iamazeyou.me" className="legal-link">
         legal@iamazeyou.me
       </a>
       . We aim to respond within 5 business days.
@@ -218,9 +209,7 @@ const LegalFooter: React.FC<{ currentPage: 'privacy' | 'terms' | 'cookies' }> = 
       lineHeight: 1.5,
     }}
   >
-    <p style={{ color: '#8c7a6a', margin: 0 }}>
-      &copy; 2026 Bento &mdash; All rights reserved.
-    </p>
+    <p style={{ color: '#8c7a6a', margin: 0 }}>&copy; 2026 Bento &mdash; All rights reserved.</p>
     <p
       style={{
         color: '#8c7a6a',
@@ -254,10 +243,7 @@ const LegalFooter: React.FC<{ currentPage: 'privacy' | 'terms' | 'cookies' }> = 
         </Link>
       )}
       <span style={{ color: '#8c7a6a' }}>&middot;</span>
-      <a
-        href="mailto:legal@iamazeyou.me"
-        className="legal-link"
-      >
+      <a href="mailto:legal@iamazeyou.me" className="legal-link">
         Contact
       </a>
     </p>

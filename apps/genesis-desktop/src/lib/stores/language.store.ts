@@ -5,10 +5,10 @@
  * On language change: updates settings persistence + loads locale bundle + flips HTML dir.
  */
 
-import { derived } from 'svelte/store';
-import { languages, type DesktopLanguage } from '$lib/data/preferences';
-import { desktopSettings, updateDesktopSettings } from '$lib/desktop/settings';
-import { applyLanguage, INTERFACE_LANGUAGES } from '$lib/i18n';
+import { derived } from "svelte/store";
+import { languages, type DesktopLanguage } from "$lib/data/preferences";
+import { desktopSettings, updateDesktopSettings } from "$lib/desktop/settings";
+import { applyLanguage, INTERFACE_LANGUAGES } from "$lib/i18n";
 
 export { languages };
 export type { DesktopLanguage };
@@ -26,7 +26,7 @@ export const languageStore = derived(desktopSettings, ($settings) => {
  * 2. Loads locale bundle
  * 3. Applies HTML dir attribute for RTL support
  */
-export async function setLanguage(code: DesktopLanguage['code']): Promise<void> {
+export async function setLanguage(code: DesktopLanguage["code"]): Promise<void> {
   const lang = INTERFACE_LANGUAGES.find((l) => l.code === code) ?? INTERFACE_LANGUAGES[0];
 
   // Persist to settings first

@@ -1,6 +1,6 @@
-import { writable } from 'svelte/store';
+import { writable } from "svelte/store";
 
-const DISMISSED_KEY = 'bento:update:dismissed';
+const DISMISSED_KEY = "bento:update:dismissed";
 let memDismissed: string | null = null;
 
 export type UpdateState = {
@@ -34,7 +34,7 @@ export function setUpdateChecking(checking: boolean) {
   updateStore.update((s) => ({ ...s, checking }));
 }
 
-export function setAvailableUpdate(update: UpdateState['available']) {
+export function setAvailableUpdate(update: UpdateState["available"]) {
   updateStore.update((s) => ({ ...s, available: update }));
 }
 

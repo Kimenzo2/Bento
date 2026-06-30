@@ -1,4 +1,4 @@
-import { Channel, invoke, isTauri } from '@tauri-apps/api/core';
+import { Channel, invoke, isTauri } from "@tauri-apps/api/core";
 
 export async function streamAiResponse(prompt: string, onToken: (token: string) => void) {
   if (!isTauri()) {
@@ -11,5 +11,5 @@ export async function streamAiResponse(prompt: string, onToken: (token: string) 
 
   const onTokenChannel = new Channel<string>();
   onTokenChannel.onmessage = onToken;
-  await invoke('stream_ai_response', { prompt, onToken: onTokenChannel });
+  await invoke("stream_ai_response", { prompt, onToken: onTokenChannel });
 }

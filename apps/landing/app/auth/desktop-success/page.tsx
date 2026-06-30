@@ -46,19 +46,32 @@ export default function DesktopSuccessPage() {
             <div className="auth-card__icon">
               <svg width="48" height="48" viewBox="0 0 64 64" fill="none">
                 <circle cx="32" cy="32" r="28" stroke="#ef4444" strokeWidth="2.5" />
-                <path d="M20 20l24 24M44 20l-24 24" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
+                <path
+                  d="M20 20l24 24M44 20l-24 24"
+                  stroke="#ef4444"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
               </svg>
             </div>
             <h1 className="auth-card__title">Authentication error</h1>
             <p className="auth-card__desc">{error}</p>
-            <Link href="/auth/login" className="auth-card__btn">Sign in again</Link>
+            <Link href="/auth/login" className="auth-card__btn">
+              Sign in again
+            </Link>
           </>
         ) : session ? (
           <>
             <div className="auth-card__icon">
               <svg width="48" height="48" viewBox="0 0 64 64" fill="none">
                 <circle cx="32" cy="32" r="28" stroke="#22c55e" strokeWidth="2.5" />
-                <path d="M20 33l8 8 16-16" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M20 33l8 8 16-16"
+                  stroke="#22c55e"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </div>
             <h1 className="auth-card__title">
@@ -76,7 +89,8 @@ export default function DesktopSuccessPage() {
               …
             </h1>
             <p className="auth-card__desc">
-              Your authentication is complete. Bento desktop app should open automatically in a moment.
+              Your authentication is complete. Bento desktop app should open automatically in a
+              moment.
             </p>
             <p className="auth-card__hint">
               If the app doesn&apos;t open,{' '}
@@ -85,7 +99,9 @@ export default function DesktopSuccessPage() {
               </button>{' '}
               and paste it in your browser while Bento is running.
             </p>
-            <Link href="/download" className="auth-card__btn">Go to downloads</Link>
+            <Link href="/download" className="auth-card__btn">
+              Go to downloads
+            </Link>
           </>
         ) : (
           <>

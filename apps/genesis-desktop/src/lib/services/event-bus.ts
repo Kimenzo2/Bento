@@ -12,62 +12,62 @@
 // All events are typed, serializable, and carry a source + timestamp.
 // ═══════════════════════════════════════════════════════════════════════
 
-import { get, writable } from 'svelte/store';
-import { time } from '$lib/utils/time';
+import { writable } from "svelte/store";
+import { time } from "$lib/utils/time";
 
 // ─── Event Types ──────────────────────────────────────────────────────
 
 /** Canonical list of all cross-app events Bento modules can emit/receive. */
 export enum BentoEventType {
   // Health → Life
-  SleepLogged = 'health:sleep-logged',
-  HydrationLogged = 'health:hydration-logged',
-  MealLogged = 'health:meal-logged',
-  MoodLogged = 'health:mood-logged',
-  FocusSessionComplete = 'health:focus-complete',
-  WeightLogged = 'health:weight-logged',
-  EnergyLogged = 'health:energy-logged',
+  SleepLogged = "health:sleep-logged",
+  HydrationLogged = "health:hydration-logged",
+  MealLogged = "health:meal-logged",
+  MoodLogged = "health:mood-logged",
+  FocusSessionComplete = "health:focus-complete",
+  WeightLogged = "health:weight-logged",
+  EnergyLogged = "health:energy-logged",
 
   // Habits → Activity
-  HabitCompleted = 'habits:habit-completed',
-  StreakAchieved = 'habits:streak-achieved',
-  StreakBroken = 'habits:streak-broken',
+  HabitCompleted = "habits:habit-completed",
+  StreakAchieved = "habits:streak-achieved",
+  StreakBroken = "habits:streak-broken",
 
   // Tasks → Productivity
-  TaskCreated = 'tasks:task-created',
-  TaskCompleted = 'tasks:task-completed',
-  TaskOverdue = 'tasks:task-overdue',
+  TaskCreated = "tasks:task-created",
+  TaskCompleted = "tasks:task-completed",
+  TaskOverdue = "tasks:task-overdue",
 
   // Focus → Context
-  FocusStarted = 'focus:started',
-  FocusEnded = 'focus:ended',
-  FocusInterrupted = 'focus:interrupted',
+  FocusStarted = "focus:started",
+  FocusEnded = "focus:ended",
+  FocusInterrupted = "focus:interrupted",
 
   // Goals → Progress
-  GoalProgress = 'goals:progress-update',
-  GoalAchieved = 'goals:goal-achieved',
+  GoalProgress = "goals:progress-update",
+  GoalAchieved = "goals:goal-achieved",
 
   // Time → Awareness
-  ReminderFired = 'time:reminder-fired',
-  ScheduleDue = 'time:schedule-due',
+  ReminderFired = "time:reminder-fired",
+  ScheduleDue = "time:schedule-due",
 
   // Mood → Recommendations
-  MoodPattern = 'mood:pattern-detected',
+  MoodPattern = "mood:pattern-detected",
 
   // Sleep → Context
-  SleepPattern = 'sleep:pattern-detected',
+  SleepPattern = "sleep:pattern-detected",
 
   // Passive Intelligence
-  IdleDetected = 'passive:idle-detected',
-  ActiveSessionStarted = 'passive:active-session-started',
-  ActiveSessionEnded = 'passive:active-session-ended',
-  FocusQualityChange = 'passive:focus-quality-change',
-  BurnoutRisk = 'passive:burnout-risk',
+  IdleDetected = "passive:idle-detected",
+  ActiveSessionStarted = "passive:active-session-started",
+  ActiveSessionEnded = "passive:active-session-ended",
+  FocusQualityChange = "passive:focus-quality-change",
+  BurnoutRisk = "passive:burnout-risk",
 
   // System
-  ModuleSwitched = 'system:module-switched',
-  AppReady = 'system:app-ready',
-  SettingsChanged = 'system:settings-changed',
+  ModuleSwitched = "system:module-switched",
+  AppReady = "system:app-ready",
+  SettingsChanged = "system:settings-changed",
 }
 
 // ─── Event Payloads ───────────────────────────────────────────────────
@@ -83,7 +83,7 @@ export interface BentoEvent {
 export function createEvent(
   type: BentoEventType,
   source: string,
-  payload: Record<string, unknown> = {}
+  payload: Record<string, unknown> = {},
 ): BentoEvent {
   return { type, source, timestamp: time.now(), payload };
 }
@@ -183,15 +183,15 @@ export async function initEventBridge(): Promise<() => void> {
   const unlisteners: (() => void)[] = [];
 
   try {
-    const { listen } = await import('@tauri-apps/api/event');
+    const { listen } = await import("@tauri-apps/api/event");
 
     // Listen for schedule-fire events from Rust scheduler worker
     const unlistenSchedule = await listen<{
       scheduleId: string;
       moduleId: string;
       label: string;
-    }>('bento://schedule-fire', (e) => {
-      eventBus.emitSimple(BentoEventType.ScheduleDue, 'system', {
+    }>("bento://schedule-fire", (e) => {
+      eventBus.emitSimple(BentoEventType.ScheduleDue, "system", {
         scheduleId: e.payload.scheduleId,
         moduleId: e.payload.moduleId,
         label: e.payload.label,
@@ -203,17 +203,17 @@ export async function initEventBridge(): Promise<() => void> {
     const unlistenModuleSwitch = await listen<{
       from: string;
       to: string;
-    }>('bento://module-switch', (e) => {
-      eventBus.emitSimple(BentoEventType.ModuleSwitched, 'system', {
+    }>("bento://module-switch", (e) => {
+      eventBus.emitSimple(BentoEventType.ModuleSwitched, "system", {
         from: e.payload.from,
         to: e.payload.to,
       });
     });
     unlisteners.push(unlistenModuleSwitch);
 
-    console.log('[event-bus] Tauri bridge initialized');
+    console.log("[event-bus] Tauri bridge initialized");
   } catch (err) {
-    console.warn('[event-bus] Tauri not available, running in browser-only mode:', err);
+    console.warn("[event-bus] Tauri not available, running in browser-only mode:", err);
   }
 
   return () => unlisteners.forEach((u) => u());

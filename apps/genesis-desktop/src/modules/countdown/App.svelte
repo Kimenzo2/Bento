@@ -179,7 +179,7 @@
         }
         setTimeout(() => ctx.close().catch(() => {}), 2500);
       };
-      ctx.state === 'suspended' ? ctx.resume().then(run) : run();
+      void (ctx.state === 'suspended' ? ctx.resume().then(run) : run());
     } catch { /* silence any errors */ }
   }
 

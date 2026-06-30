@@ -1,12 +1,12 @@
-import { derived } from 'svelte/store';
+import { derived } from "svelte/store";
 import {
   desktopThemes,
   defaultThemeId,
   type ThemeId,
   type ThemeMode,
   type ThemeTokens,
-} from '$lib/data/themes';
-import { desktopSettings, updateDesktopSettings } from '$lib/desktop/settings';
+} from "$lib/data/themes";
+import { desktopSettings, updateDesktopSettings } from "$lib/desktop/settings";
 
 export type ThemeState = {
   themeId: ThemeId;
@@ -31,7 +31,7 @@ export const activeTheme = derived(themeState, ($themeState) => {
 });
 
 export const mode = derived(themeState, ($themeState) => $themeState.mode);
-export const isDark = derived(mode, ($mode) => $mode === 'dark');
+export const isDark = derived(mode, ($mode) => $mode === "dark");
 export const activeThemeName = derived(activeTheme, ($activeTheme) => $activeTheme.name);
 export const availableThemes = desktopThemes;
 
@@ -50,7 +50,7 @@ export function toggleMode() {
     ...current,
     appearance: {
       ...current.appearance,
-      mode: current.appearance.mode === 'dark' ? 'light' : 'dark',
+      mode: current.appearance.mode === "dark" ? "light" : "dark",
     },
   }));
 }
@@ -66,7 +66,7 @@ export function setMode(nextMode: ThemeMode) {
 }
 
 export function getThemeTokens(
-  state = { themeId: defaultThemeId, mode: 'dark' as ThemeMode }
+  state = { themeId: defaultThemeId, mode: "dark" as ThemeMode },
 ): ThemeTokens {
   const theme =
     desktopThemes.find((entry) => entry.id === state.themeId) ??

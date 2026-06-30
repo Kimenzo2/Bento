@@ -6,7 +6,7 @@
  * New code should import INTERFACE_LANGUAGES from $lib/i18n instead.
  */
 
-import { INTERFACE_LANGUAGES, type LanguageCode } from '$lib/i18n';
+import { INTERFACE_LANGUAGES, type LanguageCode } from "$lib/i18n";
 
 export type FontPairing = {
   id: string;
@@ -23,10 +23,10 @@ export type FontPairing = {
 export type DesktopLanguage = {
   code: LanguageCode;
   label: string;
-  direction: 'ltr' | 'rtl';
+  direction: "ltr" | "rtl";
 };
 
-export type ReopenShortcutId = 'ctrl-alt-g' | 'ctrl-shift-g' | 'ctrl-shift-space';
+export type ReopenShortcutId = "ctrl-alt-g" | "ctrl-shift-g" | "ctrl-shift-space";
 
 export type ReopenShortcutOption = {
   id: ReopenShortcutId;
@@ -36,22 +36,22 @@ export type ReopenShortcutOption = {
 
 export const fontPairings: FontPairing[] = [
   {
-    id: 'bento-classic',
-    name: 'Bento Classic',
-    heading: 'Bricolage Grotesque Variable',
-    body: 'General Sans',
+    id: "bento-classic",
+    name: "Bento Classic",
+    heading: "Bricolage Grotesque Variable",
+    body: "General Sans",
   },
   {
-    id: 'anytype',
-    name: 'Anytype',
-    heading: 'IBM Plex Sans',
-    body: 'IBM Plex Sans',
+    id: "anytype",
+    name: "Anytype",
+    heading: "IBM Plex Sans",
+    body: "IBM Plex Sans",
   },
   {
-    id: 'instrument-serif',
-    name: 'Instrument Serif',
-    heading: 'Bricolage Grotesque Variable',
-    body: 'Instrument Serif',
+    id: "instrument-serif",
+    name: "Instrument Serif",
+    heading: "Bricolage Grotesque Variable",
+    body: "Instrument Serif",
   },
 ];
 
@@ -62,24 +62,24 @@ export const fontPairings: FontPairing[] = [
 export const languages: DesktopLanguage[] = INTERFACE_LANGUAGES.map((l) => ({
   code: l.code,
   label: l.label,
-  direction: l.direction as 'ltr' | 'rtl',
+  direction: l.direction as "ltr" | "rtl",
 }));
 
 export const reopenShortcutOptions: ReopenShortcutOption[] = [
   {
-    id: 'ctrl-shift-g',
-    label: 'Ctrl + Shift + G',
-    description: 'Fast reopen shortcut for the Bento shell.',
+    id: "ctrl-shift-g",
+    label: "Ctrl + Shift + G",
+    description: "Fast reopen shortcut for the Bento shell.",
   },
   {
-    id: 'ctrl-alt-g',
-    label: 'Ctrl + Alt + G',
-    description: 'Lower collision risk on Windows-heavy desktops.',
+    id: "ctrl-alt-g",
+    label: "Ctrl + Alt + G",
+    description: "Lower collision risk on Windows-heavy desktops.",
   },
   {
-    id: 'ctrl-shift-space',
-    label: 'Ctrl + Shift + Space',
-    description: 'Easy to remember if you want a global palette-style shortcut.',
+    id: "ctrl-shift-space",
+    label: "Ctrl + Shift + Space",
+    description: "Easy to remember if you want a global palette-style shortcut.",
   },
 ];
 
@@ -89,14 +89,14 @@ export const reopenShortcutOptions: ReopenShortcutOption[] = [
  */
 export function getEditorFontFamily(fontPairingId: string): string {
   const pairing = fontPairings.find((p) => p.id === fontPairingId);
-  if (!pairing) return 'Instrument Serif, serif';
+  if (!pairing) return "Instrument Serif, serif";
 
   switch (pairing.id) {
-    case 'anytype':
+    case "anytype":
       return "'IBM Plex Sans', sans-serif";
-    case 'instrument-serif':
+    case "instrument-serif":
       return "'Instrument Serif', serif";
-    case 'bento-classic':
+    case "bento-classic":
     default:
       return "'Instrument Serif', serif";
   }
@@ -106,7 +106,7 @@ export function getEditorFontFamily(fontPairingId: string): string {
  * Get the font pairing name for display purposes.
  */
 export function getFontPairingName(fontPairingId: string): string {
-  return fontPairings.find((p) => p.id === fontPairingId)?.name ?? 'Instrument Serif';
+  return fontPairings.find((p) => p.id === fontPairingId)?.name ?? "Instrument Serif";
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -123,50 +123,50 @@ export type JournalFontVariation = {
 
 export const journalFontVariations: JournalFontVariation[] = [
   {
-    id: 'jv-plex-plex',
-    name: 'Plex Sans + Plex Sans',
+    id: "jv-plex-plex",
+    name: "Plex Sans + Plex Sans",
     heading: "'IBM Plex Sans', sans-serif",
     body: "'IBM Plex Sans', sans-serif",
-    description: 'IBM Plex Sans for both headings and body — clean and consistent',
+    description: "IBM Plex Sans for both headings and body — clean and consistent",
   },
   {
-    id: 'jv-plex-inter',
-    name: 'Plex Sans + Inter',
+    id: "jv-plex-inter",
+    name: "Plex Sans + Inter",
     heading: "'IBM Plex Sans', sans-serif",
     body: "'Inter', sans-serif",
-    description: 'IBM Plex Sans headings with Inter body — modern and readable',
+    description: "IBM Plex Sans headings with Inter body — modern and readable",
   },
   {
-    id: 'jv-plex-source',
-    name: 'Plex Sans + Source Sans Pro',
+    id: "jv-plex-source",
+    name: "Plex Sans + Source Sans Pro",
     heading: "'IBM Plex Sans', sans-serif",
     body: "'Source Sans Pro', sans-serif",
-    description: 'IBM Plex Sans headings with Source Sans Pro body — clean journal',
+    description: "IBM Plex Sans headings with Source Sans Pro body — clean journal",
   },
   {
-    id: 'jv-plex-poppins',
-    name: 'Plex Sans + Poppins',
+    id: "jv-plex-poppins",
+    name: "Plex Sans + Poppins",
     heading: "'IBM Plex Sans', sans-serif",
     body: "'Poppins', sans-serif",
-    description: 'IBM Plex Sans headings with Poppins body — geometric and warm',
+    description: "IBM Plex Sans headings with Poppins body — geometric and warm",
   },
   {
-    id: 'jv-plex-merriweather',
-    name: 'Plex Sans + Merriweather',
+    id: "jv-plex-merriweather",
+    name: "Plex Sans + Merriweather",
     heading: "'IBM Plex Sans', sans-serif",
     body: "'Merriweather', serif",
-    description: 'IBM Plex Sans headings with Merriweather body — editorial serif',
+    description: "IBM Plex Sans headings with Merriweather body — editorial serif",
   },
   {
-    id: 'jv-plex-instrument',
-    name: 'Plex Sans + Instrument Serif',
+    id: "jv-plex-instrument",
+    name: "Plex Sans + Instrument Serif",
     heading: "'IBM Plex Sans', sans-serif",
     body: "'Instrument Serif', serif",
-    description: 'IBM Plex Sans headings with Instrument Serif body — best of both',
+    description: "IBM Plex Sans headings with Instrument Serif body — best of both",
   },
 ];
 
-export const defaultJournalFontVariationId = 'jv-plex-instrument';
+export const defaultJournalFontVariationId = "jv-plex-instrument";
 
 export function getJournalFontBody(variationId: string): string {
   return (
@@ -182,9 +182,9 @@ export function getJournalFontHeading(variationId: string): string {
 }
 
 export function getJournalFontVariationName(variationId: string): string {
-  return journalFontVariations.find((v) => v.id === variationId)?.name ?? 'Instrument Serif';
+  return journalFontVariations.find((v) => v.id === variationId)?.name ?? "Instrument Serif";
 }
 
-export const defaultFontPairingId = fontPairings[0]?.id ?? 'bento-classic';
-export const defaultLanguageCode: LanguageCode = 'en';
-export const defaultReopenShortcutId = reopenShortcutOptions[0]?.id ?? 'ctrl-shift-g';
+export const defaultFontPairingId = fontPairings[0]?.id ?? "bento-classic";
+export const defaultLanguageCode: LanguageCode = "en";
+export const defaultReopenShortcutId = reopenShortcutOptions[0]?.id ?? "ctrl-shift-g";

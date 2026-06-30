@@ -3,88 +3,88 @@
   font-family: "Biscotti";
   src: url("/fonts/biscotti/biscotti.woff2") format("woff2");
   font-weight: 400;
-  
+
   font-style: normal;
   font-display: swap;
 }
 
-@import '$lib/styles/enterprise.css';
+@import "$lib/styles/enterprise.css";
 
 /* Bricolage Grotesque Variable — self-hosted, static/fonts/bricolage/ */
 @font-face {
-  font-family: 'Bricolage Grotesque Variable';
-  src: url('/fonts/bricolage/bricolage-grotesque-latin-wght-normal.woff2')
-    format('woff2-variations');
+  font-family: "Bricolage Grotesque Variable";
+  src: url("/fonts/bricolage/bricolage-grotesque-latin-wght-normal.woff2")
+    format("woff2-variations");
   font-weight: 200 800;
   font-style: normal;
   font-display: swap;
 }
 /* Legacy alias so any remaining 'Bricolage Grotesque' references still work */
 @font-face {
-  font-family: 'Bricolage Grotesque';
-  src: url('/fonts/bricolage/bricolage-grotesque-latin-wght-normal.woff2')
-    format('woff2-variations');
+  font-family: "Bricolage Grotesque";
+  src: url("/fonts/bricolage/bricolage-grotesque-latin-wght-normal.woff2")
+    format("woff2-variations");
   font-weight: 200 800;
   font-style: normal;
   font-display: swap;
 }
 
 /* JetBrains Mono Variable — bundled via @fontsource-variable (node_modules) */
-@import '@fontsource-variable/jetbrains-mono/wght.css';
-@import '@fontsource/instrument-serif/latin-400.css';
-@import '@fontsource/instrument-serif/latin-400-italic.css';
-@import '@fontsource/ibm-plex-sans/latin-400.css';
-@import '@fontsource/ibm-plex-sans/latin-500.css';
-@import '@fontsource/ibm-plex-sans/latin-600.css';
-@import '@fontsource/ibm-plex-sans/latin-700.css';
-@import '@fontsource/inter/latin-400.css';
-@import '@fontsource/inter/latin-500.css';
-@import '@fontsource/inter/latin-600.css';
-@import '@fontsource/inter/latin-700.css';
-@import '@fontsource/source-sans-pro/latin-400.css';
-@import '@fontsource/source-sans-pro/latin-600.css';
-@import '@fontsource/source-sans-pro/latin-700.css';
-@import '@fontsource/poppins/latin-400.css';
-@import '@fontsource/poppins/latin-500.css';
-@import '@fontsource/poppins/latin-600.css';
-@import '@fontsource/poppins/latin-700.css';
-@import '@fontsource/merriweather/latin-400.css';
-@import '@fontsource/merriweather/latin-700.css';
+@import "@fontsource-variable/jetbrains-mono/wght.css";
+@import "@fontsource/instrument-serif/latin-400.css";
+@import "@fontsource/instrument-serif/latin-400-italic.css";
+@import "@fontsource/ibm-plex-sans/latin-400.css";
+@import "@fontsource/ibm-plex-sans/latin-500.css";
+@import "@fontsource/ibm-plex-sans/latin-600.css";
+@import "@fontsource/ibm-plex-sans/latin-700.css";
+@import "@fontsource/inter/latin-400.css";
+@import "@fontsource/inter/latin-500.css";
+@import "@fontsource/inter/latin-600.css";
+@import "@fontsource/inter/latin-700.css";
+@import "@fontsource/source-sans-pro/latin-400.css";
+@import "@fontsource/source-sans-pro/latin-600.css";
+@import "@fontsource/source-sans-pro/latin-700.css";
+@import "@fontsource/poppins/latin-400.css";
+@import "@fontsource/poppins/latin-500.css";
+@import "@fontsource/poppins/latin-600.css";
+@import "@fontsource/poppins/latin-700.css";
+@import "@fontsource/merriweather/latin-400.css";
+@import "@fontsource/merriweather/latin-700.css";
 
 @font-face {
-  font-family: 'General Sans';
-  src: url('/fonts/general-sans/GeneralSans-Regular.woff2') format('woff2');
+  font-family: "General Sans";
+  src: url("/fonts/general-sans/GeneralSans-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'General Sans';
-  src: url('/fonts/general-sans/GeneralSans-Medium.woff2') format('woff2');
+  font-family: "General Sans";
+  src: url("/fonts/general-sans/GeneralSans-Medium.woff2") format("woff2");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'General Sans';
-  src: url('/fonts/general-sans/GeneralSans-Semibold.woff2') format('woff2');
+  font-family: "General Sans";
+  src: url("/fonts/general-sans/GeneralSans-Semibold.woff2") format("woff2");
   font-weight: 600;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'General Sans';
-  src: url('/fonts/general-sans/GeneralSans-Bold.woff2') format('woff2');
+  font-family: "General Sans";
+  src: url("/fonts/general-sans/GeneralSans-Bold.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
-@import 'tailwindcss';
-@import 'tw-animate-css';
-@import './lib/card-system.css';
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./lib/card-system.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -119,12 +119,12 @@
 
 :root {
   /* ── Font roles ────────────────────────────────────────────────── */
-  --font-display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque', system-ui, sans-serif;
-  --font-body: 'General Sans', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'JetBrains Mono', monospace;
+  --font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque", system-ui, sans-serif;
+  --font-body: "General Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "JetBrains Mono", monospace;
   /* Editor font — overridden by font preference setting (FontPreferencePanel) */
-  --editor-font-family: 'Instrument Serif', serif;
-  --editor-font-family-heading: 'Bricolage Grotesque Variable', system-ui, sans-serif;
+  --editor-font-family: "Instrument Serif", serif;
+  --editor-font-family-heading: "Bricolage Grotesque Variable", system-ui, sans-serif;
   /* Tailwind alias — keeps @theme inline working */
   --font-heading: var(--font-display);
   --font-sans: var(--font-body);
@@ -946,15 +946,15 @@ body {
   }
 }
 
-html[dir='rtl'] body,
-html[dir='rtl'] input,
-html[dir='rtl'] button,
-html[dir='rtl'] textarea,
-html[lang='ar'] body,
-html[lang='ar'] input,
-html[lang='ar'] button,
-html[lang='ar'] textarea {
-  font-family: 'Noto Sans Arabic Variable', var(--font-body), system-ui, sans-serif;
+html[dir="rtl"] body,
+html[dir="rtl"] input,
+html[dir="rtl"] button,
+html[dir="rtl"] textarea,
+html[lang="ar"] body,
+html[lang="ar"] input,
+html[lang="ar"] button,
+html[lang="ar"] textarea {
+  font-family: "Noto Sans Arabic Variable", var(--font-body), system-ui, sans-serif;
 }
 
 button,
@@ -1172,7 +1172,7 @@ textarea {
 }
 
 .desktop-sidebar__move-handle::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
@@ -1285,7 +1285,7 @@ body.sidebar-dragging * {
 }
 
 .desktop-sidebar__nav-item--active::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 50%;
@@ -2191,7 +2191,7 @@ body.sidebar-dragging * {
 }
 
 .starter-ring::before {
-  content: '';
+  content: "";
   grid-area: 1 / 1;
   width: 6.4rem;
   height: 6.4rem;
@@ -2850,7 +2850,7 @@ body.sidebar-dragging * {
 }
 
 .desktop-sidebar__move-handle::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
@@ -3096,7 +3096,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   box-shadow: none !important;
 }
 
-.starter-stat-card [data-slot='card-content'] {
+.starter-stat-card [data-slot="card-content"] {
   display: grid;
   gap: 0.28rem;
   padding: 1.1rem 1.25rem;
@@ -3133,11 +3133,11 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   box-shadow: none !important;
 }
 
-.starter-feature-card [data-slot='card-header'],
-.starter-mail-card [data-slot='card-header'],
-.starter-mail-nav [data-slot='card-header'],
-.starter-telemetry-map [data-slot='card-header'],
-.starter-telemetry-log [data-slot='card-header'] {
+.starter-feature-card [data-slot="card-header"],
+.starter-mail-card [data-slot="card-header"],
+.starter-mail-nav [data-slot="card-header"],
+.starter-telemetry-map [data-slot="card-header"],
+.starter-telemetry-log [data-slot="card-header"] {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -3146,22 +3146,22 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   padding: 1.3rem 1.35rem 0.4rem;
 }
 
-.starter-feature-card [data-slot='card-title'],
-.starter-mail-card [data-slot='card-title'],
-.starter-mail-nav [data-slot='card-title'],
-.starter-telemetry-map [data-slot='card-title'],
-.starter-telemetry-log [data-slot='card-title'],
-.starter-kanban-column [data-slot='card-title'] {
+.starter-feature-card [data-slot="card-title"],
+.starter-mail-card [data-slot="card-title"],
+.starter-mail-nav [data-slot="card-title"],
+.starter-telemetry-map [data-slot="card-title"],
+.starter-telemetry-log [data-slot="card-title"],
+.starter-kanban-column [data-slot="card-title"] {
   color: var(--starter-text);
   font-family: var(--font-heading);
   font-size: 1.18rem;
   letter-spacing: -0.045em;
 }
 
-.starter-feature-card [data-slot='card-description'],
-.starter-mail-nav [data-slot='card-description'],
-.starter-telemetry-map [data-slot='card-description'],
-.starter-telemetry-log [data-slot='card-description'] {
+.starter-feature-card [data-slot="card-description"],
+.starter-mail-nav [data-slot="card-description"],
+.starter-telemetry-map [data-slot="card-description"],
+.starter-telemetry-log [data-slot="card-description"] {
   color: var(--starter-muted);
 }
 
@@ -3173,7 +3173,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   grid-column: 2;
 }
 
-.starter-feature-card [data-slot='card-content'] {
+.starter-feature-card [data-slot="card-content"] {
   padding: 1rem 1.35rem 1.35rem;
 }
 
@@ -3209,15 +3209,15 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   background: color-mix(in srgb, var(--starter-accent) 78%, var(--starter-text) 22%) !important;
 }
 
-.starter-feature-card--list [data-slot='card-content'],
-.starter-telemetry-log [data-slot='card-content'] {
+.starter-feature-card--list [data-slot="card-content"],
+.starter-telemetry-log [data-slot="card-content"] {
   display: grid;
   gap: 0.72rem;
   padding: 0.7rem 1.35rem 1.35rem;
 }
 
-.starter-feature-card--list [data-slot='card-content'] > div,
-.starter-telemetry-log [data-slot='card-content'] > div {
+.starter-feature-card--list [data-slot="card-content"] > div,
+.starter-telemetry-log [data-slot="card-content"] > div {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -3309,14 +3309,14 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   background: rgba(255, 255, 255, 0.045) !important;
 }
 
-.starter-kanban-column [data-slot='card-header'] {
+.starter-kanban-column [data-slot="card-header"] {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
   padding: 1rem 1rem 0.4rem;
 }
 
-.starter-kanban-column [data-slot='card-content'] {
+.starter-kanban-column [data-slot="card-content"] {
   display: grid;
   gap: 0.7rem;
   padding: 0.7rem 1rem 1rem;
@@ -3368,19 +3368,19 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   align-items: start;
 }
 
-.starter-mail-card [data-slot='card-header'] > div {
+.starter-mail-card [data-slot="card-header"] > div {
   display: flex;
   align-items: center;
   gap: 0.9rem;
 }
 
-.starter-mail-card [data-slot='card-header'] svg {
+.starter-mail-card [data-slot="card-header"] svg {
   width: 1.45rem;
   height: 1.45rem;
   color: var(--starter-text);
 }
 
-.starter-mail-card [data-slot='card-content'] {
+.starter-mail-card [data-slot="card-content"] {
   padding: 0.2rem 1.35rem 1.35rem;
 }
 
@@ -3414,7 +3414,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   margin: 0;
 }
 
-.starter-mail-nav [data-slot='card-content'] {
+.starter-mail-nav [data-slot="card-content"] {
   display: grid;
   gap: 0.5rem;
   padding: 0.75rem 1rem 1rem;
@@ -3447,7 +3447,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   grid-row: span 2;
 }
 
-.starter-telemetry-map [data-slot='card-content'] {
+.starter-telemetry-map [data-slot="card-content"] {
   padding: 1rem 1.35rem 1.35rem;
 }
 
@@ -3514,7 +3514,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   gap: 0.8rem;
 }
 
-.starter-telemetry-row [data-slot='card-content'] {
+.starter-telemetry-row [data-slot="card-content"] {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 0.45rem;
@@ -3891,8 +3891,8 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
    Applied via data-slot so it works even if bits-ui doesn't forward
    style prop. Same pattern as FontPreferencePanel & GlobalSettings.
    ═══════════════════════════════════════════════════════════════════ */
-[data-slot='dialog-overlay'],
-[data-slot='sheet-overlay'] {
+[data-slot="dialog-overlay"],
+[data-slot="sheet-overlay"] {
   background: color-mix(in srgb, var(--background) 60%, transparent) !important;
   backdrop-filter: blur(12px) !important;
 }
@@ -5968,7 +5968,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   height: 24px;
   border-radius: 7px; /* squircle: 7px on a 24px square = iOS-style */
   clip-path: path(
-    'M12,0 C18.6,0 24,5.4 24,12 C24,18.6 18.6,24 12,24 C5.4,24 0,18.6 0,12 C0,5.4 5.4,0 12,0 Z'
+    "M12,0 C18.6,0 24,5.4 24,12 C24,18.6 18.6,24 12,24 C5.4,24 0,18.6 0,12 C0,5.4 5.4,0 12,0 Z"
   );
   display: grid;
   place-items: center;

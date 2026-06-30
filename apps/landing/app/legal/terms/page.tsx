@@ -18,21 +18,17 @@ const sections: LegalSection[] = [
     content: (
       <>
         <P>
-          By downloading, installing, or using <B>Bento</B> (the &ldquo;App&rdquo;), you agree to
-          be bound by these Terms of Service (&ldquo;Terms&rdquo;). If you do not agree to these
-          Terms, do not install or use the App.
+          By downloading, installing, or using <B>Bento</B> (the &ldquo;App&rdquo;), you agree to be
+          bound by these Terms of Service (&ldquo;Terms&rdquo;). If you do not agree to these Terms,
+          do not install or use the App.
         </P>
         <P>
           Bento is operated by the team at{' '}
-          <a
-            href="https://iamazeyou.me"
-            className="legal-link"
-          >
+          <a href="https://iamazeyou.me" className="legal-link">
             iamazeyou.me
           </a>
           . Throughout these Terms, &ldquo;we,&rdquo; &ldquo;our,&rdquo; and &ldquo;us&rdquo; refer
-          to the Bento team, and &ldquo;you&rdquo; refers to the individual or entity using the
-          App.
+          to the Bento team, and &ldquo;you&rdquo; refers to the individual or entity using the App.
         </P>
         <P>
           These Terms form a legally binding agreement between you and Bento. By using the App, you
@@ -56,8 +52,9 @@ const sections: LegalSection[] = [
         <P>
           Bento is a desktop application designed to help you organise your life across seventeen
           built-in mini-apps: dashboard, notes, journal, tasks, voice memos, focus timer, habits,
-          mood tracker, goals, clipboard, sleep tracker, health tracker, nutrition log, budget planner,
-          password vault, countdown timer, and settings. The App is available for Windows, macOS, and Linux.
+          mood tracker, goals, clipboard, sleep tracker, health tracker, nutrition log, budget
+          planner, password vault, countdown timer, and settings. The App is available for Windows,
+          macOS, and Linux.
         </P>
         <P>
           Bento operates on a local-first architecture. Your data resides on your computer by
@@ -65,9 +62,9 @@ const sections: LegalSection[] = [
           your data to our secure servers so it can be restored or accessed across devices.
         </P>
         <P>
-          The App is offered in a free plan and three paid subscription tiers (Core, Pro, and
-          Power) with additional capabilities, extended limits, and priority support. All features
-          are subject to these Terms.
+          The App is offered in a free plan and three paid subscription tiers (Core, Pro, and Power)
+          with additional capabilities, extended limits, and priority support. All features are
+          subject to these Terms.
         </P>
       </>
     ),
@@ -89,10 +86,7 @@ const sections: LegalSection[] = [
         </P>
         <P>
           You must notify us immediately at{' '}
-          <a
-            href="mailto:support@iamazeyou.me"
-            className="legal-link"
-          >
+          <a href="mailto:support@iamazeyou.me" className="legal-link">
             support@iamazeyou.me
           </a>{' '}
           if you suspect any unauthorised use of your account or any breach of security. We are not
@@ -112,10 +106,7 @@ const sections: LegalSection[] = [
           Bento offers a free plan with core functionality and paid plans (Core, Pro, and Power)
           with expanded features. The specific features of each plan are described on our pricing
           page at{' '}
-          <a
-            href="https://iamazeyou.me/pricing"
-            className="legal-link"
-          >
+          <a href="https://iamazeyou.me/pricing" className="legal-link">
             iamazeyou.me/pricing
           </a>
           .
@@ -131,9 +122,9 @@ const sections: LegalSection[] = [
         <Sub>Cancellation and Refunds</Sub>
         <P>
           You may cancel your paid subscription at any time from your account settings. Upon
-          cancellation, your paid plan access will continue until the end of the current billing period.
-          No prorated refunds are provided for partial billing periods unless required by applicable
-          consumer law.
+          cancellation, your paid plan access will continue until the end of the current billing
+          period. No prorated refunds are provided for partial billing periods unless required by
+          applicable consumer law.
         </P>
         <P>
           If you experience a technical issue that prevents you from using the App as described, we
@@ -168,7 +159,10 @@ const sections: LegalSection[] = [
             'Interfere with the operation of the App or our infrastructure, including through denial-of-service attacks or excessive automated requests',
             'Use the AI chat feature to generate harmful, abusive, or misleading content, or to impersonate individuals or organisations',
             'Create multiple accounts for the purpose of circumventing trial limits or subscription requirements',
-            <>Attempt to access another user&rsquo;s account or data without their explicit permission</>,
+            <>
+              Attempt to access another user&rsquo;s account or data without their explicit
+              permission
+            </>,
           ]}
         />
         <P>
@@ -215,10 +209,7 @@ const sections: LegalSection[] = [
       <>
         <P>
           Your privacy matters to us. Our{' '}
-          <a
-            href="/legal/privacy"
-            className="legal-link"
-          >
+          <a href="/legal/privacy" className="legal-link">
             Privacy Policy
           </a>{' '}
           explains how we collect, use, and safeguard your personal information. By using Bento, you
@@ -352,10 +343,7 @@ const sections: LegalSection[] = [
         </P>
         <P>
           We encourage you to contact us directly at{' '}
-          <a
-            href="mailto:legal@iamazeyou.me"
-            className="legal-link"
-          >
+          <a href="mailto:legal@iamazeyou.me" className="legal-link">
             legal@iamazeyou.me
           </a>{' '}
           to resolve any dispute before initiating formal proceedings. Most disputes can be resolved
@@ -367,8 +355,8 @@ const sections: LegalSection[] = [
           those courts.
         </P>
         <P>
-          Any legal action arising from these Terms must be commenced within one year after the claim
-          arises, or such claim is permanently barred.
+          Any legal action arising from these Terms must be commenced within one year after the
+          claim arises, or such claim is permanently barred.
         </P>
       </>
     ),
@@ -387,28 +375,19 @@ const sections: LegalSection[] = [
           items={[
             <>
               <B>Support</B>:{' '}
-              <a
-                href="mailto:support@iamazeyou.me"
-                className="legal-link"
-              >
+              <a href="mailto:support@iamazeyou.me" className="legal-link">
                 support@iamazeyou.me
               </a>
             </>,
             <>
               <B>Legal inquiries</B>:{' '}
-              <a
-                href="mailto:legal@iamazeyou.me"
-                className="legal-link"
-              >
+              <a href="mailto:legal@iamazeyou.me" className="legal-link">
                 legal@iamazeyou.me
               </a>
             </>,
             <>
               <B>Privacy concerns</B>:{' '}
-              <a
-                href="mailto:privacy@iamazeyou.me"
-                className="legal-link"
-              >
+              <a href="mailto:privacy@iamazeyou.me" className="legal-link">
                 privacy@iamazeyou.me
               </a>
             </>,

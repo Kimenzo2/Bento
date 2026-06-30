@@ -323,9 +323,9 @@
   color: var(--text-primary, white);
 }
 /* ── Card System Fix ──────────────────────────────────────────────── */
-.health-app-container [class*='-card'],
-.health-app-container [class*='-panel'],
-.health-app-container [class*='-block'],
+.health-app-container [class*="-card"],
+.health-app-container [class*="-panel"],
+.health-app-container [class*="-block"],
 .health-app-container .metric-card,
 .health-app-container .log-item,
 .health-app-container .stat-block {
@@ -334,9 +334,9 @@
   background: var(--card);
   border-radius: 20px;
 }
-.dark .health-app-container [class*='-card'],
-.dark .health-app-container [class*='-panel'],
-.dark .health-app-container [class*='-block'],
+.dark .health-app-container [class*="-card"],
+.dark .health-app-container [class*="-panel"],
+.dark .health-app-container [class*="-block"],
 .dark .health-app-container .metric-card,
 .dark .health-app-container .log-item,
 .dark .health-app-container .stat-block {

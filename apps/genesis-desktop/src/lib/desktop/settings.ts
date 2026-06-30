@@ -1,119 +1,118 @@
-import { browser } from '$app/environment';
-import { setTheme as setNativeTheme } from '@tauri-apps/api/app';
-import { invoke, isTauri } from '@tauri-apps/api/core';
-import { load, type Store } from '@tauri-apps/plugin-store';
-import { writable, get } from 'svelte/store';
-import { z } from 'zod';
+import { browser } from "$app/environment";
+import { setTheme as setNativeTheme } from "@tauri-apps/api/app";
+import { invoke, isTauri } from "@tauri-apps/api/core";
+import { load, type Store } from "@tauri-apps/plugin-store";
+import { writable, get } from "svelte/store";
+import { z } from "zod";
 import {
   defaultThemeId,
   desktopThemes,
   getThemeTokensFor,
   type ThemeId,
   type ThemeMode,
-} from '$lib/data/themes';
+} from "$lib/data/themes";
 import {
   defaultFontPairingId,
   defaultLanguageCode,
   defaultReopenShortcutId,
   fontPairings,
-  languages,
   type ReopenShortcutId,
-} from '$lib/data/preferences';
+} from "$lib/data/preferences";
 
-const THEME_KEY = 'bento_desktop_theme';
-const MODE_KEY = 'bento_desktop_mode';
-const FONT_KEY = 'bento_desktop_fonts';
-const LANGUAGE_KEY = 'bento_desktop_language';
-const SIDEBAR_KEY = 'bento_desktop_sidebar_collapsed';
-const SIDEBAR_WIDTH_KEY = 'bento_desktop_sidebar_width';
-const SHORTCUT_KEY = 'bento_desktop_shortcut';
-const NOTIFICATIONS_KEY = 'bento_desktop_notifications';
-const TELEMETRY_KEY = 'bento_desktop_telemetry';
-const EXPORT_DIRECTORY_KEY = 'bento_desktop_export_directory';
-const CLOUD_BACKUP_KEY = 'bento_desktop_cloud_backup';
-const SETTINGS_KEY = 'bento_desktop_settings';
-const STORE_PATH = 'settings.json';
-const THEME_SNAPSHOT_KEY = '__bento_theme_snapshot';
+const THEME_KEY = "bento_desktop_theme";
+const MODE_KEY = "bento_desktop_mode";
+const FONT_KEY = "bento_desktop_fonts";
+const LANGUAGE_KEY = "bento_desktop_language";
+const SIDEBAR_KEY = "bento_desktop_sidebar_collapsed";
+const SIDEBAR_WIDTH_KEY = "bento_desktop_sidebar_width";
+const SHORTCUT_KEY = "bento_desktop_shortcut";
+const NOTIFICATIONS_KEY = "bento_desktop_notifications";
+const TELEMETRY_KEY = "bento_desktop_telemetry";
+const EXPORT_DIRECTORY_KEY = "bento_desktop_export_directory";
+const CLOUD_BACKUP_KEY = "bento_desktop_cloud_backup";
+const SETTINGS_KEY = "bento_desktop_settings";
+const STORE_PATH = "settings.json";
+const THEME_SNAPSHOT_KEY = "__bento_theme_snapshot";
 
 const storeKeys = {
-  themeId: 'appearance.themeId',
-  mode: 'appearance.mode',
-  fontPairingId: 'appearance.fontPairingId',
-  languageCode: 'language.code',
-  dateFormat: 'language.dateFormat',
-  timeFormat: 'language.timeFormat',
-  firstDay: 'language.firstDay',
-  sidebarCollapsed: 'workspace.sidebarCollapsed',
-  sidebarWidth: 'workspace.sidebarWidth',
-  sidebarTop: 'workspace.sidebarTop',
-  tabsEnabled: 'workspace.tabsEnabled',
-  sidebarHidden: 'workspace.sidebarHidden',
-  restoreOnLaunch: 'window.restoreOnLaunch',
-  startHidden: 'window.startHidden',
-  reopenId: 'shortcuts.reopenId',
-  backgroundAlerts: 'notifications.backgroundAlerts',
-  telemetryConsented: 'telemetry.consented',
-  telemetryCrashReports: 'telemetry.crashReports',
-  exportDirectory: 'files.exportDirectory',
-  cloudBackupEnabled: 'cloudBackup.enabled',
-  cloudBackupProjectUrl: 'cloudBackup.projectUrl',
-  cloudBackupAnonKey: 'cloudBackup.anonKey',
-  cloudBackupBucketName: 'cloudBackup.bucketName',
-  cloudBackupScheduleEnabled: 'cloudBackup.scheduleEnabled',
-  cloudBackupSchedule: 'cloudBackup.schedule',
-  cloudBackupScope: 'cloudBackup.scope',
-  cloudBackupSelectedModules: 'cloudBackup.selectedModules',
-  cloudBackupLastBackupAt: 'cloudBackup.lastBackupAt',
-  cloudBackupLastBackupSizeBytes: 'cloudBackup.lastBackupSizeBytes',
-  cloudBackupLastBackupObjectPath: 'cloudBackup.lastBackupObjectPath',
-  cloudBackupLastBackupStatus: 'cloudBackup.lastBackupStatus',
-  cloudBackupStorageUsageBytes: 'cloudBackup.storageUsageBytes',
-  legacyBrowserStorageMigrated: 'migration.legacyBrowserStorageMigrated',
-  storeSettingsMigrated: 'migration.storeSettingsMigrated',
+  themeId: "appearance.themeId",
+  mode: "appearance.mode",
+  fontPairingId: "appearance.fontPairingId",
+  languageCode: "language.code",
+  dateFormat: "language.dateFormat",
+  timeFormat: "language.timeFormat",
+  firstDay: "language.firstDay",
+  sidebarCollapsed: "workspace.sidebarCollapsed",
+  sidebarWidth: "workspace.sidebarWidth",
+  sidebarTop: "workspace.sidebarTop",
+  tabsEnabled: "workspace.tabsEnabled",
+  sidebarHidden: "workspace.sidebarHidden",
+  restoreOnLaunch: "window.restoreOnLaunch",
+  startHidden: "window.startHidden",
+  reopenId: "shortcuts.reopenId",
+  backgroundAlerts: "notifications.backgroundAlerts",
+  telemetryConsented: "telemetry.consented",
+  telemetryCrashReports: "telemetry.crashReports",
+  exportDirectory: "files.exportDirectory",
+  cloudBackupEnabled: "cloudBackup.enabled",
+  cloudBackupProjectUrl: "cloudBackup.projectUrl",
+  cloudBackupAnonKey: "cloudBackup.anonKey",
+  cloudBackupBucketName: "cloudBackup.bucketName",
+  cloudBackupScheduleEnabled: "cloudBackup.scheduleEnabled",
+  cloudBackupSchedule: "cloudBackup.schedule",
+  cloudBackupScope: "cloudBackup.scope",
+  cloudBackupSelectedModules: "cloudBackup.selectedModules",
+  cloudBackupLastBackupAt: "cloudBackup.lastBackupAt",
+  cloudBackupLastBackupSizeBytes: "cloudBackup.lastBackupSizeBytes",
+  cloudBackupLastBackupObjectPath: "cloudBackup.lastBackupObjectPath",
+  cloudBackupLastBackupStatus: "cloudBackup.lastBackupStatus",
+  cloudBackupStorageUsageBytes: "cloudBackup.storageUsageBytes",
+  legacyBrowserStorageMigrated: "migration.legacyBrowserStorageMigrated",
+  storeSettingsMigrated: "migration.storeSettingsMigrated",
 } as const;
 
-const themeModeSchema = z.enum(['light', 'dark']);
+const themeModeSchema = z.enum(["light", "dark"]);
 // All 27 interface language codes — ported from Anytype-ts src/json/lang.ts
 const languageCodeSchema = z.enum([
-  'en',
-  'ar',
-  'be',
-  'cs',
-  'da',
-  'de',
-  'es',
-  'fa',
-  'fr',
-  'hi',
-  'id',
-  'it',
-  'ja',
-  'ko',
-  'lt',
-  'nl',
-  'no',
-  'pl',
-  'pt-BR',
-  'pt-PT',
-  'ro',
-  'ru',
-  'tr',
-  'uk',
-  'vi',
-  'zh-CN',
-  'zh-TW',
+  "en",
+  "ar",
+  "be",
+  "cs",
+  "da",
+  "de",
+  "es",
+  "fa",
+  "fr",
+  "hi",
+  "id",
+  "it",
+  "ja",
+  "ko",
+  "lt",
+  "nl",
+  "no",
+  "pl",
+  "pt-BR",
+  "pt-PT",
+  "ro",
+  "ru",
+  "tr",
+  "uk",
+  "vi",
+  "zh-CN",
+  "zh-TW",
 ]);
 // Mirrors Anytype's I.DateFormat options from language.tsx
 const dateFormatSchema = z
-  .enum(['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD', 'DD.MM.YYYY', 'MMMM D, YYYY'])
-  .default('MM/DD/YYYY');
+  .enum(["MM/DD/YYYY", "DD/MM/YYYY", "YYYY-MM-DD", "DD.MM.YYYY", "MMMM D, YYYY"])
+  .default("MM/DD/YYYY");
 // Mirrors Anytype's I.TimeFormat (H12 / H24)
-const timeFormatSchema = z.enum(['12h', '24h']).default('12h');
+const timeFormatSchema = z.enum(["12h", "24h"]).default("12h");
 // Mirrors Anytype's firstDayOptions
-const firstDaySchema = z.enum(['monday', 'sunday', 'saturday']).default('monday');
-const shortcutSchema = z.enum(['ctrl-alt-g', 'ctrl-shift-g', 'ctrl-shift-space']);
-const cloudBackupScopeSchema = z.enum(['all', 'selected']).default('all');
-const cloudBackupScheduleSchema = z.enum(['daily', 'weekly']).default('daily');
+const firstDaySchema = z.enum(["monday", "sunday", "saturday"]).default("monday");
+const shortcutSchema = z.enum(["ctrl-alt-g", "ctrl-shift-g", "ctrl-shift-space"]);
+const cloudBackupScopeSchema = z.enum(["all", "selected"]).default("all");
+const cloudBackupScheduleSchema = z.enum(["daily", "weekly"]).default("daily");
 
 const themeSchema = z
   .object({
@@ -185,9 +184,9 @@ const desktopSettingsSchema = z
     cloudBackup: z
       .object({
         enabled: z.boolean().default(false),
-        projectUrl: z.string().default(''),
-        anonKey: z.string().default(''),
-        bucketName: z.string().default('bento-backups'),
+        projectUrl: z.string().default(""),
+        anonKey: z.string().default(""),
+        bucketName: z.string().default("bento-backups"),
         scheduleEnabled: z.boolean().default(false),
         schedule: cloudBackupScheduleSchema,
         scope: cloudBackupScopeSchema,
@@ -215,15 +214,15 @@ export const defaultDesktopSettings: DesktopSettings = {
   schemaVersion: 1,
   appearance: {
     themeId: defaultThemeId,
-    mode: 'dark',
+    mode: "dark",
     fontPairingId: defaultFontPairingId,
     glassEnabled: false,
   },
   language: {
     code: defaultLanguageCode,
-    dateFormat: 'MM/DD/YYYY',
-    timeFormat: '12h',
-    firstDay: 'monday',
+    dateFormat: "MM/DD/YYYY",
+    timeFormat: "12h",
+    firstDay: "monday",
   },
   workspace: {
     sidebarCollapsed: true,
@@ -247,16 +246,16 @@ export const defaultDesktopSettings: DesktopSettings = {
     crashReports: false,
   },
   files: {
-    exportDirectory: '',
+    exportDirectory: "",
   },
   cloudBackup: {
     enabled: false,
-    projectUrl: '',
-    anonKey: '',
-    bucketName: 'bento-backups',
+    projectUrl: "",
+    anonKey: "",
+    bucketName: "bento-backups",
     scheduleEnabled: false,
-    schedule: 'daily',
-    scope: 'all',
+    schedule: "daily",
+    scope: "all",
     selectedModules: [],
     lastBackupAt: null,
     lastBackupSizeBytes: null,
@@ -288,7 +287,7 @@ export function normalizeLanguageCode(languageCode: string): DesktopLanguageCode
   const result = languageCodeSchema.safeParse(languageCode);
   if (result.success) return result.data as DesktopLanguageCode;
   // Fuzzy fallback: match by prefix (e.g. "pt" → "pt-BR")
-  const prefix = languageCode.toLowerCase().split('-')[0];
+  const prefix = languageCode.toLowerCase().split("-")[0];
   const byPrefix = languageCodeSchema.options.find((c) => c.toLowerCase().startsWith(prefix));
   return (byPrefix as DesktopLanguageCode) ?? defaultLanguageCode;
 }
@@ -310,7 +309,7 @@ function parseStringArray(value: string | null): string[] {
 
   try {
     const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.filter((entry) => typeof entry === 'string') : [];
+    return Array.isArray(parsed) ? parsed.filter((entry) => typeof entry === "string") : [];
   } catch {
     return [];
   }
@@ -398,12 +397,12 @@ function persistBrowserSettings(settings: DesktopSettings) {
   window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   window.localStorage.setItem(SIDEBAR_KEY, String(settings.workspace.sidebarCollapsed));
   window.localStorage.setItem(SIDEBAR_WIDTH_KEY, String(settings.workspace.sidebarWidth));
-  window.localStorage.setItem('bento_desktop_sidebar_top', String(settings.workspace.sidebarTop));
+  window.localStorage.setItem("bento_desktop_sidebar_top", String(settings.workspace.sidebarTop));
   writeThemeSnapshot(settings);
 }
 
 function readLegacyBrowserSettings() {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return {};
   }
 
@@ -414,7 +413,7 @@ function readLegacyBrowserSettings() {
         ? (window.localStorage.getItem(MODE_KEY) as DesktopThemeMode)
         : defaultDesktopSettings.appearance.mode,
       fontPairingId: normalizeFontPairingId(
-        window.localStorage.getItem(FONT_KEY) ?? defaultFontPairingId
+        window.localStorage.getItem(FONT_KEY) ?? defaultFontPairingId,
       ),
     },
     language: {
@@ -424,78 +423,78 @@ function readLegacyBrowserSettings() {
       sidebarCollapsed: true, // Always start collapsed — user toggle is per-session only
       sidebarHidden: false,
       sidebarWidth:
-        Number.parseInt(window.localStorage.getItem(SIDEBAR_WIDTH_KEY) ?? '', 10) ||
+        Number.parseInt(window.localStorage.getItem(SIDEBAR_WIDTH_KEY) ?? "", 10) ||
         defaultDesktopSettings.workspace.sidebarWidth,
       sidebarTop:
         Number.parseInt(
-          window.localStorage.getItem('bento_desktop_sidebar_top') ??
-            window.localStorage.getItem('bento_desktop_sidebar_top') ??
-            '',
-          10
+          window.localStorage.getItem("bento_desktop_sidebar_top") ??
+            window.localStorage.getItem("bento_desktop_sidebar_top") ??
+            "",
+          10,
         ) || defaultDesktopSettings.workspace.sidebarTop,
-      tabsEnabled: window.localStorage.getItem('bento_desktop_tabs_enabled') === 'true',
+      tabsEnabled: window.localStorage.getItem("bento_desktop_tabs_enabled") === "true",
     },
     shortcuts: {
       reopenId: normalizeShortcutId(
-        window.localStorage.getItem(SHORTCUT_KEY) ?? defaultReopenShortcutId
+        window.localStorage.getItem(SHORTCUT_KEY) ?? defaultReopenShortcutId,
       ),
     },
     notifications: {
       backgroundAlerts:
-        window.localStorage.getItem(NOTIFICATIONS_KEY) === 'false'
+        window.localStorage.getItem(NOTIFICATIONS_KEY) === "false"
           ? false
           : defaultDesktopSettings.notifications.backgroundAlerts,
     },
     telemetry: {
-      consented: window.localStorage.getItem(TELEMETRY_KEY) === 'true',
-      crashReports: window.localStorage.getItem(TELEMETRY_KEY) === 'true',
+      consented: window.localStorage.getItem(TELEMETRY_KEY) === "true",
+      crashReports: window.localStorage.getItem(TELEMETRY_KEY) === "true",
     },
     files: {
-      exportDirectory: window.localStorage.getItem(EXPORT_DIRECTORY_KEY) ?? '',
+      exportDirectory: window.localStorage.getItem(EXPORT_DIRECTORY_KEY) ?? "",
     },
     cloudBackup: {
-      enabled: window.localStorage.getItem(CLOUD_BACKUP_KEY) === 'true',
-      projectUrl: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.projectUrl`) ?? '',
-      anonKey: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.anonKey`) ?? '',
-      bucketName: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.bucketName`) ?? 'bento-backups',
+      enabled: window.localStorage.getItem(CLOUD_BACKUP_KEY) === "true",
+      projectUrl: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.projectUrl`) ?? "",
+      anonKey: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.anonKey`) ?? "",
+      bucketName: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.bucketName`) ?? "bento-backups",
       scheduleEnabled:
-        window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.scheduleEnabled`) === 'true',
+        window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.scheduleEnabled`) === "true",
       schedule: cloudBackupScheduleSchema.safeParse(
-        window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.schedule`)
+        window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.schedule`),
       ).success
         ? (window.localStorage.getItem(
-            `${CLOUD_BACKUP_KEY}.schedule`
-          ) as DesktopSettings['cloudBackup']['schedule'])
+            `${CLOUD_BACKUP_KEY}.schedule`,
+          ) as DesktopSettings["cloudBackup"]["schedule"])
         : defaultDesktopSettings.cloudBackup.schedule,
       scope: cloudBackupScopeSchema.safeParse(
-        window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.scope`)
+        window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.scope`),
       ).success
         ? (window.localStorage.getItem(
-            `${CLOUD_BACKUP_KEY}.scope`
-          ) as DesktopSettings['cloudBackup']['scope'])
+            `${CLOUD_BACKUP_KEY}.scope`,
+          ) as DesktopSettings["cloudBackup"]["scope"])
         : defaultDesktopSettings.cloudBackup.scope,
       selectedModules: parseStringArray(
-        window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.selectedModules`)
+        window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.selectedModules`),
       ),
       lastBackupAt: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.lastBackupAt`),
       lastBackupSizeBytes:
         Number.parseInt(
-          window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.lastBackupSizeBytes`) ?? '',
-          10
+          window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.lastBackupSizeBytes`) ?? "",
+          10,
         ) || null,
       lastBackupObjectPath: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.lastBackupObjectPath`),
       lastBackupStatus: window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.lastBackupStatus`),
       storageUsageBytes:
         Number.parseInt(
-          window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.storageUsageBytes`) ?? '',
-          10
+          window.localStorage.getItem(`${CLOUD_BACKUP_KEY}.storageUsageBytes`) ?? "",
+          10,
         ) || null,
     },
   };
 }
 
 function clearLegacyBrowserSettings() {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return;
   }
 
@@ -505,8 +504,8 @@ function clearLegacyBrowserSettings() {
   window.localStorage.removeItem(LANGUAGE_KEY);
   window.localStorage.removeItem(SIDEBAR_KEY);
   window.localStorage.removeItem(SIDEBAR_WIDTH_KEY);
-  window.localStorage.removeItem('bento_desktop_sidebar_top');
-  window.localStorage.removeItem('bento_desktop_sidebar_top');
+  window.localStorage.removeItem("bento_desktop_sidebar_top");
+  window.localStorage.removeItem("bento_desktop_sidebar_top");
   window.localStorage.removeItem(SHORTCUT_KEY);
   window.localStorage.removeItem(NOTIFICATIONS_KEY);
   window.localStorage.removeItem(TELEMETRY_KEY);
@@ -524,7 +523,7 @@ function clearLegacyBrowserSettings() {
   window.localStorage.removeItem(`${CLOUD_BACKUP_KEY}.lastBackupObjectPath`);
   window.localStorage.removeItem(`${CLOUD_BACKUP_KEY}.lastBackupStatus`);
   window.localStorage.removeItem(`${CLOUD_BACKUP_KEY}.storageUsageBytes`);
-  window.localStorage.removeItem('bento_desktop_tabs_enabled');
+  window.localStorage.removeItem("bento_desktop_tabs_enabled");
 }
 
 function normalizeSettings(settings: DesktopSettings): DesktopSettings {
@@ -562,14 +561,14 @@ function normalizeSettings(settings: DesktopSettings): DesktopSettings {
       scheduleEnabled:
         settings.cloudBackup?.scheduleEnabled ?? defaultDesktopSettings.cloudBackup.scheduleEnabled,
       schedule: cloudBackupScheduleSchema.safeParse(settings.cloudBackup?.schedule).success
-        ? (settings.cloudBackup?.schedule as DesktopSettings['cloudBackup']['schedule'])
+        ? (settings.cloudBackup?.schedule as DesktopSettings["cloudBackup"]["schedule"])
         : defaultDesktopSettings.cloudBackup.schedule,
       scope: cloudBackupScopeSchema.safeParse(settings.cloudBackup?.scope).success
-        ? (settings.cloudBackup?.scope as DesktopSettings['cloudBackup']['scope'])
+        ? (settings.cloudBackup?.scope as DesktopSettings["cloudBackup"]["scope"])
         : defaultDesktopSettings.cloudBackup.scope,
       selectedModules: Array.isArray(settings.cloudBackup?.selectedModules)
         ? Array.from(
-            new Set(settings.cloudBackup.selectedModules.filter((value) => !!value.trim()))
+            new Set(settings.cloudBackup.selectedModules.filter((value) => !!value.trim())),
           )
         : defaultDesktopSettings.cloudBackup.selectedModules,
       lastBackupAt:
@@ -596,20 +595,20 @@ async function readStoreSettings(): Promise<DesktopSettings> {
     schemaVersion: 1,
     appearance: {
       themeId: normalizeThemeId(
-        (await store.get<string>(storeKeys.themeId)) ?? defaultDesktopSettings.appearance.themeId
+        (await store.get<string>(storeKeys.themeId)) ?? defaultDesktopSettings.appearance.themeId,
       ),
       mode: themeModeSchema.parse(
-        (await store.get<string>(storeKeys.mode)) ?? defaultDesktopSettings.appearance.mode
+        (await store.get<string>(storeKeys.mode)) ?? defaultDesktopSettings.appearance.mode,
       ),
       fontPairingId: normalizeFontPairingId(
         (await store.get<string>(storeKeys.fontPairingId)) ??
-          defaultDesktopSettings.appearance.fontPairingId
+          defaultDesktopSettings.appearance.fontPairingId,
       ),
       glassEnabled: defaultDesktopSettings.appearance.glassEnabled,
     },
     language: {
       code: normalizeLanguageCode(
-        (await store.get<string>(storeKeys.languageCode)) ?? defaultDesktopSettings.language.code
+        (await store.get<string>(storeKeys.languageCode)) ?? defaultDesktopSettings.language.code,
       ),
       dateFormat: dateFormatSchema.safeParse(await store.get<string>(storeKeys.dateFormat)).success
         ? ((await store.get<string>(storeKeys.dateFormat)) as DesktopDateFormat)
@@ -646,7 +645,7 @@ async function readStoreSettings(): Promise<DesktopSettings> {
     },
     shortcuts: {
       reopenId: normalizeShortcutId(
-        (await store.get<string>(storeKeys.reopenId)) ?? defaultDesktopSettings.shortcuts.reopenId
+        (await store.get<string>(storeKeys.reopenId)) ?? defaultDesktopSettings.shortcuts.reopenId,
       ),
     },
     notifications: {
@@ -684,17 +683,17 @@ async function readStoreSettings(): Promise<DesktopSettings> {
         (await store.get<boolean>(storeKeys.cloudBackupScheduleEnabled)) ??
         defaultDesktopSettings.cloudBackup.scheduleEnabled,
       schedule: cloudBackupScheduleSchema.safeParse(
-        await store.get<string>(storeKeys.cloudBackupSchedule)
+        await store.get<string>(storeKeys.cloudBackupSchedule),
       ).success
         ? ((await store.get<string>(
-            storeKeys.cloudBackupSchedule
-          )) as DesktopSettings['cloudBackup']['schedule'])
+            storeKeys.cloudBackupSchedule,
+          )) as DesktopSettings["cloudBackup"]["schedule"])
         : defaultDesktopSettings.cloudBackup.schedule,
       scope: cloudBackupScopeSchema.safeParse(await store.get<string>(storeKeys.cloudBackupScope))
         .success
         ? ((await store.get<string>(
-            storeKeys.cloudBackupScope
-          )) as DesktopSettings['cloudBackup']['scope'])
+            storeKeys.cloudBackupScope,
+          )) as DesktopSettings["cloudBackup"]["scope"])
         : defaultDesktopSettings.cloudBackup.scope,
       selectedModules:
         (await store.get<string[]>(storeKeys.cloudBackupSelectedModules)) ??
@@ -759,17 +758,17 @@ async function persistStoreSettings(settings: DesktopSettings) {
   await store.set(storeKeys.cloudBackupLastBackupAt, settings.cloudBackup.lastBackupAt);
   await store.set(
     storeKeys.cloudBackupLastBackupSizeBytes,
-    settings.cloudBackup.lastBackupSizeBytes
+    settings.cloudBackup.lastBackupSizeBytes,
   );
   await store.set(
     storeKeys.cloudBackupLastBackupObjectPath,
-    settings.cloudBackup.lastBackupObjectPath
+    settings.cloudBackup.lastBackupObjectPath,
   );
   await store.set(storeKeys.cloudBackupLastBackupStatus, settings.cloudBackup.lastBackupStatus);
   await store.set(storeKeys.cloudBackupStorageUsageBytes, settings.cloudBackup.storageUsageBytes);
   await store.set(
     storeKeys.legacyBrowserStorageMigrated,
-    settings.migration.legacyBrowserStorageMigrated
+    settings.migration.legacyBrowserStorageMigrated,
   );
   await store.set(storeKeys.storeSettingsMigrated, settings.migration.storeSettingsMigrated);
   await store.save();
@@ -781,7 +780,7 @@ async function readNativeSettingsMirror(): Promise<DesktopSettings | null> {
   }
 
   try {
-    const settings = await invoke<unknown>('load_desktop_settings');
+    const settings = await invoke<unknown>("load_desktop_settings");
     const parsed = desktopSettingsSchema.safeParse(settings);
     if (!parsed.success) return null;
     const normalized = normalizeSettings(parsed.data);
@@ -800,9 +799,9 @@ async function syncNativeSettingsMirror(settings: DesktopSettings) {
   }
 
   try {
-    await invoke<unknown>('save_desktop_settings', { settings });
+    await invoke<unknown>("save_desktop_settings", { settings });
   } catch (error) {
-    console.warn('Bento desktop settings were stored, but native mirror sync failed.', error);
+    console.warn("Bento desktop settings were stored, but native mirror sync failed.", error);
   }
 }
 
@@ -818,7 +817,7 @@ function writeThemeSnapshot(settings: DesktopSettings) {
       themeId: settings.appearance.themeId,
       mode: settings.appearance.mode,
       tokens,
-    })
+    }),
   );
 }
 
@@ -830,18 +829,18 @@ async function applyNativeTheme(settings: DesktopSettings) {
   try {
     await setNativeTheme(settings.appearance.mode);
   } catch (error) {
-    console.warn('Bento native app theme failed to update.', error);
+    console.warn("Bento native app theme failed to update.", error);
   }
 }
 
 async function applyGlassEffect(settings: DesktopSettings) {
   if (!isTauri()) return;
   const enabled = !!settings?.appearance?.glassEnabled;
-  document.documentElement.classList.toggle('glass-enabled', enabled);
+  document.documentElement.classList.toggle("glass-enabled", enabled);
   try {
-    await invoke('set_window_glass', { enabled });
+    await invoke("set_window_glass", { enabled });
   } catch (error) {
-    console.warn('Bento window glass effect failed to apply.', error);
+    console.warn("Bento window glass effect failed to apply.", error);
   }
 }
 
@@ -863,7 +862,7 @@ export async function loadDesktopSettings(): Promise<DesktopSettings> {
   try {
     return await readStoreSettings();
   } catch (error) {
-    console.warn('Bento desktop settings failed to load from Store; falling back.', error);
+    console.warn("Bento desktop settings failed to load from Store; falling back.", error);
     return (
       (await readNativeSettingsMirror()) ?? readBrowserSettingsBlob() ?? defaultDesktopSettings
     );
@@ -962,7 +961,7 @@ export async function hydrateDesktopSettings(): Promise<DesktopSettings> {
 }
 
 export async function updateDesktopSettings(
-  updater: (current: DesktopSettings) => DesktopSettings
+  updater: (current: DesktopSettings) => DesktopSettings,
 ): Promise<DesktopSettings> {
   const next = updater(getDesktopSettingsSnapshot());
   return saveDesktopSettings(next);

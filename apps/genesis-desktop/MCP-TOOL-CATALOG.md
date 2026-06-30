@@ -14,27 +14,27 @@ Bento is a personal life-OS desktop app (Tauri + Svelte + SQLite) embedding an M
 
 These are the read/write primitives. Every other tool composes these.
 
-| Tool | Description | Use Case |
-|------|-------------|---------|
-| `create_task` | Create task with title, due_at, priority (low/med/high), project | "Add a task to review PR by Friday" |
-| `get_tasks` | List tasks with filters (status, due_before, project, limit) | "What's pending in the 'launch' project?" |
-| `complete_task` | Mark task done by ID | "Mark design-review as complete" |
-| `save_note` | Create note with title, content (markdown), optional tags | "Save these meeting notes" |
-| `search_notes` | Search notes by keyword (LIKE %query%) | "Find my notes about database migrations" |
-| `log_focus_session` | Log a focus/flow session (duration, description, type) | "Log 25m pomodoro on frontend refactor" |
-| `log_mood` | Log mood 1-5 with optional note and activities | "Log mood 4 after standup went well" |
+| Tool                | Description                                                      | Use Case                                  |
+| ------------------- | ---------------------------------------------------------------- | ----------------------------------------- |
+| `create_task`       | Create task with title, due_at, priority (low/med/high), project | "Add a task to review PR by Friday"       |
+| `get_tasks`         | List tasks with filters (status, due_before, project, limit)     | "What's pending in the 'launch' project?" |
+| `complete_task`     | Mark task done by ID                                             | "Mark design-review as complete"          |
+| `save_note`         | Create note with title, content (markdown), optional tags        | "Save these meeting notes"                |
+| `search_notes`      | Search notes by keyword (LIKE %query%)                           | "Find my notes about database migrations" |
+| `log_focus_session` | Log a focus/flow session (duration, description, type)           | "Log 25m pomodoro on frontend refactor"   |
+| `log_mood`          | Log mood 1-5 with optional note and activities                   | "Log mood 4 after standup went well"      |
 
 ### Tier 0 — Habits & Daily (2 tools)
 
-| Tool | Description | Use Case |
-|------|-------------|---------|
-| `log_habit_completion` | Mark habit done by name (fuzzy match) | "Log that I meditated today" |
-| `get_daily_summary` | Aggregate today's tasks, focus, habits, mood, journal | Morning briefing / evening review |
+| Tool                   | Description                                           | Use Case                          |
+| ---------------------- | ----------------------------------------------------- | --------------------------------- |
+| `log_habit_completion` | Mark habit done by name (fuzzy match)                 | "Log that I meditated today"      |
+| `get_daily_summary`    | Aggregate today's tasks, focus, habits, mood, journal | Morning briefing / evening review |
 
 ### Tier 0 — Journal (1 tool)
 
-| Tool | Description | Use Case |
-|------|-------------|---------|
+| Tool                   | Description                                                     | Use Case                             |
+| ---------------------- | --------------------------------------------------------------- | ------------------------------------ |
 | `create_journal_entry` | Upsert daily journal entry with markdown blocks + optional mood | "Journal about today's sprint retro" |
 
 ---
@@ -43,38 +43,38 @@ These are the read/write primitives. Every other tool composes these.
 
 These are the high-leverage tools. Each queries 3-12 tables and returns synthesized insight.
 
-| # | Tool | What It Does | Tables Queried |
-|---|------|-------------|----------------|
-| 1 | `get_life_context` | Unified "right now" snapshot: mood, energy (inferred or manual), active focus session, sleep last night, today's tasks/habits/calories/journal, weekly goals/mood/sleep/budget, pressure signals, cognitive load | tasks, habits, habit_completions, health_events, mood_checkins, sleep_logs, meals, journal_entries, goals, budget_transactions, budget_categories |
-| 2 | `get_cross_module_correlations` | Pearson r between any two metrics (sleep, mood, focus, calories, spending, tasks, habits, energy) over N days. Returns coefficient, strength, direction, top 5 correlated days, + anomaly detection (>1.5σ) | sleep_logs, mood_checkins, health_events, meals, budget_transactions, tasks, habit_completions |
-| 3 | `get_day_reconstruction` | Full-resolution portrait of any past date: mood, sleep, all meals, focus sessions, tasks (completed/created/overdue), habits (done/missed), journal, budget, notes, goal events + deterministic narrative summary | mood_checkins, sleep_logs, meals, health_events, tasks, habits, habit_completions, journal_entries, budget_transactions, note_objects, goals |
-| 4 | `get_life_delta` | Compare two periods (A vs B) across 7 dimensions: sleep, mood, focus (avg + total), habit consistency, tasks/day, spending. Returns deltas, direction, significance, trajectory (ascending/descending/stable/mixed) | sleep_logs, mood_checkins, health_events, habit_completions, tasks, budget_transactions |
-| 5 | `get_cognitive_schedule` | Find peak performance windows by day-of-week × hour. Composite score = 60% focus duration + 40% normalized mood. Returns top 3 peak windows, bottom 3 avoid windows, best/worst day, insight | health_events, mood_checkins |
-| 6 | `get_failure_patterns` | Analyze abandoned goals, chronically overdue tasks for failure signatures. Computes avg time-to-abandonment, stagnation progress level, avg overdue days. Returns patterns with trigger signals + recommendations | goals, tasks |
-| 7 | `generate_weekly_board_report` | Board-meeting-style KPI review across 6 modules with green/yellow/red vs prior week. Includes wins, risks, decisions needed, next-week forecast | tasks, habit_completions, health_events, budget_transactions, mood_checkins, sleep_logs, goals |
-| 8 | `get_compound_self_projection` | Linear regression projections forward for focus, mood, sleep, savings, tasks. Returns projected values, inflection points, headline, biggest leverage point | health_events, mood_checkins, sleep_logs, budget_transactions, tasks |
-| 9 | `write_ambient_journal_entry` | Deterministic prose engine (no LLM) generates a narrative entry from the day's raw data. 3 styles: terse, narrative, analytical. Stores to journal table (upsert by date) | mood_checkins, sleep_logs, health_events, tasks, habit_completions, meals, budget_transactions |
+| #   | Tool                            | What It Does                                                                                                                                                                                                        | Tables Queried                                                                                                                                    |
+| --- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `get_life_context`              | Unified "right now" snapshot: mood, energy (inferred or manual), active focus session, sleep last night, today's tasks/habits/calories/journal, weekly goals/mood/sleep/budget, pressure signals, cognitive load    | tasks, habits, habit_completions, health_events, mood_checkins, sleep_logs, meals, journal_entries, goals, budget_transactions, budget_categories |
+| 2   | `get_cross_module_correlations` | Pearson r between any two metrics (sleep, mood, focus, calories, spending, tasks, habits, energy) over N days. Returns coefficient, strength, direction, top 5 correlated days, + anomaly detection (>1.5σ)         | sleep_logs, mood_checkins, health_events, meals, budget_transactions, tasks, habit_completions                                                    |
+| 3   | `get_day_reconstruction`        | Full-resolution portrait of any past date: mood, sleep, all meals, focus sessions, tasks (completed/created/overdue), habits (done/missed), journal, budget, notes, goal events + deterministic narrative summary   | mood_checkins, sleep_logs, meals, health_events, tasks, habits, habit_completions, journal_entries, budget_transactions, note_objects, goals      |
+| 4   | `get_life_delta`                | Compare two periods (A vs B) across 7 dimensions: sleep, mood, focus (avg + total), habit consistency, tasks/day, spending. Returns deltas, direction, significance, trajectory (ascending/descending/stable/mixed) | sleep_logs, mood_checkins, health_events, habit_completions, tasks, budget_transactions                                                           |
+| 5   | `get_cognitive_schedule`        | Find peak performance windows by day-of-week × hour. Composite score = 60% focus duration + 40% normalized mood. Returns top 3 peak windows, bottom 3 avoid windows, best/worst day, insight                        | health_events, mood_checkins                                                                                                                      |
+| 6   | `get_failure_patterns`          | Analyze abandoned goals, chronically overdue tasks for failure signatures. Computes avg time-to-abandonment, stagnation progress level, avg overdue days. Returns patterns with trigger signals + recommendations   | goals, tasks                                                                                                                                      |
+| 7   | `generate_weekly_board_report`  | Board-meeting-style KPI review across 6 modules with green/yellow/red vs prior week. Includes wins, risks, decisions needed, next-week forecast                                                                     | tasks, habit_completions, health_events, budget_transactions, mood_checkins, sleep_logs, goals                                                    |
+| 8   | `get_compound_self_projection`  | Linear regression projections forward for focus, mood, sleep, savings, tasks. Returns projected values, inflection points, headline, biggest leverage point                                                         | health_events, mood_checkins, sleep_logs, budget_transactions, tasks                                                                              |
+| 9   | `write_ambient_journal_entry`   | Deterministic prose engine (no LLM) generates a narrative entry from the day's raw data. 3 styles: terse, narrative, analytical. Stores to journal table (upsert by date)                                           | mood_checkins, sleep_logs, health_events, tasks, habit_completions, meals, budget_transactions                                                    |
 
 ### Tier 1 — Commitment Bonds (3 tools)
 
-| Tool | Description |
-|------|-------------|
-| `create_commitment_bond` | Create accountability contract: title, deadline, success_metric, consequence, check_in_days, optional goal_id |
-| `get_commitment_bonds` | List bonds with optional status filter. Returns title, deadline, metric, consequence, status, check_in_history |
-| `update_bond_status` | Update status (active/kept/broken/extended) with optional check-in note appended to history |
+| Tool                     | Description                                                                                                    |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `create_commitment_bond` | Create accountability contract: title, deadline, success_metric, consequence, check_in_days, optional goal_id  |
+| `get_commitment_bonds`   | List bonds with optional status filter. Returns title, deadline, metric, consequence, status, check_in_history |
+| `update_bond_status`     | Update status (active/kept/broken/extended) with optional check-in note appended to history                    |
 
 ---
 
 ### Tier 2 — New Intelligence Tools (6 tools — just shipped)
 
-| # | Tool | Description | Tables Queried |
-|---|------|-------------|----------------|
-| 10 | `get_meal_mood_correlations` | Time-lagged food→mood→focus analysis. For each meal (by name+type), finds mood/focus entries within configurable lag window (default 4h). Returns ranked "best pre-focus foods" by subsequent wellness score | meals, mood_checkins, health_events |
-| 11 | `get_integrity_score` | Scans journal entries for 6 value domains (discipline, health, growth, financial, focus, connection) via keyword extraction. Cross-refs against actual actions. Returns per-domain alignment + overall integrity % | journal_entries, tasks, habit_completions, health_events, budget_transactions |
-| 12 | `get_attention_allocation` | Categorizes all tasks + focus sessions into strategic vs reactive via keyword heuristics (bug/fix/urgent/asap/reply/email/meeting = reactive; roadmap/strategy/long-term/goal = strategic). Returns % split + rebalancing advice | tasks, health_events |
-| 13 | `generate_sprint_plan` | Historical task velocity by day-of-week × pending backlog → recommended capacity. Returns best/worst days, weeks-to-clear estimate, plain-language commitment recommendation | tasks |
-| 14 | `auto_schedule_tasks` | Maps pending tasks (sorted by priority: high→medium→low) to cognitive schedule peak/avoid windows. Hard tasks → peak hours, easy tasks → avoid hours. Returns day×hour schedule for every pending task | tasks, health_events, mood_checkins (via cognitive_schedule) |
-| 15 | `get_skill_velocity` | Finds notes tagged with learning keywords (learning, study, course, skill, book, tutorial, practice, training), groups by month. Returns monthly production, total words, velocity trend (accelerating/steady/declining), top skill domains | note_objects |
+| #   | Tool                         | Description                                                                                                                                                                                                                                 | Tables Queried                                                                |
+| --- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| 10  | `get_meal_mood_correlations` | Time-lagged food→mood→focus analysis. For each meal (by name+type), finds mood/focus entries within configurable lag window (default 4h). Returns ranked "best pre-focus foods" by subsequent wellness score                                | meals, mood_checkins, health_events                                           |
+| 11  | `get_integrity_score`        | Scans journal entries for 6 value domains (discipline, health, growth, financial, focus, connection) via keyword extraction. Cross-refs against actual actions. Returns per-domain alignment + overall integrity %                          | journal_entries, tasks, habit_completions, health_events, budget_transactions |
+| 12  | `get_attention_allocation`   | Categorizes all tasks + focus sessions into strategic vs reactive via keyword heuristics (bug/fix/urgent/asap/reply/email/meeting = reactive; roadmap/strategy/long-term/goal = strategic). Returns % split + rebalancing advice            | tasks, health_events                                                          |
+| 13  | `generate_sprint_plan`       | Historical task velocity by day-of-week × pending backlog → recommended capacity. Returns best/worst days, weeks-to-clear estimate, plain-language commitment recommendation                                                                | tasks                                                                         |
+| 14  | `auto_schedule_tasks`        | Maps pending tasks (sorted by priority: high→medium→low) to cognitive schedule peak/avoid windows. Hard tasks → peak hours, easy tasks → avoid hours. Returns day×hour schedule for every pending task                                      | tasks, health_events, mood_checkins (via cognitive_schedule)                  |
+| 15  | `get_skill_velocity`         | Finds notes tagged with learning keywords (learning, study, course, skill, book, tutorial, practice, training), groups by month. Returns monthly production, total words, velocity trend (accelerating/steady/declining), top skill domains | note_objects                                                                  |
 
 ---
 
@@ -84,20 +84,20 @@ These are the high-leverage tools. Each queries 3-12 tables and returns synthesi
 
 ### Why Bento Is Different From Every Other MCP Server
 
-Every other MCP server is a CRUD wrapper around a SaaS API (Jira, Linear, Notion, GitHub, Gmail). Bento is different: it's the user's *actual life data* — not their work tools, but their cognition, energy, habits, goals, mood, focus, sleep, meals, spending, journal. A coding agent connected to Bento becomes **context-aware** in a way no other coding tool can match:
+Every other MCP server is a CRUD wrapper around a SaaS API (Jira, Linear, Notion, GitHub, Gmail). Bento is different: it's the user's _actual life data_ — not their work tools, but their cognition, energy, habits, goals, mood, focus, sleep, meals, spending, journal. A coding agent connected to Bento becomes **context-aware** in a way no other coding tool can match:
 
-| Capability | How Bento Enables It |
-|-----------|---------------------|
-| The agent knows your energy level before suggesting a complex refactor | `get_life_context` → energy_score + cognitive_load |
-| The agent schedules code reviews during your peak focus windows | `auto_schedule_tasks` + `get_cognitive_schedule` |
-| The agent adjusts code comment verbosity based on your mood | `get_life_context` → mood |
-| The agent refuses to commit to a sprint you can't deliver | `generate_sprint_plan` → realistic capacity |
-| The agent correlates sleep quality with production bug rate | `get_cross_module_correlations` (sleep_hours vs tasks with bug tag) |
-| The agent tracks how your learning velocity maps to actual shipped code | `get_skill_velocity` + `get_tasks` |
-| The agent knows when you're burning out before you do | `get_life_context` → cognitive_load + pressure_signals |
-| The agent writes your standup from your actual data, not your memory | `get_daily_summary` + `get_focus_sessions` |
-| The agent knows what you ate before your best coding sessions | `get_meal_mood_correlations` |
-| The agent measures whether your stated values match your code priorities | `get_integrity_score` |
+| Capability                                                               | How Bento Enables It                                                |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| The agent knows your energy level before suggesting a complex refactor   | `get_life_context` → energy_score + cognitive_load                  |
+| The agent schedules code reviews during your peak focus windows          | `auto_schedule_tasks` + `get_cognitive_schedule`                    |
+| The agent adjusts code comment verbosity based on your mood              | `get_life_context` → mood                                           |
+| The agent refuses to commit to a sprint you can't deliver                | `generate_sprint_plan` → realistic capacity                         |
+| The agent correlates sleep quality with production bug rate              | `get_cross_module_correlations` (sleep_hours vs tasks with bug tag) |
+| The agent tracks how your learning velocity maps to actual shipped code  | `get_skill_velocity` + `get_tasks`                                  |
+| The agent knows when you're burning out before you do                    | `get_life_context` → cognitive_load + pressure_signals              |
+| The agent writes your standup from your actual data, not your memory     | `get_daily_summary` + `get_focus_sessions`                          |
+| The agent knows what you ate before your best coding sessions            | `get_meal_mood_correlations`                                        |
+| The agent measures whether your stated values match your code priorities | `get_integrity_score`                                               |
 
 ### Easiest Integration Points
 
@@ -141,6 +141,7 @@ The coding agent can compose these tools into higher-order behaviors:
 ### Phase 2: Brutal Filter (kill the weak)
 
 For every use case you find, ask:
+
 - **"Is this actually useful or just cool?"** — If it wouldn't make a developer's life measurably better in a single week, kill it.
 - **"Would someone screenshot this and post it?"** — Viral potential is a forcing function for quality.
 - **"Does this require Bento data specifically, or could it be done with generic telemetry?"** — If generic, it's not our moat. Kill it.

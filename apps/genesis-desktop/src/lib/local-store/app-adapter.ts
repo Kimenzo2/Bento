@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from "@tauri-apps/api/core";
 
 export interface ObjectRow {
   id: string;
@@ -51,10 +51,10 @@ export class AdapterError extends Error {
   constructor(
     public readonly operation: string,
     message: string,
-    public readonly cause?: unknown
+    public readonly cause?: unknown,
   ) {
     super(`[${operation}] ${message}`);
-    this.name = 'AdapterError';
+    this.name = "AdapterError";
   }
 }
 
@@ -79,7 +79,7 @@ export function createAppAdapter<T extends Record<string, any>>(objectType: stri
     /** Fetch a single object by its UUID (single-object pattern) */
     async getById(id: string): Promise<(ObjectMeta & T) | null> {
       try {
-        const rows = await invoke<ObjectRow[]>('local_store_get_objects', {
+        const rows = await invoke<ObjectRow[]>("local_store_get_objects", {
           typeFilter: objectType,
           layoutFilter: null,
         });
@@ -92,7 +92,7 @@ export function createAppAdapter<T extends Record<string, any>>(objectType: stri
             isArchived: row.isArchived,
             createdAt: row.createdAt,
             updatedAt: row.updatedAt,
-            ...JSON.parse(row.details || '{}'),
+            ...JSON.parse(row.details || "{}"),
           } as unknown as ObjectMeta & T;
         } catch {
           return {
@@ -104,7 +104,7 @@ export function createAppAdapter<T extends Record<string, any>>(objectType: stri
           } as unknown as ObjectMeta & T;
         }
       } catch (err) {
-        throw new AdapterError('getById', `Failed to fetch ${objectType} object ${id}`, err);
+        throw new AdapterError("getById", `Failed to fetch ${objectType} object ${id}`, err);
       }
     },
 
@@ -116,7 +116,7 @@ export function createAppAdapter<T extends Record<string, any>>(objectType: stri
     /** Fetch all objects of this type from the backend */
     async getAll(): Promise<(ObjectMeta & T)[]> {
       try {
-        const rows = await invoke<ObjectRow[]>('local_store_get_objects', {
+        const rows = await invoke<ObjectRow[]>("local_store_get_objects", {
           typeFilter: objectType,
           layoutFilter: null,
         });
@@ -128,7 +128,7 @@ export function createAppAdapter<T extends Record<string, any>>(objectType: stri
               isArchived: r.isArchived,
               createdAt: r.createdAt,
               updatedAt: r.updatedAt,
-              ...JSON.parse(r.details || '{}'),
+              ...JSON.parse(r.details || "{}"),
             } as unknown as ObjectMeta & T;
           } catch {
             // Corrupted details JSON — return object with empty details
@@ -142,7 +142,7 @@ export function createAppAdapter<T extends Record<string, any>>(objectType: stri
           }
         });
       } catch (err) {
-        throw new AdapterError('getAll', `Failed to fetch ${objectType} objects`, err);
+        throw new AdapterError("getAll", `Failed to fetch ${objectType} objects`, err);
       }
     },
 
@@ -150,9 +150,9 @@ export function createAppAdapter<T extends Record<string, any>>(objectType: stri
     async create(data: T, id?: string): Promise<string> {
       const objectId = id ?? crypto.randomUUID();
       try {
-        await invoke('local_store_create_object', { objectId, objectType });
+        await invoke("local_store_create_object", { objectId, objectType });
         if (Object.keys(data).length > 0) {
-          await invoke('local_store_update_object', {
+          await invoke("local_store_update_object", {
             params: {
               id: objectId,
               details: data as any,
@@ -161,14 +161,14 @@ export function createAppAdapter<T extends Record<string, any>>(objectType: stri
         }
         return objectId;
       } catch (err) {
-        throw new AdapterError('create', `Failed to create ${objectType} object`, err);
+        throw new AdapterError("create", `Failed to create ${objectType} object`, err);
       }
     },
 
     /** Update an object's details (merges with existing) */
     async update(id: string, data: Partial<T>): Promise<void> {
       try {
-        const rows = await invoke<ObjectRow[]>('local_store_get_objects', {
+        const rows = await invoke<ObjectRow[]>("local_store_get_objects", {
           typeFilter: objectType,
           layoutFilter: null,
         });
@@ -176,56 +176,56 @@ export function createAppAdapter<T extends Record<string, any>>(objectType: stri
         const currentDetails = existing
           ? (() => {
               try {
-                return JSON.parse(existing.details || '{}');
+                return JSON.parse(existing.details || "{}");
               } catch {
                 return {};
               }
             })()
           : {};
         const merged = { ...currentDetails, ...data };
-        await invoke('local_store_update_object', {
+        await invoke("local_store_update_object", {
           params: {
             id,
             details: merged as any,
           },
         });
       } catch (err) {
-        throw new AdapterError('update', `Failed to update ${objectType} object ${id}`, err);
+        throw new AdapterError("update", `Failed to update ${objectType} object ${id}`, err);
       }
     },
 
     /** Replace an object's details entirely */
     async replace(id: string, data: T): Promise<void> {
       try {
-        await invoke('local_store_update_object', {
+        await invoke("local_store_update_object", {
           params: {
             id,
             details: data as any,
           },
         });
       } catch (err) {
-        throw new AdapterError('replace', `Failed to replace ${objectType} object ${id}`, err);
+        throw new AdapterError("replace", `Failed to replace ${objectType} object ${id}`, err);
       }
     },
 
     /** Archive/delete an object */
     async remove(id: string): Promise<void> {
       try {
-        await invoke('local_store_delete_object', { objectId: id });
+        await invoke("local_store_delete_object", { objectId: id });
       } catch (err) {
-        throw new AdapterError('remove', `Failed to delete ${objectType} object ${id}`, err);
+        throw new AdapterError("remove", `Failed to delete ${objectType} object ${id}`, err);
       }
     },
 
     /** Toggle favorite */
     async toggleFavorite(id: string): Promise<void> {
       try {
-        await invoke('local_store_toggle_favorite', { objectId: id });
+        await invoke("local_store_toggle_favorite", { objectId: id });
       } catch (err) {
         throw new AdapterError(
-          'toggleFavorite',
+          "toggleFavorite",
           `Failed to toggle favorite on ${objectType} object ${id}`,
-          err
+          err,
         );
       }
     },
@@ -233,7 +233,7 @@ export function createAppAdapter<T extends Record<string, any>>(objectType: stri
     /** Search objects by query */
     async search(query: string): Promise<(ObjectMeta & T)[]> {
       try {
-        const rows = await invoke<ObjectRow[]>('local_store_search_objects', {
+        const rows = await invoke<ObjectRow[]>("local_store_search_objects", {
           query,
           typeFilter: objectType,
         });
@@ -245,7 +245,7 @@ export function createAppAdapter<T extends Record<string, any>>(objectType: stri
               isArchived: r.isArchived,
               createdAt: r.createdAt,
               updatedAt: r.updatedAt,
-              ...JSON.parse(r.details || '{}'),
+              ...JSON.parse(r.details || "{}"),
             } as unknown as ObjectMeta & T;
           } catch {
             return {
@@ -258,7 +258,7 @@ export function createAppAdapter<T extends Record<string, any>>(objectType: stri
           }
         });
       } catch (err) {
-        throw new AdapterError('search', `Failed to search ${objectType} objects`, err);
+        throw new AdapterError("search", `Failed to search ${objectType} objects`, err);
       }
     },
   };

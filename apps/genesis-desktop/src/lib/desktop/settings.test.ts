@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 import {
   defaultDesktopSettings,
   desktopSettings,
@@ -6,11 +6,11 @@ import {
   getDesktopSettingsSnapshot,
   saveDesktopSettings,
   updateDesktopSettings,
-} from './settings';
-import { defaultThemeId, resolveThemeById } from '$lib/data/themes';
+} from "./settings";
+import { defaultThemeId, resolveThemeById } from "$lib/data/themes";
 
-describe('desktop settings contract', () => {
-  it('tracks legacy browser-storage migration in the native settings schema', () => {
+describe("desktop settings contract", () => {
+  it("tracks legacy browser-storage migration in the native settings schema", () => {
     expect(defaultDesktopSettings.migration.legacyBrowserStorageMigrated).toBe(false);
     expect(defaultDesktopSettings.migration.storeSettingsMigrated).toBe(false);
 
@@ -25,7 +25,7 @@ describe('desktop settings contract', () => {
     expect(parsed.success).toBe(true);
   });
 
-  it('accepts settings that predate the migration marker', () => {
+  it("accepts settings that predate the migration marker", () => {
     const parsed = desktopSettingsSchemaSafeParse({
       ...defaultDesktopSettings,
       migration: undefined,
@@ -36,14 +36,14 @@ describe('desktop settings contract', () => {
     expect(parsed.data!.migration.storeSettingsMigrated).toBe(false);
   });
 
-  it('defaults the desktop to Midnight Classic', () => {
-    expect(defaultThemeId).toBe('midnight');
-    expect(defaultDesktopSettings.appearance.themeId).toBe('midnight');
+  it("defaults the desktop to Midnight Classic", () => {
+    expect(defaultThemeId).toBe("midnight");
+    expect(defaultDesktopSettings.appearance.themeId).toBe("midnight");
     expect(defaultDesktopSettings.workspace.sidebarCollapsed).toBe(true);
-    expect(resolveThemeById('unknown-theme').id).toBe('midnight');
+    expect(resolveThemeById("unknown-theme").id).toBe("midnight");
   });
 
-  it('keeps the sidebar collapsed when the theme mode changes', async () => {
+  it("keeps the sidebar collapsed when the theme mode changes", async () => {
     const original = getDesktopSettingsSnapshot();
 
     try {
@@ -64,7 +64,7 @@ describe('desktop settings contract', () => {
         ...current,
         appearance: {
           ...current.appearance,
-          mode: current.appearance.mode === 'light' ? 'dark' : 'light',
+          mode: current.appearance.mode === "light" ? "dark" : "light",
         },
       }));
 

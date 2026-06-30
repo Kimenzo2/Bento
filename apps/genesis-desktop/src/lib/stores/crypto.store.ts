@@ -6,13 +6,13 @@
  * to Tauri invoke calls and zeroed immediately after.
  */
 
-import { writable, get, derived } from 'svelte/store';
-import { invoke } from '@tauri-apps/api/core';
-import { browser } from '$app/environment';
+import { writable, derived } from "svelte/store";
+import { invoke } from "@tauri-apps/api/core";
+import { browser } from "$app/environment";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-export type CryptoStatus = 'NotConfigured' | 'Locked' | 'Unlocked';
+export type CryptoStatus = "NotConfigured" | "Locked" | "Unlocked";
 
 export interface CryptoStatusResponse {
   status: CryptoStatus;
@@ -35,7 +35,7 @@ interface CryptoState {
 // ── Store ──────────────────────────────────────────────────────────────────
 
 const initialState: CryptoState = {
-  status: 'NotConfigured',
+  status: "NotConfigured",
   isConfigured: false,
   loading: false,
   error: null,
@@ -47,8 +47,8 @@ const _store = writable<CryptoState>(initialState);
 export const cryptoStore = { subscribe: _store.subscribe };
 
 // Derived convenience flags
-export const isDbLocked = derived(_store, ($s) => $s.status === 'Locked');
-export const isDbUnlocked = derived(_store, ($s) => $s.status === 'Unlocked');
+export const isDbLocked = derived(_store, ($s) => $s.status === "Locked");
+export const isDbUnlocked = derived(_store, ($s) => $s.status === "Unlocked");
 export const needsSetup = derived(_store, ($s) => !$s.isConfigured);
 export const cryptoLoading = derived(_store, ($s) => $s.loading);
 export const cryptoError = derived(_store, ($s) => $s.error);
@@ -81,14 +81,14 @@ function applyStatus(res: CryptoStatusResponse) {
 
 /** Fetch current crypto status from Rust. Call on app mount. */
 export async function hydrateCryptoStatus(): Promise<CryptoStatus> {
-  if (!browser) return 'NotConfigured';
+  if (!browser) return "NotConfigured";
   try {
-    const res = await invoke<CryptoStatusResponse>('crypto_get_status');
+    const res = await invoke<CryptoStatusResponse>("crypto_get_status");
     applyStatus(res);
     return res.status;
   } catch (e) {
     setError(String(e));
-    return 'NotConfigured';
+    return "NotConfigured";
   }
 }
 
@@ -97,7 +97,7 @@ export async function setupMasterPassword(password: string): Promise<void> {
   clearError();
   setLoading(true);
   try {
-    const res = await invoke<CryptoStatusResponse>('crypto_setup_master_password', { password });
+    const res = await invoke<CryptoStatusResponse>("crypto_setup_master_password", { password });
     applyStatus(res);
   } catch (e) {
     setError(String(e));
@@ -105,7 +105,7 @@ export async function setupMasterPassword(password: string): Promise<void> {
   } finally {
     // Aggressively GC the password string — JS can't zero memory, but at
     // least we don't keep a reference in the store.
-    password = '';
+    password = "";
   }
 }
 
@@ -114,13 +114,13 @@ export async function unlockDatabase(password: string): Promise<void> {
   clearError();
   setLoading(true);
   try {
-    const res = await invoke<CryptoStatusResponse>('crypto_unlock_database', { password });
+    const res = await invoke<CryptoStatusResponse>("crypto_unlock_database", { password });
     applyStatus(res);
   } catch (e) {
     setError(String(e));
     throw e;
   } finally {
-    password = '';
+    password = "";
   }
 }
 
@@ -129,7 +129,7 @@ export async function lockDatabase(): Promise<void> {
   clearError();
   setLoading(true);
   try {
-    const res = await invoke<CryptoStatusResponse>('crypto_lock_database');
+    const res = await invoke<CryptoStatusResponse>("crypto_lock_database");
     applyStatus(res);
   } catch (e) {
     setError(String(e));
@@ -140,12 +140,12 @@ export async function lockDatabase(): Promise<void> {
 /** Change master password. Returns backup path on success. */
 export async function changeMasterPassword(
   currentPassword: string,
-  newPassword: string
+  newPassword: string,
 ): Promise<BackupInfo> {
   clearError();
   setLoading(true);
   try {
-    const backup = await invoke<BackupInfo>('crypto_change_master_password', {
+    const backup = await invoke<BackupInfo>("crypto_change_master_password", {
       currentPassword,
       newPassword,
     });
@@ -155,26 +155,26 @@ export async function changeMasterPassword(
     setError(String(e));
     throw e;
   } finally {
-    currentPassword = '';
-    newPassword = '';
+    currentPassword = "";
+    newPassword = "";
   }
 }
 
 /** Migrate a legacy unencrypted module database to encrypted. */
 export async function migrateUnencryptedDb(module: string): Promise<void> {
-  return invoke('crypto_migrate_unencrypted_db', { module });
+  return invoke("crypto_migrate_unencrypted_db", { module });
 }
 
 /** Create a manual backup. */
 export async function createBackup(): Promise<BackupInfo> {
-  const backup = await invoke<BackupInfo>('crypto_create_backup');
+  const backup = await invoke<BackupInfo>("crypto_create_backup");
   _store.update((s) => ({ ...s, lastBackup: backup }));
   return backup;
 }
 
 /** Validate password strength before submitting (mirrors Rust). */
 export function validatePassword(password: string): string | null {
-  if (password.length < 8) return 'Password must be at least 8 characters.';
-  if (password.length > 512) return 'Password must be 512 characters or fewer.';
+  if (password.length < 8) return "Password must be at least 8 characters.";
+  if (password.length > 512) return "Password must be 512 characters or fewer.";
   return null;
 }

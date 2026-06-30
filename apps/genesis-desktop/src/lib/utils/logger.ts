@@ -13,9 +13,9 @@
 
 /* eslint-disable no-console -- this is the single intentional console wrapper */
 
-const PREFIX = '[Bento Desktop]';
+const PREFIX = "[Bento Desktop]";
 
-type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+type LogLevel = "debug" | "info" | "warn" | "error";
 
 const LOG_LEVELS: Record<LogLevel, number> = {
   debug: 0,
@@ -25,7 +25,7 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 };
 
 const currentLevel: LogLevel =
-  (import.meta.env.VITE_PUBLIC_LOG_LEVEL as LogLevel | undefined) || 'info';
+  (import.meta.env.VITE_PUBLIC_LOG_LEVEL as LogLevel | undefined) || "info";
 
 function shouldLog(level: LogLevel): boolean {
   return LOG_LEVELS[level] >= LOG_LEVELS[currentLevel];
@@ -37,38 +37,38 @@ function formatMessage(level: LogLevel, message: string): string {
 
 function formatError(err: unknown): string {
   if (err instanceof Error) return err.message;
-  if (typeof err === 'string') return err;
-  if (err && typeof err === 'object' && 'message' in err)
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object" && "message" in err)
     return String((err as { message: unknown }).message);
   return String(err);
 }
 
 export const logger = {
   debug(message: string, ...args: unknown[]) {
-    if (!shouldLog('debug')) return;
-    console.debug(formatMessage('debug', message), ...args);
+    if (!shouldLog("debug")) return;
+    console.debug(formatMessage("debug", message), ...args);
   },
 
   info(message: string, ...args: unknown[]) {
-    if (!shouldLog('info')) return;
-    console.info(formatMessage('info', message), ...args);
+    if (!shouldLog("info")) return;
+    console.info(formatMessage("info", message), ...args);
   },
 
   warn(message: string, error?: unknown) {
-    if (!shouldLog('warn')) return;
+    if (!shouldLog("warn")) return;
     if (error !== undefined) {
-      console.warn(formatMessage('warn', `${message} — ${formatError(error)}`));
+      console.warn(formatMessage("warn", `${message} — ${formatError(error)}`));
     } else {
-      console.warn(formatMessage('warn', message));
+      console.warn(formatMessage("warn", message));
     }
   },
 
   error(message: string, error?: unknown) {
-    if (!shouldLog('error')) return;
+    if (!shouldLog("error")) return;
     if (error !== undefined) {
-      console.error(formatMessage('error', `${message} — ${formatError(error)}`));
+      console.error(formatMessage("error", `${message} — ${formatError(error)}`));
     } else {
-      console.error(formatMessage('error', message));
+      console.error(formatMessage("error", message));
     }
   },
 };

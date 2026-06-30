@@ -97,8 +97,11 @@ export default async function PricingPage({
   });
   const methodRules = await loadPaystackMethodRules(adminSupabase);
   const availableMethods = getPaystackMethodsForCountry(detectedCountry, methodRules);
-  const selectedMethodKey =
-    selectPreferredPaystackMethod(detectedCountry, methodRules, profile?.last_checkout_method).selectedMethodKey;
+  const selectedMethodKey = selectPreferredPaystackMethod(
+    detectedCountry,
+    methodRules,
+    profile?.last_checkout_method
+  ).selectedMethodKey;
   const paymentMethodViews = toPaystackMethodViews(availableMethods);
   const canCheckout = Boolean(user || desktopEmail);
 
@@ -116,7 +119,10 @@ export default async function PricingPage({
                     ? 'Plan not found. Please select another plan.'
                     : issue === 'missing_paystack_plan'
                       ? 'This plan is temporarily unavailable.'
-                      : issue === 'paystack' || issue === 'server' || issue === 'profile_creation' || issue === 'auth_user'
+                      : issue === 'paystack' ||
+                          issue === 'server' ||
+                          issue === 'profile_creation' ||
+                          issue === 'auth_user'
                         ? `Error: ${issueDetails || 'Something went wrong'}`
                         : `Something went wrong.${issueDetails ? ` (${issueDetails})` : ''}`}
             </div>
@@ -147,7 +153,10 @@ export default async function PricingPage({
 
           <div className="pricing-page__method-strip" aria-label="Accepted payment methods">
             {paymentMethodViews.map((method) => (
-              <span key={`${method.countryCode}:${method.methodKey}`} className="pricing-page__method-pill">
+              <span
+                key={`${method.countryCode}:${method.methodKey}`}
+                className="pricing-page__method-pill"
+              >
                 {method.label}
               </span>
             ))}
@@ -200,7 +209,9 @@ export default async function PricingPage({
 
                   <ul className="pricing-page__features">
                     {plan.features.map((feature) => (
-                      <li key={feature} className="text-body">{feature}</li>
+                      <li key={feature} className="text-body">
+                        {feature}
+                      </li>
                     ))}
                   </ul>
 
@@ -211,11 +222,7 @@ export default async function PricingPage({
                   >
                     <input type="hidden" name="planCode" value={planCode} />
                     <input type="hidden" name="billingPeriod" value={period} />
-                    <input
-                      type="hidden"
-                      name="country"
-                      value={detectedCountry ?? 'GLOBAL'}
-                    />
+                    <input type="hidden" name="country" value={detectedCountry ?? 'GLOBAL'} />
                     <input type="hidden" name="method" value={selectedMethodKey} />
                     <input
                       type="hidden"
@@ -228,7 +235,9 @@ export default async function PricingPage({
                       value={profile?.shipping_country ?? ''}
                     />
                     <input type="hidden" name="source" value={user ? 'web' : 'desktop'} />
-                    {desktopEmail ? <input type="hidden" name="email" value={desktopEmail} /> : null}
+                    {desktopEmail ? (
+                      <input type="hidden" name="email" value={desktopEmail} />
+                    ) : null}
                     <button
                       data-slot="button"
                       type="submit"

@@ -12,27 +12,27 @@ Then get the token from Settings → Integrations → MCP and set it as the `x-b
 
 ## Build & Dev
 
-| Command | Description |
-|---------|-------------|
-| `cargo tauri dev` | Desktop app with hot reload |
-| `cargo check` (in src-tauri/) | Rust compilation check |
-| `cargo test` (in src-tauri/) | Run Rust tests |
-| `npm run dev` | Svelte frontend dev server |
+| Command                       | Description                 |
+| ----------------------------- | --------------------------- |
+| `cargo tauri dev`             | Desktop app with hot reload |
+| `cargo check` (in src-tauri/) | Rust compilation check      |
+| `cargo test` (in src-tauri/)  | Run Rust tests              |
+| `npm run dev`                 | Svelte frontend dev server  |
 
 ## Tools
 
-| Category | Tools |
-|----------|-------|
-| Tasks | `create_task`, `get_tasks`, `update_task`, `complete_task`, `undo_task`, `delete_task` |
-| Notes | `save_note`, `update_note`, `delete_note`, `search_notes` |
-| Habits | `create_habit`, `update_habit`, `delete_habit`, `log_habit_completion` |
-| Mood | `log_mood` |
-| Focus | `log_focus_session` |
-| Sleep | `log_sleep` (upsert by date) |
-| Meals | `log_meal` |
-| Daily | `get_daily_summary` |
+| Category     | Tools                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Tasks        | `create_task`, `get_tasks`, `update_task`, `complete_task`, `undo_task`, `delete_task`                                                                                                                                                                                                                                                                                                                                                                                         |
+| Notes        | `save_note`, `update_note`, `delete_note`, `search_notes`                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Habits       | `create_habit`, `update_habit`, `delete_habit`, `log_habit_completion`                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Mood         | `log_mood`                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Focus        | `log_focus_session`                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Sleep        | `log_sleep` (upsert by date)                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Meals        | `log_meal`                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Daily        | `get_daily_summary`                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | Intelligence | `get_life_context`, `get_cross_module_correlations`, `get_day_reconstruction`, `get_life_delta`, `get_cognitive_schedule`, `create_commitment_bond`, `get_commitment_bonds`, `update_bond_status`, `get_failure_patterns`, `generate_weekly_board_report`, `get_compound_self_projection`, `write_ambient_journal_entry`, `get_meal_mood_correlations`, `get_integrity_score`, `get_attention_allocation`, `generate_sprint_plan`, `auto_schedule_tasks`, `get_skill_velocity` |
-| Coding Agent | `generate_standup`, `save_agent_context`, `get_agent_context`, `get_burnout_risk` |
+| Coding Agent | `generate_standup`, `save_agent_context`, `get_agent_context`, `get_burnout_risk`                                                                                                                                                                                                                                                                                                                                                                                              |
 
 ## Workflows
 

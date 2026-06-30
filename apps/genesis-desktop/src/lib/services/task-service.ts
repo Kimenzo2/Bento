@@ -1,5 +1,5 @@
-import { invoke } from '@tauri-apps/api/core';
-import { z } from 'zod';
+import { invoke } from "@tauri-apps/api/core";
+import { z } from "zod";
 
 // ─── Zod schemas ──────────────────────────────────────────────────────
 
@@ -108,59 +108,59 @@ export interface SaveSubtaskParams {
 /** Create a new task. */
 export async function saveTask(params: SaveTaskParams): Promise<TaskEntry> {
   const parsed = saveTaskParamsSchema.parse(params);
-  const result = await invoke<unknown>('save_task', { params: parsed });
+  const result = await invoke<unknown>("save_task", { params: parsed });
   return taskEntrySchema.parse(result);
 }
 
 /** Update an existing task (partial update). */
 export async function updateTask(params: UpdateTaskParams): Promise<TaskEntry> {
   const parsed = updateTaskParamsSchema.parse(params);
-  const result = await invoke<unknown>('update_task', { params: parsed });
+  const result = await invoke<unknown>("update_task", { params: parsed });
   return taskEntrySchema.parse(result);
 }
 
 /** Toggle a task's done state. */
 export async function toggleTask(id: string): Promise<TaskEntry> {
-  const result = await invoke<unknown>('toggle_task', { id });
+  const result = await invoke<unknown>("toggle_task", { id });
   return taskEntrySchema.parse(result);
 }
 
 /** Get a task by ID. Returns null if not found. */
 export async function getTask(id: string): Promise<TaskEntry | null> {
-  const result = await invoke<unknown>('get_task', { id });
+  const result = await invoke<unknown>("get_task", { id });
   if (result === null) return null;
   return taskEntrySchema.parse(result);
 }
 
 /** Delete a task by ID. */
 export async function deleteTask(id: string): Promise<void> {
-  await invoke('delete_task', { id });
+  await invoke("delete_task", { id });
 }
 
 /** Archive a task. */
 export async function archiveTask(id: string): Promise<TaskEntry> {
-  const result = await invoke<unknown>('archive_task', { id });
+  const result = await invoke<unknown>("archive_task", { id });
   return taskEntrySchema.parse(result);
 }
 
 /** Duplicate a task. */
 export async function duplicateTask(id: string): Promise<TaskEntry> {
-  const result = await invoke<unknown>('duplicate_task', { id });
+  const result = await invoke<unknown>("duplicate_task", { id });
   return taskEntrySchema.parse(result);
 }
 
 /** Log an activity entry for a task. */
 export async function logActivityEntry(taskId: string, text: string): Promise<ActivityEntry> {
-  const result = await invoke<unknown>('log_activity_entry', { params: { taskId, text } });
+  const result = await invoke<unknown>("log_activity_entry", { params: { taskId, text } });
   return activityEntrySchema.parse(result);
 }
 
 /** List activity entries for a task. */
 export async function listActivityForTask(
   taskId: string,
-  limit?: number
+  limit?: number,
 ): Promise<ActivityEntry[]> {
-  const result = await invoke<unknown>('list_activity_for_task', { taskId, limit: limit ?? null });
+  const result = await invoke<unknown>("list_activity_for_task", { taskId, limit: limit ?? null });
   return z.array(activityEntrySchema).parse(result);
 }
 
@@ -181,7 +181,7 @@ export async function listTasks(params?: {
   dueAfter?: number;
   limit?: number;
 }): Promise<TaskEntry[]> {
-  const result = await invoke<unknown>('list_tasks', {
+  const result = await invoke<unknown>("list_tasks", {
     project: params?.project ?? null,
     priority: params?.priority ?? null,
     done: params?.done ?? null,
@@ -198,7 +198,7 @@ export async function pickImportFile(): Promise<{
   fileName: string;
   extension: string;
 } | null> {
-  const result = await invoke<unknown>('pick_import_file');
+  const result = await invoke<unknown>("pick_import_file");
   if (result === null) return null;
   return z
     .object({
@@ -224,30 +224,30 @@ const subtaskEntrySchema = z
 
 /** Create a new subtask. */
 export async function saveSubtask(params: SaveSubtaskParams): Promise<SubtaskEntry> {
-  const result = await invoke<unknown>('save_subtask', { params });
+  const result = await invoke<unknown>("save_subtask", { params });
   return subtaskEntrySchema.parse(result);
 }
 
 /** Delete a subtask by ID. */
 export async function deleteSubtask(id: string): Promise<void> {
-  await invoke('delete_subtask', { id });
+  await invoke("delete_subtask", { id });
 }
 
 /** List all subtasks for a task. */
 export async function listSubtasksForTask(taskId: string): Promise<SubtaskEntry[]> {
-  const result = await invoke<unknown>('list_subtasks_for_task', { taskId });
+  const result = await invoke<unknown>("list_subtasks_for_task", { taskId });
   return z.array(subtaskEntrySchema).parse(result);
 }
 
 /** Update a subtask's done status. */
 export async function updateSubtaskBackend(id: string, done: boolean): Promise<SubtaskEntry> {
-  const result = await invoke<unknown>('update_subtask_status', { id, done });
+  const result = await invoke<unknown>("update_subtask_status", { id, done });
   return subtaskEntrySchema.parse(result);
 }
 
 /** Reorder tasks (bulk update sort_order). */
 export async function reorderTasks(items: ReorderItem[]): Promise<void> {
-  await invoke('reorder_tasks', { items });
+  await invoke("reorder_tasks", { items });
 }
 
 /**
@@ -258,9 +258,9 @@ export async function exportContentToFile(
   content: string,
   defaultName: string,
   extension: string,
-  filterName: string
+  filterName: string,
 ): Promise<string | null> {
-  const result = await invoke<unknown>('export_content_to_file', {
+  const result = await invoke<unknown>("export_content_to_file", {
     content,
     defaultName,
     extension,

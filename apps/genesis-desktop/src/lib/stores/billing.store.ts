@@ -1,6 +1,6 @@
-import { browser } from '$app/environment';
-import { invoke, isTauri } from '@tauri-apps/api/core';
-import { get, writable } from 'svelte/store';
+import { browser } from "$app/environment";
+import { invoke, isTauri } from "@tauri-apps/api/core";
+import { get, writable } from "svelte/store";
 
 export type BillingProfileSnapshot = {
   billingTier: string;
@@ -17,19 +17,19 @@ let billingProfileRequest: Promise<BillingProfileSnapshot | null> | null = null;
 
 function normalizeBillingProfile(profile: any): BillingProfileSnapshot {
   return {
-    billingTier: String(profile?.billingTier ?? 'free'),
-    userTier: String(profile?.userTier ?? 'Free'),
+    billingTier: String(profile?.billingTier ?? "free"),
+    userTier: String(profile?.userTier ?? "Free"),
     hasActiveSubscription: Boolean(profile?.hasActiveSubscription),
     activePlanCode:
-      typeof profile?.activePlanCode === 'string' && profile.activePlanCode.trim()
+      typeof profile?.activePlanCode === "string" && profile.activePlanCode.trim()
         ? profile.activePlanCode.trim()
         : null,
     subscriptionEndDate:
-      typeof profile?.subscriptionEndDate === 'string' && profile.subscriptionEndDate.trim()
+      typeof profile?.subscriptionEndDate === "string" && profile.subscriptionEndDate.trim()
         ? profile.subscriptionEndDate
         : null,
     cancelAtPeriodEnd:
-      typeof profile?.cancelAtPeriodEnd === 'boolean' ? profile.cancelAtPeriodEnd : null,
+      typeof profile?.cancelAtPeriodEnd === "boolean" ? profile.cancelAtPeriodEnd : null,
   };
 }
 
@@ -56,7 +56,7 @@ export async function refreshBillingProfile(): Promise<BillingProfileSnapshot | 
     return billingProfileRequest;
   }
 
-  billingProfileRequest = invoke<unknown>('get_billing_profile')
+  billingProfileRequest = invoke<unknown>("get_billing_profile")
     .then((profile) => {
       const normalized = normalizeBillingProfile(profile);
       billingProfile.set(normalized);

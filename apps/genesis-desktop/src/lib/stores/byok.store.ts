@@ -1,10 +1,10 @@
-import { browser } from '$app/environment';
-import { invoke, isTauri } from '@tauri-apps/api/core';
-import { get, writable } from 'svelte/store';
+import { browser } from "$app/environment";
+import { invoke, isTauri } from "@tauri-apps/api/core";
+import { get, writable } from "svelte/store";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-export type ByokProviderId = 'openai' | 'anthropic' | 'gemini' | 'grok' | 'ollama';
+export type ByokProviderId = "openai" | "anthropic" | "gemini" | "grok" | "ollama";
 
 export interface ProviderKeyStatus {
   provider: string;
@@ -53,7 +53,7 @@ const defaultSettings: ByokSettings = {
 export const byokSettings = writable<ByokSettings>(defaultSettings);
 export const byokProviders = writable<ProviderKeyStatus[]>([]);
 export const byokReady = writable(false);
-export const byokTesting = writable<Record<string, 'idle' | 'testing' | 'success' | 'error'>>({});
+export const byokTesting = writable<Record<string, "idle" | "testing" | "success" | "error">>({});
 export const byokTestResults = writable<Record<string, ConnectionTestResult>>({});
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -70,33 +70,33 @@ export function getByokSettingsSnapshot(): ByokSettings {
 
 export async function saveApiKey(provider: string, key: string): Promise<void> {
   if (!isAvailable()) return;
-  await invoke('byok_save_key', { provider, key });
+  await invoke("byok_save_key", { provider, key });
   await refreshProviders();
 }
 
 export async function getKeyPreview(provider: string): Promise<string | null> {
   if (!isAvailable()) return null;
-  return invoke<string | null>('byok_get_key_preview', { provider });
+  return invoke<string | null>("byok_get_key_preview", { provider });
 }
 
 export async function deleteApiKey(provider: string): Promise<void> {
   if (!isAvailable()) return;
-  await invoke('byok_delete_key', { provider });
+  await invoke("byok_delete_key", { provider });
   await refreshProviders();
 }
 
 export async function validateKey(provider: string, key: string): Promise<number> {
   if (!isAvailable()) return 0;
-  return invoke<number>('byok_validate_key', { provider, key });
+  return invoke<number>("byok_validate_key", { provider, key });
 }
 
 export async function testConnection(provider: string): Promise<ConnectionTestResult> {
-  byokTesting.update((state) => ({ ...state, [provider]: 'testing' }));
+  byokTesting.update((state) => ({ ...state, [provider]: "testing" }));
   try {
-    const result = await invoke<ConnectionTestResult>('byok_test_connection', { provider });
+    const result = await invoke<ConnectionTestResult>("byok_test_connection", { provider });
     byokTesting.update((state) => ({
       ...state,
-      [provider]: result.ok ? 'success' : 'error',
+      [provider]: result.ok ? "success" : "error",
     }));
     byokTestResults.update((state) => ({ ...state, [provider]: result }));
     return result;
@@ -104,14 +104,14 @@ export async function testConnection(provider: string): Promise<ConnectionTestRe
     const errorResult: ConnectionTestResult = {
       ok: false,
       error: {
-        code: 'InvokeError',
+        code: "InvokeError",
         message: String(e),
         statusCode: null,
       },
       latencyMs: null,
       availableModels: [],
     };
-    byokTesting.update((state) => ({ ...state, [provider]: 'error' }));
+    byokTesting.update((state) => ({ ...state, [provider]: "error" }));
     byokTestResults.update((state) => ({ ...state, [provider]: errorResult }));
     return errorResult;
   }
@@ -121,7 +121,7 @@ export async function testConnection(provider: string): Promise<ConnectionTestRe
 
 export async function refreshProviders(): Promise<ProviderKeyStatus[]> {
   if (!isAvailable()) return [];
-  const providers = await invoke<ProviderKeyStatus[]>('byok_list_providers');
+  const providers = await invoke<ProviderKeyStatus[]>("byok_list_providers");
   byokProviders.set(providers);
   return providers;
 }
@@ -131,7 +131,7 @@ export async function refreshProviders(): Promise<ProviderKeyStatus[]> {
 export async function loadByokSettings(): Promise<ByokSettings> {
   if (!isAvailable()) return defaultSettings;
   try {
-    const settings = await invoke<ByokSettings>('byok_get_settings');
+    const settings = await invoke<ByokSettings>("byok_get_settings");
     byokSettings.set(settings);
     byokReady.set(true);
     return settings;
@@ -144,21 +144,21 @@ export async function loadByokSettings(): Promise<ByokSettings> {
 
 export async function updateByokSettings(patch: Partial<ByokSettings>): Promise<ByokSettings> {
   if (!isAvailable()) return get(byokSettings);
-  const updated = await invoke<ByokSettings>('byok_update_settings', { patch });
+  const updated = await invoke<ByokSettings>("byok_update_settings", { patch });
   byokSettings.set(updated);
   return updated;
 }
 
 export async function toggleByok(enabled: boolean): Promise<ByokSettings> {
   if (!isAvailable()) return get(byokSettings);
-  const updated = await invoke<ByokSettings>('byok_toggle_enabled', { enabled });
+  const updated = await invoke<ByokSettings>("byok_toggle_enabled", { enabled });
   byokSettings.set(updated);
   return updated;
 }
 
 export async function dismissOnboarding(): Promise<void> {
   if (!isAvailable()) return;
-  await invoke('byok_dismiss_onboarding');
+  await invoke("byok_dismiss_onboarding");
   byokSettings.update((s) => ({ ...s, onboardingDismissed: true }));
 }
 
@@ -174,11 +174,11 @@ export async function setActiveModel(model: string): Promise<void> {
 
 export function providerDisplayName(provider: string): string {
   const names: Record<string, string> = {
-    openai: 'OpenAI',
-    anthropic: 'Anthropic',
-    gemini: 'Gemini (Google)',
-    grok: 'Grok (xAI)',
-    ollama: 'Ollama (Local)',
+    openai: "OpenAI",
+    anthropic: "Anthropic",
+    gemini: "Gemini (Google)",
+    grok: "Grok (xAI)",
+    ollama: "Ollama (Local)",
   };
   return names[provider] ?? provider;
 }
@@ -186,46 +186,46 @@ export function providerDisplayName(provider: string): string {
 export function providerIcon(provider: string): string {
   // Returns an icon identifier for each provider
   const icons: Record<string, string> = {
-    openai: 'sparkles',
-    anthropic: 'bot',
-    gemini: 'star',
-    grok: 'zap',
-    ollama: 'server',
+    openai: "sparkles",
+    anthropic: "bot",
+    gemini: "star",
+    grok: "zap",
+    ollama: "server",
   };
-  return icons[provider] ?? 'key';
+  return icons[provider] ?? "key";
 }
 
 export function providerColor(provider: string): string {
   const colors: Record<string, string> = {
-    openai: '#10a37f',
-    anthropic: '#d4a574',
-    gemini: '#4285f4',
-    grok: '#1da1f2',
-    ollama: '#9b59b6',
+    openai: "#10a37f",
+    anthropic: "#d4a574",
+    gemini: "#4285f4",
+    grok: "#1da1f2",
+    ollama: "#9b59b6",
   };
-  return colors[provider] ?? '#666';
+  return colors[provider] ?? "#666";
 }
 
 export function providerKnownModels(provider: string): string[] {
   const models: Record<string, string[]> = {
     openai: [
-      'gpt-4o',
-      'gpt-4o-mini',
-      'gpt-4.1',
-      'gpt-4.1-mini',
-      'gpt-4.1-nano',
-      'o3',
-      'o3-mini',
-      'o4-mini',
+      "gpt-4o",
+      "gpt-4o-mini",
+      "gpt-4.1",
+      "gpt-4.1-mini",
+      "gpt-4.1-nano",
+      "o3",
+      "o3-mini",
+      "o4-mini",
     ],
     anthropic: [
-      'claude-sonnet-4-20250514',
-      'claude-sonnet-4',
-      'claude-haiku-4-5-20251001',
-      'claude-opus-4-5',
+      "claude-sonnet-4-20250514",
+      "claude-sonnet-4",
+      "claude-haiku-4-5-20251001",
+      "claude-opus-4-5",
     ],
-    gemini: ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash'],
-    grok: ['grok-3', 'grok-3-mini', 'grok-2'],
+    gemini: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"],
+    grok: ["grok-3", "grok-3-mini", "grok-2"],
     ollama: [], // Dynamically fetched
   };
   return models[provider] ?? [];

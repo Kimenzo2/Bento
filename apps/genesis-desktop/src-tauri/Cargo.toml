@@ -51,7 +51,11 @@ tauri-plugin-updater = "2"
 tokio = { version = "1", features = ["sync", "time", "net", "rt", "macros", "io-util"] }
 base64 = "0.22"
 keyring = "3"
-reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+reqwest = { version = "0.12", default-features = false, features = [
+  "json",
+  "rustls-tls",
+  "stream",
+] }
 futures = "0.3"
 tracing = "0.1"
 bytes = "1"
@@ -75,7 +79,13 @@ uuid = { version = "1", features = ["v4"] }
 regex = "1"
 image = "0.25"
 neo_frizbee = "0.10"
-rmcp = { version = "1.7", features = ["server", "macros", "schemars", "transport-streamable-http-server", "transport-streamable-http-server-session"] }
+rmcp = { version = "1.7", features = [
+  "server",
+  "macros",
+  "schemars",
+  "transport-streamable-http-server",
+  "transport-streamable-http-server-session",
+] }
 tower = { version = "0.5", features = ["util"] }
 axum = { version = "0.7", default-features = false, features = ["json", "tokio", "http1"] }
 schemars = "0.8"
@@ -101,10 +111,7 @@ tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 
 [target."cfg(windows)".dependencies.windows-sys]
 version = "0.52"
-features = [
-  "Win32_Foundation",
-  "Win32_UI_WindowsAndMessaging",
-]
+features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"]
 
 # ---------------------------------------------------------------------------
 # Profiles

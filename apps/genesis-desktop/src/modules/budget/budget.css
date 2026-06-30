@@ -330,9 +330,9 @@ select {
 /* ── Card System Fix ──────────────────────────────────────────────── */
 /* Remove all borders and shadows from budget cards */
 .budget-app-container .card,
-.budget-app-container [class*='-card'],
-.budget-app-container [class*='-panel'],
-.budget-app-container [class*='-block'],
+.budget-app-container [class*="-card"],
+.budget-app-container [class*="-panel"],
+.budget-app-container [class*="-block"],
 .budget-app-container .summary-card,
 .budget-app-container .stat-card,
 .budget-app-container .transaction-item {
@@ -342,9 +342,9 @@ select {
   border-radius: 20px;
 }
 .dark .budget-app-container .card,
-.dark .budget-app-container [class*='-card'],
-.dark .budget-app-container [class*='-panel'],
-.dark .budget-app-container [class*='-block'],
+.dark .budget-app-container [class*="-card"],
+.dark .budget-app-container [class*="-panel"],
+.dark .budget-app-container [class*="-block"],
 .dark .budget-app-container .summary-card,
 .dark .budget-app-container .stat-card,
 .dark .budget-app-container .transaction-item {

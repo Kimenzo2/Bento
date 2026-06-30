@@ -66,4 +66,3 @@ test('preferred method is selected when available', () => {
 test('country display names remain readable', () => {
   assert.equal(getCountryDisplayName('NG'), 'Nigeria');
 });
-

@@ -8,8 +8,18 @@ const categories = [
     includes: 'Notes, Tasks, Journal, Voice Memos, Clipboard Manager',
     icon: (
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-        <path d="M4 4h14v14H4V4z" stroke="var(--color-ink)" strokeWidth="1.5" strokeLinejoin="round" />
-        <path d="M7 7h8M7 11h8M7 15h5" stroke="var(--color-ink)" strokeWidth="1.5" strokeLinecap="round" />
+        <path
+          d="M4 4h14v14H4V4z"
+          stroke="var(--color-ink)"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M7 7h8M7 11h8M7 15h5"
+          stroke="var(--color-ink)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
       </svg>
     ),
   },
@@ -21,8 +31,19 @@ const categories = [
     icon: (
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
         <circle cx="11" cy="11" r="7.5" stroke="var(--color-ink)" strokeWidth="1.5" />
-        <path d="M11 7v4l2.5 2.5" stroke="var(--color-ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M17.5 4.5L20 7" stroke="var(--color-ink)" strokeWidth="1.5" strokeLinecap="round" />
+        <path
+          d="M11 7v4l2.5 2.5"
+          stroke="var(--color-ink)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M17.5 4.5L20 7"
+          stroke="var(--color-ink)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
       </svg>
     ),
   },
@@ -33,7 +54,13 @@ const categories = [
     includes: 'Sleep Tracker, Health Tracker, Water & Nutrition',
     icon: (
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-        <path d="M18 12.5A7.5 7.5 0 019.5 4 7.5 7.5 0 1018 12.5z" stroke="var(--color-ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path
+          d="M18 12.5A7.5 7.5 0 019.5 4 7.5 7.5 0 1018 12.5z"
+          stroke="var(--color-ink)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     ),
   },
@@ -44,8 +71,22 @@ const categories = [
     includes: 'Budget Tracker, Password Vault, Countdown / Life Events',
     icon: (
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-        <rect x="3" y="8" width="16" height="10" rx="2" stroke="var(--color-ink)" strokeWidth="1.5" />
-        <path d="M7 8V6a4 4 0 018 0v2" stroke="var(--color-ink)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <rect
+          x="3"
+          y="8"
+          width="16"
+          height="10"
+          rx="2"
+          stroke="var(--color-ink)"
+          strokeWidth="1.5"
+        />
+        <path
+          d="M7 8V6a4 4 0 018 0v2"
+          stroke="var(--color-ink)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
         <circle cx="11" cy="13" r="1.5" fill="var(--color-ink)" />
       </svg>
     ),
@@ -57,10 +98,42 @@ const categories = [
     includes: 'Dashboard, Settings',
     icon: (
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-        <rect x="3" y="3" width="7" height="7" rx="1.5" stroke="var(--color-ink)" strokeWidth="1.5" />
-        <rect x="12" y="3" width="7" height="4" rx="1.5" stroke="var(--color-ink)" strokeWidth="1.5" />
-        <rect x="3" y="12" width="7" height="7" rx="1.5" stroke="var(--color-ink)" strokeWidth="1.5" />
-        <rect x="12" y="9" width="7" height="10" rx="1.5" stroke="var(--color-ink)" strokeWidth="1.5" />
+        <rect
+          x="3"
+          y="3"
+          width="7"
+          height="7"
+          rx="1.5"
+          stroke="var(--color-ink)"
+          strokeWidth="1.5"
+        />
+        <rect
+          x="12"
+          y="3"
+          width="7"
+          height="4"
+          rx="1.5"
+          stroke="var(--color-ink)"
+          strokeWidth="1.5"
+        />
+        <rect
+          x="3"
+          y="12"
+          width="7"
+          height="7"
+          rx="1.5"
+          stroke="var(--color-ink)"
+          strokeWidth="1.5"
+        />
+        <rect
+          x="12"
+          y="9"
+          width="7"
+          height="10"
+          rx="1.5"
+          stroke="var(--color-ink)"
+          strokeWidth="1.5"
+        />
       </svg>
     ),
   },
@@ -113,8 +186,8 @@ export default function HowItWorks() {
               margin: 0,
             }}
           >
-            From tasks and notes to mood, sleep, budgets, passwords, and voice memos &mdash;
-            every module shares context locally, so nothing falls through the cracks.
+            From tasks and notes to mood, sleep, budgets, passwords, and voice memos &mdash; every
+            module shares context locally, so nothing falls through the cracks.
           </p>
         </header>
 

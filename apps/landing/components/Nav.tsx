@@ -34,11 +34,7 @@ const btn = {
   transition: 'color 0.15s ease, box-shadow 0.15s ease',
 } as const;
 
-export default function Nav({
-  platforms,
-}: {
-  platforms: Record<Platform, PlatformInfo>;
-}) {
+export default function Nav({ platforms }: { platforms: Record<Platform, PlatformInfo> }) {
   const { detecting, downloadHref, scrollToDownload } = useDownload(platforms);
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -57,7 +53,9 @@ export default function Nav({
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setAuthLoaded(true);
     });
@@ -111,15 +109,14 @@ export default function Nav({
             justifyContent: 'space-between',
             height: '46px',
             padding: scrolled ? '0 8px' : '0 10px',
-            background: scrolled
-              ? 'var(--color-surface)'
-              : 'transparent',
+            background: scrolled ? 'var(--color-surface)' : 'transparent',
             backdropFilter: scrolled ? 'blur(24px)' : 'none',
             WebkitBackdropFilter: scrolled ? 'blur(24px)' : 'none',
             borderRadius: '16px',
             border: scrolled ? '1px solid var(--color-border)' : '1px solid transparent',
             boxShadow: scrolled ? 'inset 0 1px 0 var(--color-accent-line)' : 'none',
-            transition: 'background 300ms ease, backdrop-filter 300ms ease, border 300ms ease, box-shadow 300ms ease, padding 300ms ease',
+            transition:
+              'background 300ms ease, backdrop-filter 300ms ease, border 300ms ease, box-shadow 300ms ease, padding 300ms ease',
           }}
         >
           <button
@@ -325,14 +322,25 @@ export default function Nav({
                 <Link
                   href="/pricing"
                   data-slot="button"
-                  style={{ ...btn, width: '100%', justifyContent: 'flex-start', textDecoration: 'none' }}
+                  style={{
+                    ...btn,
+                    width: '100%',
+                    justifyContent: 'flex-start',
+                    textDecoration: 'none',
+                  }}
                 >
                   Dashboard
                 </Link>
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  style={{ ...btn, width: '100%', justifyContent: 'flex-start', fontSize: '0.78rem', opacity: 0.6 }}
+                  style={{
+                    ...btn,
+                    width: '100%',
+                    justifyContent: 'flex-start',
+                    fontSize: '0.78rem',
+                    opacity: 0.6,
+                  }}
                 >
                   Sign out
                 </button>
@@ -382,7 +390,6 @@ export default function Nav({
             </button>
           </div>
         )}
-
       </div>
     </nav>
   );

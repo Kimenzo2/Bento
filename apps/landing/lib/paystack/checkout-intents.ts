@@ -16,7 +16,15 @@ export type CheckoutIntentRecord = {
   billingPeriod: BillingPeriod;
   source: CheckoutIntentSource;
   paymentStatus: 'pending' | 'succeeded' | 'failed' | 'ignored';
-  billingStatus: 'free' | 'processing' | 'active' | 'pending' | 'past_due' | 'non_renewing' | 'cancelled' | 'expired';
+  billingStatus:
+    | 'free'
+    | 'processing'
+    | 'active'
+    | 'pending'
+    | 'past_due'
+    | 'non_renewing'
+    | 'cancelled'
+    | 'expired';
   paystackAccessCode: string | null;
   paystackAuthorizationUrl: string | null;
   payload: Record<string, unknown>;

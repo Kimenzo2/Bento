@@ -15,9 +15,22 @@ const plans = PRICING_PLANS.map((plan) => ({
 
 function CheckIcon({ color }: { color: string }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ marginTop: '3px', flexShrink: 0 }}>
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+      style={{ marginTop: '3px', flexShrink: 0 }}
+    >
       <circle cx="8" cy="8" r="7" stroke={color} strokeWidth="1.25" />
-      <path d="M5 8l2.25 2.25L11 6" stroke={color} strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M5 8l2.25 2.25L11 6"
+        stroke={color}
+        strokeWidth="1.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -88,8 +101,6 @@ export default function Pricing() {
                 flexDirection: 'column',
               }}
             >
-
-
               <p
                 style={{
                   fontSize: '1rem',
@@ -112,7 +123,9 @@ export default function Pricing() {
                 {plan.description}
               </p>
 
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '12px' }}>
+              <div
+                style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '12px' }}
+              >
                 <span
                   style={{
                     fontSize: '2.5rem',

@@ -63,50 +63,49 @@
     {
       key: "core" as const,
       name: "Core",
-      description: "Five anchor apps to get someone in the door.",
+      description: "The essentials for a calm, focused workflow.",
       price: { monthly: "$9", yearly: "$90" },
       period: { monthly: "/mo", yearly: "/yr" },
-      accent: "#4f46e5",
-      summary: "Five local-first apps",
+      accent: "var(--foreground)",
+      summary: "Five anchor apps",
       features: [
         "Tasks, Notes, Journal, Password Vault, Budget",
-        "Local only",
-        "No sync",
-        "No AI",
+        "Local-first desktop experience",
+        "No AI features",
+        "Best for focused personal use",
       ],
       planCodes: { monthly: "core_monthly", yearly: "core_yearly" },
     },
     {
       key: "pro" as const,
       name: "Pro",
-      description: "The real desktop product for most users.",
+      description: "For people using Bento across work, study, and daily routines.",
       price: { monthly: "$19", yearly: "$180" },
       period: { monthly: "/mo", yearly: "/yr" },
-      accent: "#3b82f6",
-      summary: "All 21 apps",
+      accent: "var(--foreground)",
+      summary: "All 17 apps",
       features: [
-        "All 21 apps",
-        "Sync across 3 devices",
+        "All 17 apps",
+        "Sync across devices (Coming soon)",
         "Basic AI features",
-        "Desktop-first workflow",
-        "Cross-device continuity",
+        "Desktop-first continuity",
       ],
       planCodes: { monthly: "pro_monthly", yearly: "pro_yearly" },
+      badge: "Most popular",
     },
     {
       key: "power" as const,
       name: "Power",
-      description: "For users who have made Bento their operating system.",
+      description: "For heavy users who want the full Bento experience.",
       price: { monthly: "$29", yearly: "$270" },
       period: { monthly: "/mo", yearly: "/yr" },
-      accent: "#a855f7",
-      summary: "All 21 apps",
+      accent: "var(--foreground)",
+      summary: "Everything unlocked",
       features: [
-        "All 21 apps",
+        "All 17 apps",
         "Unlimited devices",
         "Advanced AI intelligence layer",
-        "Priority support",
-        "Early access to new modules",
+        "Priority support and early access",
       ],
       planCodes: { monthly: "power_monthly", yearly: "power_yearly" },
     },
@@ -466,6 +465,9 @@
             </svg>
           </div>
           <CardTitle class="pricing-shell__card-title">{tier.name}</CardTitle>
+          {#if tier.badge}
+            <span class="pricing-shell__badge">{tier.badge}</span>
+          {/if}
           <CardDescription class="pricing-shell__card-desc">{tier.description}</CardDescription>
         </CardHeader>
         <CardContent class="pricing-shell__card-content">
@@ -946,6 +948,19 @@
     font-size: clamp(2rem, 2.4vw, 3rem);
     font-weight: 500;
     letter-spacing: -0.05em;
+  }
+
+  .pricing-shell__badge {
+    display: inline-block;
+    width: fit-content;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
   }
 
   .pricing-shell__card-desc {

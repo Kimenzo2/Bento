@@ -10,7 +10,12 @@ const CN_CDN = 'https://cdn.crabnebula.app/download/bento-industries/bento/lates
 const platforms = [
   { key: 'windows', label: 'Windows', arch: 'Windows 64-bit', href: CN_CDN + '/nsis-x86_64' },
   { key: 'macos', label: 'macOS', arch: 'macOS (Universal)', href: CN_CDN + '/dmg-universal' },
-  { key: 'linux', label: 'Linux', arch: 'Linux (AppImage + deb)', href: CN_CDN + '/appimage-x86_64' },
+  {
+    key: 'linux',
+    label: 'Linux',
+    arch: 'Linux (AppImage + deb)',
+    href: CN_CDN + '/appimage-x86_64',
+  },
 ];
 
 export default function DownloadPage() {
@@ -50,32 +55,76 @@ export default function DownloadPage() {
           </Link>
           <h1 className="download-page__title">Download Bento</h1>
           <p className="download-page__desc">
-            Choose your platform. Your account works across all devices — sign in once, pick up where you left off.
+            Choose your platform. Your account works across all devices — sign in once, pick up
+            where you left off.
           </p>
         </section>
 
         <section className="download-page__platforms">
           {platforms.map((p) => (
-            <a key={p.key} href={p.href} className="download-page__card" target="_blank" rel="noopener noreferrer">
+            <a
+              key={p.key}
+              href={p.href}
+              className="download-page__card"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <div className="download-page__card-icon">
                 {p.key === 'windows' && (
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5" />
+                    <rect
+                      x="3"
+                      y="3"
+                      width="18"
+                      height="18"
+                      rx="2"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    />
                     <path d="M3 12h18M12 3v18" stroke="currentColor" strokeWidth="1.5" />
                   </svg>
                 )}
                 {p.key === 'macos' && (
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z" stroke="currentColor" strokeWidth="1.5" />
-                    <path d="M8 7v6a3 3 0 003 3h2a3 3 0 003-3V7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    <path d="M8 4v3M16 4v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    <path
+                      d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    />
+                    <path
+                      d="M8 7v6a3 3 0 003 3h2a3 3 0 003-3V7"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M8 4v3M16 4v3"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
                   </svg>
                 )}
                 {p.key === 'linux' && (
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 2a3 3 0 00-3 3v1.5a3 3 0 003 3 3 3 0 003-3V5a3 3 0 00-3-3z" stroke="currentColor" strokeWidth="1.5" />
-                    <path d="M8.5 16.5L12 22l3.5-5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M12 9.5v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    <path
+                      d="M12 2a3 3 0 00-3 3v1.5a3 3 0 003 3 3 3 0 003-3V5a3 3 0 00-3-3z"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    />
+                    <path
+                      d="M8.5 16.5L12 22l3.5-5.5"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M12 9.5v3"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
                   </svg>
                 )}
               </div>
@@ -83,8 +132,20 @@ export default function DownloadPage() {
                 <h3 className="download-page__card-title">{p.label}</h3>
                 <p className="download-page__card-arch">{p.arch}</p>
               </div>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="download-page__card-arrow">
-                <path d="M10 4v12M10 16l-4-4M10 16l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                fill="none"
+                className="download-page__card-arrow"
+              >
+                <path
+                  d="M10 4v12M10 16l-4-4M10 16l4-4"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </a>
           ))}
@@ -116,14 +177,20 @@ export default function DownloadPage() {
         {!authLoaded || !user ? (
           <section className="download-page__cta">
             <p className="download-page__cta-text">
-              <Link href="/auth/signup" className="download-page__cta-link">Create a free account</Link> to sync across devices.
+              <Link href="/auth/signup" className="download-page__cta-link">
+                Create a free account
+              </Link>{' '}
+              to sync across devices.
             </p>
           </section>
         ) : null}
 
         <section className="download-page__note">
           <p className="download-page__note-text">
-            Already subscribed? <Link href="/pricing" className="download-page__cta-link">Manage billing</Link>
+            Already subscribed?{' '}
+            <Link href="/pricing" className="download-page__cta-link">
+              Manage billing
+            </Link>
           </p>
         </section>
       </div>

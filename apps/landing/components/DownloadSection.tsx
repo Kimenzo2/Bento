@@ -3,7 +3,6 @@ import { tokens } from './tokens';
 const CDN = 'https://cdn.crabnebula.app/download/bento-industries/bento/latest/platform';
 
 export default function DownloadSection({ version }: { version: string }) {
-
   return (
     <section
       id="download"
@@ -57,9 +56,9 @@ export default function DownloadSection({ version }: { version: string }) {
               maxWidth: '420px',
             }}
           >
-            Sign in with Google and you&rsquo;re in &mdash; no onboarding tour, no setup wizard.
-            All your data lives on your machine and works fully offline. Upgrade only when you
-            want more.
+            Sign in with Google and you&rsquo;re in &mdash; no onboarding tour, no setup wizard. All
+            your data lives on your machine and works fully offline. Upgrade only when you want
+            more.
           </p>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>

@@ -2,23 +2,23 @@
 export interface TextMark {
   from: number;
   to: number;
-  type: 'B' | 'I' | 'U' | 'S' | 'A';
+  type: "B" | "I" | "U" | "S" | "A";
   href?: string;
 }
 
 /** Block types supported by the editor */
 export type BlockType =
-  | 'p'
-  | 'h1'
-  | 'h2'
-  | 'h3'
-  | 'bullet'
-  | 'number'
-  | 'toggle'
-  | 'quote'
-  | 'code'
-  | 'checkbox'
-  | 'divider';
+  | "p"
+  | "h1"
+  | "h2"
+  | "h3"
+  | "bullet"
+  | "number"
+  | "toggle"
+  | "quote"
+  | "code"
+  | "checkbox"
+  | "divider";
 
 /** A single editable block */
 export interface Block {
@@ -36,14 +36,14 @@ export function uid(): string {
 }
 
 /** Create an empty block of the given type */
-export function emptyBlock(type: BlockType = 'p'): Block {
-  return { id: uid(), type, text: '', marks: [], checked: false, level: 0 };
+export function emptyBlock(type: BlockType = "p"): Block {
+  return { id: uid(), type, text: "", marks: [], checked: false, level: 0 };
 }
 
 /** Serialize blocks to a compact JSON string for persistence */
 export function blocksToJSON(blocks: Block[]): string {
-  const nonEmpty = blocks.filter((b) => b.type !== 'divider' || b.text);
-  if (nonEmpty.length === 1 && nonEmpty[0].type === 'p' && !nonEmpty[0].text) return '';
+  const nonEmpty = blocks.filter((b) => b.type !== "divider" || b.text);
+  if (nonEmpty.length === 1 && nonEmpty[0].type === "p" && !nonEmpty[0].text) return "";
   return JSON.stringify(
     blocks.map((b) => ({
       t: b.type,
@@ -51,7 +51,7 @@ export function blocksToJSON(blocks: Block[]): string {
       marks: b.marks,
       ck: b.checked,
       lv: b.level || 0,
-    }))
+    })),
   );
 }
 
@@ -62,30 +62,30 @@ export function blocksFromJSON(json: string): Block[] {
     const parsed = JSON.parse(json);
     if (Array.isArray(parsed)) {
       const validTypes = new Set<BlockType>([
-        'p',
-        'h1',
-        'h2',
-        'h3',
-        'bullet',
-        'number',
-        'toggle',
-        'quote',
-        'code',
-        'checkbox',
-        'divider',
+        "p",
+        "h1",
+        "h2",
+        "h3",
+        "bullet",
+        "number",
+        "toggle",
+        "quote",
+        "code",
+        "checkbox",
+        "divider",
       ]);
       return parsed.map((p: any) => ({
         id: uid(),
-        type: validTypes.has(p.t) ? p.t : ('p' as BlockType),
-        text: p.text || '',
-        level: typeof p.lv === 'number' ? Math.max(0, Math.min(p.lv, 5)) : 0,
+        type: validTypes.has(p.t) ? p.t : ("p" as BlockType),
+        text: p.text || "",
+        level: typeof p.lv === "number" ? Math.max(0, Math.min(p.lv, 5)) : 0,
         marks: Array.isArray(p.marks)
           ? p.marks
               .filter(
                 (m: any) =>
-                  ['B', 'I', 'U', 'S', 'A'].includes(m.type) &&
-                  typeof m.from === 'number' &&
-                  typeof m.to === 'number'
+                  ["B", "I", "U", "S", "A"].includes(m.type) &&
+                  typeof m.from === "number" &&
+                  typeof m.to === "number",
               )
               .map((m: any) => ({
                 from: m.from,

@@ -274,9 +274,9 @@
 }
 
 /* ── Card System Fix ──────────────────────────────────────────────── */
-.recipes-app [class*='-card'],
-.recipes-app [class*='-panel'],
-.recipes-app [class*='-block'],
+.recipes-app [class*="-card"],
+.recipes-app [class*="-panel"],
+.recipes-app [class*="-block"],
 .recipes-app .recipe-item {
   border: none !important;
   box-shadow: none !important;

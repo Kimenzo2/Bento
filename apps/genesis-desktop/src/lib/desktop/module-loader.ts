@@ -1,7 +1,7 @@
-import { browser } from '$app/environment';
-import { invoke, isTauri } from '@tauri-apps/api/core';
-import { mount, unmount } from 'svelte';
-import type { BentoModuleId, ModuleContext } from './modules';
+import { browser } from "$app/environment";
+import { invoke, isTauri } from "@tauri-apps/api/core";
+import { mount, unmount } from "svelte";
+import type { BentoModuleId, ModuleContext } from "./modules";
 import {
   activeModule,
   captureModuleContext,
@@ -9,14 +9,14 @@ import {
   modules,
   setWindowTitle,
   switchModule,
-} from './modules';
+} from "./modules";
 
 type MountedModule = Record<string, unknown>;
 
 let currentInstalledModule: MountedModule | null = null;
 
 export function moduleAssetUrl(moduleId: string, assetPath: string) {
-  const safeAssetPath = assetPath.replace(/^\/+/, '');
+  const safeAssetPath = assetPath.replace(/^\/+/, "");
 
   if (!browser || !isTauri()) {
     return `/modules/${moduleId}/${safeAssetPath}`;
@@ -29,7 +29,7 @@ export function moduleAssetUrl(moduleId: string, assetPath: string) {
 export async function loadInstalledModule(
   moduleId: string,
   target: HTMLElement,
-  settings: unknown
+  settings: unknown,
 ) {
   if (!browser) {
     return null;
@@ -40,29 +40,29 @@ export async function loadInstalledModule(
 
   if (isTauri()) {
     if (isBuiltinModule(moduleId)) {
-      await invoke('flush_module_state', {
+      await invoke("flush_module_state", {
         fromModule,
         toModule: moduleId,
         context,
       });
     } else {
-      await invoke('save_module_context', {
+      await invoke("save_module_context", {
         module: fromModule,
         context,
       });
     }
-    await invoke('set_active_module', { moduleId });
+    await invoke("set_active_module", { moduleId });
   }
 
   if (currentInstalledModule) {
     unmount(currentInstalledModule);
   }
   currentInstalledModule = null;
-  target.innerHTML = '';
+  target.innerHTML = "";
 
   loadModuleCss(moduleId);
 
-  const loaded = await import(/* @vite-ignore */ moduleAssetUrl(moduleId, 'index.js'));
+  const loaded = await import(/* @vite-ignore */ moduleAssetUrl(moduleId, "index.js"));
   const ModuleApp = loaded.default;
 
   currentInstalledModule = mount(ModuleApp, {
@@ -83,7 +83,7 @@ export function unloadInstalledModule() {
     unmount(currentInstalledModule);
   }
   currentInstalledModule = null;
-  document.getElementById('bento-module-css')?.remove();
+  document.getElementById("bento-module-css")?.remove();
 }
 
 export async function loadBuiltinModule(moduleId: BentoModuleId) {
@@ -92,12 +92,12 @@ export async function loadBuiltinModule(moduleId: BentoModuleId) {
 }
 
 function loadModuleCss(moduleId: string) {
-  document.getElementById('bento-module-css')?.remove();
+  document.getElementById("bento-module-css")?.remove();
 
-  const link = document.createElement('link');
-  link.id = 'bento-module-css';
-  link.rel = 'stylesheet';
-  link.href = moduleAssetUrl(moduleId, 'index.css');
+  const link = document.createElement("link");
+  link.id = "bento-module-css";
+  link.rel = "stylesheet";
+  link.href = moduleAssetUrl(moduleId, "index.css");
   document.head.appendChild(link);
 }
 

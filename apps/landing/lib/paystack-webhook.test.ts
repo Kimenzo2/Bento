@@ -62,7 +62,10 @@ test('normalizeEventName lowercases Paystack event names', () => {
 });
 
 test('supported Paystack webhook events match the official documentation list', () => {
-  assert.deepEqual([...SUPPORTED_PAYSTACK_EVENTS].sort(), [...OFFICIAL_PAYSTACK_WEBHOOK_EVENTS].sort());
+  assert.deepEqual(
+    [...SUPPORTED_PAYSTACK_EVENTS].sort(),
+    [...OFFICIAL_PAYSTACK_WEBHOOK_EVENTS].sort()
+  );
   for (const eventName of OFFICIAL_PAYSTACK_WEBHOOK_EVENTS) {
     assert.equal(isSupportedPaystackEvent(eventName), true, eventName);
   }

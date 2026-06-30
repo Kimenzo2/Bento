@@ -91,8 +91,8 @@
 }
 
 /* ── Card System Fix ──────────────────────────────────────────────── */
-.water-app [class*='-card'],
-.water-app [class*='-panel'],
+.water-app [class*="-card"],
+.water-app [class*="-panel"],
 .water-app article {
   border: none !important;
   box-shadow: none !important;

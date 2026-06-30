@@ -1,7 +1,7 @@
-import { browser } from '$app/environment';
-import { writable } from 'svelte/store';
-import { getAppLaunchIdentity, type AppLaunchIconName } from '$lib/data/module-catalog';
-import { time } from '$lib/utils/time';
+import { browser } from "$app/environment";
+import { writable } from "svelte/store";
+import { getAppLaunchIdentity, type AppLaunchIconName } from "$lib/data/module-catalog";
+import { time } from "$lib/utils/time";
 
 export type AppLaunchState = {
   launchId: number;
@@ -63,7 +63,7 @@ export function signalAppLaunchError(moduleId: string, error: unknown) {
     return;
   }
 
-  const message = error instanceof Error ? error.message : 'The selected app failed to launch.';
+  const message = error instanceof Error ? error.message : "The selected app failed to launch.";
   appLaunch.update((current) => {
     if (!current || current.moduleId !== moduleId) {
       return current;

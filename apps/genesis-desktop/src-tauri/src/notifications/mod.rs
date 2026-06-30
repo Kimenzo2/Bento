@@ -7,7 +7,9 @@
 
 use serde::{Deserialize, Serialize};
 use sqlx::{Row, SqlitePool};
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
+#[cfg(target_os = "windows")]
+use tauri::Manager;
 
 use crate::util::time;
 
