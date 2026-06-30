@@ -70,6 +70,7 @@ hound = "3.5"
 rodio = "0.19"
 sysinfo = "0.33"
 libloading = "0.8"
+raw-window-handle = "0.6"
 uuid = { version = "1", features = ["v4"] }
 regex = "1"
 image = "0.25"
@@ -97,6 +98,13 @@ objc2-foundation = { version = "0.3", features = ["NSString"] }
 
 [target."cfg(any(target_os = \"macos\", target_os = \"linux\", windows))".dependencies]
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+
+[target."cfg(windows)".dependencies.windows-sys]
+version = "0.52"
+features = [
+  "Win32_Foundation",
+  "Win32_UI_WindowsAndMessaging",
+]
 
 # ---------------------------------------------------------------------------
 # Profiles

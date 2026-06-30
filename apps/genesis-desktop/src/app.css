@@ -1606,11 +1606,6 @@ body.sidebar-dragging * {
   color: inherit;
 }
 
-.window-shell__traffic-spacer {
-  width: 5rem;
-  height: 100%;
-}
-
 .window-shell__title {
   font-size: 0.85rem;
   font-weight: 600;
@@ -2749,6 +2744,9 @@ body.sidebar-dragging * {
   }
 }
 
+.window-shell--mac .window-shell__titlebar {
+  padding-left: 5rem;
+}
 .window-shell--mac .window-shell__drag {
   padding-left: 0;
 }

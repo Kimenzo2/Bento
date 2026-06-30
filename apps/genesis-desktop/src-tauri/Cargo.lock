@@ -512,6 +512,7 @@ dependencies = [
  "objc2-foundation",
  "printpdf",
  "rand 0.8.6",
+ "raw-window-handle",
  "regex",
  "reqwest 0.12.28",
  "rmcp",
@@ -546,6 +547,7 @@ dependencies = [
  "tracing",
  "url",
  "uuid",
+ "windows-sys 0.52.0",
  "zeroize",
  "zip 2.4.2",
 ]

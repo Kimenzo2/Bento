@@ -285,6 +285,19 @@ pub fn run() {
         app.manage(DesktopRuntime::new(settings.clone()));
         let _ = settings::apply_configured_shortcuts(app.handle(), &settings);
 
+        // ── Native window frame (border + shadow, custom titlebar) ──────
+        if let Some(ww) = app.get_webview_window("main") {
+            #[cfg(target_os = "windows")]
+            if let Err(e) = crate::window_effects::configure_native_frame(&ww) {
+                eprintln!("[window] native frame setup failed: {e}");
+            }
+
+            #[cfg(target_os = "macos")]
+            crate::window_effects::configure_macos_titlebar(&ww).unwrap_or_else(|e| {
+                eprintln!("[window] macOS titlebar setup failed: {e}");
+            });
+        }
+
         // ── Encryption service ────────────────────────────────────────
         let crypto = CryptoService::new(data_dir.clone());
         app.manage(crypto.clone());

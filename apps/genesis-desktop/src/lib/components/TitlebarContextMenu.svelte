@@ -201,11 +201,6 @@
       data-tauri-drag-region
       ondblclick={() => void onToggleMaximized()}
     >
-      {#if isMac}
-        <div class="window-shell__traffic-spacer"></div>
-      {/if}
-
-      
     </ContextMenuPrimitive.Trigger>
 
     <ContextMenuPrimitive.Content class={contentClass} sideOffset={2}>
