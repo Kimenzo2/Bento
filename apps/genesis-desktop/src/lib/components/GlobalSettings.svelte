@@ -523,6 +523,10 @@
               <span><strong>{_t('settingsAppearanceSidebarLabels')}</strong><small>{_t('settingsAppearanceSidebarLabelsHint')}</small></span>
               <input type="checkbox" checked={!$desktopSettings.workspace.sidebarCollapsed} onchange={() => void updateDesktopSettings((c) => ({ ...c, workspace: { ...c.workspace, sidebarCollapsed: !c.workspace.sidebarCollapsed } })) } />
             </label>
+            <label class="global-settings__toggle">
+              <span><strong>{_t('settingsAppearanceWindowGlass')}</strong><small>{_t('settingsAppearanceWindowGlassHint')}</small></span>
+              <input type="checkbox" checked={$desktopSettings.appearance.glassEnabled} onchange={() => void updateDesktopSettings((c) => ({ ...c, appearance: { ...c.appearance, glassEnabled: !c.appearance.glassEnabled } }))} />
+            </label>
           </div>
 
         {:else if activeSection === "typography"}

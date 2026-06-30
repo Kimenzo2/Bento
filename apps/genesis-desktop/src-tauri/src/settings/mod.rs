@@ -63,6 +63,8 @@ pub struct AppearanceSettings {
     pub mode: ThemeMode,
     #[serde(default = "default_font_pairing_id")]
     pub font_pairing_id: String,
+    #[serde(default)]
+    pub glass_enabled: bool,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -550,6 +552,7 @@ pub fn default_settings() -> DesktopSettings {
             theme_id: default_theme_id(),
             mode: ThemeMode::Light,
             font_pairing_id: default_font_pairing_id(),
+            glass_enabled: false,
         },
         language: LanguageSettings {
             code: default_language_code(),

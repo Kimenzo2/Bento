@@ -3,6 +3,7 @@
   import { fade, fly } from "svelte/transition";
   import AlertCircleIcon from "@lucide/svelte/icons/alert-circle";
   import CheckCircle2Icon from "@lucide/svelte/icons/check-circle-2";
+  import BotIcon from "@lucide/svelte/icons/bot";
   import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
   import EyeIcon from "@lucide/svelte/icons/eye";
   import EyeOffIcon from "@lucide/svelte/icons/eye-off";

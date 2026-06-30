@@ -33,6 +33,7 @@ pub mod sleep;
 pub mod telemetry;
 pub mod util;
 pub mod window_bounds;
+pub mod window_effects;
 
 use chrono::Utc;
 use serde::Serialize;
@@ -260,7 +261,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_store::Builder::default().build());
+        .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_liquid_glass::init());
 
     #[cfg(not(debug_assertions))]
     {
@@ -814,6 +816,7 @@ pub fn run() {
             crate::crypto_commands::crypto_change_master_password,
             crate::crypto_commands::crypto_migrate_unencrypted_db,
             crate::crypto_commands::crypto_create_backup,
+            crate::window_effects::set_window_glass,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|error| {

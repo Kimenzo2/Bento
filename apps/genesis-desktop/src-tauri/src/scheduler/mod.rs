@@ -61,6 +61,8 @@ pub struct Schedule {
     pub end_at: Option<i64>,
     pub last_fired_at: Option<i64>,
     pub next_fire_at: Option<i64>,
+    pub wake_window_minutes: Option<i64>,
+    pub sound: Option<String>,
     pub enabled: bool,
     pub created_at: i64,
     pub updated_at: i64,
@@ -79,6 +81,8 @@ impl Schedule {
             end_at: None,
             last_fired_at: None,
             next_fire_at: Some(now),
+            wake_window_minutes: None,
+            sound: None,
             enabled: true,
             created_at: now,
             updated_at: now,
@@ -118,13 +122,34 @@ impl Schedule {
                 self.next_fire_at = None;
             }
             Ok(ScheduleType::Daily) => {
-                // Advance 24h from last fire
-                if let Some(last) = self.last_fired_at {
+                if let Some(start) = self.start_at {
+                    let elapsed = time::now_ms() - start;
+                    let days = elapsed / 86_400_000;
+                    let mut next = start + (days + 1) * 86_400_000;
+                    // Apply wake window offset: fire early by wake_window_minutes
+                    if let Some(w) = self.wake_window_minutes {
+                        if w > 0 {
+                            next -= w * 60_000;
+                        }
+                    }
+                    self.next_fire_at = Some(next);
+                } else if let Some(last) = self.last_fired_at {
                     self.next_fire_at = Some(last + 86_400_000);
                 }
             }
             Ok(ScheduleType::Weekly) => {
-                if let Some(last) = self.last_fired_at {
+                if let Some(start) = self.start_at {
+                    let elapsed = time::now_ms() - start;
+                    let weeks = elapsed / 604_800_000;
+                    let mut next = start + (weeks + 1) * 604_800_000;
+                    // Apply wake window offset for weekly schedules too
+                    if let Some(w) = self.wake_window_minutes {
+                        if w > 0 {
+                            next -= w * 60_000;
+                        }
+                    }
+                    self.next_fire_at = Some(next);
+                } else if let Some(last) = self.last_fired_at {
                     self.next_fire_at = Some(last + 604_800_000);
                 }
             }
@@ -158,8 +183,9 @@ impl ScheduleStore {
         sqlx::query(
             r#"
             INSERT INTO schedules (id, module_id, label, schedule_type, interval_seconds,
-                start_at, end_at, last_fired_at, next_fire_at, enabled, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                start_at, end_at, last_fired_at, next_fire_at, wake_window_minutes,
+                sound, enabled, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
         )
         .bind(&id)
@@ -171,6 +197,8 @@ impl ScheduleStore {
         .bind(schedule.end_at)
         .bind(schedule.last_fired_at)
         .bind(schedule.next_fire_at)
+        .bind(schedule.wake_window_minutes)
+        .bind(&schedule.sound)
         .bind(enabled)
         .bind(schedule.created_at)
         .bind(schedule.updated_at)
@@ -193,7 +221,7 @@ impl ScheduleStore {
             UPDATE schedules SET
                 label = ?, schedule_type = ?, interval_seconds = ?,
                 start_at = ?, end_at = ?, last_fired_at = ?,
-                next_fire_at = ?, enabled = ?, updated_at = ?
+                next_fire_at = ?, wake_window_minutes = ?, sound = ?, enabled = ?, updated_at = ?
             WHERE id = ?
             "#,
         )
@@ -204,6 +232,8 @@ impl ScheduleStore {
         .bind(schedule.end_at)
         .bind(schedule.last_fired_at)
         .bind(schedule.next_fire_at)
+        .bind(schedule.wake_window_minutes)
+        .bind(&schedule.sound)
         .bind(enabled)
         .bind(schedule.updated_at)
         .bind(id)
@@ -291,6 +321,8 @@ impl ScheduleStore {
             end_at: row.try_get("end_at").ok().flatten(),
             last_fired_at: row.try_get("last_fired_at").ok().flatten(),
             next_fire_at: row.try_get("next_fire_at").ok().flatten(),
+            wake_window_minutes: row.try_get("wake_window_minutes").ok().flatten(),
+            sound: row.try_get("sound").ok(),
             enabled: row.try_get::<i64, _>("enabled").unwrap_or(0) == 1,
             created_at: row.try_get("created_at").unwrap_or_default(),
             updated_at: row.try_get("updated_at").unwrap_or_default(),
@@ -298,60 +330,146 @@ impl ScheduleStore {
     }
 }
 
+// ─── Table Bootstrap ─────────────────────────────────────────────────
+
+pub async fn ensure_scheduler_tables(pool: &sqlx::SqlitePool) -> Result<(), String> {
+    sqlx::query(
+        r#"CREATE TABLE IF NOT EXISTS schedules (
+            id TEXT PRIMARY KEY,
+            module_id TEXT NOT NULL,
+            label TEXT NOT NULL,
+            schedule_type TEXT NOT NULL,
+            interval_seconds INTEGER,
+            start_at INTEGER,
+            end_at INTEGER,
+            last_fired_at INTEGER,
+            next_fire_at INTEGER,
+            wake_window_minutes INTEGER DEFAULT 0,
+            sound TEXT,
+            enabled INTEGER NOT NULL DEFAULT 1,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        )"#,
+    )
+    .execute(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    sqlx::query(
+        "CREATE INDEX IF NOT EXISTS idx_schedules_next_fire ON schedules(enabled, next_fire_at)",
+    )
+    .execute(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    // Migrate existing tables: add columns that may be missing from older DBs.
+    let _ = sqlx::query("ALTER TABLE schedules ADD COLUMN wake_window_minutes INTEGER DEFAULT 0")
+        .execute(pool).await;
+    let _ = sqlx::query("ALTER TABLE schedules ADD COLUMN sound TEXT")
+        .execute(pool).await;
+
+    Ok(())
+}
+
 // ─── Background Scheduler Worker ──────────────────────────────────────
 
 pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri::AppHandle) {
     tauri::async_runtime::spawn(async move {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
+        let db = state.db();
+
+        // Ensure scheduler + notification tables exist before entering the loop
+        if let Err(e) = ensure_scheduler_tables(&db).await {
+            eprintln!("[scheduler] Failed to bootstrap scheduler tables: {e}");
+        }
+        if let Err(e) = crate::notifications::ensure_notification_tables(&db).await {
+            eprintln!("[scheduler] Failed to bootstrap notification tables: {e}");
+        }
 
         loop {
             interval.tick().await;
 
-            let db = state.db();
             let store = ScheduleStore::new(db.clone());
 
             // Check for due schedules
             let due = match store.get_due().await {
                 Ok(schedules) => schedules,
-                Err(_) => continue,
+                Err(e) => {
+                    eprintln!("[scheduler] Failed to query due schedules: {e}");
+                    continue;
+                }
             };
 
+            if due.is_empty() {
+                continue;
+            }
+
             for schedule in due {
+                // Guard: skip if already fired within the last 60s (crash recovery guard)
+                if let Some(last) = schedule.last_fired_at {
+                    if time::now_ms() - last < 60_000 {
+                        eprintln!("[scheduler] Skip {} — fired {}ms ago", schedule.label, time::now_ms() - last);
+                        continue;
+                    }
+                }
+
                 let app = app_handle.clone();
-                let sched_clone = schedule.clone();
-                let db_clone = db.clone();
-                let store = ScheduleStore::new(db_clone.clone());
+                let sched = schedule.clone();
+                let dbc = db.clone();
 
                 // Fire notification for this schedule
                 tauri::async_runtime::spawn(async move {
-                    // Emit event to frontend so passive-intelligence can pick it up
+                    // 1. Emit event to frontend so passive-intelligence can pick it up
                     if let Some(window) = app.get_webview_window("main") {
                         let payload: serde_json::Value = serde_json::json!({
-                            "scheduleId": sched_clone.id,
-                            "moduleId": sched_clone.module_id,
-                            "label": sched_clone.label,
+                            "scheduleId": sched.id,
+                            "moduleId": sched.module_id,
+                            "label": sched.label,
+                            "sound": sched.sound,
                         });
-                        let _ = window.emit("bento://schedule-fire", payload);
+                        if let Err(e) = window.emit("bento://schedule-fire", payload) {
+                            eprintln!("[scheduler] Failed to emit schedule-fire event: {e}");
+                        }
                     }
 
-                    // Advance schedule (respects end_at, disables if past end)
-                    let mut updated = sched_clone.clone();
+                    // 2. Dispatch native OS notification (with sound for sleep alarms)
+                    let title = &sched.label;
+                    let body = &format!("Your scheduled {} reminder is due.", sched.label);
+                    if let Err(e) = crate::notifications::dispatch_sound_notification(
+                        &app, title, body,
+                    ) {
+                        eprintln!("[scheduler] Notification dispatch failed: {e}");
+                    }
+                    // Record in history (best-effort)
+                    let notif_store = crate::notifications::NotificationStore::new(dbc.clone());
+                    if let Err(e) = notif_store
+                        .record_fired(&sched.module_id, title, body, sched.id.as_deref())
+                        .await
+                    {
+                        eprintln!("[scheduler] Failed to record notification: {e}");
+                    }
+
+                    // 3. Advance schedule (snaps daily to start_at to prevent drift)
+                    let mut updated = sched.clone();
                     updated.advance();
 
-                    // Atomic update: mark_fired + update in one transaction
+                    // 4. Persist advanced schedule (advance() already sets last_fired_at + updated_at)
+                    let store = ScheduleStore::new(dbc.clone());
                     if let Some(id) = updated.id.as_ref() {
-                        let _ = store.mark_fired(id).await;
-                        let _ = store.update(&updated).await;
+                        if let Err(e) = store.update(&updated).await {
+                            eprintln!("[scheduler] Failed to persist advanced schedule {id}: {e}");
+                        }
                     }
 
-                    // Check for pending snoozed notifications
-                    let notif_store = crate::notifications::NotificationStore::new(db_clone);
+                    // 5. Check for pending snoozed notifications
                     if let Ok(pending) = notif_store.get_pending_snoozed().await {
                         for n in pending {
                             if let Some(_nid) = n.id {
-                                let _ = crate::notifications::dispatch_notification(
+                                if let Err(e) = crate::notifications::dispatch_sound_notification(
                                     &app, &n.title, &n.body,
-                                );
+                                ) {
+                                    eprintln!("[scheduler] Snoozed dispatch failed: {e}");
+                                }
                             }
                         }
                     }
@@ -368,7 +486,9 @@ pub async fn create_schedule(
     db: tauri::State<'_, crate::db::BentoAppState>,
     schedule: Schedule,
 ) -> Result<String, String> {
-    let store = ScheduleStore::new(db.db().clone());
+    let pool = db.db();
+    ensure_scheduler_tables(&pool).await?;
+    let store = ScheduleStore::new(pool.clone());
     store.create(&schedule).await
 }
 
@@ -377,7 +497,9 @@ pub async fn update_schedule(
     db: tauri::State<'_, crate::db::BentoAppState>,
     schedule: Schedule,
 ) -> Result<(), String> {
-    let store = ScheduleStore::new(db.db().clone());
+    let pool = db.db();
+    ensure_scheduler_tables(&pool).await?;
+    let store = ScheduleStore::new(pool.clone());
     store.update(&schedule).await
 }
 
@@ -386,7 +508,9 @@ pub async fn delete_schedule(
     db: tauri::State<'_, crate::db::BentoAppState>,
     id: String,
 ) -> Result<(), String> {
-    let store = ScheduleStore::new(db.db().clone());
+    let pool = db.db();
+    ensure_scheduler_tables(&pool).await?;
+    let store = ScheduleStore::new(pool.clone());
     store.delete(&id).await
 }
 
@@ -395,7 +519,9 @@ pub async fn get_schedules(
     db: tauri::State<'_, crate::db::BentoAppState>,
     module_id: Option<String>,
 ) -> Result<Vec<Schedule>, String> {
-    let store = ScheduleStore::new(db.db().clone());
+    let pool = db.db();
+    ensure_scheduler_tables(&pool).await?;
+    let store = ScheduleStore::new(pool.clone());
     match module_id {
         Some(mid) => store.list_by_module(&mid).await,
         None => store.list_all_enabled().await,
@@ -406,6 +532,8 @@ pub async fn get_schedules(
 pub async fn get_due_schedules(
     db: tauri::State<'_, crate::db::BentoAppState>,
 ) -> Result<Vec<Schedule>, String> {
-    let store = ScheduleStore::new(db.db().clone());
+    let pool = db.db();
+    ensure_scheduler_tables(&pool).await?;
+    let store = ScheduleStore::new(pool.clone());
     store.get_due().await
 }

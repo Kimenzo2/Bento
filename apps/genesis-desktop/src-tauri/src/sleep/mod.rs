@@ -144,6 +144,7 @@ pub struct SleepAlarm {
     pub time: String,
     pub wake_window: String,
     pub mode: String,
+    pub sound: String,
     pub active: bool,
     pub created_at: i64,
 }
@@ -155,6 +156,7 @@ pub struct SleepAlarmInput {
     pub time: String,
     pub wake_window: Option<String>,
     pub mode: Option<String>,
+    pub sound: Option<String>,
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -877,11 +879,11 @@ pub async fn sleep_routine_toggle(state: State<'_, BentoAppState>, routine_id: S
 #[tauri::command]
 pub async fn sleep_alarm_list(state: State<'_, BentoAppState>) -> Result<Vec<SleepAlarm>, String> {
     ensure_sleep_tables(&state.db()).await?;
-    let rows = sqlx::query("SELECT id, label, time, wake_window, mode, active, created_at FROM sleep_alarms ORDER BY time ASC")
+    let rows = sqlx::query("SELECT id, label, time, wake_window, mode, sound, active, created_at FROM sleep_alarms ORDER BY time ASC")
         .fetch_all(&state.db()).await.map_err(|e| e.to_string())?;
     Ok(rows.into_iter().map(|r| SleepAlarm {
         id: r.get("id"), label: r.get("label"), time: r.get("time"),
-        wake_window: r.get("wake_window"), mode: r.get("mode"),
+        wake_window: r.get("wake_window"), mode: r.get("mode"), sound: r.get("sound"),
         active: r.get::<i64, _>("active") == 1, created_at: r.get("created_at"),
     }).collect())
 }
@@ -889,22 +891,50 @@ pub async fn sleep_alarm_list(state: State<'_, BentoAppState>) -> Result<Vec<Sle
 #[tauri::command]
 pub async fn sleep_alarm_save(state: State<'_, BentoAppState>, alarm: SleepAlarmInput) -> Result<SleepAlarm, String> {
     ensure_sleep_tables(&state.db()).await?;
+    // Ensure the scheduler table exists too (we write to it below)
+    crate::scheduler::ensure_scheduler_tables(&state.db()).await?;
     if alarm.label.trim().is_empty() { return Err("Alarm label is required.".into()); }
     if alarm.time.trim().is_empty() { return Err("Alarm time is required.".into()); }
     let id = Uuid::new_v4().to_string();
     let now = time::now_ms();
     let window = alarm.wake_window.unwrap_or_else(|| "20 min".to_string());
     let mode = alarm.mode.unwrap_or_else(|| "Smart".to_string());
-    sqlx::query("INSERT INTO sleep_alarms (id, label, time, wake_window, mode, active, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)")
-        .bind(&id).bind(alarm.label.trim()).bind(alarm.time.trim()).bind(window.trim()).bind(mode.trim()).bind(now)
+    let sound = alarm.sound.unwrap_or_else(|| "alarm".to_string());
+    sqlx::query("INSERT INTO sleep_alarms (id, label, time, wake_window, mode, sound, active, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?)")
+        .bind(&id).bind(alarm.label.trim()).bind(alarm.time.trim()).bind(window.trim()).bind(mode.trim()).bind(&sound).bind(now)
         .execute(&state.db()).await.map_err(|e| e.to_string())?;
-    Ok(SleepAlarm { id, label: alarm.label, time: alarm.time, wake_window: window, mode, active: true, created_at: now })
+
+    // Create a daily scheduler entry so the central scheduler fires a notification
+    let today_start = time::start_of_today_ms();
+    let parts: Vec<&str> = alarm.time.split(':').collect();
+    let hours: i64 = parts.first().and_then(|s| s.parse().ok()).ok_or_else(|| format!("Invalid alarm time '{}': expected HH:MM format", alarm.time))?;
+    let minutes: i64 = parts.get(1).and_then(|s| s.parse().ok()).ok_or_else(|| format!("Invalid alarm time '{}': expected HH:MM format", alarm.time))?;
+    if !(0..=23).contains(&hours) || !(0..=59).contains(&minutes) {
+        return Err(format!("Invalid alarm time '{}': hours must be 0-23, minutes 0-59", alarm.time));
+    }
+    let fire_at = today_start + hours * 3_600_000 + minutes * 60_000;
+    let wake_window_minutes = parse_wake_window_minutes(&window);
+    // Apply wake window offset: fire earlier by the window amount
+    let offset = wake_window_minutes.map(|w| w * 60_000).unwrap_or(0);
+    let adjusted_fire = if offset > 0 && fire_at - offset > 0 { fire_at - offset } else { fire_at };
+    let next_fire_at = if adjusted_fire <= now { adjusted_fire + 86_400_000 } else { adjusted_fire };
+
+    sqlx::query(
+        "INSERT OR REPLACE INTO schedules (id, module_id, label, schedule_type, interval_seconds, start_at, end_at, last_fired_at, next_fire_at, wake_window_minutes, sound, enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
+    )
+    .bind(&id).bind("sleep").bind(alarm.label.trim()).bind("daily").bind(86_400i64)
+    .bind(fire_at).bind(None::<i64>).bind(None::<i64>).bind(next_fire_at)
+    .bind(wake_window_minutes).bind(&sound).bind(now).bind(now)
+    .execute(&state.db()).await.map_err(|e| e.to_string())?;
+
+    Ok(SleepAlarm { id, label: alarm.label, time: alarm.time, wake_window: window, mode, sound, active: true, created_at: now })
 }
 
 #[tauri::command]
 pub async fn sleep_alarm_delete(state: State<'_, BentoAppState>, alarm_id: String) -> Result<(), String> {
     ensure_sleep_tables(&state.db()).await?;
     sqlx::query("DELETE FROM sleep_alarms WHERE id = ?").bind(&alarm_id).execute(&state.db()).await.map_err(|e| e.to_string())?;
+    sqlx::query("DELETE FROM schedules WHERE id = ?").bind(&alarm_id).execute(&state.db()).await.map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -915,6 +945,8 @@ pub async fn sleep_alarm_toggle(state: State<'_, BentoAppState>, alarm_id: Strin
         .fetch_one(&state.db()).await.map_err(|e| e.to_string())?;
     let new = if current == 1 { 0 } else { 1 };
     sqlx::query("UPDATE sleep_alarms SET active = ? WHERE id = ?").bind(new).bind(&alarm_id)
+        .execute(&state.db()).await.map_err(|e| e.to_string())?;
+    sqlx::query("UPDATE schedules SET enabled = ? WHERE id = ?").bind(new).bind(&alarm_id)
         .execute(&state.db()).await.map_err(|e| e.to_string())?;
     Ok(new == 1)
 }
@@ -947,6 +979,15 @@ fn legacy_map_row(row: sqlx::sqlite::SqliteRow) -> SleepLogRow {
     }
 }
 
+/// Parse a wake_window string like "20 min" or "10 minutes" into minutes.
+fn parse_wake_window_minutes(s: &str) -> Option<i64> {
+    let trimmed = s.trim().to_lowercase();
+    let cleaned = trimmed.trim_end_matches('s'); // "mins" → "min"
+    let parts: Vec<&str> = cleaned.splitn(2, |c: char| !c.is_ascii_digit()).collect();
+    let num: i64 = parts.first().and_then(|p| p.parse().ok())?;
+    Some(num.max(0).min(120)) // cap at 2 hours
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // TABLE BOOTSTRAP (all tables + default goal row)
 // ═════════════════════════════════════════════════════════════════════════════
@@ -967,7 +1008,8 @@ pub async fn ensure_sleep_tables(pool: &sqlx::SqlitePool) -> Result<(), String> 
         r#"CREATE TABLE IF NOT EXISTS sleep_alarms (
             id TEXT PRIMARY KEY, label TEXT NOT NULL, time TEXT NOT NULL,
             wake_window TEXT NOT NULL DEFAULT '20 min', mode TEXT NOT NULL DEFAULT 'Smart',
-            active INTEGER NOT NULL DEFAULT 1, created_at INTEGER NOT NULL)"#,
+            sound TEXT NOT NULL DEFAULT 'alarm', active INTEGER NOT NULL DEFAULT 1,
+            created_at INTEGER NOT NULL)"#,
         // NEW: sleep_sessions
         r#"CREATE TABLE IF NOT EXISTS sleep_sessions (
             id TEXT PRIMARY KEY, date TEXT NOT NULL, sleep_onset_ts INTEGER NOT NULL,
@@ -988,5 +1030,14 @@ pub async fn ensure_sleep_tables(pool: &sqlx::SqlitePool) -> Result<(), String> 
     for sql in migrations {
         sqlx::query(sql).execute(pool).await.map_err(|e| e.to_string())?;
     }
+
+    // Migrate existing tables: add columns that may be missing from older DBs.
+    let _ = sqlx::query("ALTER TABLE sleep_alarms ADD COLUMN sound TEXT NOT NULL DEFAULT 'alarm'")
+        .execute(pool).await;
+    let _ = sqlx::query("ALTER TABLE sleep_alarms ADD COLUMN wake_window TEXT NOT NULL DEFAULT '20 min'")
+        .execute(pool).await;
+    let _ = sqlx::query("ALTER TABLE sleep_alarms ADD COLUMN mode TEXT NOT NULL DEFAULT 'Smart'")
+        .execute(pool).await;
+
     Ok(())
 }

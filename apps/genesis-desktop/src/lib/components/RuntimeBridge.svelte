@@ -5,12 +5,15 @@
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
   import { check } from "@tauri-apps/plugin-updater";
   import { goto } from "@mateothegreat/svelte5-router";
+  import { toast } from "svelte-sonner";
   import { hydrateDesktopSettings } from "$lib/desktop/settings";
   import { setLifecycleState, type DesktopLifecycleState } from "$lib/stores/lifecycle.store";
   import { languageStore } from "$lib/stores/language.store";
   import { showCrash } from "$lib/stores/crash.store";
   import { activeTheme, getThemeTokens, isDark, themeState } from "$lib/stores/theme.store";
   import { setAvailableUpdate, setUpdateChecking } from "$lib/stores/update.store";
+  import { eventBus, BentoEventType, initEventBridge } from "$lib/services/event-bus";
+  import { playAlarmSound, stopAlarmSound, preloadAlarmAudios, type SoundName } from "$lib/services/sounds";
 
   const themeTokens = $derived(getThemeTokens($themeState));
   let arabicFontReady = false;
@@ -117,6 +120,9 @@
     const unlistenPromises: Promise<() => void>[] = [];
     const cancelDeferredTasks: Array<() => void> = [];
 
+    // Preload alarm audios so they play instantly
+    preloadAlarmAudios(["alarm", "ringtone", "gentle-rain", "ocean-waves", "guitar-loop"]);
+
     if ("__TAURI_INTERNALS__" in window) {
       const appWindow = getCurrentWebviewWindow();
 
@@ -185,6 +191,28 @@
           setLifecycleState(payload as DesktopLifecycleState);
         })
       );
+
+      // Initialize Tauri → EventBus bridge for schedule-fire and other system events
+      void initEventBridge().then(() => {
+        // Show an in-app toast + play alarm sound when a schedule fires
+        eventBus.on(BentoEventType.ScheduleDue, (_event) => {
+          const label = (_event?.payload?.label as string) ?? "";
+          const moduleId = (_event?.payload?.moduleId as string) ?? "";
+          if (!label) return;
+          const ctx = moduleId === "sleep" ? "Alarm" : "Reminder";
+          toast.info(label, {
+            description: ctx,
+            duration: 8000,
+          });
+          // Play alarm sound (non-blocking; browser may require user gesture on first play)
+          const soundName = (_event?.payload?.sound as string) ?? "alarm";
+          const audio = playAlarmSound(soundName as SoundName, { loop: true, volume: 0.6 });
+          if (audio) {
+            // Auto-stop after 30s to prevent infinite loop
+            setTimeout(() => { stopAlarmSound(audio); }, 30_000);
+          }
+        });
+      });
 
       cancelDeferredTasks.push(
         scheduleAfterFirstPaint(() => {

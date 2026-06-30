@@ -396,7 +396,7 @@
   class:desktop-sidebar--hidden={$workspaceStore.sidebarHidden}
   class:sidebar-collapsed={$workspaceStore.sidebarCollapsed}
   class="desktop-sidebar"
-  style={`--desktop-sidebar-top:${$workspaceStore.sidebarTop}px`}
+  style={`--desktop-sidebar-top:${$workspaceStore.sidebarTop}px;--desktop-sidebar-width:${$workspaceStore.sidebarWidth}px`}
   bind:this={sidebarEl}
 >
   <TooltipProvider delayDuration={0}>

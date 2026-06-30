@@ -120,7 +120,6 @@
       getCurrentWindow().onCloseRequested(async (event) => {
         event.preventDefault();
         await flushPendingAiPrefsSave();
-        event.resolve();
       }).then((fn) => { unlistenClose = fn; });
     }
 
@@ -537,9 +536,9 @@
   .ai-card {
     border: none;
     box-shadow: none;
-    border-radius: 14px;
-    padding: 1rem 1.15rem;
-    background: color-mix(in srgb, var(--foreground) 3%, var(--background));
+    border-radius: 1.15rem;
+    padding: 0.95rem;
+    background: var(--surface);
     display: grid;
     gap: 0.85rem;
   }
@@ -1019,10 +1018,10 @@
     display: flex;
     gap: 0.75rem;
     padding: 1rem;
-    border-radius: 14px;
+    border-radius: 1.15rem;
     border: none;
     box-shadow: none;
-    background: color-mix(in srgb, var(--foreground) 3%, var(--background));
+    background: var(--surface);
     align-items: flex-start;
   }
   .ai-disclaimer :global(svg) {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import DownloadIcon from "@lucide/svelte/icons/download";
   import PlusIcon from "@lucide/svelte/icons/plus";
@@ -7,6 +7,8 @@
   import BellIcon from "@lucide/svelte/icons/bell";
   import BellOffIcon from "@lucide/svelte/icons/bell-off";
   import MoonIcon from "@lucide/svelte/icons/moon";
+  import { exportContentToFile } from "$lib/services/task-service";
+  import { getActiveAmbient, startAmbient, stopAmbientImmediate, playAlarmSound, stopAlarmSound, ensureAudioContext, type SoundName } from "$lib/services/sounds";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import {
@@ -66,6 +68,7 @@
     time: string;
     wakeWindow: string;
     mode: string;
+    sound: string;
     active: boolean;
     createdAt: number;
   }
@@ -120,9 +123,22 @@
   let routineSaving = $state(false);
 
   // Alarm add form
+  const alarmSoundOptions: { value: string; label: string }[] = [
+    { value: "alarm", label: "Default Alarm" },
+    { value: "ringtone", label: "Ringtone" },
+    { value: "gentle-rain", label: "Gentle Rain" },
+    { value: "ocean-waves", label: "Ocean Waves" },
+    { value: "river-flow", label: "River Flow" },
+    { value: "guitar-loop", label: "Guitar Loop" },
+  ];
+  const soundLabelMap = new Map(alarmSoundOptions.map(o => [o.value, o.label]));
   let alarmLabel = $state("");
   let alarmTime = $state("07:00");
+  let alarmSound = $state("alarm");
   let alarmSaving = $state(false);
+  let alarmError = $state("");
+  let alarmSuccess = $state("");
+  let alarmTestAudio: { stop: () => void } | null = $state(null);
 
   // NEW: Session state
   let sleepSessions = $state<SleepSession[]>([]);
@@ -334,35 +350,60 @@
   async function addAlarm() {
     if (!alarmLabel.trim() || !alarmTime.trim()) return;
     alarmSaving = true;
+    alarmError = "";
+    alarmSuccess = "";
     try {
       await invoke<SleepAlarm>("sleep_alarm_save", {
-        alarm: { label: alarmLabel.trim(), time: alarmTime.trim() },
+        alarm: { label: alarmLabel.trim(), time: alarmTime.trim(), sound: alarmSound },
       });
       alarmLabel = "";
       alarmTime = "07:00";
+      alarmSound = "alarm";
       alarmList = await invoke<SleepAlarm[]>("sleep_alarm_list");
+      alarmSuccess = "Alarm added";
+      setTimeout(() => { alarmSuccess = ""; }, 3000);
     } catch (e) {
-      console.error("Failed to add alarm:", e);
+      alarmError = String(e);
+      setTimeout(() => { alarmError = ""; }, 5000);
     } finally {
       alarmSaving = false;
     }
   }
 
+  function previewAlarmSound(e: Event) {
+    const value = (e.target as HTMLSelectElement).value;
+    alarmSound = value;
+    if (alarmTestAudio) { alarmTestAudio.stop(); alarmTestAudio = null; }
+    const audio = playAlarmSound(value as SoundName, { volume: 0.4 });
+    if (audio) {
+      alarmTestAudio = {
+        stop: () => stopAlarmSound(audio),
+      };
+      setTimeout(() => {
+        if (alarmTestAudio) { alarmTestAudio.stop(); alarmTestAudio = null; }
+      }, 3000);
+    }
+  }
+
   async function deleteAlarm(id: string) {
+    alarmError = "";
     try {
       await invoke<void>("sleep_alarm_delete", { alarmId: id });
       alarmList = await invoke<SleepAlarm[]>("sleep_alarm_list");
     } catch (e) {
-      console.error("Failed to delete alarm:", e);
+      alarmError = String(e);
+      setTimeout(() => { alarmError = ""; }, 5000);
     }
   }
 
   async function toggleAlarm(id: string) {
+    alarmError = "";
     try {
       await invoke<boolean>("sleep_alarm_toggle", { alarmId: id });
       alarmList = await invoke<SleepAlarm[]>("sleep_alarm_list");
     } catch (e) {
-      console.error("Failed to toggle alarm:", e);
+      alarmError = String(e);
+      setTimeout(() => { alarmError = ""; }, 5000);
     }
   }
 
@@ -446,6 +487,9 @@
         duration: goalDuration,
       });
       sleepGoal = result;
+      goalBedtime = result.targetBedtime;
+      goalWaketime = result.targetWaketime;
+      goalDuration = result.targetDurationMin;
       goalSaved = true;
       setTimeout(() => { goalSaved = false; }, 2000);
     } catch (e) {
@@ -453,6 +497,67 @@
     } finally {
       goalSaving = false;
     }
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // EXPORT
+  // ═══════════════════════════════════════════════════════
+
+  async function exportSessionsCSV() {
+    if (sleepSessions.length === 0) return;
+    const header = "Date,Bedtime,Wake Time,Duration (min),Quality Score,Source,Notes";
+    const rows = sleepSessions.map((s) => {
+      const bedtime = s.sleepOnsetTs ? tsToHHMM(s.sleepOnsetTs) : "";
+      const waketime = s.wakeTs ? tsToHHMM(s.wakeTs) : "";
+      return `${s.date},${bedtime},${waketime},${s.durationMin},${s.qualityScore ?? ""},${s.source},${s.notes ?? ""}`;
+    });
+    const csv = [header, ...rows].join("\n");
+    const saved = await exportContentToFile(csv, "sleep-sessions.csv", "csv", "CSV files");
+    if (saved) console.log("[sleep] sessions CSV exported to:", saved);
+  }
+
+  async function exportSummaryCSV() {
+    if (sleepSessions.length === 0) return;
+    const header = "Date,Bedtime,Wake Time,Duration (min),Quality Score,Source,Notes";
+    const rows = sleepSessions.map((s) => {
+      const bedtime = s.sleepOnsetTs ? tsToHHMM(s.sleepOnsetTs) : "";
+      const waketime = s.wakeTs ? tsToHHMM(s.wakeTs) : "";
+      return `${s.date},${bedtime},${waketime},${s.durationMin},${s.qualityScore ?? ""},${s.source},${s.notes ?? ""}`;
+    });
+    const csv = [header, ...rows].join("\n");
+    const saved = await exportContentToFile(csv, "sleep-summary-30-days.csv", "csv", "CSV files");
+    if (saved) console.log("[sleep] summary CSV exported to:", saved);
+  }
+
+  async function exportPDF() {
+    if (sleepSessions.length === 0) return;
+    // Generate a textual summary (simple markdown-like format pending true PDF support)
+    const lines: string[] = [];
+    lines.push("=== Sleep Report (Last 30 Nights) ===");
+    lines.push(`Generated: ${new Date().toLocaleDateString()}`);
+    lines.push("");
+    if (sleepStats) {
+      lines.push(`Average Duration: ${formatDuration(Math.round(sleepStats.avgDurationMin))}`);
+      lines.push(`Average Bedtime: ${sleepStats.avgBedtime}`);
+      lines.push(`Average Wake Time: ${sleepStats.avgWaketime}`);
+      lines.push(`Consistency Score: ${Math.round(sleepStats.consistencyScore)}/100`);
+      lines.push(`Sleep Debt: ${sleepStats.sleepDebtMin > 0 ? formatDuration(sleepStats.sleepDebtMin) : "On track"}`);
+      lines.push(`Total Sessions: ${sleepStats.totalSessions}`);
+      lines.push("");
+    }
+    if (sleepGoal) {
+      lines.push(`Goal Bedtime: ${sleepGoal.targetBedtime}`);
+      lines.push(`Goal Wake Time: ${sleepGoal.targetWaketime}`);
+      lines.push(`Goal Duration: ${formatDuration(sleepGoal.targetDurationMin)}`);
+      lines.push("");
+    }
+    lines.push("--- Nightly Log ---");
+    for (const s of sleepSessions) {
+      lines.push(`${s.date} | ${s.durationMin}min | Score: ${s.qualityScore ?? "N/A"} | ${s.source}`);
+    }
+    const text = lines.join("\n");
+    const saved = await exportContentToFile(text, "sleep-report.txt", "text", "Text files");
+    if (saved) console.log("[sleep] report exported to:", saved);
   }
 
   async function loadData() {
@@ -479,6 +584,10 @@
   onMount(() => {
     ensureModuleSection(moduleId, sectionLabels);
     loadData();
+  });
+
+  onDestroy(() => {
+    if (alarmTestAudio) { alarmTestAudio.stop(); alarmTestAudio = null; }
   });
 </script>
 
@@ -716,14 +825,26 @@
             <div class="sa-add-form">
               <input type="text" bind:value={alarmLabel} placeholder="Alarm label..." class="sa-input" />
               <input type="time" bind:value={alarmTime} class="sa-time" />
+              <select class="sa-sound" onchange={(e) => previewAlarmSound(e)}>
+                {#each alarmSoundOptions as opt}
+                  <option value={opt.value}>{opt.label}</option>
+                {/each}
+              </select>
               <button class="sa-add-btn" onclick={addAlarm} disabled={alarmSaving || !alarmLabel.trim() || !alarmTime.trim()}>
                 {alarmSaving ? 'Adding...' : 'Add'}
               </button>
-            </div>                {#each alarmList as alarm}
+            </div>
+            {#if alarmError}
+              <p style="color:var(--destructive);font-size:0.85rem;margin:8px 0;">{alarmError}</p>
+            {/if}
+            {#if alarmSuccess}
+              <p style="color:var(--success);font-size:0.85rem;margin:8px 0;">{alarmSuccess}</p>
+            {/if}
+            {#each alarmList as alarm}
               <article>
                 <div>
                   <strong>{alarm.label}</strong>
-                  <p>{alarm.wakeWindow}</p>
+                  <p>{alarm.wakeWindow}{alarm.sound && alarm.sound !== 'alarm' ? ` · ${soundLabelMap.get(alarm.sound) ?? alarm.sound}` : ''}</p>
                 </div>
                 <div class="sleep-alarm-list__time" class:sa-time--inactive={!alarm.active}>{alarm.time}</div>
                 <div class="sa-actions">
@@ -898,16 +1019,22 @@
           </CardHeader>
           <CardContent class="sleep-list">
             <article>
-              <div><strong>Sleep PDF</strong><p>Last 30 nights with score, debt, and routine adherence.</p></div>
-              <Button variant="outline"><DownloadIcon data-icon="inline-start" /> {_t('moduleSleepExportBtn')}</Button>
+              <div><strong>Sleep report</strong><p>Last 30 nights with score, debt, and routine adherence.</p></div>
+              <Button variant="outline" onclick={exportPDF} disabled={sleepSessions.length === 0}>
+                <DownloadIcon data-icon="inline-start" /> {_t('moduleSleepExportBtn')}
+              </Button>
             </article>
             <article>
-              <div><strong>CSV stages</strong><p>Nightly deep, REM, and wake events for external analysis.</p></div>
-              <Button variant="outline"><DownloadIcon data-icon="inline-start" /> {_t('moduleSleepExportBtn')}</Button>
+              <div><strong>CSV sessions</strong><p>Nightly duration, quality, and source for external analysis.</p></div>
+              <Button variant="outline" onclick={exportSessionsCSV} disabled={sleepSessions.length === 0}>
+                <DownloadIcon data-icon="inline-start" /> {_t('moduleSleepExportBtn')}
+              </Button>
             </article>
             <article>
               <div><strong>Shareable recap</strong><p>A one-page summary for coach or clinician review.</p></div>
-              <Button variant="outline"><DownloadIcon data-icon="inline-start" /> {_t('moduleSleepExportBtn')}</Button>
+              <Button variant="outline" onclick={exportSummaryCSV} disabled={sleepSessions.length === 0}>
+                <DownloadIcon data-icon="inline-start" /> {_t('moduleSleepExportBtn')}
+              </Button>
             </article>
           </CardContent>
         </Card>
@@ -1347,6 +1474,24 @@
   }
 
   :global(.sa-time:focus) {
+    outline: none;
+    border-color: var(--sleep-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--sleep-accent) 20%, transparent);
+  }
+
+  :global(.sa-sound) {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--sleep-border);
+    background: var(--sleep-bg);
+    color: var(--sleep-ink);
+    font-size: 0.82rem;
+    font-family: inherit;
+    cursor: pointer;
+    max-width: 140px;
+  }
+
+  :global(.sa-sound:focus) {
     outline: none;
     border-color: var(--sleep-accent);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--sleep-accent) 20%, transparent);

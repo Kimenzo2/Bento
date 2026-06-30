@@ -120,6 +120,7 @@ const themeSchema = z
     themeId: z.string().min(1),
     mode: themeModeSchema,
     fontPairingId: z.string().min(1),
+    glassEnabled: z.boolean().default(false),
   })
   .passthrough();
 
@@ -216,6 +217,7 @@ export const defaultDesktopSettings: DesktopSettings = {
     themeId: defaultThemeId,
     mode: 'dark',
     fontPairingId: defaultFontPairingId,
+    glassEnabled: false,
   },
   language: {
     code: defaultLanguageCode,
@@ -603,6 +605,7 @@ async function readStoreSettings(): Promise<DesktopSettings> {
         (await store.get<string>(storeKeys.fontPairingId)) ??
           defaultDesktopSettings.appearance.fontPairingId
       ),
+      glassEnabled: defaultDesktopSettings.appearance.glassEnabled,
     },
     language: {
       code: normalizeLanguageCode(
@@ -831,9 +834,21 @@ async function applyNativeTheme(settings: DesktopSettings) {
   }
 }
 
+async function applyGlassEffect(settings: DesktopSettings) {
+  if (!isTauri()) return;
+  const enabled = !!settings?.appearance?.glassEnabled;
+  document.documentElement.classList.toggle('glass-enabled', enabled);
+  try {
+    await invoke('set_window_glass', { enabled });
+  } catch (error) {
+    console.warn('Bento window glass effect failed to apply.', error);
+  }
+}
+
 function applySettingsSideEffects(settings: DesktopSettings) {
   writeThemeSnapshot(settings);
   void applyNativeTheme(settings);
+  void applyGlassEffect(settings);
 }
 
 export function getDesktopSettingsSnapshot(): DesktopSettings {

@@ -7,7 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 use sqlx::{Row, SqlitePool};
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 use crate::util::time;
 
@@ -168,6 +168,37 @@ pub fn dispatch_notification(app: &AppHandle, title: &str, body: &str) -> Result
     Ok(())
 }
 
+/// Like `dispatch_notification` but includes a platform-appropriate alert sound.
+/// Sleep alarms use this so the user actually hears the alarm.
+pub fn dispatch_sound_notification(app: &AppHandle, title: &str, body: &str) -> Result<(), String> {
+    use tauri_plugin_notification::NotificationExt;
+
+    let mut builder = app.notification().builder().title(title).body(body);
+
+    #[cfg(target_os = "macos")]
+    {
+        builder = builder.sound("Pong");
+    }
+    #[cfg(target_os = "linux")]
+    {
+        builder = builder.sound("message-new-instant");
+    }
+    #[cfg(target_os = "windows")]
+    {
+        // Use bundled .wav via resource path
+        if let Ok(resource_dir) = app.path().resource_dir() {
+            let wav_path = resource_dir.join("assets/alarm.wav");
+            if wav_path.exists() {
+                // Windows .sound() expects a file path string
+                builder = builder.sound(wav_path.to_string_lossy());
+            }
+        }
+    }
+
+    builder.show().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 /// Send a notification and record it in the history store.
 pub async fn notify_and_record(
     app: &AppHandle,
@@ -183,6 +214,36 @@ pub async fn notify_and_record(
     store
         .record_fired(module_id, title, body, schedule_id)
         .await
+}
+
+// ─── Table Bootstrap ─────────────────────────────────────────────────
+
+pub async fn ensure_notification_tables(pool: &sqlx::SqlitePool) -> Result<(), String> {
+    sqlx::query(
+        r#"CREATE TABLE IF NOT EXISTS notification_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            schedule_id TEXT,
+            module_id TEXT NOT NULL DEFAULT '',
+            title TEXT NOT NULL,
+            body TEXT NOT NULL,
+            fired_at INTEGER NOT NULL,
+            dismissed_at INTEGER,
+            snoozed_until INTEGER,
+            action_taken TEXT
+        )"#,
+    )
+    .execute(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    sqlx::query(
+        "CREATE INDEX IF NOT EXISTS idx_notif_fired ON notification_history(fired_at DESC)",
+    )
+    .execute(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(())
 }
 
 // ─── Tauri Commands ───────────────────────────────────────────────────

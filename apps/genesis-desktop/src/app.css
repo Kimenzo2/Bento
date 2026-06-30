@@ -10,8 +10,6 @@
 
 @import '$lib/styles/enterprise.css';
 
-}
-
 /* Bricolage Grotesque Variable — self-hosted, static/fonts/bricolage/ */
 @font-face {
   font-family: 'Bricolage Grotesque Variable';
@@ -210,6 +208,37 @@ body {
   font-family: var(--font-body);
   overflow: hidden;
   overscroll-behavior: none;
+}
+
+/* Glass effect — targets ONLY the sidebar surface.
+   No global transparency — every other element stays fully opaque.
+   Visual illusion of frosted glass using gradient sheen + refraction borders. */
+html.glass-enabled .desktop-sidebar {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, white 5%, transparent) 0%,
+      color-mix(in srgb, white 2%, transparent) 1px,
+      transparent 35%,
+      color-mix(in srgb, black 1%, transparent) 100%
+    ),
+    color-mix(in srgb, var(--surface) 80%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--border) 25%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 15%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 6%, transparent);
+  transition:
+    background 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 300ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  html.glass-enabled .desktop-sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    box-shadow: none;
+  }
 }
 
 /* ── Global font baseline ───────────────────────────────────────────
@@ -525,8 +554,7 @@ body {
   right: 0;
   left: 0;
   top: 0;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  display: flex;
   align-items: center;
   gap: 8px;
   height: 36px;
@@ -541,19 +569,15 @@ body {
   transition-delay: var(--stack-delay, 0ms);
 }
 
-.module-switcher-stack__pill,
-.module-switcher-stack__pill-slot {
+.module-switcher-stack__pill {
   display: inline-flex;
   height: 32px;
-  width: 100%;
   min-width: 0;
+  flex: 1;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
   padding: 0 14px;
-}
-
-.module-switcher-stack__pill {
   border: 1px solid color-mix(in srgb, var(--border) 76%, transparent);
   background: linear-gradient(
     180deg,
@@ -593,11 +617,6 @@ body {
   opacity: 0.7;
 }
 
-.module-switcher-stack__pill-slot {
-  border: 1px solid transparent;
-  background: transparent;
-}
-
 .module-switcher-stack:not(.module-switcher-stack--expanded)
   .module-switcher-stack__row:first-child {
   pointer-events: auto;
@@ -632,8 +651,7 @@ body {
     gap: 6px;
   }
 
-  .module-switcher-stack__pill,
-  .module-switcher-stack__pill-slot {
+  .module-switcher-stack__pill {
     padding: 0 10px;
   }
 }
@@ -1088,13 +1106,13 @@ textarea {
   height: fit-content;
   max-height: calc(100vh - var(--desktop-sidebar-top, 54px) - 12px);
   width: var(--desktop-sidebar-width, 18rem);
-  border-right: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--border) 35%, transparent);
   border-radius: 0 0 1.25rem 0;
   background: color-mix(in srgb, var(--surface) 94%, var(--background));
   padding: 1.25rem 1rem;
   overflow: hidden;
   z-index: 80;
+  box-shadow: inset -1px 0 0 color-mix(in srgb, white 4%, transparent);
   transition:
     width 150ms ease,
     transform 180ms ease,
@@ -1106,11 +1124,11 @@ textarea {
 }
 
 .sidebar-collapsed {
-  width: 5.25rem;
+  width: 3.75rem;
 }
 
 .desktop-sidebar.sidebar-collapsed ~ .desktop-workspace__content {
-  margin-left: 5.25rem;
+  margin-left: 3.75rem;
 }
 
 .desktop-sidebar__move-handle {
@@ -1233,17 +1251,53 @@ body.sidebar-dragging * {
   align-items: center;
   gap: 0.75rem;
   width: 100%;
-  border-radius: 1rem;
-  padding: 0.8rem 0.9rem;
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   transition:
     background-color 150ms ease,
-    color 150ms ease,
-    border-color 150ms ease;
+    color 150ms ease;
+}
+
+.desktop-sidebar__nav-item:hover,
+.desktop-sidebar__project:hover {
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+  color: var(--foreground);
+}
+
+.desktop-sidebar__nav-item:focus-visible,
+.desktop-sidebar__project:focus-visible {
+  outline: 2px solid var(--color-primary-start);
+  outline-offset: -2px;
+}
+
+.desktop-sidebar__nav-item:active,
+.desktop-sidebar__project:active {
+  background: color-mix(in srgb, var(--foreground) 10%, transparent);
 }
 
 .desktop-sidebar__nav-item--active {
   background: linear-gradient(135deg, var(--color-primary-start), var(--color-primary-end));
   color: var(--primary-foreground);
+  position: relative;
+}
+
+.desktop-sidebar__nav-item--active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  translate: 0 -50%;
+  width: 3px;
+  height: 1rem;
+  border-radius: 0 2px 2px 0;
+  background: var(--color-primary-start);
+}
+
+.desktop-sidebar__nav-item--active svg {
+  opacity: 1;
 }
 
 .desktop-sidebar__nav-item--app {
@@ -1262,11 +1316,11 @@ body.sidebar-dragging * {
   background: linear-gradient(135deg, var(--color-primary-start), var(--color-primary-end));
 }
 
-.desktop-sidebar__nav-item svg,
-.desktop-topbar__search svg,
-.window-shell__control svg {
-  width: 1rem;
-  height: 1rem;
+.desktop-sidebar__nav-item svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  stroke-width: 2;
+  opacity: 0.65;
 }
 
 .desktop-topbar {
@@ -2671,11 +2725,11 @@ body.sidebar-dragging * {
 
 @media (max-width: 900px) {
   .desktop-workspace__content {
-    margin-left: 5.25rem;
+    margin-left: 3.75rem;
   }
 
   .desktop-sidebar {
-    width: 5.25rem;
+    width: 3.75rem;
   }
 
   .desktop-sidebar__brand span,
@@ -2709,19 +2763,28 @@ body.sidebar-dragging * {
   left: 0.9rem;
   bottom: 0.9rem;
   width: var(--desktop-sidebar-width, 15.35rem);
-  border: 1px solid color-mix(in srgb, var(--border) 54%, transparent);
-  border-radius: 2.1rem;
+  border: 1px solid color-mix(in srgb, var(--border) 30%, transparent);
+  border-radius: 16px;
   background: color-mix(in srgb, var(--surface) 94%, var(--background));
   padding: 0.8rem;
-  box-shadow: none;
+  overflow: hidden;
+  box-shadow:
+    inset -1px 0 0 color-mix(in srgb, white 4%, transparent),
+    inset 1px 0 0 color-mix(in srgb, white 3%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 4%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, black 2%, transparent);
+  transition:
+    width 150ms ease,
+    transform 180ms ease,
+    opacity 180ms ease;
 }
 
 .desktop-sidebar.sidebar-collapsed {
-  width: 5.25rem;
+  width: 3.75rem;
 }
 
 .desktop-sidebar.sidebar-collapsed ~ .desktop-workspace__content {
-  margin-left: 6.8rem;
+  margin-left: 5.25rem;
 }
 
 .desktop-sidebar__move-handle {
@@ -2790,7 +2853,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 
 .desktop-sidebar__brand {
   min-width: 0;
-  border-radius: 9999px;
+  border-radius: 0.75rem;
   padding: 0.5rem 0.65rem;
 }
 
@@ -2821,37 +2884,53 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 }
 
 .desktop-sidebar__nav-item {
-  min-height: 3.18rem;
-  border: 1px solid transparent;
-  border-radius: 9999px;
-  padding: 0.7rem 0.9rem;
+  min-height: 2.25rem;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.3rem 0.7rem;
   color: color-mix(in srgb, var(--foreground) 46%, var(--muted));
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   letter-spacing: -0.018em;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
 }
 
 .desktop-sidebar__nav-item:hover {
-  border-color: color-mix(in srgb, var(--border) 48%, transparent);
   background: color-mix(in srgb, var(--foreground) 6%, transparent);
   color: var(--foreground);
 }
 
+.desktop-sidebar__nav-item:focus-visible {
+  outline: 2px solid var(--color-primary-start);
+  outline-offset: -2px;
+}
+
+.desktop-sidebar__nav-item:active {
+  background: color-mix(in srgb, var(--foreground) 10%, transparent);
+}
+
 .desktop-sidebar__nav-item--active {
-  border-color: color-mix(in srgb, var(--foreground) 12%, transparent);
   background: color-mix(in srgb, var(--foreground) 92%, var(--accent) 8%);
   color: color-mix(in srgb, var(--background) 94%, white);
-  box-shadow: none;
+}
+
+.desktop-sidebar__nav-item--active svg {
+  opacity: 1;
 }
 
 .desktop-sidebar__nav-item svg {
-  width: 1.05rem;
-  height: 1.05rem;
-  stroke-width: 1.55;
+  width: 1.5rem;
+  height: 1.5rem;
+  stroke-width: 2;
+  opacity: 0.65;
 }
 
 .sidebar-collapsed .desktop-sidebar__nav-item {
   justify-content: center;
-  padding-inline: 0;
+  padding: 0;
+  min-height: 3rem;
+  border-radius: 1rem;
 }
 
 .starter-app {
@@ -3449,12 +3528,12 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 
 @media (max-width: 900px) {
   .desktop-workspace__content {
-    margin-left: 6.8rem;
+    margin-left: 5.25rem;
   }
 
   .desktop-sidebar {
     left: 0.65rem;
-    width: 5.25rem;
+    width: 3.75rem;
   }
 
   .starter-stage {
@@ -3473,8 +3552,8 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 }
 
 .desktop-sidebar.sidebar-collapsed {
-  width: 5.25rem;
-  padding-inline: 0.45rem;
+  width: 3.75rem;
+  padding-inline: 0.3rem;
 }
 
 .desktop-sidebar.sidebar-collapsed .desktop-sidebar__header {
@@ -3514,16 +3593,26 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   width: 100%;
   padding: 0;
   min-height: 3rem;
+  border-radius: 1rem;
 }
 
 .desktop-sidebar.sidebar-collapsed .desktop-sidebar__nav-item svg {
-  width: 1.05rem;
-  height: 1.05rem;
+  width: 1.5rem;
+  height: 1.5rem;
   flex: 0 0 auto;
+  opacity: 0.65;
 }
 
 .desktop-sidebar.sidebar-collapsed .desktop-sidebar__nav-item--app {
   padding-block: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desktop-sidebar,
+  .desktop-sidebar__nav-item,
+  .desktop-sidebar__project {
+    transition: none;
+  }
 }
 
 .desktop-workspace--sidebar-hidden .desktop-workspace__content {

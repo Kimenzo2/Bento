@@ -10,6 +10,8 @@
   import RotateCcwIcon from "@lucide/svelte/icons/rotate-ccw";
   import SparklesIcon from "@lucide/svelte/icons/sparkles";
   import Volume2Icon from "@lucide/svelte/icons/volume-2";
+  import VolumeXIcon from "@lucide/svelte/icons/volume-x";
+  import { startAmbient, getActiveAmbient, stopAmbientImmediate, preloadSounds, ensureAudioContext, isSoundLoaded, type SoundName } from "$lib/services/sounds";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import {
@@ -97,9 +99,32 @@
   let focusLoading = $state(true);
   let focusError = $state<string | null>(null);
 
+  // Sound player state
+  const focusSounds: { name: SoundName; label: string }[] = [
+    { name: "gentle-rain", label: "Gentle Rain" },
+    { name: "ocean-waves", label: "Ocean Waves" },
+    { name: "river-flow", label: "River Flow" },
+    { name: "fire-crackling", label: "Fire Crackling" },
+    { name: "forest-wind", label: "Forest Wind" },
+    { name: "guitar-loop", label: "Guitar Loop" },
+  ];
+  let activeSoundName = $state<SoundName | null>(null);
+  let soundLoading = $state(false);
+  function loadVolume(): number {
+    try { return parseFloat(localStorage.getItem("focus:soundVolume") ?? "0.5"); }
+    catch { return 0.5; }
+  }
+  let soundVolume = $state(loadVolume());
+
+  function persistVolume(v: number) {
+    try { localStorage.setItem("focus:soundVolume", String(v)); } catch {}
+  }
+
   onMount(() => {
     ensureModuleSection(moduleId, sectionLabels);
     void loadFocusDashboard();
+    // Preload ambient sounds in the background
+    void preloadSounds(focusSounds.map(s => s.name));
   });
 
   let _t = $derived.by(() => createTranslator($activeBundle));
@@ -226,7 +251,35 @@
     }
   }
 
-  onDestroy(() => stopTimer());
+  async function toggleFocusSound(name: SoundName) {
+    const current = getActiveAmbient();
+    if (current?.name === name) {
+      await current.stop(200);
+      activeSoundName = null;
+      return;
+    }
+    ensureAudioContext();
+    soundLoading = true;
+    try {
+      await startAmbient(name, { volume: soundVolume, fadeInMs: 300 });
+      activeSoundName = name;
+    } catch (e) {
+      console.warn("[focus] Failed to start sound:", e);
+    } finally {
+      soundLoading = false;
+    }
+  }
+
+  function updateSoundVolume(v: number) {
+    soundVolume = v;
+    persistVolume(v);
+    const current = getActiveAmbient();
+    if (current) current.setVolume(v, 150);
+  }
+
+  onDestroy(() => {
+    stopAmbientImmediate();
+  });
 </script>
 
 <main class="focus-workspace module-root" data-module="focus">
@@ -358,41 +411,49 @@
         <Card class="focus-panel focus-panel--full">
           <CardHeader>
             <CardTitle>{_t('moduleFocusBackgroundSounds')}</CardTitle>
-            <CardDescription>Light audio control without turning the module into a media player.</CardDescription>
+            <CardDescription>Pick an ambient sound to play during your focus session.</CardDescription>
           </CardHeader>
           <CardContent class="focus-sound-list">
-            {#if focusLoading}
-              <div class="focus-empty-state focus-empty-state--wide">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M11 5 6 9H3v6h3l5 4z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                </svg>
-                <div>
-                  <strong>Loading sound profiles</strong>
-                  <p>Saved ambient profiles appear here once Rust returns them.</p>
-                </div>
-              </div>
-            {:else if focusDashboard.sounds.length === 0}
-              <div class="focus-empty-state focus-empty-state--wide">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M11 5 6 9H3v6h3l5 4z"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-                </svg>
-                <div>
-                  <strong>No sounds configured</strong>
-                  <p>Background sound profiles can be added later without changing this card.</p>
-                </div>
-              </div>
-            {:else}
-              {#each focusDashboard.sounds as sound}
-                <article>
-                  <Volume2Icon size={18} />
-                  <div>
-                    <strong>{sound.title}</strong>
-                    <p>{sound.detail}</p>
-                  </div>
-                  <Badge variant={sound.status.toLowerCase() === "active" ? "default" : "outline"}>{sound.status}</Badge>
-                </article>
+            <div class="focus-sound-grid">
+              {#each focusSounds as snd}
+                {@const isActive = activeSoundName === snd.name}
+                <button
+                  type="button"
+                  class="focus-sound-card"
+                  class:focus-sound-card--active={isActive}
+                  class:focus-sound-card--loading={soundLoading && isActive}
+                  disabled={soundLoading}
+                  onclick={() => toggleFocusSound(snd.name)}
+                  aria-pressed={isActive}
+                  aria-label={isActive ? `Stop ${snd.label}` : `Play ${snd.label}`}
+                >
+                  {#if isActive}
+                    <Volume2Icon size={20} />
+                  {:else}
+                    <VolumeXIcon size={20} />
+                  {/if}
+                  <span>{snd.label}</span>
+                  {#if isActive}
+                    <small class="focus-sound-card__badge">Playing</small>
+                  {:else if soundLoading}
+                    <small class="focus-sound-card__badge">Loading…</small>
+                  {/if}
+                </button>
               {/each}
-            {/if}
+            </div>
+            <div class="focus-sound-volume">
+              <label for="focus-volume">Volume</label>
+              <input
+                id="focus-volume"
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={soundVolume}
+                oninput={(e) => updateSoundVolume(parseFloat((e.target as HTMLInputElement).value))}
+              />
+              <span>{Math.round(soundVolume * 100)}%</span>
+            </div>
           </CardContent>
         </Card>
       {:else if selectedSection === "Blocking"}
@@ -735,7 +796,6 @@
 
   :global(.focus-hero-list) article,
   :global(.focus-session-list) article,
-  :global(.focus-sound-list) article,
   :global(.focus-block-list) article,
   :global(.focus-review-list) article {
     border: 1px solid color-mix(in srgb, var(--focus-border) 92%, transparent);
@@ -745,6 +805,97 @@
 
   :global(.focus-hero-list) article {
     padding: 16px 18px;
+  }
+
+  /* ── Sound grid ── */
+  :global(.focus-sound-grid) {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  :global(.focus-sound-card) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 20px 14px;
+    border: 1px solid color-mix(in srgb, var(--focus-border) 92%, transparent);
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--focus-surface-strong) 92%, transparent);
+    color: var(--focus-ink);
+    font: inherit;
+    cursor: pointer;
+    transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  :global(.focus-sound-card:hover) {
+    border-color: color-mix(in srgb, var(--focus-accent) 40%, var(--focus-border));
+    background: color-mix(in srgb, var(--focus-accent) 8%, var(--focus-surface-strong));
+  }
+
+  :global(.focus-sound-card--active) {
+    border-color: var(--focus-accent) !important;
+    background: color-mix(in srgb, var(--focus-accent) 16%, var(--focus-surface)) !important;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--focus-accent) 30%, transparent);
+  }
+
+  :global(.focus-sound-card--loading) {
+    opacity: 0.6;
+    cursor: wait;
+  }
+
+  :global(.focus-sound-card:disabled) {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  :global(.focus-sound-card span) {
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  :global(.focus-sound-card__badge) {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--focus-accent);
+  }
+
+  :global(.focus-sound-volume) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 16px;
+    padding: 12px 16px;
+    border: 1px solid color-mix(in srgb, var(--focus-border) 92%, transparent);
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--focus-surface-strong) 94%, transparent);
+  }
+
+  :global(.focus-sound-volume label) {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--focus-muted);
+    white-space: nowrap;
+  }
+
+  :global(.focus-sound-volume input[type="range"]) {
+    flex: 1;
+    accent-color: var(--focus-accent);
+    height: 4px;
+  }
+
+  :global(.focus-sound-volume span) {
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--focus-muted);
+    min-width: 36px;
+    text-align: right;
   }
 
   :global(.focus-empty-state) {
@@ -872,7 +1023,6 @@
     padding: 16px 18px;
   }
 
-  :global(.focus-sound-list) article,
   :global(.focus-block-list) article {
     display: grid;
     grid-template-columns: 18px 1fr auto;

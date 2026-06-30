@@ -163,8 +163,6 @@
               >
                 {slot.label}
               </button>
-            {:else}
-              <span class="module-switcher-stack__pill-slot" aria-hidden="true"></span>
             {/if}
           {/each}
         </div>
