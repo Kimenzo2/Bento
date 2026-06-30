@@ -107,7 +107,7 @@ pub fn configure_macos_titlebar(window: &impl HasWindowHandle) -> Result<(), Str
 
     let handle = window.window_handle().map_err(|e| e.to_string())?;
     let ns_view = match handle.as_raw() {
-        RawWindowHandle::AppKit(appkit) => appkit.ns_view.ok_or("null ns_view")?,
+        RawWindowHandle::AppKit(appkit) => appkit.ns_view,
         _ => return Err("expected AppKit window handle".into()),
     };
     let view_ptr = ns_view.as_ptr() as *mut AnyObject;
