@@ -61,7 +61,20 @@ export default function DesktopSuccessPage() {
                 <path d="M20 33l8 8 16-16" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <h1 className="auth-card__title">Opening Bento…</h1>
+            <h1 className="auth-card__title">
+              Opening{' '}
+              <span
+                style={{
+                  fontWeight: 400,
+                  fontSize: '1.8rem',
+                  fontFamily: 'var(--font-biscotti), var(--font-inter), system-ui, sans-serif',
+                  color: '#dce0e6',
+                }}
+              >
+                Bento
+              </span>
+              …
+            </h1>
             <p className="auth-card__desc">
               Your authentication is complete. Bento desktop app should open automatically in a moment.
             </p>

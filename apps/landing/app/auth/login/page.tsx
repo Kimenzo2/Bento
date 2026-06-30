@@ -56,7 +56,14 @@ function LoginForm() {
       <div style={{ display: 'grid', gap: '0.75rem' }}>
         <Link
           href="/"
-          style={{ display: 'flex', justifyContent: 'center', textDecoration: 'none' }}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '10px',
+            textDecoration: 'none',
+            margin: '0 auto',
+          }}
           aria-label="Back to homepage"
         >
           <Image
@@ -66,6 +73,17 @@ function LoginForm() {
             height={36}
             style={{ borderRadius: '8px' }}
           />
+          <span
+            style={{
+              fontWeight: 400,
+              fontSize: '1.5rem',
+              fontFamily: 'var(--font-biscotti), var(--font-inter), system-ui, sans-serif',
+              color: ink,
+              letterSpacing: '-0.02em',
+            }}
+          >
+            Bento
+          </span>
         </Link>
         <h1
           style={{
@@ -192,7 +210,15 @@ export default function LoginPage() {
           }}
         >
           <div style={{ display: 'grid', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+                margin: '0 auto',
+              }}
+            >
               <Image
                 src="/bento-icon.png"
                 alt="Bento"
@@ -200,6 +226,17 @@ export default function LoginPage() {
                 height={36}
                 style={{ borderRadius: '8px' }}
               />
+              <span
+                style={{
+                  fontWeight: 400,
+                  fontSize: '1.5rem',
+                  fontFamily: 'var(--font-biscotti), var(--font-inter), system-ui, sans-serif',
+                  color: ink,
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                Bento
+              </span>
             </div>
             <h1
               style={{

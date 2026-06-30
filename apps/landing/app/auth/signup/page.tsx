@@ -63,7 +63,14 @@ export default function SignupPage() {
         <div style={{ display: 'grid', gap: '0.75rem' }}>
           <Link
             href="/"
-            style={{ display: 'flex', justifyContent: 'center', textDecoration: 'none' }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              textDecoration: 'none',
+              margin: '0 auto',
+            }}
             aria-label="Back to homepage"
           >
             <Image
@@ -73,6 +80,17 @@ export default function SignupPage() {
               height={36}
               style={{ borderRadius: '8px' }}
             />
+            <span
+              style={{
+                fontWeight: 400,
+                fontSize: '1.5rem',
+                fontFamily: 'var(--font-biscotti), var(--font-inter), system-ui, sans-serif',
+                color: ink,
+                letterSpacing: '-0.02em',
+              }}
+            >
+              Bento
+            </span>
           </Link>
           <h1
             style={{
@@ -83,7 +101,7 @@ export default function SignupPage() {
               color: ink,
             }}
           >
-            Sign up for Bento
+            Create your account
           </h1>
           <p style={{ margin: 0, fontSize: '0.9rem', color: inkMuted, lineHeight: 1.5 }}>
             Already have an account?{' '}

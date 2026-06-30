@@ -41,10 +41,11 @@ export default function Footer() {
             />
             <span
               style={{
-                fontWeight: 600,
-                fontSize: '0.95rem',
+                fontWeight: 400,
+                fontSize: '1.15rem',
                 color: tokens.ink,
                 letterSpacing: '-0.01em',
+                fontFamily: 'var(--font-biscotti), var(--font-inter), system-ui, sans-serif',
               }}
             >
               Bento

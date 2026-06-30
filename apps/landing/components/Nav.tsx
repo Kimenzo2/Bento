@@ -144,10 +144,11 @@ export default function Nav({
             />
             <span
               style={{
-                fontWeight: 650,
-                fontSize: '1rem',
+                fontWeight: 400,
+                fontSize: '1.3rem',
                 color: tokens.ink,
                 letterSpacing: '-0.02em',
+                fontFamily: 'var(--font-biscotti), var(--font-inter), system-ui, sans-serif',
               }}
             >
               Bento

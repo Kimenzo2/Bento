@@ -35,7 +35,7 @@
     </div>
 
     <!-- App Name -->
-    <h1 class="login-page__title">Bento</h1>
+    <h1 class="login-page__title" style="font-family: 'Biscotti', var(--font-heading), system-ui, sans-serif; font-weight: 400; font-size: 2.5rem;">Bento</h1>
 
     <!-- Subtitle -->
     <p class="login-page__subtitle">Sign in to continue</p>

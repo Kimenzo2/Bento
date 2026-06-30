@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, DM_Sans } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 
 const inter = Inter({
@@ -14,6 +15,12 @@ const dmSans = DM_Sans({
   weight: ['400', '500', '600', '700'],
   display: 'swap',
   variable: '--font-dm-sans',
+});
+
+const biscotti = localFont({
+  src: '../public/fonts/biscotti.woff2',
+  display: 'swap',
+  variable: '--font-biscotti',
 });
 
 export const metadata: Metadata = {
@@ -44,7 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/bento-icon.png" type="image/png" />
       </head>
-      <body className={`${inter.variable} ${dmSans.variable}`}>{children}</body>
+      <body className={`${inter.variable} ${dmSans.variable} ${biscotti.variable}`}>{children}</body>
     </html>
   );
 }

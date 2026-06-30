@@ -416,7 +416,7 @@
 
     <div class="desktop-sidebar__header">
       <button aria-label={_t('navGoToDashboard')} class="desktop-sidebar__brand" type="button" onclick={() => goto("/")}>
-        <span class="font-[var(--font-heading)] text-xl font-semibold">Bento</span>
+        <span class="font-[var(--font-heading)] text-xl" style="font-family: 'Biscotti', var(--font-heading), system-ui, sans-serif; font-weight: 400;">Bento</span>
       </button>
       <Tooltip>
         <TooltipTrigger>

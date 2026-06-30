@@ -1,6 +1,16 @@
+/* Biscotti Food Font for brand name */
+@font-face {
+  font-family: "Biscotti";
+  src: url("/fonts/biscotti/biscotti.woff2") format("woff2");
+  font-weight: 400;
+  
+  font-style: normal;
+  font-display: swap;
+}
+
 @import '$lib/styles/enterprise.css';
 
-/* ── Local font faces ────────────────────────────────────────────── */
+}
 
 /* Bricolage Grotesque Variable — self-hosted, static/fonts/bricolage/ */
 @font-face {
