@@ -1,9 +1,10 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '../../../lib/supabase/client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import Link from 'next/link';
 
 const accent = 'var(--color-accent)';
@@ -15,13 +16,16 @@ const inkMuted = 'var(--color-ink-muted)';
 function LoginForm() {
   const searchParams = useSearchParams();
   const next = searchParams.get('next') || '/pricing';
-  const supabase = createClient();
+  const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => { setSupabase(createClient()); }, []);
 
   async function handleGoogleLogin() {
     setLoading(true);
     setError(null);
+    if (!supabase) return;
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',

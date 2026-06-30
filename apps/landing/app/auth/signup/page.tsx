@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { createClient } from '../../../lib/supabase/client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import Link from 'next/link';
 
 const accent = 'var(--color-accent)';
@@ -13,14 +14,20 @@ const inkMuted = 'var(--color-ink-muted)';
 const inkFaint = 'var(--color-ink-faint)';
 
 export default function SignupPage() {
-  const supabase = createClient();
+  const [supabase, setSupabase] = useState<SupabaseClient | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSupabase(createClient());
+  }, []);
   const [error, setError] = useState<string | null>(null);
 
   async function handleGoogleSignup() {
     setLoading(true);
     setError(null);
 
+    if (!supabase) return;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
