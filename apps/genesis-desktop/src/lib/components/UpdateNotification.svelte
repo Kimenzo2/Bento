@@ -16,6 +16,8 @@
    *     Progress bar, speed, percent all mirror Anytype's DownloadProgress shape.
    */
   import { browser } from "$app/environment";
+  import { fly } from "svelte/transition";
+  import { backOut } from "svelte/easing";
   import { check } from "@tauri-apps/plugin-updater";
   import {
     isPermissionGranted,
@@ -37,11 +39,14 @@
     updateStore,
     hideUpdatePanel,
     setDismissedVersion,
+    markBadgeSeen,
   } from "$lib/stores/update.store";
 
   // ── Local UI state ─────────────────────────────────────────────────
   let errorMessage = $state("");
   let lastNativeNotificationVersion = $state("");
+  let notesExpanded = $state(false);
+  const MAX_PREVIEW_LINES = 4;
 
   // Chunk timing — mirrors Anytype's bytesPerSecond calculation
   let lastChunkTime = 0;
@@ -83,11 +88,12 @@
     lastNativeNotificationVersion = version;
   }
 
-  // Fire native notification when backgrounded (Anytype does the same)
+  // Fire native notification only after user has seen the badge in titlebar
   $effect(() => {
     if (
       !browser ||
       !$updateStore.available ||
+      !$updateStore.badgeSeen ||
       !$desktopSettings.notifications.backgroundAlerts
     ) return;
     if ($lifecycleStore !== "Backgrounded") return;
@@ -104,6 +110,25 @@
     if ($updateStore.available) {
       errorMessage = "";
     }
+  });
+
+  // Mark badge as seen when card is shown
+  $effect(() => {
+    if ($updateStore.showPanel && $updateStore.available) {
+      markBadgeSeen();
+    }
+  });
+
+  // Dismiss on Escape — registered only while card is visible
+  $effect(() => {
+    if (!browser || !$updateStore.showPanel) return;
+
+    function onKeydown(e: KeyboardEvent) {
+      if (e.key === "Escape") dismiss();
+    }
+
+    window.addEventListener("keydown", onKeydown);
+    return () => window.removeEventListener("keydown", onKeydown);
   });
 
   // ── Install & restart (Anytype: updateConfirm → quitAndInstall) ────
@@ -145,8 +170,14 @@
 
       // downloadAndInstall resolves after install completes (Tauri relaunches the app)
     } catch (error) {
-      errorMessage =
-        error instanceof Error ? error.message : _t('updateFailed');
+      const msg = error instanceof Error ? error.message : String(error);
+      if (/network|fetch|econnrefused|timeout|dns/i.test(msg)) {
+        errorMessage = _t('updateNetworkError');
+      } else if (/signature|verify|invalid/i.test(msg)) {
+        errorMessage = _t('updateVerificationError');
+      } else {
+        errorMessage = _t('updateFailed');
+      }
       setInstallingUpdate(false);
       resetDownloadProgress();
     }
@@ -165,8 +196,13 @@
 </script>
 
 {#if visible}
-  <!-- Bottom-right, card-surface, no border, no shadow per card system rules -->
-  <aside class="update-notification" role="status" aria-live="polite">
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <aside
+    class="update-notification"
+    role="status"
+    aria-live="polite"
+    transition:fly={{ x: 0, y: 12, duration: 280, easing: backOut }}
+  >
 
     <!-- Header row — mirrors Anytype's .infoWrapper -->
     <div class="update-notification__header">
@@ -198,11 +234,29 @@
       {/if}
     </div>
 
-    <!-- Release notes — Anytype's .label / secondary text -->
+    <!-- Release notes — truncated to MAX_PREVIEW_LINES, toggle to expand -->
     {#if $updateStore.available?.body && !$updateStore.installing}
-      <p class="update-notification__body">
-        {$updateStore.available.body}
-      </p>
+      {@const lines = $updateStore.available.body.split("\n").filter((l) => l.trim())}
+      <div class="update-notification__body" class:update-notification__body--truncated={!notesExpanded && lines.length > MAX_PREVIEW_LINES}>
+        {#if notesExpanded || lines.length <= MAX_PREVIEW_LINES}
+          {#each lines as line}
+            <p>{line}</p>
+          {/each}
+        {:else}
+          {#each lines.slice(0, MAX_PREVIEW_LINES) as line}
+            <p>{line}</p>
+          {/each}
+        {/if}
+      </div>
+      {#if lines.length > MAX_PREVIEW_LINES}
+        <button
+          type="button"
+          class="update-notification__notes-toggle"
+          onclick={() => (notesExpanded = !notesExpanded)}
+        >
+          {notesExpanded ? "Show fewer" : `Show all (${lines.length})`}
+        </button>
+      {/if}
     {/if}
 
     <!-- Progress section — mirrors Anytype's progressBar + percent + speed -->
@@ -275,31 +329,19 @@
     right: 1.25rem;
     z-index: 999;
 
-    /* card-surface: var(--card), border-radius 20px, no border, no shadow */
     background: var(--card);
     border-radius: 20px;
     border: none;
     box-shadow: none;
 
     width: 320px;
+    max-height: min(90vh - 2.5rem, 480px);
     padding: 1.1rem 1.15rem 1rem;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
 
-    /* Anytype: appears with a subtle upward animation */
-    animation: update-notification-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-
-  @keyframes update-notification-in {
-    from {
-      opacity: 0;
-      transform: translateY(10px) scale(0.96);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
+    overflow-y: auto;
   }
 
   /* ── Header row ─────────────────────────────────────────────────── */
@@ -376,10 +418,51 @@
 
   /* ── Release notes body ─────────────────────────────────────────── */
   .update-notification__body {
-    margin: 0;
     font-size: 12px;
     line-height: 1.5;
     color: var(--muted);
+  }
+
+  .update-notification__body p {
+    margin: 0;
+  }
+
+  .update-notification__body p + p {
+    margin-top: 0.25rem;
+  }
+
+  .update-notification__body--truncated {
+    max-height: 5.25rem;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .update-notification__body--truncated::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1.25rem;
+    background: linear-gradient(to bottom, transparent, var(--card));
+    pointer-events: none;
+  }
+
+  .update-notification__notes-toggle {
+    border: none;
+    background: transparent;
+    color: var(--foreground);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0;
+    cursor: default;
+    text-align: left;
+    opacity: 0.7;
+    transition: opacity 0.12s ease;
+  }
+
+  .update-notification__notes-toggle:hover {
+    opacity: 1;
   }
 
   /* ── Progress — mirrors Anytype's .progressBar ──────────────────── */

@@ -10,7 +10,7 @@
   import { desktopSettings, updateDesktopSettings } from "$lib/desktop/settings";
   import { back, canGoBack, pushNav } from "$lib/stores/nav-history.store";
   import { moduleFromPath } from "$lib/desktop/modules";
-  import { updateStore, showUpdatePanel, getDismissedVersion } from "$lib/stores/update.store";
+  import { updateStore, showUpdatePanel, getDismissedVersion, markBadgeSeen } from "$lib/stores/update.store";
 
   type MenuAction = () => Promise<void> | void;
 
@@ -33,6 +33,14 @@
   } = $props();
 
   let logoMenuOpen = $state(false);
+
+  // Mark badge as seen when user opens the menu
+  $effect(() => {
+    if (logoMenuOpen && $updateStore.available) {
+      markBadgeSeen();
+    }
+  });
+
   const tabsEnabled = $derived($desktopSettings.workspace.tabsEnabled);
   const closeShortcut = $derived(isMac ? "" : "Alt+F4");
   const commandKey = $derived(isMac ? "⌘" : "Ctrl");

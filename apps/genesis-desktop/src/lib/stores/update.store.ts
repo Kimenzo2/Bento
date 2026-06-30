@@ -1,6 +1,7 @@
-import { writable, get } from 'svelte/store';
+import { writable } from 'svelte/store';
 
 const DISMISSED_KEY = 'bento:update:dismissed';
+let memDismissed: string | null = null;
 
 export type UpdateState = {
   available: null | {
@@ -10,6 +11,7 @@ export type UpdateState = {
   checking: boolean;
   installing: boolean;
   showPanel: boolean;
+  badgeSeen: boolean;
   downloadedBytes: number;
   totalBytes: number;
   downloadPercent: number;
@@ -21,6 +23,7 @@ export const updateStore = writable<UpdateState>({
   checking: false,
   installing: false,
   showPanel: false,
+  badgeSeen: false,
   downloadedBytes: 0,
   totalBytes: 0,
   downloadPercent: 0,
@@ -45,6 +48,10 @@ export function showUpdatePanel() {
 
 export function hideUpdatePanel() {
   updateStore.update((s) => ({ ...s, showPanel: false }));
+}
+
+export function markBadgeSeen() {
+  updateStore.update((s) => ({ ...s, badgeSeen: true }));
 }
 
 export function setDownloadTotal(totalBytes: number) {
@@ -72,10 +79,6 @@ export function setDownloadProgress(chunkLength: number, elapsedMs: number) {
   });
 }
 
-export function setDownloadedBytes(downloadedBytes: number) {
-  updateStore.update((s) => ({ ...s, downloadedBytes }));
-}
-
 export function resetDownloadProgress() {
   updateStore.update((s) => ({
     ...s,
@@ -88,13 +91,16 @@ export function resetDownloadProgress() {
 
 export function getDismissedVersion(): string | null {
   try {
-    return localStorage.getItem(DISMISSED_KEY);
+    const v = localStorage.getItem(DISMISSED_KEY);
+    memDismissed = v;
+    return v;
   } catch {
-    return null;
+    return memDismissed;
   }
 }
 
 export function setDismissedVersion(version: string | null) {
+  memDismissed = version;
   try {
     if (version) {
       localStorage.setItem(DISMISSED_KEY, version);
@@ -102,6 +108,6 @@ export function setDismissedVersion(version: string | null) {
       localStorage.removeItem(DISMISSED_KEY);
     }
   } catch {
-    // localStorage unavailable — non-critical
+    // localStorage unavailable — using in-memory fallback
   }
 }

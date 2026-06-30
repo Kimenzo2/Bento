@@ -273,6 +273,8 @@
   "updatePreparing": "Preparing…",
   "updateInstalling": "Installing…",
   "updateFailed": "Update failed. Please try again.",
+  "updateNetworkError": "Network error. Check your connection and try again.",
+  "updateVerificationError": "Update verification failed. The download may be corrupted.",
   "updateDismiss": "Dismiss update notification",
   "updateNotificationTitle": "Bento update available",
   "updateVersionReady": "Version {version} is ready to install."
