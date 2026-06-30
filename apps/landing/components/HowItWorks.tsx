@@ -22,7 +22,7 @@ export default function HowItWorks() {
   return (
     <section
       style={{
-        background: tokens.surface,
+        background: tokens.bg,
         padding: tokens.sectionPad + ' 28px',
       }}
       aria-labelledby="how-heading"

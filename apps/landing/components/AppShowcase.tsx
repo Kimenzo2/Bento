@@ -13,7 +13,7 @@ export default function AppShowcase() {
     <section
       id="apps"
       style={{
-        background: tokens.surface,
+        background: tokens.bg,
         padding: tokens.sectionPad + ' 28px',
       }}
       aria-labelledby="apps-heading"

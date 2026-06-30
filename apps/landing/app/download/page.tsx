@@ -44,7 +44,7 @@ export default function DownloadPage() {
         <section className="download-page__hero">
           <Link href="/" className="download-page__logo">
             <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-              <rect width="32" height="32" rx="8" fill="#7a9bb5" />
+              <rect width="32" height="32" rx="8" fill="var(--color-accent, #5f61ed)" />
               <path d="M8 10h4v12H8V10zm6 4h4v8h-4v-8zm6-2h4v10h-4V12z" fill="#131211" />
             </svg>
           </Link>
@@ -135,8 +135,8 @@ export default function DownloadPage() {
 const downloadStyles = `
   .download-page {
     min-height: 100vh;
-    background: #0c0b0a;
-    color: #dce0e6;
+    background: var(--color-bg);
+    color: var(--color-ink);
   }
   .download-page__inner {
     max-width: 640px;
@@ -176,15 +176,15 @@ const downloadStyles = `
     gap: 1rem;
     padding: 1.25rem 1.5rem;
     border-radius: 1.25rem;
-    background: #141315;
-    border: 1px solid rgba(255,255,255,0.06);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
     text-decoration: none;
-    color: #dce0e6;
+    color: var(--color-ink);
     transition: border-color 0.15s ease, background 0.15s ease;
   }
   .download-page__card:hover {
-    border-color: rgba(122, 155, 181, 0.4);
-    background: #1a1918;
+    border-color: var(--color-accent-line);
+    background: var(--color-elevated);
   }
   .download-page__card-icon {
     width: 2.5rem;
@@ -192,8 +192,8 @@ const downloadStyles = `
     display: grid;
     place-items: center;
     border-radius: 0.75rem;
-    background: rgba(255,255,255,0.04);
-    color: #7a9bb5;
+    background: var(--color-highlight);
+    color: var(--color-accent);
     flex-shrink: 0;
   }
   .download-page__card-title {
@@ -204,19 +204,19 @@ const downloadStyles = `
   .download-page__card-arch {
     margin: 0.15rem 0 0;
     font-size: 0.82rem;
-    color: #90959e;
+    color: var(--color-ink-muted);
   }
   .download-page__card-arrow {
     margin-left: auto;
-    color: #90959e;
+    color: var(--color-ink-muted);
     flex-shrink: 0;
   }
   .download-page__deep-link-card {
     text-align: center;
     padding: 2rem;
     border-radius: 1.5rem;
-    background: #141315;
-    border: 1px solid rgba(122, 155, 181, 0.15);
+    background: var(--color-surface);
+    border: 1px solid var(--color-accent-line);
     display: grid;
     gap: 0.75rem;
   }
@@ -228,7 +228,7 @@ const downloadStyles = `
   .download-page__deep-link-desc {
     margin: 0;
     font-size: 0.9rem;
-    color: #90959e;
+    color: var(--color-ink-muted);
     line-height: 1.5;
   }
   .download-page__deep-link-btn {
@@ -236,15 +236,15 @@ const downloadStyles = `
     padding: 0.75rem 1.75rem;
     border-radius: 0.85rem;
     border: none;
-    background: #7a9bb5;
-    color: #0c0b0a;
+    background: var(--color-accent);
+    color: var(--color-bg);
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.15s ease;
   }
   .download-page__deep-link-btn:hover:not(:disabled) {
-    background: #8fb0ca;
+    background: var(--color-accent-hover);
   }
   .download-page__deep-link-btn:disabled {
     opacity: 0.6;
@@ -253,7 +253,7 @@ const downloadStyles = `
   .download-page__deep-link-hint {
     margin: 0;
     font-size: 0.8rem;
-    color: #666;
+    color: var(--color-ink-faint);
   }
   .download-page__cta {
     text-align: center;
@@ -264,7 +264,7 @@ const downloadStyles = `
     color: #90959e;
   }
   .download-page__cta-link {
-    color: #7a9bb5;
+    color: var(--color-accent);
     text-decoration: none;
     font-weight: 600;
   }
@@ -277,6 +277,6 @@ const downloadStyles = `
   .download-page__note-text {
     margin: 0;
     font-size: 0.85rem;
-    color: #555;
+    color: var(--color-ink-faint);
   }
 `;

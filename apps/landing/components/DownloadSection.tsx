@@ -9,7 +9,7 @@ export default function DownloadSection({ version }: { version: string }) {
     <section
       id="download"
       style={{
-        background: `radial-gradient(ellipse 80% 50% at 70% 60%, rgba(122, 155, 181, 0.04) 0%, transparent 60%), ${tokens.surface}`,
+        background: 'var(--color-bg)',
         padding: tokens.sectionPad + ' 28px',
       }}
       aria-labelledby="download-heading"

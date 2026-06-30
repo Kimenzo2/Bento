@@ -29,26 +29,30 @@ export default function Hero({
   }, []);
 
   return (
-    <section
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        background: `radial-gradient(ellipse 80% 60% at 50% -20%, rgba(122, 155, 181, 0.08) 0%, transparent 60%), linear-gradient(180deg, #0c0b0a 0%, #141315 50%, #0c0b0a 100%)`,
-        paddingTop: '64px',
-      }}
-      aria-labelledby="hero-heading"
-    >
-      <div
+    <>
+      <section
         style={{
-          maxWidth: tokens.contentMax,
-          margin: '0 auto',
-          padding: tokens.sectionPad + ' 28px',
-          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          background: 'var(--color-bg)',
+          padding: '0 28px',
         }}
+        aria-labelledby="hero-heading"
       >
-        <div style={{ maxWidth: '720px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+        <div
+          style={{
+            maxWidth: '720px',
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '20px',
+            textAlign: 'center',
+            padding: 'clamp(4rem, 10vh, 8rem) 0 clamp(3rem, 5vh, 4rem)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <Image
               src="/bento-icon.png"
               alt=""
@@ -78,6 +82,7 @@ export default function Hero({
               letterSpacing: '-0.03em',
               color: tokens.ink,
               margin: 0,
+              maxWidth: '640px',
             }}
           >
             A quiet place for your whole day.
@@ -88,9 +93,7 @@ export default function Hero({
               fontSize: tokens.subheadSize,
               lineHeight: 1.7,
               color: tokens.inkMuted,
-              maxWidth: tokens.textMax,
-              marginTop: '24px',
-              marginBottom: '40px',
+              maxWidth: '520px',
             }}
           >
             Twelve tools &mdash; mood, focus, habits, sleep, budget, tasks, notes, and more &mdash;
@@ -101,12 +104,12 @@ export default function Hero({
             style={{
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '14px',
               flexWrap: 'wrap',
             }}
           >
             {authLoaded && user ? (
-              // Authenticated user — show download + go to pricing
               <>
                 <a
                   data-slot="button"
@@ -130,7 +133,7 @@ export default function Hero({
                     cursor: detecting ? 'default' : 'pointer',
                     textDecoration: 'none',
                     opacity: detecting ? 0.6 : 1,
-                    transition: 'color 0.15s ease, box-shadow 0.15s ease',
+                    transition: 'color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease',
                     pointerEvents: detecting ? 'none' as const : undefined,
                   }}
                 >
@@ -159,8 +162,8 @@ export default function Hero({
                     height: '36px',
                     borderRadius: '0.75rem',
                     padding: '0 18px',
-                    background: 'rgba(255,255,255,0.06)',
-                    color: 'rgba(220,224,230,0.8)',
+                    background: 'var(--color-highlight)',
+                    color: 'var(--color-ink)',
                     border: 'none',
                     cursor: 'pointer',
                     textDecoration: 'none',
@@ -171,7 +174,6 @@ export default function Hero({
                 </Link>
               </>
             ) : (
-              // New visitor — show Get Started (signup) + download
               <>
                 <Link
                   href="/auth/signup"
@@ -213,13 +215,13 @@ export default function Hero({
                     height: '36px',
                     borderRadius: '0.75rem',
                     padding: '0 18px',
-                    background: 'rgba(255,255,255,0.06)',
-                    color: 'rgba(220,224,230,0.8)',
+                    background: 'var(--color-highlight)',
+                    color: 'var(--color-ink)',
                     border: 'none',
                     cursor: detecting ? 'default' : 'pointer',
                     textDecoration: 'none',
                     opacity: detecting ? 0.6 : 1,
-                    transition: 'color 0.15s ease, box-shadow 0.15s ease',
+                    transition: 'color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease',
                     pointerEvents: detecting ? 'none' as const : undefined,
                   }}
                 >
@@ -238,33 +240,27 @@ export default function Hero({
             )}
           </div>
 
+          {/* Meta tags row */}
           <div
             style={{
               display: 'flex',
-              alignItems: 'center',
-              gap: '14px',
               flexWrap: 'wrap',
-              marginTop: '12px',
+              justifyContent: 'center',
+              gap: '8px',
             }}
           >
             <span
               style={{
-                fontSize: tokens.smallSize,
+                fontSize: '0.72rem',
                 color: tokens.inkFaint,
+                background: tokens.highlight,
+                padding: '4px 12px',
+                borderRadius: '999px',
+                letterSpacing: '0.02em',
               }}
             >
-              v{version} &mdash; {authLoaded && user ? 'Already signed in' : 'Try it'}
+              v{version}
             </span>
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '6px',
-              marginTop: '20px',
-            }}
-          >
             {Object.entries(platforms).map(([key, p]) => (
               <a
                 data-slot="button"
@@ -274,34 +270,55 @@ export default function Hero({
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px',
+                  gap: '6px',
                   whiteSpace: 'nowrap',
-                  fontSize: '0.78rem',
+                  fontSize: '0.72rem',
                   fontWeight: 500,
-                  height: '28px',
-                  borderRadius: '0.75rem',
+                  height: '26px',
+                  borderRadius: '999px',
                   padding: '0 10px',
-                  background: platform === key ? 'rgba(122, 155, 181, 0.15)' : 'rgba(255,255,255,0.06)',
-                  color: platform === key ? '#7a9bb5' : 'rgba(220,224,230,0.8)',
+                  background: platform === key ? tokens.accent : tokens.highlight,
+                  color: platform === key ? tokens.bg : tokens.inkFaint,
                   border: 'none',
                   cursor: 'pointer',
                   textDecoration: 'none',
+                  letterSpacing: '0.02em',
                   transition: 'color 0.15s ease, box-shadow 0.15s ease',
                 }}
               >
                 {p.label}
               </a>
             ))}
+            <span
+              style={{
+                fontSize: '0.72rem',
+                color: tokens.inkFaint,
+                background: tokens.highlight,
+                padding: '4px 12px',
+                borderRadius: '999px',
+                letterSpacing: '0.02em',
+              }}
+            >
+              {authLoaded && user ? 'Already signed in' : 'Try it'}
+            </span>
           </div>
         </div>
+      </section>
 
+      <div
+        style={{
+          background: 'var(--color-bg)',
+          padding: '0 28px clamp(3rem, 5vw, 5rem)',
+        }}
+      >
         <div
           style={{
-            marginTop: 'clamp(4rem, 8vw, 6rem)',
             borderRadius: '12px',
             overflow: 'hidden',
             background: tokens.surface,
-            border: '1px solid rgba(255,255,255,0.04)',
+            maxWidth: tokens.contentMax,
+            margin: '0 auto',
+            width: '100%',
           }}
         >
           <Image
@@ -317,6 +334,6 @@ export default function Hero({
           />
         </div>
       </div>
-    </section>
+    </>
   );
 }

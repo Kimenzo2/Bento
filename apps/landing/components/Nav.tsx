@@ -26,8 +26,8 @@ const btn = {
   height: '28px',
   borderRadius: '0.75rem',
   padding: '0 12px',
-  background: 'rgba(255,255,255,0.06)',
-  color: 'rgba(220,224,230,0.8)',
+  background: 'var(--color-highlight)',
+  color: 'var(--color-ink)',
   border: 'none',
   cursor: 'pointer',
   textDecoration: 'none',
@@ -111,13 +111,13 @@ export default function Nav({
             height: '46px',
             padding: scrolled ? '0 8px' : '0 10px',
             background: scrolled
-              ? 'linear-gradient(180deg, rgba(18,17,16,0.78) 0%, rgba(12,11,10,0.82) 100%)'
+              ? 'var(--color-surface)'
               : 'transparent',
             backdropFilter: scrolled ? 'blur(24px)' : 'none',
             WebkitBackdropFilter: scrolled ? 'blur(24px)' : 'none',
             borderRadius: '16px',
-            border: scrolled ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent',
-            boxShadow: scrolled ? 'inset 0 1px 0 rgba(255,255,255,0.08)' : 'none',
+            border: scrolled ? '1px solid var(--color-border)' : '1px solid transparent',
+            boxShadow: scrolled ? 'inset 0 1px 0 var(--color-accent-line)' : 'none',
             transition: 'background 300ms ease, backdrop-filter 300ms ease, border 300ms ease, box-shadow 300ms ease, padding 300ms ease',
           }}
         >
@@ -292,11 +292,11 @@ export default function Nav({
             style={{
               marginTop: '8px',
               borderRadius: '16px',
-              background: 'linear-gradient(180deg, rgba(18,17,16,0.92) 0%, rgba(12,11,10,0.95) 100%)',
+              background: 'var(--color-surface)',
               backdropFilter: 'blur(24px)',
               WebkitBackdropFilter: 'blur(24px)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
+              border: '1px solid var(--color-border)',
+              boxShadow: 'inset 0 1px 0 var(--color-accent-line)',
               padding: '12px 12px 20px',
               display: 'flex',
               flexDirection: 'column',
@@ -315,7 +315,7 @@ export default function Nav({
                 {link.label}
               </button>
             ))}
-            <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '6px 0' }} />
+            <div style={{ height: '1px', background: 'var(--color-border)', margin: '6px 0' }} />
             {authLoaded && user ? (
               <>
                 <Link
@@ -352,7 +352,7 @@ export default function Nav({
                 </Link>
               </>
             )}
-            <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '6px 0' }} />
+            <div style={{ height: '1px', background: 'var(--color-border)', margin: '6px 0' }} />
             <button
               data-slot="button"
               className="btn-accent"
@@ -380,7 +380,7 @@ export default function Nav({
         )}
 
         <style>{`
-          .nav-btn:hover { background: rgba(255,255,255,0.12) !important; }
+          .nav-btn:hover { background: var(--color-highlight) !important; }
           .nav-btn-accent:hover { opacity: 0.9 !important; }
           @media (max-width: 700px) {
             .nav-desktop { display: none !important; }

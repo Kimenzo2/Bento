@@ -5,12 +5,12 @@ import Image from 'next/image';
 import { createClient } from '../../../lib/supabase/client';
 import Link from 'next/link';
 
-const accent = '#7a9bb5';
-const bg = '#0c0b0a';
-const surface = '#141315';
-const ink = '#dce0e6';
-const inkMuted = '#90959e';
-const inkFaint = '#5e626a';
+const accent = 'var(--color-accent)';
+const bg = 'var(--color-bg)';
+const surface = 'var(--color-surface)';
+const ink = 'var(--color-ink)';
+const inkMuted = 'var(--color-ink-muted)';
+const inkFaint = 'var(--color-ink-faint)';
 
 export default function SignupPage() {
   const supabase = createClient();

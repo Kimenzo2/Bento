@@ -13,7 +13,6 @@ import HowItWorks from '../components/HowItWorks';
 import AppShowcase from '../components/AppShowcase';
 import WhyBento from '../components/WhyBento';
 import SocialProof from '../components/SocialProof';
-import Testimonials from '../components/Testimonials';
 import Pricing from '../components/Pricing';
 import FAQ from '../components/FAQ';
 import DownloadSection from '../components/DownloadSection';
@@ -77,8 +76,6 @@ export default function HomePage() {
         <div className="section-divider" aria-hidden="true" />
         <WhyBento />
         <SocialProof />
-        <div className="section-divider" aria-hidden="true" />
-        <Testimonials />
         <div className="section-divider" aria-hidden="true" />
         <Pricing />
         <FAQ />

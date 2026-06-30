@@ -58,20 +58,19 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 export const tokens = {
-  accent: '#7a9bb5',
-  accentHover: '#8fb0ca',
-  accentGlow: 'rgba(122, 155, 181, 0.1)',
-  accentLine: 'rgba(122, 155, 181, 0.2)',
-  accentBg: 'rgba(122, 155, 181, 0.04)',
+  accent: 'var(--color-accent)',
+  accentHover: 'var(--color-accent-hover)',
+  accentLine: 'var(--color-accent-line)',
+  accentBg: 'var(--color-accent-bg)',
 
-  bg: '#0c0b0a',
-  surface: '#141315',
-  elevated: '#1b1c1d',
-  highlight: '#242527',
+  bg: 'var(--color-bg)',
+  surface: 'var(--color-surface)',
+  elevated: 'var(--color-elevated)',
+  highlight: 'var(--color-highlight)',
 
-  ink: '#dce0e6',
-  inkMuted: '#90959e',
-  inkFaint: '#5e626a',
+  ink: 'var(--color-ink)',
+  inkMuted: 'var(--color-ink-muted)',
+  inkFaint: 'var(--color-ink-faint)',
 
   fontFamily: '"universalSans", var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   fontFamilyDisplay: 'var(--font-dm-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',

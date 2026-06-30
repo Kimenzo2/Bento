@@ -82,14 +82,14 @@ export default async function PricingSuccessPage({
           display: grid;
           place-items: center;
           padding: 2rem;
-          background: #131211;
-          color: #dce0e6;
+          background: var(--color-bg);
+          color: var(--color-ink);
         }
 
         .pricing-success__card {
           width: min(720px, 100%);
           border-radius: 1.5rem;
-          background: #1b1c1d;
+          background: var(--color-elevated);
           padding: clamp(1.5rem, 5vw, 3rem);
         }
 
@@ -99,7 +99,7 @@ export default async function PricingSuccessPage({
           font-weight: 700;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: #7a9bb5;
+          color: var(--color-accent);
           margin-bottom: 1rem;
         }
 
@@ -136,18 +136,18 @@ export default async function PricingSuccessPage({
         }
 
         .pricing-success__primary {
-          background: #7a9bb5;
-          color: #131211;
+          background: var(--color-accent);
+          color: var(--color-bg);
         }
 
         .pricing-success__secondary {
           border: none;
-          color: rgba(220,224,230,0.8);
-          background: rgba(255,255,255,0.06);
+          color: var(--color-ink);
+          background: var(--color-highlight);
         }
 
         .pricing-success__secondary:hover {
-          background: rgba(255,255,255,0.1) !important;
+          background: var(--color-highlight) !important;
         }
       `}</style>
     </main>

@@ -68,7 +68,7 @@ export default function DesktopSuccessPage() {
                   fontWeight: 400,
                   fontSize: '1.8rem',
                   fontFamily: 'var(--font-biscotti), var(--font-inter), system-ui, sans-serif',
-                  color: '#dce0e6',
+                  color: 'var(--color-ink)',
                 }}
               >
                 Bento
@@ -105,15 +105,15 @@ const authStyles = `
     min-height: 100vh;
     display: grid;
     place-items: center;
-    background: #0c0b0a;
-    color: #dce0e6;
+    background: var(--color-bg);
+    color: var(--color-ink);
     padding: 2rem 1.5rem;
   }
   .auth-card {
     width: 100%;
     max-width: 400px;
-    background: #141315;
-    border: 1px solid rgba(255,255,255,0.08);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
     border-radius: 2rem;
     padding: 2.5rem 2rem;
     display: grid;
@@ -127,8 +127,8 @@ const authStyles = `
   .auth-card__spinner {
     width: 2.5rem;
     height: 2.5rem;
-    border: 2.5px solid rgba(255,255,255,0.15);
-    border-top-color: #7a9bb5;
+    border: 2.5px solid var(--color-border);
+    border-top-color: var(--color-accent);
     border-radius: 50%;
     animation: auth-spin 0.7s linear infinite;
     margin: 0 auto;
@@ -141,24 +141,24 @@ const authStyles = `
     font-size: 1.5rem;
     font-weight: 700;
     letter-spacing: -0.03em;
-    color: #dce0e6;
+    color: var(--color-ink);
   }
   .auth-card__desc {
     margin: 0;
     font-size: 0.9rem;
-    color: #90959e;
+    color: var(--color-ink-muted);
     line-height: 1.5;
   }
   .auth-card__hint {
     margin: 0;
     font-size: 0.82rem;
-    color: #666;
+    color: var(--color-ink-faint);
     line-height: 1.5;
   }
   .auth-card__link-btn {
     background: none;
     border: none;
-    color: #7a9bb5;
+    color: var(--color-accent);
     font-weight: 600;
     cursor: pointer;
     text-decoration: underline;
@@ -171,8 +171,8 @@ const authStyles = `
     justify-content: center;
     height: 44px;
     border-radius: 0.85rem;
-    background: #7a9bb5;
-    color: #0c0b0a;
+    background: var(--color-accent);
+    color: var(--color-bg);
     font-size: 0.95rem;
     font-weight: 600;
     text-decoration: none;

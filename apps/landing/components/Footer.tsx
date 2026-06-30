@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import { tokens } from './tokens';
+import ThemeToggle from './ThemeToggle';
 
 export default function Footer() {
   const year = new Date().getFullYear();
@@ -9,7 +10,7 @@ export default function Footer() {
       style={{
         background: tokens.bg,
         padding: 'clamp(3rem, 6vw, 5rem) 28px',
-        borderTop: '1px solid rgba(255,255,255,0.03)',
+        borderTop: '1px solid var(--color-border)',
       }}
     >
       <div
@@ -164,7 +165,7 @@ export default function Footer() {
           margin: '0 auto',
           paddingTop: '36px',
           marginTop: '36px',
-          borderTop: '1px solid rgba(255,255,255,0.03)',
+          borderTop: '1px solid var(--color-border)',
           display: 'flex',
           flexWrap: 'wrap',
           justifyContent: 'space-between',
@@ -172,15 +173,18 @@ export default function Footer() {
           gap: '12px',
         }}
       >
-        <p
-          style={{
-            fontSize: tokens.labelSize,
-            color: tokens.inkFaint,
-            margin: 0,
-          }}
-        >
-          &copy; {year} Bento. All rights reserved.
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <p
+            style={{
+              fontSize: tokens.labelSize,
+              color: tokens.inkFaint,
+              margin: 0,
+            }}
+          >
+            &copy; {year} Bento. All rights reserved.
+          </p>
+          <ThemeToggle />
+        </div>
         <p
           style={{
             fontSize: '0.65rem',

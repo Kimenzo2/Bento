@@ -1,4 +1,13 @@
-*,*::before,*::after {
+/* ──────────────────────────────────────────────────────────────
+   LANDING PAGE — Theme system
+   Contrast-based, monochromatic. The accent IS the foreground.
+   System preference detected by JS in <head>, stored as
+   data-theme="dark" on <html>. No attribute = light mode.
+   ────────────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -10,32 +19,95 @@ html {
   font-size: 16px;
 }
 
+/* ── Light mode (default) ── */
+:root {
+  color-scheme: light;
+
+  --color-bg: #f7f7f7;
+  --color-surface: #ffffff;
+  --color-elevated: #ffffff;
+  --color-highlight: #ededed;
+
+  --color-accent: #1a1a1a;
+  --color-accent-hover: #000000;
+  --color-accent-text: #f7f7f7;
+  --color-accent-line: rgba(26, 26, 26, 0.12);
+  --color-accent-bg: rgba(26, 26, 26, 0.04);
+
+  --color-ink: #1a1a1a;
+  --color-ink-muted: #555555;
+  --color-ink-faint: #8a8a8a;
+
+  --color-border: rgba(0, 0, 0, 0.06);
+  --color-border-strong: rgba(0, 0, 0, 0.1);
+}
+
+/* ── Dark mode ── */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-bg: #0d0d0d;
+  --color-surface: #181818;
+  --color-elevated: #222222;
+  --color-highlight: #2a2a2a;
+
+  --color-accent: #ffffff;
+  --color-accent-hover: rgba(255, 255, 255, 0.85);
+  --color-accent-text: #0d0d0d;
+  --color-accent-line: rgba(255, 255, 255, 0.15);
+  --color-accent-bg: rgba(255, 255, 255, 0.04);
+
+  --color-ink: #e4e4e4;
+  --color-ink-muted: #9a9a9a;
+  --color-ink-faint: #636363;
+
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-strong: rgba(255, 255, 255, 0.1);
+}
+
 body {
   font-family: 'universalSans', var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background-color: #0c0b0a;
-  color: #90959e;
+  background-color: var(--color-bg);
+  color: var(--color-ink-muted);
   line-height: 1.5;
   letter-spacing: -0.1px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-a { color: inherit; }
-img, svg { display: block; max-width: 100%; }
-button { font-family: inherit; font-size: inherit; line-height: inherit; }
+a {
+  color: inherit;
+}
 
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
 
-:focus:not(:focus-visible) { outline: none; }
+button {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
 :focus-visible {
-  outline: 2px solid #7a9bb5;
+  outline: 2px solid var(--color-accent);
   outline-offset: 3px;
   border-radius: 4px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,*::before,*::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -43,23 +115,47 @@ button { font-family: inherit; font-size: inherit; line-height: inherit; }
   }
 }
 
-.cta-primary { transition: background 0.2s ease, transform 0.15s ease; }
-[data-slot="button"]:hover { background: rgba(255,255,255,0.1) !important; }
-[data-slot="button"].btn-accent:hover { background: #8fb0ca !important; }
+.cta-primary {
+  transition: background 0.2s ease, transform 0.15s ease;
+}
 
-.footer-link { transition: color 0.15s ease; }
-.footer-link:hover { color: rgba(255, 255, 255, 0.9) !important; }
+[data-slot='button']:hover {
+  background: var(--color-highlight) !important;
+  transform: scale(1.02);
+}
+
+[data-slot='button']:active {
+  transform: scale(0.98);
+}
+
+[data-slot='button'].btn-accent:hover {
+  background: var(--color-accent-hover) !important;
+}
+
+.footer-link {
+  transition: color 0.15s ease;
+}
+
+.footer-link:hover {
+  color: var(--color-ink) !important;
+}
 
 .showcase-card {
   transition: background 0.2s ease;
 }
+
 .showcase-card:hover {
-  background: #252220 !important;
+  background: var(--color-highlight) !important;
 }
 
 .section-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent 0%, rgba(122, 155, 181, 0.15) 50%, transparent 100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-accent-line) 50%,
+    transparent 100%
+  );
   max-width: 200px;
   margin: 0 auto;
 }
@@ -70,7 +166,7 @@ button { font-family: inherit; font-size: inherit; line-height: inherit; }
   font-weight: 400;
   line-height: 1.5;
   letter-spacing: -0.1px;
-  color: #90959e;
+  color: var(--color-ink-muted);
 }
 
 .text-body strong,
@@ -81,7 +177,7 @@ button { font-family: inherit; font-size: inherit; line-height: inherit; }
 .text-body a {
   font-weight: 600;
   text-decoration: none;
-  color: #7a9bb5;
+  color: var(--color-accent);
   transition: text-decoration 0.15s;
 }
 

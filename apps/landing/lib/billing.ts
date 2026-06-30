@@ -29,7 +29,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     summary: 'Five anchor apps',
     price: { monthly: '$9', yearly: '$90' },
     period: { monthly: '/mo', yearly: '/yr' },
-    accent: '#7a9bb5',
+    accent: 'var(--color-ink)',
     features: [
       'Tasks, Notes, Journal, Password Vault, Budget',
       'Local-first desktop experience',
@@ -45,7 +45,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     summary: 'All 21 apps',
     price: { monthly: '$19', yearly: '$180' },
     period: { monthly: '/mo', yearly: '/yr' },
-    accent: '#6ba5b0',
+    accent: 'var(--color-ink)',
     features: [
       'All 21 apps',
       'Supabase sync across devices',
@@ -62,7 +62,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     summary: 'Everything unlocked',
     price: { monthly: '$29', yearly: '$270' },
     period: { monthly: '/mo', yearly: '/yr' },
-    accent: '#8c7cc7',
+    accent: 'var(--color-ink)',
     features: [
       'All 21 apps',
       'Unlimited devices',

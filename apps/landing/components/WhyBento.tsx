@@ -30,7 +30,7 @@ export default function WhyBento() {
     <section
       id="why"
       style={{
-        background: `radial-gradient(ellipse 70% 50% at 30% 40%, rgba(122, 155, 181, 0.04) 0%, transparent 70%), ${tokens.bg}`,
+        background: 'var(--color-bg)',
         padding: tokens.sectionPad + ' 28px',
       }}
       aria-labelledby="why-heading"
@@ -99,7 +99,7 @@ export default function WhyBento() {
         }
         .why-item:hover {
           border-left-color: ${tokens.accent};
-          background: rgba(255,255,255,0.015);
+          background: var(--color-surface);
         }
         @media (max-width: 700px) {
           .why-grid { grid-template-columns: 1fr; gap: 0; }

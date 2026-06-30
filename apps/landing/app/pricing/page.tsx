@@ -266,8 +266,8 @@ export default async function PricingPage({
 
       <style>{`
         .pricing-page {
-          background: #131211;
-          color: #dce0e6;
+          background: var(--color-bg);
+          color: var(--color-ink);
           min-height: 100vh;
           line-height: 1.5;
           letter-spacing: -0.1px;
@@ -287,8 +287,8 @@ export default async function PricingPage({
         .pricing-page__alert {
           margin-bottom: 1.25rem;
           border-radius: 0.75rem;
-          background: rgba(122, 155, 181, 0.1);
-          color: #7a9bb5;
+          background: var(--color-accent-bg);
+          color: var(--color-accent);
           padding: 0.95rem 1rem;
           max-width: 760px;
           margin-inline: auto;
@@ -305,7 +305,7 @@ export default async function PricingPage({
           font-weight: 700;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: #7a9bb5;
+          color: var(--color-accent);
           margin-bottom: 1rem;
         }
 
@@ -314,13 +314,13 @@ export default async function PricingPage({
           line-height: 1.05;
           letter-spacing: -0.04em;
           margin: 0;
-          color: #dce0e6;
+          color: var(--color-ink);
         }
 
         .pricing-page__subtitle {
           font-size: 1.12rem;
           line-height: 1.7;
-          color: #90959e;
+          color: var(--color-ink-muted);
           max-width: 52ch;
           margin: 1.25rem auto 0;
         }
@@ -335,7 +335,7 @@ export default async function PricingPage({
 
         .pricing-page__billing-switch a {
           text-decoration: none;
-          color: #90959e;
+          color: var(--color-ink-muted);
           padding: 0.5rem 1rem;
           border-radius: 0.5rem;
           font-size: 0.9rem;
@@ -344,8 +344,8 @@ export default async function PricingPage({
         }
 
         .pricing-page__billing-switch a.is-active {
-          color: #dce0e6;
-          background: rgba(255,255,255,0.06);
+          color: var(--color-ink);
+          background: var(--color-highlight);
         }
 
         .pricing-page__plans,
@@ -366,7 +366,7 @@ export default async function PricingPage({
           margin: 0;
           font-size: clamp(1.6rem, 3vw, 2.2rem);
           letter-spacing: -0.03em;
-          color: #dce0e6;
+          color: var(--color-ink);
         }
 
         .pricing-page__plans-header p {
@@ -383,14 +383,14 @@ export default async function PricingPage({
         .pricing-page__card {
           border-radius: 1.5rem;
           padding: 12px 16px;
-          background: #1b1c1d;
+          background: var(--color-elevated);
           display: flex;
           flex-direction: column;
           min-height: 100%;
         }
 
         .pricing-page__card.is-selected {
-          background: #242527;
+          background: var(--color-highlight);
         }
 
         .pricing-page__card-top {
@@ -417,7 +417,7 @@ export default async function PricingPage({
           letter-spacing: 0.12em;
           text-transform: uppercase;
           color: var(--plan-accent);
-          background: color-mix(in srgb, var(--plan-accent) 15%, #1b1c1d);
+          background: var(--color-highlight);
           padding: 0.45rem 0.7rem;
           border-radius: 0.75rem;
           white-space: nowrap;
@@ -441,16 +441,16 @@ export default async function PricingPage({
           font-size: 2.4rem;
           font-weight: 700;
           letter-spacing: -0.05em;
-          color: #dce0e6;
+          color: var(--color-ink);
         }
 
         .pricing-page__period {
-          color: #90959e;
+          color: var(--color-ink-muted);
           font-weight: 700;
         }
 
         .pricing-page__summary {
-          color: #90959e;
+          color: var(--color-ink-muted);
           font-size: 0.95rem;
         }
 
@@ -487,8 +487,8 @@ export default async function PricingPage({
           border: none;
           border-radius: 0.75rem;
           padding: 0 18px;
-          background: #7a9bb5;
-          color: #131211;
+          background: var(--color-accent);
+          color: var(--color-bg);
           font-weight: 500;
           font-size: 0.875rem;
           height: 36px;
@@ -497,25 +497,25 @@ export default async function PricingPage({
         }
 
         .pricing-page__cta:hover:not(:disabled) {
-          background: #8fb0ca;
+          background: var(--color-accent-hover);
         }
 
         .pricing-page__cta:disabled {
           opacity: 0.5;
           cursor: not-allowed;
-          background: #7a9bb5;
-          color: #131211;
+          background: var(--color-accent);
+          color: var(--color-bg);
         }
 
         .pricing-page__card.is-current .pricing-page__cta {
-          background: #242527;
-          color: #90959e;
+          background: var(--color-highlight);
+          color: var(--color-ink-muted);
           cursor: default;
         }
 
         .pricing-page__card.is-current .pricing-page__cta:hover {
-          background: #242527 !important;
-          color: #90959e;
+          background: var(--color-highlight) !important;
+          color: var(--color-ink-muted);
         }
 
         .pricing-page__method-strip {
@@ -527,16 +527,16 @@ export default async function PricingPage({
         }
 
         .pricing-page__method-pill {
-          background: #242527;
+          background: var(--color-highlight);
           border-radius: 0.75rem;
           padding: 0.4rem 0.75rem;
           font-size: 0.8rem;
-          color: #90959e;
+          color: var(--color-ink-muted);
         }
 
         .pricing-page__note-card {
           border-radius: 1.5rem;
-          background: #1b1c1d;
+          background: var(--color-elevated);
           padding: 12px 16px;
           display: flex;
           align-items: center;
@@ -559,8 +559,8 @@ export default async function PricingPage({
           font-weight: 500;
           font-size: 0.875rem;
           height: 36px;
-          color: #131211;
-          background: #7a9bb5;
+          color: var(--color-bg);
+          background: var(--color-accent);
           white-space: nowrap;
           transition: background 0.2s ease, box-shadow 0.15s ease;
         }
