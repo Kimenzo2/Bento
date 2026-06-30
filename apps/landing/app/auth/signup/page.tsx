@@ -21,7 +21,6 @@ export default function SignupPage() {
   useEffect(() => {
     setSupabase(createClient());
   }, []);
-  const [error, setError] = useState<string | null>(null);
 
   async function handleGoogleSignup() {
     setLoading(true);
