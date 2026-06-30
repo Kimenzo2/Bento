@@ -10,6 +10,7 @@
   import { desktopSettings, updateDesktopSettings } from "$lib/desktop/settings";
   import { back, canGoBack, pushNav } from "$lib/stores/nav-history.store";
   import { moduleFromPath } from "$lib/desktop/modules";
+  import { updateStore, showUpdatePanel, getDismissedVersion } from "$lib/stores/update.store";
 
   type MenuAction = () => Promise<void> | void;
 
@@ -36,6 +37,11 @@
   const closeShortcut = $derived(isMac ? "" : "Alt+F4");
   const commandKey = $derived(isMac ? "⌘" : "Ctrl");
   const toggleLabel = $derived(isMaximized ? "Restore" : "Maximize");
+  const updateAvailable = $derived(
+    $updateStore.available &&
+    $updateStore.available.version !== getDismissedVersion()
+  );
+  const updateVersion = $derived($updateStore.available?.version ?? "");
 
   const contentClass =
     "data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 ring-foreground/10 bg-popover text-popover-foreground min-w-44 rounded-[1rem] p-1.5 shadow-xl ring-1 duration-100 data-[side=inline-start]:slide-in-from-right-2 data-[side=inline-end]:slide-in-from-left-2 z-[140] overflow-x-hidden overflow-y-auto outline-none";
@@ -117,6 +123,9 @@
     >
       <span class="window-shell__brand-mark">
         <HeaderWidgetIcon />
+        {#if updateAvailable}
+          <span class="window-shell__badge" aria-label="Update available"></span>
+        {/if}
       </span>
     </DropdownMenuTrigger>
 
@@ -169,6 +178,17 @@
       </DropdownMenuItem>
 
       <DropdownMenuSeparator class="window-shell__menu-separator" />
+
+      {#if updateAvailable}
+        <DropdownMenuItem class="window-shell__menu-item window-shell__menu-item--update" onclick={showUpdatePanel}>
+          <span class="window-shell__menu-item-label">
+            Update Available
+            <span class="window-shell__menu-item-version">{updateVersion}</span>
+          </span>
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator class="window-shell__menu-separator" />
+      {/if}
 
       <DropdownMenuItem class="window-shell__menu-item" onclick={showAbout}>
         <span class="window-shell__menu-item-label">About Bento</span>

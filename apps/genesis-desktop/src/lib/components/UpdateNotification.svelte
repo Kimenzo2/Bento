@@ -35,11 +35,12 @@
     setDownloadProgress,
     resetDownloadProgress,
     updateStore,
+    hideUpdatePanel,
+    setDismissedVersion,
   } from "$lib/stores/update.store";
 
   // ── Local UI state ─────────────────────────────────────────────────
   let errorMessage = $state("");
-  let dismissed = $state(false);
   let lastNativeNotificationVersion = $state("");
 
   // Chunk timing — mirrors Anytype's bytesPerSecond calculation
@@ -98,10 +99,9 @@
     );
   });
 
-  // Reset dismissed state when a new version arrives
+  // Reset error state when a new version arrives
   $effect(() => {
     if ($updateStore.available) {
-      dismissed = false;
       errorMessage = "";
     }
   });
@@ -152,16 +152,15 @@
     }
   }
 
-  // Dismiss — Anytype's "Later" button sets updateVersion to '' and sends updateCancel
+  // Dismiss — persists per version so the badge re-appears only for newer releases
   function dismiss() {
-    dismissed = true;
-    // Keep store available in case user changes mind via Settings
-    // (Anytype: S.Common.updateVersionSet('') + Renderer.send('updateCancel'))
+    const version = $updateStore.available?.version;
+    if (version) setDismissedVersion(version);
+    hideUpdatePanel();
   }
 
-  // Show again (e.g. from Settings ping — not implemented here but store is ready)
   const visible = $derived(
-    !dismissed && !!$updateStore.available && !$updateStore.checking
+    $updateStore.showPanel && !!$updateStore.available && !$updateStore.checking
   );
 </script>
 

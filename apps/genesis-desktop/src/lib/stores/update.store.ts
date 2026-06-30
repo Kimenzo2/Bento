@@ -1,4 +1,6 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
+
+const DISMISSED_KEY = 'bento:update:dismissed';
 
 export type UpdateState = {
   available: null | {
@@ -7,19 +9,18 @@ export type UpdateState = {
   };
   checking: boolean;
   installing: boolean;
-  // ── Download progress (mirrors Anytype's DownloadProgress shape) ──
-  // Anytype: { bytesPerSecond, percent, transferred, total }
-  // Tauri:   Started → contentLength, Progress → chunkLength (accumulated here)
-  downloadedBytes: number; // accumulated chunk bytes (transferred)
-  totalBytes: number; // from Tauri's Started event (total)
-  downloadPercent: number; // 0–100, computed
-  downloadSpeed: number; // bytes/sec, computed from timing
+  showPanel: boolean;
+  downloadedBytes: number;
+  totalBytes: number;
+  downloadPercent: number;
+  downloadSpeed: number;
 };
 
 export const updateStore = writable<UpdateState>({
   available: null,
   checking: false,
   installing: false,
+  showPanel: false,
   downloadedBytes: 0,
   totalBytes: 0,
   downloadPercent: 0,
@@ -38,7 +39,14 @@ export function setInstallingUpdate(installing: boolean) {
   updateStore.update((s) => ({ ...s, installing }));
 }
 
-// Called on Tauri's "Started" event — sets total content length
+export function showUpdatePanel() {
+  updateStore.update((s) => ({ ...s, showPanel: true }));
+}
+
+export function hideUpdatePanel() {
+  updateStore.update((s) => ({ ...s, showPanel: false }));
+}
+
 export function setDownloadTotal(totalBytes: number) {
   updateStore.update((s) => ({
     ...s,
@@ -49,13 +57,11 @@ export function setDownloadTotal(totalBytes: number) {
   }));
 }
 
-// Called on Tauri's "Progress" event — accumulates chunk, computes % and speed
 export function setDownloadProgress(chunkLength: number, elapsedMs: number) {
   updateStore.update((s) => {
     const downloaded = s.downloadedBytes + chunkLength;
     const percent =
       s.totalBytes > 0 ? Math.min(Math.round((downloaded / s.totalBytes) * 100), 100) : 0;
-    // speed = bytes downloaded this chunk / elapsed seconds for this chunk
     const speed = elapsedMs > 0 ? Math.round((chunkLength / elapsedMs) * 1000) : 0;
     return {
       ...s,
@@ -66,7 +72,6 @@ export function setDownloadProgress(chunkLength: number, elapsedMs: number) {
   });
 }
 
-// Legacy compat — still used in UpdateNotification for simple chunk tracking
 export function setDownloadedBytes(downloadedBytes: number) {
   updateStore.update((s) => ({ ...s, downloadedBytes }));
 }
@@ -79,4 +84,24 @@ export function resetDownloadProgress() {
     downloadPercent: 0,
     downloadSpeed: 0,
   }));
+}
+
+export function getDismissedVersion(): string | null {
+  try {
+    return localStorage.getItem(DISMISSED_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setDismissedVersion(version: string | null) {
+  try {
+    if (version) {
+      localStorage.setItem(DISMISSED_KEY, version);
+    } else {
+      localStorage.removeItem(DISMISSED_KEY);
+    }
+  } catch {
+    // localStorage unavailable — non-critical
+  }
 }

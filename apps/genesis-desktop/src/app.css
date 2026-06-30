@@ -1569,6 +1569,30 @@ body.sidebar-dragging * {
   height: 1.25rem;
   display: block;
   color: inherit;
+  position: relative;
+}
+
+.window-shell__badge {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--destructive, #e53e3e);
+  pointer-events: none;
+}
+
+.window-shell__menu-item--update {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.window-shell__menu-item-version {
+  font-weight: 400;
+  font-size: 0.75rem;
+  opacity: 0.65;
+  margin-left: 0.35rem;
 }
 
 .window-shell__aux-trigger {
