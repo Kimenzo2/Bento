@@ -443,7 +443,7 @@
     {#if activeId}
       {#key `${activeId}-${editorRev}`}
         {#if EditorComponent}
-          <svelte:component this={EditorComponent} objectId={activeId} onsaved={onEntrySaved} />
+          <EditorComponent objectId={activeId} onsaved={onEntrySaved} />
         {:else}
           <div class="editor-loading">
             <div class="spinner"></div>

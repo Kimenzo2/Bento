@@ -467,8 +467,7 @@
   <main class="notes-editor-pane">
     {#if activeId}
       {#if EditorComponent}
-        <svelte:component
-          this={EditorComponent}
+        <EditorComponent
           objectId={activeId}
           onTitleChange={(id: string, title: string) => {
             notes = notes.map(n => n.id === id ? { ...n, title, updatedAt: time.now() } : n);

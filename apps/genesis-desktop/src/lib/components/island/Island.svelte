@@ -8,6 +8,7 @@
   import { getIcon } from "./island-icons";
   import { loadBuiltinWidgets } from "./widgets/widget-config";
   import { widgetStore } from "$lib/stores/widget.store.svelte";
+  import { getLiveWidget, initWidgetData } from "$lib/stores/widget-data.svelte";
   import ModuleActive from "./ModuleActive.svelte";
 
   const layoutGridIcon = getIcon("layout-grid");
@@ -157,6 +158,7 @@
   onMount(() => {
     loadBuiltinWidgets();
     widgetStore.load();
+    initWidgetData();
     document.addEventListener("keydown", onKeydown);
     document.addEventListener("mousedown", onClickOutside);
     return () => {
@@ -212,8 +214,6 @@
                 {/if}
               </span>
             </div>
-        {:else}
-          <span class="compact-dot"></span>
         {/if}
       </div>
     {/if}
@@ -235,7 +235,7 @@
                 aria-controls="bento-panel-apps"
                 aria-label="Apps"
               >
-                <layoutGridIcon size={13} strokeWidth={1.8} />
+                <layoutGridIcon size={13} strokeWidth={1.8}></layoutGridIcon>
               </button>
               <button
                 class="tab-btn"
@@ -246,7 +246,7 @@
                 aria-controls="bento-panel-recent"
                 aria-label="Recent"
               >
-                <clockIcon size={13} strokeWidth={1.8} />
+                <clockIcon size={13} strokeWidth={1.8}></clockIcon>
               </button>
               <button
                 class="tab-btn"
@@ -257,7 +257,7 @@
                 aria-controls="bento-panel-widgets"
                 aria-label="Widgets"
               >
-                <layoutDashboardIcon size={13} strokeWidth={1.8} />
+                <layoutDashboardIcon size={13} strokeWidth={1.8}></layoutDashboardIcon>
               </button>
             </div>
           </div>
@@ -268,21 +268,21 @@
               onclick={toggleSearch}
               aria-label="Search widgets"
             >
-              <searchIcon size={14} strokeWidth={1.8} />
+              <searchIcon size={14} strokeWidth={1.8}></searchIcon>
             </button>
             <button
               class="close-btn"
               onclick={() => islandStore.collapse()}
               aria-label="Close"
             >
-              <xIcon size={14} strokeWidth={1.8} />
+              <xIcon size={14} strokeWidth={1.8}></xIcon>
             </button>
           </div>
         </div>
 
         {#if searchActive}
           <div class="search-active" in:fade={{ duration: 150 }}>
-            <searchIcon size={11} color="rgba(255,255,255,0.25)" strokeWidth={2} />
+            <searchIcon size={11} color="rgba(255,255,255,0.25)" strokeWidth={2}></searchIcon>
             <input
               class="search-active-input"
               type="text"
@@ -300,7 +300,7 @@
         {:else if islandStore.page === "apps"}
           <div class="w-grid" bind:this={appGridEl} onkeydown={handleGridKeydown} role="listbox" tabindex="-1">
             {#each islandStore.filteredItems as item (item.id)}
-              {@const w = item.widget}
+              {@const w = getLiveWidget(item.id) ?? item.widget}
               {@const ItemIcon = getIcon(item.icon)}
               <button
                 class="widget-card"
@@ -375,7 +375,7 @@
                   <span class="r-name">{item.name}</span>
                   <span class="r-tagline">{item.tagline}</span>
                 </div>
-                <chevronDownIcon size={11} color="rgba(255,255,255,0.2)" strokeWidth={2.2} class="r-arrow" />
+                <chevronDownIcon size={11} color="rgba(255,255,255,0.2)" strokeWidth={2.2} class="r-arrow"></chevronDownIcon>
               </button>
             {/each}
           </div>
@@ -584,14 +584,6 @@
   @keyframes live-pulse {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.3; transform: scale(0.7); }
-  }
-
-  .compact-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #5f61ed;
-    flex-shrink: 0;
   }
 
   .expanded-body {

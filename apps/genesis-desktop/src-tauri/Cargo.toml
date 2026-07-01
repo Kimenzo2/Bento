@@ -1,6 +1,6 @@
 [package]
 name = "bento-desktop"
-version = "0.1.5"
+version = "0.1.7"
 description = "Bento Desktop application"
 authors = ["Lorenzo Otieno"]
 edition = "2021"
@@ -111,7 +111,9 @@ tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 
 [target."cfg(windows)".dependencies.windows-sys]
 version = "0.52"
-features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"]
+features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse"]
+
+
 
 # ---------------------------------------------------------------------------
 # Profiles

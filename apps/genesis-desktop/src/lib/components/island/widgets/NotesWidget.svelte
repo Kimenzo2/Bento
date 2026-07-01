@@ -109,7 +109,7 @@
     }}
     aria-label={isEditing ? "Save notes" : "Edit notes"}
     >
-      <notesHeaderIcon size={14} strokeWidth={1.8} />
+      <notesHeaderIcon size={14} strokeWidth={1.8}></notesHeaderIcon>
     </button>
   {/snippet}
 

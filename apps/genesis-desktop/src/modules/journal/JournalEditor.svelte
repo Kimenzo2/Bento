@@ -617,7 +617,7 @@
             class:je-slash-item--active={i === slashMenuIndex}
             onclick={() => handleSlashSelect(cmd)}
           >
-            <span class="je-slash-icon"><svelte:component this={cmd.icon} size={15} /></span>
+            <span class="je-slash-icon"><cmd.icon size={15} /></span>
             <span>{cmd.label}</span>
           </button>
         {/each}

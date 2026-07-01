@@ -1338,14 +1338,14 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
     }
   }
 
-  function getEmptyIcon() {
+  const emptyIconComponent = $derived.by(() => {
     switch (viewFilter) {
       case 'inbox': return Inbox;
       case 'today': return Calendar;
       case 'overdue': return CheckSquare;
       default: return ListTodo;
     }
-  }
+  });
 
   function openContextMenu(e: MouseEvent, taskId: string) {
     contextMenuX = e.clientX;
@@ -1865,7 +1865,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
           class:active={viewFilter === item.id}
           onclick={() => openSidebarView(item.id)}
         >
-          <svelte:component this={item.icon} class="tasks-sidebar-item-icon" size={16} />
+          <item.icon class="tasks-sidebar-item-icon" size={16} />
           <span>{item.label}</span>
           {#if item.count !== null && item.count > 0}
             <span class="tasks-sidebar-badge">{item.count}</span>
@@ -1993,7 +1993,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
     <div class="tasks-list-scroll" role="list">
       {#if visibleTasks.length === 0}
         <div class="tasks-empty">
-          <svelte:component this={getEmptyIcon()} class="tasks-empty-icon" size={36} />
+          <svelte:component this={emptyIconComponent} class="tasks-empty-icon" size={36} />
           <p class="tasks-empty-text">{getEmptyText()}</p>
         </div>
       {:else}

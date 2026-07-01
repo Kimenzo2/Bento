@@ -122,7 +122,7 @@
   {#snippet headerActions()}
     {#if !showAdd}
       <button onclick={() => { showAdd = true; requestAnimationFrame(() => addInputEl?.focus()); }} aria-label="Add session">
-        <sessionPlusIcon size={14} strokeWidth={1.8} />
+        <sessionPlusIcon size={14} strokeWidth={1.8}></sessionPlusIcon>
       </button>
     {/if}
   {/snippet}
@@ -139,7 +139,7 @@
       />
       <div class="session-add-actions">
         <button class="add-btn" onclick={startSession}>
-          <sessionPlayIcon size={12} strokeWidth={2.5} />
+          <sessionPlayIcon size={12} strokeWidth={2.5}></sessionPlayIcon>
           Start
         </button>
         <button class="cancel-btn" onclick={() => { showAdd = false; newName = ""; }}>Cancel</button>
@@ -155,14 +155,14 @@
       {#each active as session (session.id)}
         <div class="session-row session-row--active" in:slide={{ duration: 200 }} out:slide={{ duration: 150 }}>
           <div class="session-icon">
-            <activityIcon size={16} strokeWidth={1.6} />
+            <activityIcon size={16} strokeWidth={1.6}></activityIcon>
           </div>
           <div class="session-info">
             <div class="session-time">{fmtTime(elapsed[session.id] || 0)}</div>
             <div class="session-name">{session.name}</div>
           </div>
           <button class="action-btn stop-btn" onclick={() => stopSession(session.id)} aria-label="Stop session">
-            <squareIcon size={13} strokeWidth={2.5} />
+            <squareIcon size={13} strokeWidth={2.5}></squareIcon>
           </button>
         </div>
       {/each}
@@ -174,7 +174,7 @@
       {#each completed.slice(0, 5) as session (session.id)}
         <div class="session-row session-row--completed" in:slide={{ duration: 200 }} out:slide={{ duration: 150 }}>
           <div class="session-icon dim">
-            <activityIcon size={16} strokeWidth={1.6} />
+            <activityIcon size={16} strokeWidth={1.6}></activityIcon>
           </div>
           <div class="session-info">
             <div class="session-time dim">{session.duration}</div>

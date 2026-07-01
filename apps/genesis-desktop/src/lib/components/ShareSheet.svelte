@@ -122,7 +122,7 @@
         {@const fmt = formatLabels[format]}
         <div class="flex items-center gap-2 rounded-xl border border-border/60 bg-surface/50 p-1">
           <div class="flex flex-1 items-center gap-2 px-2">
-            <svelte:component this={fmt.icon} size={14} class="text-muted-foreground shrink-0" />
+            <fmt.icon size={14} class="text-muted-foreground shrink-0" />
             <span class="text-xs font-medium">{fmt.name}</span>
             <span class="text-[10px] text-muted-foreground">.{fmt.extension}</span>
           </div>

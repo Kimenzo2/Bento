@@ -29,7 +29,7 @@
     return () => clearInterval(interval);
   });
 
-  function formatClock(seconds: number): string {
+  function formatTime(seconds: number): string {
     const s = Math.max(0, seconds);
     const m = Math.floor(s / 60);
     const sec = s % 60;

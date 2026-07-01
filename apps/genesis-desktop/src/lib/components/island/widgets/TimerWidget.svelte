@@ -187,7 +187,7 @@
   {#snippet headerActions()}
     {#if !showAdd}
       <button onclick={() => showAdd = true} aria-label="Add timer" title="Add timer">
-        <timerPlusIcon size={14} strokeWidth={1.8} />
+        <timerPlusIcon size={14} strokeWidth={1.8}></timerPlusIcon>
       </button>
     {/if}
   {/snippet}
@@ -221,7 +221,7 @@
         {/each}
       </div>
       <button class="start-timer-btn" onclick={() => addTimer(newMinutes * 60)}>
-        <timerPlayIcon size={12} strokeWidth={2.5} />
+        <timerPlayIcon size={12} strokeWidth={2.5}></timerPlayIcon>
         Start Timer
       </button>
     </div>
@@ -251,11 +251,11 @@
             </svg>
             <div class="ring-icon">
               {#if timer.remaining <= 0}
-                <checkIcon size={14} color="rgba(255,69,58,0.6)" strokeWidth={2.5} />
+                <checkIcon size={14} color="rgba(255,69,58,0.6)" strokeWidth={2.5}></checkIcon>
               {:else if timer.isRunning}
-                <pauseIcon size={14} color="rgba(255,255,255,0.3)" strokeWidth={2.5} />
+                <pauseIcon size={14} color="rgba(255,255,255,0.3)" strokeWidth={2.5}></pauseIcon>
               {:else}
-                <timerPlayIcon size={14} color="rgba(255,255,255,0.3)" strokeWidth={2.5} />
+                <timerPlayIcon size={14} color="rgba(255,255,255,0.3)" strokeWidth={2.5}></timerPlayIcon>
               {/if}
             </div>
           </div>
@@ -265,10 +265,10 @@
           </div>
           <div class="timer-actions">
             <button class="t-action-btn" onclick={() => resetTimer(timer.id)} aria-label="Reset" title="Reset">
-              <refreshIcon size={13} strokeWidth={1.8} />
+              <refreshIcon size={13} strokeWidth={1.8}></refreshIcon>
             </button>
             <button class="t-action-btn danger" onclick={() => removeTimer(timer.id)} aria-label="Delete" title="Delete">
-              <trashIcon size={13} strokeWidth={1.8} />
+              <trashIcon size={13} strokeWidth={1.8}></trashIcon>
             </button>
           </div>
         </div>

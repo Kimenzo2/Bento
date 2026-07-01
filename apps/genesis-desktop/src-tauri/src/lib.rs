@@ -18,6 +18,7 @@ pub mod island;
 pub mod local_store;
 pub mod mcp;
 pub mod meal_db;
+pub mod media_player;
 pub mod modules;
 pub mod mood;
 pub mod notes;
@@ -305,6 +306,10 @@ pub fn run() {
         if let Err(e) = crate::island::setup_island_window(app) {
             eprintln!("[island] failed to setup island window: {e}");
         }
+
+        // ── Media player audio state ────────────────────────────────
+        crate::media_player::init_audio_state();
+        crate::media_player::setup_audio_monitoring(app.handle().clone());
 
         // ── Global shortcut: Ctrl+Shift+I → toggle island ──
         {
@@ -611,6 +616,14 @@ pub fn run() {
             crate::audio::retry_recording,
             crate::audio::check_microphone_permission,
             crate::audio::transcribe_recording,
+            // Media player
+            crate::media_player::get_now_playing,
+            crate::media_player::get_audio_levels,
+            crate::media_player::media_play_pause,
+            crate::media_player::media_next_track,
+            crate::media_player::media_previous_track,
+            crate::media_player::media_seek,
+            crate::media_player::activate_media_app,
             // Scheduler
             crate::scheduler::create_schedule,
             crate::scheduler::update_schedule,
