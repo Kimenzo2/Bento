@@ -1,9 +1,16 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
 
 const COMPACT_W: f64 = 260.0;
 const COMPACT_H: f64 = 40.0;
 const EXPANDED_W: f64 = 320.0;
-const EXPANDED_H: f64 = 480.0;
+
+/// Tracks whether the frontend island is currently expanded.
+/// Used by the mouse monitor to compute the correct hit bounds
+/// (compact: 260×40 centered in the 320×480 window).
+#[cfg(target_os = "windows")]
+static ISLAND_EXPANDED: AtomicBool = AtomicBool::new(false);
 
 /// Cursor polling interval in milliseconds (~30 fps).
 const POLL_MS: u64 = 33;
@@ -97,12 +104,23 @@ fn start_mouse_monitor(app: AppHandle) {
             let win_w = size.width as f64;
             let win_h = size.height as f64;
 
+            // The window is always at the expanded size (320×480).
+            // When the island is compact (260×40) we narrow the hit area
+            // to the centermost 260×40 region of the window.
+            let (island_w, island_h) = if ISLAND_EXPANDED.load(Ordering::Relaxed) {
+                (win_w, win_h)
+            } else {
+                (COMPACT_W, COMPACT_H)
+            };
+            let island_x = win_x + (win_w - island_w) / 2.0;
+            let island_y = win_y;
+
             let margin = if was_inside { EXIT_MARGIN } else { ENTER_MARGIN };
 
-            let inside = pt.x as f64 >= win_x - margin
-                && pt.x as f64 <= win_x + win_w + margin
-                && pt.y as f64 >= win_y - margin
-                && pt.y as f64 <= win_y + win_h + margin;
+            let inside = pt.x as f64 >= island_x - margin
+                && pt.x as f64 <= island_x + island_w + margin
+                && pt.y as f64 >= island_y - margin
+                && pt.y as f64 <= island_y + island_h + margin;
 
             if inside != was_inside {
                 was_inside = inside;
@@ -167,9 +185,9 @@ pub fn setup_island_window(app: &tauri::App) -> Result<(), Box<dyn std::error::E
         eprintln!("[island] window.show() failed: {e}");
     }
 
-    // Position AFTER show() — outer_size() may return 0 before the window is mapped.
-    // Use the known compact width directly to avoid relying on window geometry.
-    position_top_center_initial(&window).unwrap_or_else(|e| {
+    // Position at expanded size (the window never resizes — the frontend
+    // island div animates between compact/expanded via CSS transitions).
+    position_top_center_expanded(&window).unwrap_or_else(|e| {
         eprintln!("[island] position_top_center failed: {e}");
     });
 
@@ -215,15 +233,15 @@ pub fn position_top_center(window: &WebviewWindow) -> Result<(), Box<dyn std::er
     Ok(())
 }
 
-/// Initial positioning using the known compact width.
-/// outer_size() can return 0 before the window is shown.
-fn position_top_center_initial(window: &WebviewWindow) -> Result<(), Box<dyn std::error::Error>> {
+/// Position the window at the expanded size (window never resizes after startup).
+/// The frontend island div animates between compact/expanded via CSS transitions.
+fn position_top_center_expanded(window: &WebviewWindow) -> Result<(), Box<dyn std::error::Error>> {
     let Some(monitor) = window.app_handle().primary_monitor()? else {
         return Err("no primary monitor found".into());
     };
 
     let physical_screen_w = monitor.size().width as i32;
-    let physical_w = (COMPACT_W * monitor.scale_factor()) as i32;
+    let physical_w = (EXPANDED_W * monitor.scale_factor()) as i32;
     let x = ((physical_screen_w - physical_w) / 2).max(0);
     window.set_position(tauri::Position::Physical(tauri::PhysicalPosition { x, y: 0 }))?;
     Ok(())
@@ -276,29 +294,16 @@ pub fn island_set_ignore_cursor_events(window: tauri::WebviewWindow, ignore: boo
 }
 
 #[tauri::command]
-pub fn island_compact(window: tauri::WebviewWindow) -> Result<(), String> {
-    if window.label() == "island" {
-        window
-            .set_size(tauri::Size::Logical(tauri::LogicalSize {
-                width: COMPACT_W,
-                height: COMPACT_H,
-            }))
-            .map_err(|e| e.to_string())?;
-        window.set_resizable(false).map_err(|e| e.to_string())?;
-    }
+pub fn island_compact() -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    ISLAND_EXPANDED.store(false, Ordering::SeqCst);
     Ok(())
 }
 
 #[tauri::command]
-pub fn island_expand(window: tauri::WebviewWindow) -> Result<(), String> {
-    if window.label() == "island" {
-        window
-            .set_size(tauri::Size::Logical(tauri::LogicalSize {
-                width: EXPANDED_W,
-                height: EXPANDED_H,
-            }))
-            .map_err(|e| e.to_string())?;
-    }
+pub fn island_expand() -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    ISLAND_EXPANDED.store(true, Ordering::SeqCst);
     Ok(())
 }
 
@@ -329,14 +334,10 @@ pub fn set_island_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
     };
 
     if enabled {
-        // Reset to compact size before show — if the window was hidden while
-        // expanded, outer_size() would still reflect the expanded dimensions.
-        window
-            .set_size(tauri::Size::Logical(tauri::LogicalSize {
-                width: COMPACT_W,
-                height: COMPACT_H,
-            }))
-            .map_err(|e| e.to_string())?;
+        // Window stays at expanded size — the frontend island div animates
+        // between compact/expanded via CSS transitions.
+        #[cfg(target_os = "windows")]
+        ISLAND_EXPANDED.store(false, Ordering::SeqCst);
 
         // Restore transparent background (idempotent).
         if let Err(e) = window.set_background_color(Some(tauri::webview::Color(0, 0, 0, 0))) {
@@ -356,7 +357,10 @@ pub fn set_island_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
         // click-through ON within the next poll cycle if the cursor is outside.
         // macOS: default per-pixel hit-testing is correct; no override needed.
         #[cfg(target_os = "windows")]
-        let _ = window.set_ignore_cursor_events(false);
+        {
+            let _ = window.set_ignore_cursor_events(false);
+            start_mouse_monitor(app.clone());
+        }
     } else {
         window.hide().map_err(|e| e.to_string())?;
     }

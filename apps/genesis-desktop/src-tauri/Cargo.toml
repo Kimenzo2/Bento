@@ -1,6 +1,6 @@
 [package]
 name = "bento-desktop"
-version = "0.1.4"
+version = "0.1.5"
 description = "Bento Desktop application"
 authors = ["Lorenzo Otieno"]
 edition = "2021"

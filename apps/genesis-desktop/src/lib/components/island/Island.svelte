@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { fade } from "svelte/transition";
+  import { cubicIn, cubicOut } from "svelte/easing";
   import { islandStore } from "$lib/stores/island.store.svelte";
   import type { IslandItem } from "$lib/data/island-catalog";
   import { getIcon } from "./island-icons";
@@ -9,8 +11,6 @@
     handleQuickAction?: (action: string) => void;
   } = $props();
 
-  let isReady = $state(false);
-  let reducedMotion = $state(false);
   let appGridEl = $state<HTMLElement | null>(null);
 
   function onLaunch(item: IslandItem) {
@@ -52,8 +52,6 @@
   }
 
   onMount(() => {
-    reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    requestAnimationFrame(() => (isReady = true));
     document.addEventListener("keydown", onKeydown);
     document.addEventListener("mousedown", onClickOutside);
     return () => {
@@ -71,14 +69,13 @@
     class="island"
     class:island--compact={islandStore.mode === "compact"}
     class:island--expanded={islandStore.mode === "expanded"}
-    class:island--ready={isReady}
-    class:island--reduced={reducedMotion}
     role="button"
     tabindex="0"
     onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); islandStore.toggle(); }}}
   >
     {#if islandStore.mode === "compact"}
-      <div class="compact-body" onclick={() => islandStore.expand()} role="button" tabindex="0" aria-label="Expand Bento launcher" onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); islandStore.expand(); }}}>
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="compact-body" in:fade={{ duration: 350, easing: cubicOut }} out:fade={{ duration: 120 }} onclick={() => islandStore.expand()} role="button" tabindex="0" aria-label="Expand Bento launcher" onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); islandStore.expand(); }}}>
         <div class="compact-brand">
           <svelte:component this={getIcon("layout-grid")} size={14} color="rgba(255,255,255,0.7)" strokeWidth={2.2} />
         </div>
@@ -86,11 +83,12 @@
           <span class="compact-text">Bento</span>
         </div>
         <div class="compact-chevron">
-          <svelte:component this={getIcon("chevron-down")} size={10} color="rgba(255,255,255,0.25)" strokeWidth={2.2} />
+          <svelte:component this={getIcon("chevron-down")} size={10} color="rgba(255,255,255,0.3)" strokeWidth={2.2} />
         </div>
       </div>
-    {:else}
-      <div class="expanded-body">
+    {/if}
+    {#if islandStore.mode === "expanded"}
+      <div class="expanded-body" in:fade={{ duration: 300, easing: cubicOut, delay: 80 }} out:fade={{ duration: 120 }}>
         <div class="expanded-header">
           <div class="header-tabs">
             <div class="tab-track">
@@ -120,13 +118,13 @@
             onclick={() => islandStore.collapse()}
             aria-label="Close island"
           >
-            <svelte:component this={getIcon("x")} size={14} color="rgba(255,255,255,0.4)" strokeWidth={2} />
+            <svelte:component this={getIcon("x")} size={14} color="rgba(255,255,255,0.5)" strokeWidth={2} />
           </button>
         </div>
 
         {#if islandStore.page === "apps"}
           <div class="search-bar">
-            <svelte:component this={getIcon("search")} size={12} color="rgba(255,255,255,0.3)" strokeWidth={2} />
+            <svelte:component this={getIcon("search")} size={12} color="rgba(255,255,255,0.35)" strokeWidth={2} />
             <input
               class="search-input"
               type="text"
@@ -145,7 +143,7 @@
                 role="option"
                 aria-selected={islandStore.selectedItemId === item.id}
               >
-                <div class="app-icon" style="background: {item.accentColor}15; color: {item.accentColor}">
+                <div class="app-icon" style="background: {item.accentColor}12; color: {item.accentColor}">
                   <svelte:component this={getIcon(item.icon)} size={18} strokeWidth={1.8} />
                 </div>
                 <div class="app-name">{item.name}</div>
@@ -173,14 +171,14 @@
           <div class="recent-list">
             {#each islandStore.recentItems as item (item.id)}
               <button class="recent-item" onclick={() => onLaunch(item)}>
-                <div class="app-icon app-icon--sm" style="background: {item.accentColor}15; color: {item.accentColor}">
+                <div class="app-icon app-icon--sm" style="background: {item.accentColor}12; color: {item.accentColor}">
                   <svelte:component this={getIcon(item.icon)} size={14} strokeWidth={2} />
                 </div>
                 <div class="recent-info">
                   <div class="recent-name">{item.name}</div>
                   <div class="recent-tagline">{item.tagline}</div>
                 </div>
-                <svelte:component this={getIcon("chevron-down")} size={12} color="rgba(255,255,255,0.2)" strokeWidth={2} class="recent-arrow" />
+                <svelte:component this={getIcon("chevron-down")} size={12} color="rgba(255,255,255,0.25)" strokeWidth={2.2} class="recent-arrow" />
               </button>
             {/each}
           </div>
@@ -208,8 +206,8 @@
   }
 
   :focus-visible {
-    outline: 1px solid rgba(255, 255, 255, 0.3);
-    outline-offset: 1px;
+    outline: 1px solid rgba(255, 255, 255, 0.35);
+    outline-offset: 2px;
   }
 
   .island-overlay {
@@ -233,29 +231,35 @@
 
   .island {
     position: relative;
-    background: black;
+    background: #070707;
     border-radius: 0 0 20px 20px;
     overflow: visible;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 0.5px solid rgba(255, 255, 255, 0.10);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-    color: white;
-    opacity: 0;
-    transform: translateY(-4px) scale(0.97) translateZ(0);
-    will-change: transform, opacity;
-    isolation: isolate;
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.85);
+    transition:
+      width 0.55s cubic-bezier(0.34, 1.3, 0.64, 1),
+      height 0.55s cubic-bezier(0.34, 1.3, 0.64, 1);
   }
 
-  .island--reduced {
-    transition: none;
-    opacity: 1;
-    transform: none;
+  @supports (animation-timing-function: linear(0, 1)) {
+    .island {
+      transition:
+        width 0.55s linear(0, 0.09 10%, 0.26 20%, 0.5 33%, 0.74 46%, 0.9 58%, 1.02 76%, 1 88%, 1),
+        height 0.55s linear(0, 0.09 10%, 0.26 20%, 0.5 33%, 0.74 46%, 0.9 58%, 1.02 76%, 1 88%, 1);
+    }
   }
 
-  :not(.island--reduced) > .island {
-    transition: opacity 0.2s ease-out, transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+  @media (prefers-reduced-motion: reduce) {
+    .island {
+      transition: none;
+    }
+    .compact-body,
+    .expanded-body {
+      animation: none;
+    }
   }
 
   .island::before {
@@ -267,7 +271,7 @@
     height: 6px;
     z-index: 10;
     pointer-events: none;
-    background: radial-gradient(circle at 0 100%, transparent 6px, black 6px);
+    background: radial-gradient(circle at 0 100%, transparent 6px, #070707 6px);
   }
 
   .island::after {
@@ -279,12 +283,7 @@
     height: 6px;
     z-index: 10;
     pointer-events: none;
-    background: radial-gradient(circle at 100% 100%, transparent 6px, black 6px);
-  }
-
-  .island--ready {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+    background: radial-gradient(circle at 100% 100%, transparent 6px, #070707 6px);
   }
 
   .island--compact {
@@ -294,14 +293,16 @@
   }
 
   .island--compact:hover {
-    border-color: rgba(255, 255, 255, 0.16);
-    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.55);
-    backface-visibility: hidden;
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .island--compact:active {
+    background: #0a0a0a;
   }
 
   .island--expanded {
     width: 320px;
-    max-height: min(90vh - 24px, 520px);
+    height: 480px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -311,7 +312,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0 12px;
+    padding: 0 14px;
     height: 100%;
     width: 100%;
   }
@@ -323,7 +324,7 @@
     width: 22px;
     height: 22px;
     border-radius: 6px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.06);
     flex-shrink: 0;
   }
 
@@ -336,14 +337,13 @@
     font-size: 12px;
     font-weight: 500;
     letter-spacing: -0.01em;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.55);
   }
 
   .compact-chevron {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.2s ease;
   }
 
   .expanded-body {
@@ -356,8 +356,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 12px 6px;
-    position: relative;
+    padding: 10px 12px 8px;
   }
 
   .header-tabs {
@@ -368,11 +367,11 @@
   .tab-track {
     position: relative;
     display: flex;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.06);
     border-radius: 18px;
     padding: 2px;
-    height: 30px;
-    width: 64px;
+    height: 28px;
+    width: 60px;
   }
 
   .tab-indicator {
@@ -381,10 +380,8 @@
     left: 2px;
     width: calc(50% - 2px);
     height: calc(100% - 4px);
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.12);
     border-radius: 16px;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: transform;
   }
 
   .tab-btn {
@@ -397,12 +394,11 @@
     border: none;
     background: transparent;
     color: rgba(255, 255, 255, 0.4);
-    transition: color 0.2s ease;
     padding: 0;
   }
 
   .tab-btn--active {
-    color: white;
+    color: rgba(255, 255, 255, 0.9);
   }
 
   .header-spacer {
@@ -414,36 +410,39 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.06);
-    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: transparent;
+    border: 0.5px solid rgba(255, 255, 255, 0.06);
     cursor: pointer;
-    transition: all 0.15s ease;
     color: rgba(255, 255, 255, 0.4);
   }
 
   .close-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
     color: rgba(255, 255, 255, 0.75);
+  }
+
+  .close-btn:active {
+    background: rgba(255, 255, 255, 0.12);
   }
 
   .search-bar {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin: 8px 12px;
-    padding: 6px 10px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
-    transition: all 0.2s ease;
+    margin: 4px 12px 8px;
+    padding: 7px 10px;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 0.5px solid rgba(255, 255, 255, 0.06);
   }
 
   .search-bar:focus-within {
     border-color: rgba(255, 255, 255, 0.14);
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.06);
   }
 
   .search-input {
@@ -457,14 +456,14 @@
   }
 
   .search-input::placeholder {
-    color: rgba(255, 255, 255, 0.25);
+    color: rgba(255, 255, 255, 0.2);
   }
 
   .app-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-    padding: 4px 12px 12px;
+    gap: 4px;
+    padding: 0 10px 12px;
     overflow-y: auto;
     max-height: 320px;
   }
@@ -473,27 +472,25 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px;
-    padding: 8px 4px 6px;
+    gap: 6px;
+    padding: 10px 4px 8px;
     border-radius: 10px;
     background: transparent;
     border: none;
     color: rgba(255, 255, 255, 0.7);
     cursor: pointer;
-    will-change: transform;
-  }
-
-  :not(.island--reduced) > .expanded-body .app-card {
-    transition: all 0.15s cubic-bezier(0.32, 0.72, 0, 1);
   }
 
   .app-card:hover {
-    background: rgba(255, 255, 255, 0.06);
-    transform: scale(1.04);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .app-card:active {
+    background: rgba(255, 255, 255, 0.08);
   }
 
   .app-card--selected {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.06);
   }
 
   .app-icon {
@@ -517,7 +514,7 @@
     letter-spacing: -0.01em;
     text-align: center;
     line-height: 1.2;
-    color: rgba(255, 255, 255, 0.55);
+    color: rgba(255, 255, 255, 0.5);
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -526,7 +523,7 @@
 
   .quick-actions {
     border-top: 0.5px solid rgba(255, 255, 255, 0.06);
-    padding: 8px 12px 10px;
+    padding: 10px 12px 10px;
   }
 
   .qa-label {
@@ -534,8 +531,8 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: rgba(255, 255, 255, 0.25);
-    margin-bottom: 6px;
+    color: rgba(255, 255, 255, 0.2);
+    margin-bottom: 8px;
   }
 
   .qa-grid {
@@ -547,50 +544,56 @@
   .qa-btn {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 5px 10px;
+    gap: 6px;
+    padding: 6px 10px;
     border-radius: 8px;
     font-size: 11px;
     font-weight: 500;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.04);
     border: 0.5px solid rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.65);
+    color: rgba(255, 255, 255, 0.6);
     cursor: pointer;
-    transition: all 0.15s ease;
     font-family: inherit;
   }
 
   .qa-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
     color: rgba(255, 255, 255, 0.85);
+  }
+
+  .qa-btn:active {
+    background: rgba(255, 255, 255, 0.12);
   }
 
   .recent-list {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    padding: 6px 8px 10px;
+    padding: 4px 8px 10px;
   }
 
   .recent-item {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 7px 8px;
+    padding: 8px 8px;
     border-radius: 10px;
     background: transparent;
     border: none;
     color: rgba(255, 255, 255, 0.7);
     cursor: pointer;
-    transition: all 0.15s ease;
     text-align: left;
     width: 100%;
     font-family: inherit;
   }
 
   .recent-item:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .recent-item:active {
+    background: rgba(255, 255, 255, 0.08);
   }
 
   .recent-info {

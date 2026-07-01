@@ -49,49 +49,23 @@ const QUICK_ACTIONS: Record<string, IslandAction[]> = {
     { label: "Log Water", icon: "droplets", action: "open:/apps/nutrition?water" },
     { label: "Log Meal", icon: "utensils", action: "open:/apps/nutrition?meal" },
   ],
-  mood: [
-    { label: "Check-in", icon: "smile", action: "open:/apps/mood" },
-  ],
+  mood: [{ label: "Check-in", icon: "smile", action: "open:/apps/mood" }],
   goals: [
     { label: "New Goal", icon: "flag", action: "open:/apps/goals?new" },
     { label: "Progress", icon: "trending-up", action: "open:/apps/goals" },
   ],
-  passwords: [
-    { label: "Search Vault", icon: "search", action: "open:/apps/passwords" },
-  ],
-  "voice-memos": [
-    { label: "Record", icon: "mic", action: "open:/apps/voice-memos?record" },
-  ],
-  countdown: [
-    { label: "New Event", icon: "plus", action: "open:/apps/countdown?new" },
-  ],
-  grocery: [
-    { label: "New Item", icon: "plus", action: "open:/apps/grocery?new" },
-  ],
-  recipes: [
-    { label: "Cook Mode", icon: "utensils-crossed", action: "open:/apps/recipes?cook" },
-  ],
-  time: [
-    { label: "Start Timer", icon: "clock", action: "open:/apps/time" },
-  ],
-  flashcards: [
-    { label: "Review Due", icon: "brain", action: "open:/apps/flashcards?due" },
-  ],
-  clipboard: [
-    { label: "History", icon: "clipboard-list", action: "open:/apps/clipboard" },
-  ],
-  breathing: [
-    { label: "Breathe", icon: "wind", action: "open:/apps/breathing" },
-  ],
-  telemetry: [
-    { label: "Dashboard", icon: "gauge", action: "open:/apps/telemetry" },
-  ],
-  notes: [
-    { label: "New Note", icon: "file-plus", action: "open:/notes?new" },
-  ],
-  ai: [
-    { label: "New Chat", icon: "message-square", action: "open:/visual-studio" },
-  ],
+  passwords: [{ label: "Search Vault", icon: "search", action: "open:/apps/passwords" }],
+  "voice-memos": [{ label: "Record", icon: "mic", action: "open:/apps/voice-memos?record" }],
+  countdown: [{ label: "New Event", icon: "plus", action: "open:/apps/countdown?new" }],
+  grocery: [{ label: "New Item", icon: "plus", action: "open:/apps/grocery?new" }],
+  recipes: [{ label: "Cook Mode", icon: "utensils-crossed", action: "open:/apps/recipes?cook" }],
+  time: [{ label: "Start Timer", icon: "clock", action: "open:/apps/time" }],
+  flashcards: [{ label: "Review Due", icon: "brain", action: "open:/apps/flashcards?due" }],
+  clipboard: [{ label: "History", icon: "clipboard-list", action: "open:/apps/clipboard" }],
+  breathing: [{ label: "Breathe", icon: "wind", action: "open:/apps/breathing" }],
+  telemetry: [{ label: "Dashboard", icon: "gauge", action: "open:/apps/telemetry" }],
+  notes: [{ label: "New Note", icon: "file-plus", action: "open:/notes?new" }],
+  ai: [{ label: "New Chat", icon: "message-square", action: "open:/visual-studio" }],
 };
 
 export const islandItems: IslandItem[] = moduleCatalog

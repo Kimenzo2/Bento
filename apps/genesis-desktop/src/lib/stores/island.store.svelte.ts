@@ -48,9 +48,7 @@ class IslandStore {
 
   private loadRecent(): IslandItem[] {
     const stored =
-      typeof localStorage !== "undefined"
-        ? localStorage.getItem("bento:island:recent")
-        : null;
+      typeof localStorage !== "undefined" ? localStorage.getItem("bento:island:recent") : null;
     if (!stored) return islandItems.slice(0, 4);
     try {
       const ids = JSON.parse(stored) as string[];
@@ -79,7 +77,7 @@ class IslandStore {
       (item) =>
         item.name.toLowerCase().includes(q) ||
         item.tagline.toLowerCase().includes(q) ||
-        item.id.toLowerCase().includes(q)
+        item.id.toLowerCase().includes(q),
     );
   }
 
