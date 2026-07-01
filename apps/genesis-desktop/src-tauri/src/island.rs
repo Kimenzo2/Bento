@@ -4,7 +4,7 @@ use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
 
 const COMPACT_W: f64 = 260.0;
 const COMPACT_H: f64 = 40.0;
-const EXPANDED_W: f64 = 320.0;
+const EXPANDED_W: f64 = 560.0;
 
 /// Tracks whether the frontend island is currently expanded.
 /// Used by the mouse monitor to compute the correct hit bounds
@@ -180,16 +180,16 @@ pub fn setup_island_window(app: &tauri::App) -> Result<(), Box<dyn std::error::E
         let _ = window.eval("document.body.style.background='transparent'");
     }
 
-    // Show after fully configured — avoids DWM compositor crash on Windows
+    // Position before show() so the window appears at the correct
+    // top-center position on first paint — no wrong-position glitch.
+    position_top_center_expanded(&window).unwrap_or_else(|e| {
+        eprintln!("[island] position_top_center_expanded failed: {e}");
+    });
+
+    // Show after fully configured — avoids DWM compositor crash on Windows.
     if let Err(e) = window.show() {
         eprintln!("[island] window.show() failed: {e}");
     }
-
-    // Position at expanded size (the window never resizes — the frontend
-    // island div animates between compact/expanded via CSS transitions).
-    position_top_center_expanded(&window).unwrap_or_else(|e| {
-        eprintln!("[island] position_top_center failed: {e}");
-    });
 
     // Start the background mouse monitor on Windows
     #[cfg(target_os = "windows")]
@@ -226,9 +226,10 @@ pub fn position_top_center(window: &WebviewWindow) -> Result<(), Box<dyn std::er
         return Err("no primary monitor found".into());
     };
 
+    let monitor_pos = monitor.position();
     let physical_screen_w = monitor.size().width as i32;
     let physical_w = window.outer_size()?.width as i32;
-    let x = ((physical_screen_w - physical_w) / 2).max(0);
+    let x = monitor_pos.x + ((physical_screen_w - physical_w) / 2).max(0);
     window.set_position(tauri::Position::Physical(tauri::PhysicalPosition { x, y: 0 }))?;
     Ok(())
 }
@@ -240,9 +241,10 @@ fn position_top_center_expanded(window: &WebviewWindow) -> Result<(), Box<dyn st
         return Err("no primary monitor found".into());
     };
 
+    let monitor_pos = monitor.position();
     let physical_screen_w = monitor.size().width as i32;
     let physical_w = (EXPANDED_W * monitor.scale_factor()) as i32;
-    let x = ((physical_screen_w - physical_w) / 2).max(0);
+    let x = monitor_pos.x + ((physical_screen_w - physical_w) / 2).max(0);
     window.set_position(tauri::Position::Physical(tauri::PhysicalPosition { x, y: 0 }))?;
     Ok(())
 }
@@ -344,10 +346,13 @@ pub fn set_island_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
             eprintln!("[island] set_background_color on re-enable failed: {e}");
         }
 
-        window.show().map_err(|e| e.to_string())?;
-        position_top_center(&window).unwrap_or_else(|e| {
+        // Position before show so the window appears at the correct
+        // top-center position on first paint — no wrong-position glitch.
+        position_top_center_expanded(&window).unwrap_or_else(|e| {
             eprintln!("[island] reposition on re-enable failed: {e}");
         });
+
+        window.show().map_err(|e| e.to_string())?;
 
         // Reset frontend state to compact (the Svelte store persists across
         // hide/show since the webview process stays alive).

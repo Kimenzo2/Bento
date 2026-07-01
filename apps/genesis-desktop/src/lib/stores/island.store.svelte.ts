@@ -2,7 +2,19 @@ import { invoke } from "@tauri-apps/api/core";
 import { islandItems, type IslandItem } from "$lib/data/island-catalog";
 
 export type IslandMode = "compact" | "expanded";
-export type IslandPage = "apps" | "actions" | "agenda";
+export type IslandPage = "apps" | "actions" | "agenda" | "widgets";
+
+export type ActiveModuleState = {
+  id: string;
+  label: string;
+  icon: string;
+  status: string;
+  /**
+   * The type of activity — used by the compact view to pick the right
+   * layout (e.g. "recording" shows a pulsing dot + timer).
+   */
+  activityType?: "recording" | "timer" | "active" | "playback";
+} | null;
 
 class IslandStore {
   mode = $state<IslandMode>("compact");
@@ -11,9 +23,13 @@ class IslandStore {
   searchQuery = $state("");
   recentCache = $state<IslandItem[]>(this.loadRecent());
 
+  /** When a module is actively running inside the island (e.g. recording). */
+  activeModule = $state<ActiveModuleState>(null);
+
   expand(page: IslandPage = "apps") {
     this.mode = "expanded";
     this.page = page;
+    this.selectedItemId = null;
     invoke("island_expand").catch((e) => console.error("[island] expand failed:", e));
   }
 
@@ -22,7 +38,20 @@ class IslandStore {
     this.page = "apps";
     this.selectedItemId = null;
     this.searchQuery = "";
+    this.activeModule = null;
     invoke("island_compact").catch((e) => console.error("[island] collapse failed:", e));
+  }
+
+  /**
+   * Activate a module inside the island. The island switches to
+   * expanded mode showing the module's status area, and the compact
+   * state will display live status instead of the default dot.
+   */
+  activateModule(state: NonNullable<ActiveModuleState>) {
+    this.activeModule = state;
+    this.mode = "expanded";
+    this.selectedItemId = null;
+    this.searchQuery = "";
   }
 
   toggle() {

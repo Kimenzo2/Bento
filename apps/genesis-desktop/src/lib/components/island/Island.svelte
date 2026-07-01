@@ -1,32 +1,74 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { fade } from "svelte/transition";
-  import { cubicIn, cubicOut } from "svelte/easing";
+  import { cubicOut } from "svelte/easing";
   import { islandStore } from "$lib/stores/island.store.svelte";
   import type { IslandItem } from "$lib/data/island-catalog";
+  import { getIslandItem } from "$lib/data/island-catalog";
   import { getIcon } from "./island-icons";
+  import { WidgetRegistry } from "./widgets/widget-registry.svelte";
+  import { loadBuiltinWidgets } from "./widgets/widget-config";
+  import { widgetStore } from "$lib/stores/widget.store.svelte";
+  import WidgetWrapper from "./widgets/WidgetWrapper.svelte";
 
-  let { handleLaunch = (item: IslandItem) => {}, handleQuickAction = (action: string) => {} }: {
+  const layoutGridIcon = getIcon("layout-grid");
+  const clockIcon = getIcon("clock");
+  const layoutDashboardIcon = getIcon("layout-dashboard");
+  const searchIcon = getIcon("search");
+  const xIcon = getIcon("x");
+  const chevronDownIcon = getIcon("chevron-down");
+
+  let { handleLaunch = (item: IslandItem) => {}, handleQuickAction = (action: string, item: IslandItem) => {} }: {
     handleLaunch?: (item: IslandItem) => void;
-    handleQuickAction?: (action: string) => void;
+    handleQuickAction?: (action: string, item: IslandItem) => void;
   } = $props();
 
   let appGridEl = $state<HTMLElement | null>(null);
+  let searchActive = $state(false);
+  let searchInputEl = $state<HTMLInputElement | null>(null);
+
+  function closeSearch() {
+    searchActive = false;
+    islandStore.searchQuery = "";
+  }
 
   function onLaunch(item: IslandItem) {
+    closeSearch();
     islandStore.pushRecent(item.id);
     handleLaunch(item);
     islandStore.collapse();
   }
 
-  function onQuickAction(action: string) {
-    handleQuickAction(action);
-    islandStore.collapse();
+  function onQuickAction(action: string, item: IslandItem) {
+    closeSearch();
+    islandStore.pushRecent(item.id);
+    handleQuickAction(action, item);
+    // Don't collapse — the parent handler keeps the island open
+    // and switches to module-active view.
   }
 
   function onKeydown(e: KeyboardEvent) {
+    const target = e.target as HTMLElement;
+    const inWidget = target.closest(".widget-card-w") || target.closest(".widget-wrapper");
+
     if (e.key === "Escape") {
+      if (inWidget) return;
+      if (searchActive) {
+        searchActive = false;
+        islandStore.searchQuery = "";
+        return;
+      }
       islandStore.collapse();
+    }
+  }
+
+  function toggleSearch() {
+    searchActive = !searchActive;
+    if (searchActive) {
+      islandStore.searchQuery = "";
+      requestAnimationFrame(() => searchInputEl?.focus());
+    } else {
+      islandStore.searchQuery = "";
     }
   }
 
@@ -37,21 +79,34 @@
     }
   }
 
+  function getGridColumns(): number {
+    if (!appGridEl) return 2;
+    const first = appGridEl.querySelector<HTMLElement>(".widget-card");
+    if (!first) return 2;
+    const containerWidth = appGridEl.offsetWidth;
+    const cardWidth = first.offsetWidth;
+    if (!cardWidth) return 2;
+    return Math.max(1, Math.round(containerWidth / (cardWidth + 8)));
+  }
+
   function handleGridKeydown(e: KeyboardEvent) {
-    const buttons = appGridEl?.querySelectorAll<HTMLButtonElement>(".app-card");
+    const buttons = appGridEl?.querySelectorAll<HTMLButtonElement>(".widget-card");
     if (!buttons?.length) return;
+    const cols = getGridColumns();
     const currentIndex = Array.from(buttons).findIndex((b) => b === document.activeElement);
     let nextIndex = currentIndex;
     if (e.key === "ArrowRight") nextIndex = Math.min(currentIndex + 1, buttons.length - 1);
     else if (e.key === "ArrowLeft") nextIndex = Math.max(currentIndex - 1, 0);
-    else if (e.key === "ArrowDown") nextIndex = Math.min(currentIndex + 4, buttons.length - 1);
-    else if (e.key === "ArrowUp") nextIndex = Math.max(currentIndex - 4, 0);
+    else if (e.key === "ArrowDown") nextIndex = Math.min(currentIndex + cols, buttons.length - 1);
+    else if (e.key === "ArrowUp") nextIndex = Math.max(currentIndex - cols, 0);
     else return;
     e.preventDefault();
     buttons[nextIndex]?.focus();
   }
 
   onMount(() => {
+    loadBuiltinWidgets();
+    widgetStore.load();
     document.addEventListener("keydown", onKeydown);
     document.addEventListener("mousedown", onClickOutside);
     return () => {
@@ -69,84 +124,209 @@
     class="island"
     class:island--compact={islandStore.mode === "compact"}
     class:island--expanded={islandStore.mode === "expanded"}
-    role="button"
-    tabindex="0"
-    onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); islandStore.toggle(); }}}
+    onmousedown={(e) => { if (islandStore.mode === "expanded") e.stopPropagation(); }}
   >
     {#if islandStore.mode === "compact"}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
-      <div class="compact-body" in:fade={{ duration: 350, easing: cubicOut }} out:fade={{ duration: 120 }} onclick={() => islandStore.expand()} role="button" tabindex="0" aria-label="Expand Bento launcher" onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); islandStore.expand(); }}}>
-        <div class="compact-brand">
-          <svelte:component this={getIcon("layout-grid")} size={14} color="rgba(255,255,255,0.7)" strokeWidth={2.2} />
-        </div>
-        <div class="compact-content">
-          <span class="compact-text">Bento</span>
-        </div>
-        <div class="compact-chevron">
-          <svelte:component this={getIcon("chevron-down")} size={10} color="rgba(255,255,255,0.3)" strokeWidth={2.2} />
-        </div>
+      <div
+        class="compact-body"
+        class:compact-body--live={!!islandStore.activeModule}
+        in:fade={{ duration: 350, easing: cubicOut }}
+        out:fade={{ duration: 120 }}
+        onclick={(e: MouseEvent) => {
+          e.stopPropagation();
+          islandStore.expand();
+        }}
+        role="button"
+        tabindex="0"
+        aria-label={islandStore.activeModule ? `Show ${islandStore.activeModule.label}` : "Expand Bento launcher"}
+        onkeydown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            islandStore.expand();
+          }
+        }}
+      >
+        {#if islandStore.activeModule}
+          <div class="compact-live">
+            <span class="compact-live-icon" style="color: {getIslandItem(islandStore.activeModule.id)?.accentColor ?? '#5f61ed'}">
+              <svelte:component this={getIcon(islandStore.activeModule.icon)} size={12} strokeWidth={2.2} />
+            </span>
+            <span class="compact-live-label">{islandStore.activeModule.label}</span>
+            <span class="compact-live-status">
+              {islandStore.activeModule.status}
+              {#if islandStore.activeModule.activityType === "recording"}
+                <span class="compact-live-dot"></span>
+              {/if}
+            </span>
+          </div>
+        {:else}
+          <span class="compact-dot"></span>
+        {/if}
       </div>
     {/if}
     {#if islandStore.mode === "expanded"}
-      <div class="expanded-body" in:fade={{ duration: 300, easing: cubicOut, delay: 80 }} out:fade={{ duration: 120 }}>
+      <div class="expanded-body" onclick={(e) => e.stopPropagation()} in:fade={{ duration: 300, easing: cubicOut, delay: 80 }} out:fade={{ duration: 120 }}>
         <div class="expanded-header">
-          <div class="header-tabs">
+          <div class="header-tabs" role="tablist" aria-label="Bento sections">
             <div class="tab-track">
               <div
                 class="tab-indicator"
-                style="transform: translateX({islandStore.page === "apps" ? 0 : 100}%)"
+                style="transform: translateX({islandStore.page === "apps" ? 0 : islandStore.page === "actions" ? 100 : 200}%)"
               ></div>
               <button
                 class="tab-btn"
                 class:tab-btn--active={islandStore.page === "apps"}
                 onclick={() => islandStore.setPage("apps")}
+                role="tab"
+                aria-selected={islandStore.page === "apps"}
+                aria-controls="bento-panel-apps"
+                aria-label="Apps"
               >
-                <svelte:component this={getIcon("layout-grid")} size={14} strokeWidth={2} />
+                <layoutGridIcon size={13} strokeWidth={1.8} />
               </button>
               <button
                 class="tab-btn"
                 class:tab-btn--active={islandStore.page === "actions"}
                 onclick={() => islandStore.setPage("actions")}
+                role="tab"
+                aria-selected={islandStore.page === "actions"}
+                aria-controls="bento-panel-recent"
+                aria-label="Recent"
               >
-                <svelte:component this={getIcon("clock")} size={14} strokeWidth={2} />
+                <clockIcon size={13} strokeWidth={1.8} />
+              </button>
+              <button
+                class="tab-btn"
+                class:tab-btn--active={islandStore.page === "widgets"}
+                onclick={() => islandStore.setPage("widgets")}
+                role="tab"
+                aria-selected={islandStore.page === "widgets"}
+                aria-controls="bento-panel-widgets"
+                aria-label="Widgets"
+              >
+                <layoutDashboardIcon size={13} strokeWidth={1.8} />
               </button>
             </div>
           </div>
-          <div class="header-spacer"></div>
-          <button
-            class="close-btn"
-            onclick={() => islandStore.collapse()}
-            aria-label="Close island"
-          >
-            <svelte:component this={getIcon("x")} size={14} color="rgba(255,255,255,0.5)" strokeWidth={2} />
-          </button>
+          <div class="header-actions">
+            <button
+              class="search-icon-btn"
+              class:search-icon-btn--active={searchActive}
+              onclick={toggleSearch}
+              aria-label="Search widgets"
+            >
+              <searchIcon size={14} strokeWidth={1.8} />
+            </button>
+            <button
+              class="close-btn"
+              onclick={() => islandStore.collapse()}
+              aria-label="Close"
+            >
+              <xIcon size={14} strokeWidth={1.8} />
+            </button>
+          </div>
         </div>
 
-        {#if islandStore.page === "apps"}
-          <div class="search-bar">
-            <svelte:component this={getIcon("search")} size={12} color="rgba(255,255,255,0.35)" strokeWidth={2} />
+        {#if searchActive}
+          <div class="search-active" in:fade={{ duration: 150 }}>
+            <searchIcon size={11} color="rgba(255,255,255,0.25)" strokeWidth={2} />
             <input
-              class="search-input"
+              class="search-active-input"
               type="text"
-              placeholder="Search apps…"
+              placeholder="Find widget…"
+              aria-label="Search widgets"
               bind:value={islandStore.searchQuery}
+              bind:this={searchInputEl}
+              onkeydown={(e) => { if (e.key === "Escape") { e.stopPropagation(); searchActive = false; islandStore.searchQuery = ""; }}}
             />
           </div>
-
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <div class="app-grid" bind:this={appGridEl} onkeydown={handleGridKeydown} role="listbox" tabindex="-1">
+        {/if}
+        {#if islandStore.activeModule}
+          <!-- ── Module Active View ── -->
+          {@const am = islandStore.activeModule}
+          {@const ActiveIcon = getIcon(am.icon)}
+          {@const islandItem = getIslandItem(am.id)}
+          <div class="module-active">
+            <div class="module-active-header">
+              <div class="module-active-info">
+                <span class="module-active-icon" style="color: {islandItem?.accentColor ?? '#5f61ed'}">
+                  <ActiveIcon size={18} strokeWidth={1.6} />
+                </span>
+                <div class="module-active-titles">
+                  <span class="module-active-name">{am.label}</span>
+                  <span class="module-active-status">{am.status}</span>
+                </div>
+              </div>
+              <div class="module-active-actions">
+                <button
+                  class="module-active-back"
+                  onclick={() => { islandStore.activeModule = null; }}
+                  aria-label="Back to apps"
+                >
+                  <xIcon size={14} color="rgba(255,255,255,0.3)" strokeWidth={1.8} />
+                </button>
+              </div>
+            </div>
+            <div class="module-active-body">
+              <div class="module-active-card">
+                {#if am.activityType === "recording"}
+                  <div class="module-active-recording">
+                    <div class="mar-waveform">
+                      {#each [0.3, 0.5, 0.8, 0.6, 0.9, 0.4, 0.7, 0.5, 0.85, 0.6] as base, i}
+                        <div
+                          class="mar-bar"
+                          style="animation-delay: {i * 0.08}s; transform: scaleY({base})"
+                        ></div>
+                      {/each}
+                    </div>
+                    <div class="mar-label">
+                      <span class="mar-dot"></span>
+                      <span>Recording active</span>
+                    </div>
+                  </div>
+                {:else}
+                  <div class="module-active-default">
+                    <span class="mad-icon">
+                      <ActiveIcon size={24} strokeWidth={1.5} />
+                    </span>
+                    <span class="mad-label">{am.status}</span>
+                  </div>
+                {/if}
+                <span class="module-active-hint">
+                  Open in main window for full controls
+                </span>
+              </div>
+            </div>
+          </div>
+        {:else if islandStore.page === "apps"}
+          <div class="w-grid" bind:this={appGridEl} onkeydown={handleGridKeydown} role="listbox" tabindex="-1">
             {#each islandStore.filteredItems as item (item.id)}
+              {@const w = item.widget}
+              {@const ItemIcon = getIcon(item.icon)}
               <button
-                class="app-card"
-                class:app-card--selected={islandStore.selectedItemId === item.id}
-                onclick={() => { islandStore.selectItem(item.id); onLaunch(item); }}
+                class="widget-card"
+                class:w-sm={w.width === "sm"}
+                class:w-md={w.width === "md"}
+                class:widget-card--selected={islandStore.selectedItemId === item.id}
+                onclick={() => islandStore.selectItem(item.id)}
+                ondblclick={() => onLaunch(item)}
                 role="option"
                 aria-selected={islandStore.selectedItemId === item.id}
               >
-                <div class="app-icon" style="background: {item.accentColor}12; color: {item.accentColor}">
-                  <svelte:component this={getIcon(item.icon)} size={18} strokeWidth={1.8} />
+                <div class="widget-body">
+                  <div class="widget-row">
+                    <span class="w-icon" style="color: {item.accentColor}">
+                      <ItemIcon size={13} strokeWidth={1.5} />
+                    </span>
+                    <span class="w-value">{w.primary}</span>
+                    {#if w.unit}<span class="w-unit">{w.unit}</span>{/if}
+                    <span class="w-secondary">{w.secondary}</span>
+                  </div>
+                  <div class="widget-footer">
+                    <span class="widget-name">{item.name}</span>
+                  </div>
                 </div>
-                <div class="app-name">{item.name}</div>
               </button>
             {/each}
           </div>
@@ -158,8 +338,9 @@
                 <div class="qa-label">Quick Actions</div>
                 <div class="qa-grid">
                   {#each item.quickActions as action}
-                    <button class="qa-btn" onclick={() => onQuickAction(action.action)}>
-                      <svelte:component this={getIcon(action.icon)} size={12} strokeWidth={2} />
+                    {@const ActionIcon = getIcon(action.icon)}
+                    <button class="qa-btn" onclick={() => onQuickAction(action.action, item)}>
+                      <ActionIcon size={11} strokeWidth={2} />
                       {action.label}
                     </button>
                   {/each}
@@ -167,18 +348,35 @@
               </div>
             {/if}
           {/if}
+        {:else if islandStore.page === "widgets"}
+          <div class="w-scroll">
+            {#each widgetStore.enabledWidgets as w (w.id)}
+              <div class="widget-card-w">
+                <w.ExpandedComponent />
+              </div>
+            {/each}
+            {#if widgetStore.enabledWidgets.length === 0}
+              <div class="w-empty">
+                <span>No widgets enabled</span>
+                <button class="w-empty-btn" onclick={() => islandStore.setPage("apps")}>
+                  Browse Apps
+                </button>
+              </div>
+            {/if}
+          </div>
         {:else}
-          <div class="recent-list">
+          <div class="r-list">
             {#each islandStore.recentItems as item (item.id)}
-              <button class="recent-item" onclick={() => onLaunch(item)}>
-                <div class="app-icon app-icon--sm" style="background: {item.accentColor}12; color: {item.accentColor}">
-                  <svelte:component this={getIcon(item.icon)} size={14} strokeWidth={2} />
+              {@const RecentIcon = getIcon(item.icon)}
+              <button class="r-item" onclick={() => onLaunch(item)}>
+                <div class="r-item-icon" style="background: {item.accentColor}18; color: {item.accentColor}">
+                  <RecentIcon size={14} strokeWidth={1.6} />
                 </div>
-                <div class="recent-info">
-                  <div class="recent-name">{item.name}</div>
-                  <div class="recent-tagline">{item.tagline}</div>
+                <div class="r-info">
+                  <span class="r-name">{item.name}</span>
+                  <span class="r-tagline">{item.tagline}</span>
                 </div>
-                <svelte:component this={getIcon("chevron-down")} size={12} color="rgba(255,255,255,0.25)" strokeWidth={2.2} class="recent-arrow" />
+                <chevronDownIcon size={11} color="rgba(255,255,255,0.2)" strokeWidth={2.2} class="r-arrow" />
               </button>
             {/each}
           </div>
@@ -189,7 +387,7 @@
 </div>
 
 <style>
-  :global(*) {
+  :global(.island-overlay), :global(.island-overlay *) {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -206,7 +404,7 @@
   }
 
   :focus-visible {
-    outline: 1px solid rgba(255, 255, 255, 0.35);
+    outline: 1px solid rgba(255, 255, 255, 0.2);
     outline-offset: 2px;
   }
 
@@ -231,13 +429,12 @@
 
   .island {
     position: relative;
-    background: #070707;
-    border-radius: 0 0 20px 20px;
+    background: #0d0d0d;
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
     overflow: visible;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.85);
     transition:
       width 0.55s cubic-bezier(0.34, 1.3, 0.64, 1),
@@ -265,31 +462,38 @@
   .island::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: -6px;
-    width: 6px;
-    height: 6px;
+    top: -1px;
+    left: -7px;
+    width: 7px;
+    height: 7px;
     z-index: 10;
     pointer-events: none;
-    background: radial-gradient(circle at 0 100%, transparent 6px, #070707 6px);
+    background: radial-gradient(circle at 0 100%, transparent 7px, #0d0d0d 7px);
   }
 
   .island::after {
     content: '';
     position: absolute;
-    top: 0;
-    right: -6px;
-    width: 6px;
-    height: 6px;
+    top: -1px;
+    right: -7px;
+    width: 7px;
+    height: 7px;
     z-index: 10;
     pointer-events: none;
-    background: radial-gradient(circle at 100% 100%, transparent 6px, #070707 6px);
+    background: radial-gradient(circle at 100% 100%, transparent 7px, #0d0d0d 7px);
   }
 
   .island--compact {
     width: 260px;
     height: 40px;
+    border-radius: 0 0 14px 14px;
     cursor: pointer;
+    border-top: none;
+  }
+
+  .island--compact::before,
+  .island--compact::after {
+    top: 0;
   }
 
   .island--compact:hover {
@@ -297,66 +501,113 @@
   }
 
   .island--compact:active {
-    background: #0a0a0a;
+    background: #111;
   }
 
   .island--expanded {
-    width: 320px;
+    width: 560px;
     height: 480px;
+    border-radius: 0 0 18px 18px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    border-top: none;
+  }
+
+  .island--expanded::before,
+  .island--expanded::after {
+    top: 0;
   }
 
   .compact-body {
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: flex-start;
+    gap: 6px;
     padding: 0 14px;
     height: 100%;
     width: 100%;
   }
 
-  .compact-brand {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.06);
-    flex-shrink: 0;
+  /* ── Live compact state (module active) ── */
+  .compact-body--live {
+    justify-content: space-between;
+    gap: 4px;
+    cursor: pointer;
   }
 
-  .compact-content {
-    flex: 1;
+  .compact-live {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
     min-width: 0;
   }
 
-  .compact-text {
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: -0.01em;
-    color: rgba(255, 255, 255, 0.55);
-  }
-
-  .compact-chevron {
+  .compact-live-icon {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+  }
+
+  .compact-live-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .compact-live-status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.3);
+    margin-left: auto;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .compact-live-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #ef4444;
+    animation: live-pulse 1s ease-in-out infinite;
+  }
+
+  @keyframes live-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(0.7); }
+  }
+
+  .compact-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #5f61ed;
+    flex-shrink: 0;
   }
 
   .expanded-body {
     display: flex;
     flex-direction: column;
     width: 100%;
+    height: 100%;
   }
 
   .expanded-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 12px 8px;
+    padding: 10px 12px 6px;
+    flex-shrink: 0;
   }
 
   .header-tabs {
@@ -367,20 +618,22 @@
   .tab-track {
     position: relative;
     display: flex;
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.05);
+    border: 0.5px solid rgba(255, 255, 255, 0.06);
     border-radius: 18px;
     padding: 2px;
     height: 28px;
-    width: 60px;
+    width: 90px;
   }
 
   .tab-indicator {
     position: absolute;
     top: 2px;
     left: 2px;
-    width: calc(50% - 2px);
+    width: calc(33.33% - 3px);
     height: calc(100% - 4px);
-    background: rgba(255, 255, 255, 0.12);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: #2b2b2b;
     border-radius: 16px;
   }
 
@@ -393,59 +646,66 @@
     cursor: pointer;
     border: none;
     background: transparent;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(255, 255, 255, 0.65);
     padding: 0;
   }
 
   .tab-btn--active {
-    color: rgba(255, 255, 255, 0.9);
+    color: #fff;
   }
 
-  .header-spacer {
-    width: 48px;
-    height: 100%;
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 0.5px solid rgba(255, 255, 255, 0.06);
+    border-radius: 18px;
+    padding: 2px;
+    height: 28px;
   }
 
+  .search-icon-btn,
   .close-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 7px;
+    width: 24px;
+    height: 24px;
+    border-radius: 16px;
     background: transparent;
-    border: 0.5px solid rgba(255, 255, 255, 0.06);
+    border: none;
     cursor: pointer;
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(255, 255, 255, 0.7);
+    transition: background 0.15s, color 0.15s;
   }
 
+  .search-icon-btn:hover,
+  .search-icon-btn--active,
   .close-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.75);
-  }
-
-  .close-btn:active {
     background: rgba(255, 255, 255, 0.12);
+    color: #fff;
   }
 
-  .search-bar {
+  .search-icon-btn:active,
+  .close-btn:active {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+  }
+
+  .search-active {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin: 4px 12px 8px;
+    gap: 7px;
+    margin: 0 12px 8px;
     padding: 7px 10px;
-    border-radius: 9px;
-    background: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
     border: 0.5px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
   }
 
-  .search-bar:focus-within {
-    border-color: rgba(255, 255, 255, 0.14);
-    background: rgba(255, 255, 255, 0.06);
-  }
-
-  .search-input {
+  .search-active-input {
     flex: 1;
     background: transparent;
     border: none;
@@ -455,84 +715,126 @@
     font-family: inherit;
   }
 
-  .search-input::placeholder {
+  .search-active-input::placeholder {
     color: rgba(255, 255, 255, 0.2);
   }
 
-  .app-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
-    padding: 0 10px 12px;
+  .w-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 12px 8px;
     overflow-y: auto;
-    max-height: 320px;
+    flex: 1;
+    justify-content: center;
+    align-content: start;
   }
 
-  .app-card {
+  .widget-card {
+    position: relative;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: 10px 4px 8px;
-    border-radius: 10px;
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.7);
+    height: 124px;
+    border-radius: 12px;
+    background: #141416;
     cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    color: rgba(255, 255, 255, 0.75);
+    overflow: hidden;
+    padding: 0;
   }
 
-  .app-card:hover {
-    background: rgba(255, 255, 255, 0.05);
+  .widget-card.w-sm {
+    width: calc(33.33% - 6px);
+    min-width: 140px;
+    flex: 1 1 calc(33.33% - 6px);
   }
 
-  .app-card:active {
-    background: rgba(255, 255, 255, 0.08);
+  .widget-card.w-md {
+    width: calc(50% - 4px);
+    flex: 1 1 calc(50% - 4px);
   }
 
-  .app-card--selected {
+  .widget-card--selected {
     background: rgba(255, 255, 255, 0.06);
   }
 
-  .app-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
+  .widget-card:hover {
+    background: #19191c;
+  }
+
+  .widget-card:active {
+    background: #1c1c20;
+  }
+
+  .widget-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 14px 14px 10px;
+    justify-content: space-between;
+  }
+
+  .widget-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .w-icon {
     display: flex;
     align-items: center;
-    justify-content: center;
+    flex-shrink: 0;
+    margin-right: 2px;
   }
 
-  .app-icon--sm {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
+  .w-value {
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1;
   }
 
-  .app-name {
-    font-size: 9px;
-    font-weight: 500;
-    letter-spacing: -0.01em;
-    text-align: center;
-    line-height: 1.2;
-    color: rgba(255, 255, 255, 0.5);
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .w-unit {
+    font-size: 13px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.25);
+  }
+
+  .w-secondary {
+    font-size: 11px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.35);
+    flex: 1;
+    text-align: right;
+  }
+
+  .widget-footer {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .widget-name {
+    font-size: 10px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.18);
   }
 
   .quick-actions {
     border-top: 0.5px solid rgba(255, 255, 255, 0.06);
-    padding: 10px 12px 10px;
+    padding: 8px 12px 10px;
+    flex-shrink: 0;
   }
 
   .qa-label {
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    font-size: 9px;
+    font-weight: 500;
     color: rgba(255, 255, 255, 0.2);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
 
   .qa-grid {
@@ -544,79 +846,291 @@
   .qa-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 500;
-    background: rgba(255, 255, 255, 0.04);
-    border: 0.5px solid rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.6);
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 400;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
     cursor: pointer;
     font-family: inherit;
   }
 
   .qa-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.04);
   }
 
-  .qa-btn:active {
-    background: rgba(255, 255, 255, 0.12);
+  .w-scroll {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    padding: 4px 12px 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex: 1;
+    align-items: stretch;
   }
 
-  .recent-list {
+  .widget-card-w {
+    flex: 1;
+    min-width: 260px;
+    max-width: 380px;
+  }
+
+  .w-empty {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 4px 8px 10px;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: rgba(255, 255, 255, 0.15);
+    font-size: 12px;
   }
 
-  .recent-item {
+  .w-empty-btn {
+    padding: 6px 16px;
+    border-radius: 8px;
+    border: 0.5px solid rgba(255, 255, 255, 0.1);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .w-empty-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .r-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px 12px 10px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .r-item {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 8px;
+    padding: 10px 12px;
     border-radius: 10px;
-    background: transparent;
-    border: none;
+    background: #141416;
     color: rgba(255, 255, 255, 0.7);
     cursor: pointer;
     text-align: left;
     width: 100%;
     font-family: inherit;
+    border: none;
   }
 
-  .recent-item:hover {
-    background: rgba(255, 255, 255, 0.05);
+  .r-item:hover {
+    background: #19191c;
   }
 
-  .recent-item:active {
-    background: rgba(255, 255, 255, 0.08);
+  .r-item:active {
+    background: #1c1c20;
   }
 
-  .recent-info {
+  .r-item-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .r-info {
     flex: 1;
     min-width: 0;
   }
 
-  .recent-name {
+  .r-name {
     font-size: 12px;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.85);
   }
 
-  .recent-tagline {
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.35);
+  .r-tagline {
+    font-size: 10px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.3);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  :global(.recent-arrow) {
+  :global(.r-arrow) {
     flex-shrink: 0;
     transform: rotate(-90deg);
+  }
+
+  /* ── Module Active View ── */
+  .module-active {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 0 12px 10px;
+    min-height: 0;
+  }
+
+  .module-active-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0 10px;
+    flex-shrink: 0;
+  }
+
+  .module-active-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .module-active-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .module-active-titles {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .module-active-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .module-active-status {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  .module-active-back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  .module-active-back:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .module-active-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 0;
+  }
+
+  .module-active-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 24px 20px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 0.5px solid rgba(255, 255, 255, 0.06);
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .module-active-hint {
+    font-size: 10px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Recording layout */
+  .module-active-recording {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .mar-waveform {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    height: 32px;
+  }
+
+  .mar-bar {
+    width: 4px;
+    border-radius: 2px;
+    background: #8b5cf6;
+    transition: transform 0.08s;
+    animation: mar-bounce 0.6s ease-in-out infinite alternate;
+    transform-origin: bottom;
+  }
+
+  @keyframes mar-bounce {
+    0% { transform: scaleY(0.3); }
+    100% { transform: scaleY(1); }
+  }
+
+  .mar-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .mar-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ef4444;
+    animation: live-pulse 1s ease-in-out infinite;
+  }
+
+  /* Default layout */
+  .module-active-default {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mad-icon {
+    display: flex;
+    color: rgba(255, 255, 255, 0.25);
+  }
+
+  .mad-label {
+    font-size: 12px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.35);
   }
 </style>

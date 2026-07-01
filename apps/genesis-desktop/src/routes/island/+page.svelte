@@ -22,13 +22,26 @@
     islandStore.collapse();
   }
 
-  function handleQuickAction(action: string) {
+  function handleQuickAction(action: string, item: IslandItem) {
+    // Navigate to the module in the main window (background)
     if (action.startsWith("open:")) {
       const route = action.slice(5);
       emit("bento://navigate", { route });
       invoke("focus_main_window");
     }
-    islandStore.collapse();
+
+    // Keep the island open and show module status
+    islandStore.activateModule({
+      id: item.id,
+      label: item.name,
+      icon: item.icon,
+      status: item.quickActions.find((a) => a.action === action)?.label ?? "Active",
+      activityType: action.includes("record") || action.includes("mic")
+        ? "recording"
+        : action.includes("timer")
+          ? "timer"
+          : "active",
+    });
   }
 
   onMount(() => {

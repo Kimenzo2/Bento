@@ -44,6 +44,12 @@ import {
   MessageSquare,
   X,
   ChevronDown,
+  Play,
+  Pause,
+  Square,
+  Trash2,
+  RefreshCw,
+  Check,
 } from "lucide-svelte";
 import type { ComponentType } from "svelte";
 
@@ -93,6 +99,12 @@ const iconRegistry: Record<string, ComponentType> = {
   "message-square": MessageSquare,
   x: X,
   "chevron-down": ChevronDown,
+  play: Play,
+  pause: Pause,
+  square: Square,
+  trash: Trash2,
+  refresh: RefreshCw,
+  check: Check,
 };
 
 export function getIcon(name: string): ComponentType {
