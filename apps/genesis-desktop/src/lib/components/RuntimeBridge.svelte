@@ -11,7 +11,7 @@
   import { languageStore } from "$lib/stores/language.store";
   import { showCrash } from "$lib/stores/crash.store";
   import { activeTheme, getThemeTokens, isDark, themeState } from "$lib/stores/theme.store";
-  import { setAvailableUpdate, setUpdateChecking } from "$lib/stores/update.store";
+  import { setAvailableUpdate, setUpdateChecking, showUpdatePanel } from "$lib/stores/update.store";
   import { eventBus, BentoEventType, initEventBridge } from "$lib/services/event-bus";
   import { playAlarmSound, stopAlarmSound, preloadAlarmAudios, type SoundName } from "$lib/services/sounds";
 
@@ -225,9 +225,10 @@
                   version: update.version,
                   body: update.body,
                 });
+                setTimeout(() => showUpdatePanel(), 2000);
               }
-            } catch {
-              // Updater errors are non-blocking during development and stubbed deployments.
+            } catch (e) {
+              console.error("[updater] check failed:", e);
             } finally {
               setUpdateChecking(false);
             }
