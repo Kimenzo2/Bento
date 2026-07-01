@@ -78,7 +78,7 @@
     onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); islandStore.toggle(); }}}
   >
     {#if islandStore.mode === "compact"}
-      <div class="compact-body" onclick={() => islandStore.expand()} role="button" tabindex="0" onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); islandStore.expand(); }}}>
+      <div class="compact-body" onclick={() => islandStore.expand()} role="button" tabindex="0" aria-label="Expand Bento launcher" onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); islandStore.expand(); }}}>
         <div class="compact-brand">
           <svelte:component this={getIcon("layout-grid")} size={14} color="rgba(255,255,255,0.7)" strokeWidth={2.2} />
         </div>
@@ -220,6 +220,11 @@
     display: flex;
     justify-content: center;
     align-items: flex-start;
+    pointer-events: none;
+  }
+
+  .island-overlay > * {
+    pointer-events: auto;
   }
 
   .island-overlay--expanded {

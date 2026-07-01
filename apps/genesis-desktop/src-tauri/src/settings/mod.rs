@@ -52,6 +52,8 @@ pub struct DesktopSettings {
     pub habits: HabitSettings,
     #[serde(default)]
     pub ai: AiFeaturesPrefs,
+    #[serde(default = "default_dynamic_island_enabled")]
+    pub dynamic_island_enabled: bool,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -525,6 +527,10 @@ fn default_background_alerts() -> bool {
     true
 }
 
+fn default_dynamic_island_enabled() -> bool {
+    true
+}
+
 pub fn settings_file_path(app: &AppHandle) -> PathBuf {
     app.path()
         .app_data_dir()
@@ -595,6 +601,7 @@ pub fn default_settings() -> DesktopSettings {
             features: default_ai_features(),
             system_prompt: default_ai_system_prompt(),
         },
+        dynamic_island_enabled: default_dynamic_island_enabled(),
     }
 }
 

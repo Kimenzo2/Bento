@@ -14,7 +14,7 @@ class IslandStore {
   expand(page: IslandPage = "apps") {
     this.mode = "expanded";
     this.page = page;
-    invoke("island_expand");
+    invoke("island_expand").catch((e) => console.error("[island] expand failed:", e));
   }
 
   collapse() {
@@ -22,7 +22,7 @@ class IslandStore {
     this.page = "apps";
     this.selectedItemId = null;
     this.searchQuery = "";
-    invoke("island_compact");
+    invoke("island_compact").catch((e) => console.error("[island] collapse failed:", e));
   }
 
   toggle() {

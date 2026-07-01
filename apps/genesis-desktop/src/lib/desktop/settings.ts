@@ -69,6 +69,7 @@ const storeKeys = {
   cloudBackupStorageUsageBytes: "cloudBackup.storageUsageBytes",
   legacyBrowserStorageMigrated: "migration.legacyBrowserStorageMigrated",
   storeSettingsMigrated: "migration.storeSettingsMigrated",
+  dynamicIslandEnabled: "dynamicIslandEnabled",
 } as const;
 
 const themeModeSchema = z.enum(["light", "dark"]);
@@ -199,6 +200,7 @@ const desktopSettingsSchema = z
       })
       .passthrough(),
     migration: migrationSchema,
+    dynamicIslandEnabled: z.boolean().default(true),
   })
   .passthrough();
 
@@ -267,6 +269,7 @@ export const defaultDesktopSettings: DesktopSettings = {
     legacyBrowserStorageMigrated: false,
     storeSettingsMigrated: false,
   },
+  dynamicIslandEnabled: true,
 };
 
 export const desktopSettings = writable<DesktopSettings>(defaultDesktopSettings);
@@ -357,6 +360,7 @@ function storeDefaults() {
     [storeKeys.legacyBrowserStorageMigrated]:
       defaultDesktopSettings.migration.legacyBrowserStorageMigrated,
     [storeKeys.storeSettingsMigrated]: defaultDesktopSettings.migration.storeSettingsMigrated,
+    [storeKeys.dynamicIslandEnabled]: defaultDesktopSettings.dynamicIslandEnabled,
   };
 }
 
@@ -722,6 +726,9 @@ async function readStoreSettings(): Promise<DesktopSettings> {
         (await store.get<boolean>(storeKeys.storeSettingsMigrated)) ??
         defaultDesktopSettings.migration.storeSettingsMigrated,
     },
+    dynamicIslandEnabled:
+      (await store.get<boolean>(storeKeys.dynamicIslandEnabled)) ??
+      defaultDesktopSettings.dynamicIslandEnabled,
   };
 
   return normalizeSettings(settings);
@@ -771,6 +778,7 @@ async function persistStoreSettings(settings: DesktopSettings) {
     settings.migration.legacyBrowserStorageMigrated,
   );
   await store.set(storeKeys.storeSettingsMigrated, settings.migration.storeSettingsMigrated);
+  await store.set(storeKeys.dynamicIslandEnabled, settings.dynamicIslandEnabled);
   await store.save();
 }
 
@@ -844,10 +852,25 @@ async function applyGlassEffect(settings: DesktopSettings) {
   }
 }
 
+let prevDynamicIslandEnabled: boolean | undefined;
+
+async function applyIslandEffect(settings: DesktopSettings) {
+  if (!isTauri()) return;
+  const enabled = !!settings?.dynamicIslandEnabled;
+  if (enabled === prevDynamicIslandEnabled) return;
+  prevDynamicIslandEnabled = enabled;
+  try {
+    await invoke("set_island_enabled", { enabled });
+  } catch (error) {
+    console.warn("Dynamic Island toggle failed.", error);
+  }
+}
+
 function applySettingsSideEffects(settings: DesktopSettings) {
   writeThemeSnapshot(settings);
   void applyNativeTheme(settings);
   void applyGlassEffect(settings);
+  void applyIslandEffect(settings);
 }
 
 export function getDesktopSettingsSnapshot(): DesktopSettings {

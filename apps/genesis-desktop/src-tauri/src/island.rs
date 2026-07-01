@@ -5,6 +5,43 @@ const COMPACT_H: f64 = 40.0;
 const EXPANDED_W: f64 = 320.0;
 const EXPANDED_H: f64 = 480.0;
 
+/// Cursor polling interval in milliseconds (~30 fps).
+const POLL_MS: u64 = 33;
+
+/// Hysteresis margin (px) used when the cursor is entering the island bounds.
+const ENTER_MARGIN: f64 = 10.0;
+
+/// Hysteresis margin (px) used when the cursor is leaving the island bounds.
+/// Larger than ENTER_MARGIN to prevent flickering at the boundary.
+const EXIT_MARGIN: f64 = 30.0;
+
+/// macOS window level above the menu bar (NSStatusWindowLevel).
+#[cfg(target_os = "macos")]
+const MACOS_WINDOW_LEVEL: i64 = 25;
+
+/// Remove the CS_DROPSHADOW class style from the window class.
+/// This prevents DWM from drawing drop shadows on this window class.
+/// Must be called after the window HWND exists but before show().
+#[cfg(target_os = "windows")]
+fn remove_class_shadow(window: &WebviewWindow) -> Result<(), Box<dyn std::error::Error>> {
+    use raw_window_handle::HasWindowHandle;
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        GetClassLongPtrW, SetClassLongPtrW, CS_DROPSHADOW, GCL_STYLE,
+    };
+
+    let handle = window.window_handle()?;
+    let raw_window_handle::RawWindowHandle::Win32(win) = handle.as_raw() else {
+        return Err("not a Win32 window".into());
+    };
+
+    unsafe {
+        let style = GetClassLongPtrW(win.hwnd.get(), GCL_STYLE) as usize;
+        let new_style = style & !(CS_DROPSHADOW as usize);
+        SetClassLongPtrW(win.hwnd.get(), GCL_STYLE, new_style as isize);
+    }
+    Ok(())
+}
+
 /// Background thread that polls the cursor position and toggles click-through.
 ///
 /// When the cursor is within (or near) the island window bounds, click-through
@@ -13,20 +50,39 @@ const EXPANDED_H: f64 = 480.0;
 /// whatever is beneath.
 ///
 /// Hysteresis (larger exit margin) prevents flickering at the boundary.
+/// Skips processing when the window is hidden to save CPU.
 #[cfg(target_os = "windows")]
 fn start_mouse_monitor(app: AppHandle) {
     use windows_sys::Win32::Foundation::POINT;
     use windows_sys::Win32::UI::WindowsAndMessaging::GetCursorPos;
 
-    std::thread::spawn(move || {
+    let _ = std::thread::Builder::new()
+        .name("island-mouse-monitor".into())
+        .spawn(move || {
         let mut was_inside = false;
+        let mut hidden_count: u32 = 0;
 
         loop {
-            std::thread::sleep(std::time::Duration::from_millis(33)); // ~30 fps
+            std::thread::sleep(std::time::Duration::from_millis(POLL_MS));
 
             let Some(window) = app.get_webview_window("island") else {
                 continue;
             };
+
+            // Skip polling when the window is hidden — no point checking cursor
+            // against an invisible window. After 100 consecutive hidden polls
+            // (~3.3s) the thread exits to avoid zombie threads when the island
+            // is permanently disabled at runtime.
+            if !window.is_visible().unwrap_or(false) {
+                hidden_count += 1;
+                if hidden_count > 100 {
+                    return; // thread exits
+                }
+                // Reset was_inside so the next show() starts fresh
+                was_inside = false;
+                continue;
+            }
+            hidden_count = 0;
 
             let mut pt = POINT { x: 0, y: 0 };
             if unsafe { GetCursorPos(&mut pt) } == 0 {
@@ -41,8 +97,7 @@ fn start_mouse_monitor(app: AppHandle) {
             let win_w = size.width as f64;
             let win_h = size.height as f64;
 
-            // Larger exit margin prevents flickering at the boundary
-            let margin = if was_inside { 30.0 } else { 10.0 };
+            let margin = if was_inside { EXIT_MARGIN } else { ENTER_MARGIN };
 
             let inside = pt.x as f64 >= win_x - margin
                 && pt.x as f64 <= win_x + win_w + margin
@@ -60,6 +115,12 @@ fn start_mouse_monitor(app: AppHandle) {
 /// Setup the island window — position, transparency, then show.
 /// `visible: false` in config prevents DWM compositor crash on Windows.
 pub fn setup_island_window(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    let settings = crate::settings::load_desktop_settings(app.handle());
+    if !settings.dynamic_island_enabled {
+        eprintln!("[island] disabled via settings, skipping");
+        return Ok(());
+    }
+
     let Some(window) = app.get_webview_window("island") else {
         eprintln!("[island] window not found in config");
         return Ok(());
@@ -70,14 +131,27 @@ pub fn setup_island_window(app: &tauri::App) -> Result<(), Box<dyn std::error::E
         eprintln!("[island] macOS window level setup failed (island may sit below menu bar): {e}");
     }
 
+    // Strip the DWM drop-shadow at the class level — otherwise the
+    // WS_EX_LAYERED style (required for transparency) makes DWM paint a
+    // shadow rectangle below the window.  The top half clips off-screen
+    // (y=0) so only the bottom shadow is visible as a floating bar.
+    #[cfg(target_os = "windows")]
+    remove_class_shadow(&window).unwrap_or_else(|e| {
+        eprintln!("[island] remove_class_shadow failed: {e}");
+    });
+
     // Transparent webview background — prevents white flash.
     // MUST happen before show() on Windows to avoid DWM compositor crash.
     if let Err(e) = window.set_background_color(Some(tauri::webview::Color(0, 0, 0, 0))) {
         eprintln!("[island] set_background_color failed: {e}");
     }
 
-    // Default: click-through enabled. The mouse monitor thread toggles this
+    // Windows: default click-through ON. The mouse monitor thread toggles this
     // off when the cursor enters the island window area.
+    // macOS: native per-pixel hit-testing for transparent windows handles
+    // click-through automatically — no need to call this (doing so would make
+    // the entire island, including opaque content, unclickable).
+    #[cfg(target_os = "windows")]
     if let Err(e) = window.set_ignore_cursor_events(true) {
         eprintln!("[island] set_ignore_cursor_events failed: {e}");
     }
@@ -106,7 +180,7 @@ pub fn setup_island_window(app: &tauri::App) -> Result<(), Box<dyn std::error::E
     Ok(())
 }
 
-/// Set the macOS window level above the menu bar (NSStatusWindowLevel = 25).
+/// Set the macOS window level above the menu bar (NSStatusWindowLevel).
 #[cfg(target_os = "macos")]
 fn set_macos_window_level(window: &WebviewWindow) -> Result<(), Box<dyn std::error::Error>> {
     use objc2::runtime::AnyObject;
@@ -121,7 +195,7 @@ fn set_macos_window_level(window: &WebviewWindow) -> Result<(), Box<dyn std::err
     unsafe {
         let ns_view = appkit.ns_view.as_ptr() as *mut AnyObject;
         let ns_win: *mut AnyObject = msg_send![ns_view, window];
-        let _: () = msg_send![ns_win, setLevel: 25_i64];
+        let _: () = msg_send![ns_win, setLevel: MACOS_WINDOW_LEVEL];
     }
 
     Ok(())
@@ -190,6 +264,9 @@ pub fn hide_island(window: tauri::WebviewWindow) -> Result<(), String> {
 }
 
 /// Toggle whether the island window accepts cursor events.
+///
+/// Deprecated: the background mouse monitor (`start_mouse_monitor`) manages
+/// click-through internally. This command is retained for debugging only.
 #[tauri::command]
 pub fn island_set_ignore_cursor_events(window: tauri::WebviewWindow, ignore: bool) -> Result<(), String> {
     if window.label() == "island" {
@@ -239,5 +316,50 @@ pub fn focus_main_window(app: AppHandle) -> Result<(), String> {
         window.show().map_err(|e: tauri::Error| e.to_string())?;
         window.set_focus().map_err(|e: tauri::Error| e.to_string())?;
     }
+    Ok(())
+}
+
+/// Enable or disable the Dynamic Island at runtime.
+/// When disabled, the island window is hidden. When re-enabled, it's shown again
+/// with proper positioning and transparency.
+#[tauri::command]
+pub fn set_island_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let Some(window) = app.get_webview_window("island") else {
+        return Err("island window not found".into());
+    };
+
+    if enabled {
+        // Reset to compact size before show — if the window was hidden while
+        // expanded, outer_size() would still reflect the expanded dimensions.
+        window
+            .set_size(tauri::Size::Logical(tauri::LogicalSize {
+                width: COMPACT_W,
+                height: COMPACT_H,
+            }))
+            .map_err(|e| e.to_string())?;
+
+        // Restore transparent background (idempotent).
+        if let Err(e) = window.set_background_color(Some(tauri::webview::Color(0, 0, 0, 0))) {
+            eprintln!("[island] set_background_color on re-enable failed: {e}");
+        }
+
+        window.show().map_err(|e| e.to_string())?;
+        position_top_center(&window).unwrap_or_else(|e| {
+            eprintln!("[island] reposition on re-enable failed: {e}");
+        });
+
+        // Reset frontend state to compact (the Svelte store persists across
+        // hide/show since the webview process stays alive).
+        let _ = window.emit("island:hide", ());
+
+        // Windows: start clickable — the mouse monitor thread will toggle
+        // click-through ON within the next poll cycle if the cursor is outside.
+        // macOS: default per-pixel hit-testing is correct; no override needed.
+        #[cfg(target_os = "windows")]
+        let _ = window.set_ignore_cursor_events(false);
+    } else {
+        window.hide().map_err(|e| e.to_string())?;
+    }
+
     Ok(())
 }

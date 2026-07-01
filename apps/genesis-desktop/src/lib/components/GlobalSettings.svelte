@@ -863,6 +863,10 @@
               <span><strong>{_t('settingsSystemStartHidden')}</strong><small>{_t('settingsSystemStartHiddenHint')}</small></span>
               <input type="checkbox" checked={$desktopSettings.window.startHidden} onchange={() => void updateDesktopSettings((c) => ({ ...c, window: { ...c.window, startHidden: !c.window.startHidden } }))} />
             </label>
+            <label class="global-settings__toggle">
+              <span><strong>Dynamic Island</strong><small>Quick-launch overlay at top of screen</small></span>
+              <input type="checkbox" checked={$desktopSettings.dynamicIslandEnabled} onchange={() => void updateDesktopSettings((c) => ({ ...c, dynamicIslandEnabled: !c.dynamicIslandEnabled }))} />
+            </label>
           </div>
 
         {:else if activeSection === "accessibility"}

@@ -860,6 +860,7 @@ pub fn run() {
             crate::island::island_expand,
             crate::island::island_start_drag,
             crate::island::island_set_ignore_cursor_events,
+            crate::island::set_island_enabled,
             crate::island::focus_main_window,
         ])
         .run(tauri::generate_context!())
