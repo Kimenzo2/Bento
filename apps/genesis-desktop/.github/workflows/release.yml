@@ -201,9 +201,6 @@ jobs:
           fi
 
       # ── Build the Tauri app ──
-      # If updater signing secrets are available and valid, they are used.
-      # If signing fails (e.g. incorrect key/password), the build retries
-      # without updater artifacts so that unsigned bundles are still produced.
       - name: Build Tauri app
         shell: bash
         env:
@@ -215,12 +212,23 @@ jobs:
           bun run tauri build \
             --bundles ${{ matrix.bundles }} \
             --target ${{ matrix.target }} || {
-            echo "Build with signing failed — retrying without updater artifacts (expected when signing secrets are missing or mismatched)"
+            echo "::warning title=Updater artifacts skipped::Primary signed build failed for ${{ matrix.target }}. Retrying without updater artifacts. This release will NOT be able to self-update. Check that TAURI_SIGNING_PRIVATE_KEY is set correctly in repository secrets."
             bun run tauri build \
               --bundles ${{ matrix.bundles }} \
               --target ${{ matrix.target }} \
               --config '{"bundle":{"createUpdaterArtifacts":false}}'
           }
+
+      # ── Verify updater artifacts exist (fail with clear message if missing) ──
+      - name: Verify updater artifacts
+        shell: bash
+        run: |
+          SIG_COUNT=$(find src-tauri/target -name "*.sig" 2>/dev/null | wc -l)
+          ZIP_COUNT=$(find src-tauri/target -name "*.tar.gz" -o -name "*.nsis.zip" 2>/dev/null | wc -l)
+          echo "::notice::Found $SIG_COUNT signature file(s) and $ZIP_COUNT updater archive(s) for ${{ matrix.target }}"
+          if [ "$SIG_COUNT" -eq 0 ]; then
+            echo "::warning title=No updater artifacts::No .sig files found for ${{ matrix.target }}. This platform will not receive updates. Ensure TAURI_SIGNING_PRIVATE_KEY is configured."
+          fi
 
       # ── Copy bundles to standard target paths for CrabNebula discovery ──
       # cn release upload --framework tauri searches for bundles at

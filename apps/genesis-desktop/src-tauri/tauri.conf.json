@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Bento",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "identifier": "me.iamazeyou.bentodesktop",
   "build": {
     "beforeDevCommand": "bun run dev:frontend",
@@ -44,7 +44,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' module: http://module.localhost; style-src 'self' 'unsafe-inline' module: http://module.localhost; img-src 'self' data: https: asset: http://asset.localhost; font-src 'self' data: module: http://module.localhost; connect-src 'self' https://cdn.crabnebula.app https://updates.iamazeyou.me https://api.iamazeyou.me module: http://module.localhost; frame-ancestors 'none'",
+      "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' module: http://module.localhost; style-src 'self' 'unsafe-inline' module: http://module.localhost; img-src 'self' data: https: asset: http://asset.localhost; font-src 'self' data: module: http://module.localhost; connect-src 'self' https://cdn.crabnebula.app https://iamazeyou.me https://api.iamazeyou.me module: http://module.localhost; frame-ancestors 'none'",
       "assetProtocol": {
         "enable": true,
         "scope": ["$APPDATA/clipboard/contents/**"]
@@ -80,8 +80,8 @@
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc4NzVGMDA1QTk3M0NDOTYKUldTV3pIT3BCZkIxZUFtcmlHK21WNDF1VUpGM3VBUmh5blZwRDJzMW92KzM1NnNaTnQ0R1A5ZU0K",
       "endpoints": [
         "https://cdn.crabnebula.app/update/bento-industries/bento/{{target}}-{{arch}}/{{current_version}}",
-        "https://genesis.vercel.app/api/updates/bento-desktop",
-        "https://updates.iamazeyou.me/bento-desktop"
+        "https://iamazeyou.me/bento-desktop",
+        "https://iamazeyou.me/api/updates/bento-desktop"
       ],
       "windows": {
         "installMode": "passive"

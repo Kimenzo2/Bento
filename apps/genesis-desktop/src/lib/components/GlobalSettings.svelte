@@ -24,6 +24,13 @@
 
   import { desktopSettings, updateDesktopSettings } from "$lib/desktop/settings";
   import { openExternal } from "$lib/desktop/open-external";
+  import { check } from "@tauri-apps/plugin-updater";
+  import {
+    updateStore,
+    setAvailableUpdate,
+    setUpdateChecking,
+    showUpdatePanel,
+  } from "$lib/stores/update.store";
   import { billingProfile } from "$lib/stores/billing.store";
   import { availableThemes, setMode, setTheme } from "$lib/stores/theme.store";
   import { authStore, setAuthLoginRequired } from "$lib/stores/auth.store";
@@ -922,6 +929,37 @@
           <div class="global-settings__section">
             <div class="global-settings__section-heading"><h3>{_t('settingsUpdatesTitle')}</h3><p>{_t('settingsUpdatesSubtitle')}</p></div>
             <div class="global-settings__info-card"><strong>{_t('settingsUpdatesCurrentVersion')}</strong><span>{__APP_VERSION__}</span></div>
+            <div class="global-settings__updates-actions">
+              <button
+                class="global-settings__check-btn"
+                type="button"
+                onclick={async () => {
+                  if ($updateStore.checking) return;
+                  setUpdateChecking(true);
+                  try {
+                    const update = await check();
+                    if (update) {
+                      setAvailableUpdate({
+                        version: update.version,
+                        body: update.body,
+                      });
+                      showUpdatePanel();
+                      toast.success(`Update ${update.version} available`);
+                    } else {
+                      toast.success("You're up to date");
+                    }
+                  } catch (e) {
+                    const msg = e instanceof Error ? e.message : String(e);
+                    toast.error(`Update check failed: ${msg}`);
+                  } finally {
+                    setUpdateChecking(false);
+                  }
+                }}
+                disabled={$updateStore.checking}
+              >
+                {$updateStore.checking ? "Checking…" : "Check for Updates"}
+              </button>
+            </div>
           </div>
 
         {:else if activeSection === "about"}

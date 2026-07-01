@@ -228,7 +228,14 @@
                 setTimeout(() => showUpdatePanel(), 2000);
               }
             } catch (e) {
-              console.error("[updater] check failed:", e);
+              const msg = e instanceof Error ? e.message : String(e);
+              const type = /network|fetch|econnrefused|timeout|dns/i.test(msg) ? "network"
+                : /signature|verify|invalid.*key/i.test(msg) ? "signature"
+                : /parse|json|unexpected/i.test(msg) ? "manifest"
+                : /version|semver/i.test(msg) ? "version"
+                : "unknown";
+              console.error(`[updater] check failed (${type}): ${msg}`);
+              console.debug("[updater] full error:", e);
             } finally {
               setUpdateChecking(false);
             }

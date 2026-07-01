@@ -249,6 +249,17 @@ jobs:
               --config '{"bundle":{"createUpdaterArtifacts":false}}'
           }
 
+      # ── Verify updater artifacts exist ──
+      - name: Verify updater artifacts
+        shell: bash
+        run: |
+          SIG_COUNT=$(find src-tauri/target -name "*.sig" 2>/dev/null | wc -l)
+          ZIP_COUNT=$(find src-tauri/target \( -name "*.tar.gz" -o -name "*.nsis.zip" \) 2>/dev/null | wc -l)
+          echo "::notice::Found $SIG_COUNT signature(s) and $ZIP_COUNT archive(s) for ${{ matrix.target }}"
+          if [ "$SIG_COUNT" -eq 0 ]; then
+            echo "::warning title=No updater artifacts::No .sig files found for ${{ matrix.target }}. This platform will NOT receive updates. Ensure TAURI_SIGNING_PRIVATE_KEY is configured correctly in repository secrets."
+          fi
+
       # ── Copy bundles to standard target paths for CrabNebula discovery ──
       # cn release upload --framework tauri searches for bundles at
       # src-tauri/target/release/bundle/ from its working directory.

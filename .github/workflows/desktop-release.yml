@@ -65,6 +65,9 @@ jobs:
         run: bun install
 
       - name: Build Windows installer
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         run: bun run release:windows
 
       - name: Normalize release asset names
@@ -80,6 +83,17 @@ jobs:
           $stableInstaller = Join-Path $bundleRoot 'Bento_Windows_x64-setup.exe'
           Copy-Item -LiteralPath $installer.FullName -Destination $stableInstaller -Force
 
+      - name: Verify updater artifacts
+        shell: pwsh
+        run: |
+          $sigFiles = Get-ChildItem -Path "src-tauri/target/release" -Recurse -Filter "*.sig"
+          $zipFiles = Get-ChildItem -Path "src-tauri/target/release" -Recurse -Filter "*.nsis.zip"
+          if ($sigFiles.Count -eq 0) {
+            Write-Warning "No .sig files found — this release will NOT support self-updates."
+          } else {
+            Write-Host "Found $($sigFiles.Count) signature(s) and $($zipFiles.Count) archive(s)"
+          }
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         env:
@@ -90,3 +104,5 @@ jobs:
           generate_release_notes: true
           files: |
             apps/genesis-desktop/src-tauri/target/release/bundle/nsis/Bento_Windows_x64-setup.exe
+            apps/genesis-desktop/src-tauri/target/release/bundle/nsis/*.nsis.zip
+            apps/genesis-desktop/src-tauri/target/release/bundle/nsis/*.sig

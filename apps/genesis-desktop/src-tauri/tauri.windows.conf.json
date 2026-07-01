@@ -1,7 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "bundle": {
-    "createUpdaterArtifacts": false,
     "windows": {
       "nsis": {
         "installerIcon": "icons/icon.ico"
