@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { createClient } from '../../../lib/supabase/client';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import Link from 'next/link';
+
+type SupabaseClient = ReturnType<typeof createClient>;
 
 const accent = 'var(--color-accent)';
 const bg = 'var(--color-bg)';
