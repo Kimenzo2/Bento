@@ -14,6 +14,7 @@ pub mod flashcards;
 pub mod goals;
 pub mod habits;
 pub mod health;
+pub mod island;
 pub mod local_store;
 pub mod mcp;
 pub mod meal_db;
@@ -38,7 +39,8 @@ pub mod window_effects;
 use chrono::Utc;
 use serde::Serialize;
 use std::{env, fs, panic::PanicHookInfo, sync::Arc, thread, time::Duration};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 #[cfg(not(debug_assertions))]
 use tauri_plugin_deep_link::DeepLinkExt;
 #[cfg(not(debug_assertions))]
@@ -234,6 +236,7 @@ pub fn run() {
         let window_state_plugin = tauri_plugin_window_state::Builder::new()
             .with_state_flags(StateFlags::all())
             .skip_initial_state("main")
+            .skip_initial_state("island")
             .build();
 
         builder = builder.plugin(window_state_plugin);
@@ -296,6 +299,25 @@ pub fn run() {
             crate::window_effects::configure_macos_titlebar(&ww).unwrap_or_else(|e| {
                 eprintln!("[window] macOS titlebar setup failed: {e}");
             });
+        }
+
+        // ── Dynamic Island overlay window ────────────────────────────
+        if let Err(e) = crate::island::setup_island_window(app) {
+            eprintln!("[island] failed to setup island window: {e}");
+        }
+
+        // ── Global shortcut: Ctrl+Shift+I → toggle island ──
+        {
+            let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyI);
+            match app.global_shortcut().on_shortcut(shortcut, |handle, _event, _shortcut| {
+                if let Some(window) = handle.get_webview_window("island") {
+                    let _ = crate::island::position_top_center(&window);
+                    let _ = window.emit("island:toggle", ());
+                }
+            }) {
+                Ok(_) => eprintln!("[shortcut] registered Ctrl+Shift+I for island toggle"),
+                Err(e) => eprintln!("[shortcut] failed to register island shortcut: {e}"),
+            }
         }
 
         // ── Encryption service ────────────────────────────────────────
@@ -830,6 +852,15 @@ pub fn run() {
             crate::crypto_commands::crypto_migrate_unencrypted_db,
             crate::crypto_commands::crypto_create_backup,
             crate::window_effects::set_window_glass,
+            // Dynamic Island
+            crate::island::toggle_island,
+            crate::island::show_island,
+            crate::island::hide_island,
+            crate::island::island_compact,
+            crate::island::island_expand,
+            crate::island::island_start_drag,
+            crate::island::island_set_ignore_cursor_events,
+            crate::island::focus_main_window,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|error| {

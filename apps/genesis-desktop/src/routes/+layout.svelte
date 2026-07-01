@@ -6,6 +6,15 @@
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
   import { isTauri } from "@tauri-apps/api/core";
+
+  // ── Island window: bare render, no shell/auth ────────────────────────
+  let isIsland = $state(false);
+
+  $effect(() => {
+    if (browser && window.location.pathname === "/island") {
+      isIsland = true;
+    }
+  });
   import { initEnterprisePolish } from "$lib/enterprise";
   import { hydrateDesktopSettings } from "$lib/desktop/settings";
   import { clearBillingProfile, refreshBillingProfile } from "$lib/stores/billing.store";
@@ -250,7 +259,9 @@
   });
 </script>
 
-{#if $authStore.status === "restored"}
+{#if isIsland}
+  {@render children?.()}
+{:else if $authStore.status === "restored"}
   <DatabaseUnlockGate>
     {@render children?.()}
     <AuthSessionOverlay />

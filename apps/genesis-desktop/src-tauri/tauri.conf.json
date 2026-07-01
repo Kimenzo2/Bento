@@ -25,6 +25,26 @@
         "visible": false,
         "center": true,
         "skipTaskbar": false
+      },
+      {
+        "label": "island",
+        "title": "Bento Island",
+        "url": "/island",
+        "width": 260,
+        "height": 40,
+        "minWidth": 260,
+        "minHeight": 40,
+        "maxWidth": 320,
+        "maxHeight": 600,
+        "decorations": false,
+        "shadow": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "visible": false,
+        "center": false,
+        "focus": false
       }
     ],
     "security": {
