@@ -4,12 +4,11 @@
   import { cubicOut } from "svelte/easing";
   import { islandStore } from "$lib/stores/island.store.svelte";
   import type { IslandItem } from "$lib/data/island-catalog";
-  import { getIslandItem } from "$lib/data/island-catalog";
+  import { islandItems } from "$lib/data/island-catalog";
   import { getIcon } from "./island-icons";
-  import { WidgetRegistry } from "./widgets/widget-registry.svelte";
   import { loadBuiltinWidgets } from "./widgets/widget-config";
   import { widgetStore } from "$lib/stores/widget.store.svelte";
-  import WidgetWrapper from "./widgets/WidgetWrapper.svelte";
+  import ModuleActive from "./ModuleActive.svelte";
 
   const layoutGridIcon = getIcon("layout-grid");
   const clockIcon = getIcon("clock");
@@ -26,6 +25,42 @@
   let appGridEl = $state<HTMLElement | null>(null);
   let searchActive = $state(false);
   let searchInputEl = $state<HTMLInputElement | null>(null);
+
+  // ── Live recording timer for compact state ──
+  let compactTimerStart = $state(0);
+  let compactElapsed = $state(0);
+
+  $effect(() => {
+    const isRecording = islandStore.activeModule?.activityType === "recording";
+    if (!isRecording) {
+      compactElapsed = 0;
+      return;
+    }
+    compactTimerStart = Date.now();
+    const interval = setInterval(() => {
+      compactElapsed = Math.floor((Date.now() - compactTimerStart) / 1000);
+    }, 200);
+    return () => clearInterval(interval);
+  });
+
+  function formatClock(seconds: number): string {
+    const s = Math.max(0, seconds);
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  }
+
+  // Lazy color cache to avoid repeated lookups
+  const accentColorCache = new Map<string, string>();
+  function getAccentColor(id: string): string {
+    let c = accentColorCache.get(id);
+    if (!c) {
+      const item = islandItems.find((i) => i.id === id);
+      c = item?.accentColor ?? "#5f61ed";
+      accentColorCache.set(id, c);
+    }
+    return c;
+  }
 
   function closeSearch() {
     searchActive = false;
@@ -94,6 +129,21 @@
     if (!buttons?.length) return;
     const cols = getGridColumns();
     const currentIndex = Array.from(buttons).findIndex((b) => b === document.activeElement);
+
+    // Enter always launches the focused item
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const btn = buttons[currentIndex];
+      if (btn) {
+        const id = btn.dataset.itemId;
+        if (id) {
+          const item = islandStore.filteredItems.find((i) => i.id === id);
+          if (item) onLaunch(item);
+        }
+      }
+      return;
+    }
+
     let nextIndex = currentIndex;
     if (e.key === "ArrowRight") nextIndex = Math.min(currentIndex + 1, buttons.length - 1);
     else if (e.key === "ArrowLeft") nextIndex = Math.max(currentIndex - 1, 0);
@@ -146,20 +196,22 @@
             islandStore.expand();
           }
         }}
-      >
-        {#if islandStore.activeModule}
-          <div class="compact-live">
-            <span class="compact-live-icon" style="color: {getIslandItem(islandStore.activeModule.id)?.accentColor ?? '#5f61ed'}">
-              <svelte:component this={getIcon(islandStore.activeModule.icon)} size={12} strokeWidth={2.2} />
-            </span>
-            <span class="compact-live-label">{islandStore.activeModule.label}</span>
-            <span class="compact-live-status">
-              {islandStore.activeModule.status}
-              {#if islandStore.activeModule.activityType === "recording"}
-                <span class="compact-live-dot"></span>
-              {/if}
-            </span>
-          </div>
+      >          {#if islandStore.activeModule}
+            {@const CompactActiveIcon = getIcon(islandStore.activeModule.icon)}
+            <div class="compact-live">
+              <span class="compact-live-icon" style="color: {getAccentColor(islandStore.activeModule.id)}">
+                <CompactActiveIcon size={12} strokeWidth={2.2} />
+              </span>
+              <span class="compact-live-label">{islandStore.activeModule.label}</span>
+              <span class="compact-live-status">
+                {#if islandStore.activeModule.activityType === "recording"}
+                  {formatClock(compactElapsed)}
+                  <span class="compact-live-dot"></span>
+                {:else}
+                  {islandStore.activeModule.status}
+                {/if}
+              </span>
+            </div>
         {:else}
           <span class="compact-dot"></span>
         {/if}
@@ -244,61 +296,7 @@
         {/if}
         {#if islandStore.activeModule}
           <!-- ── Module Active View ── -->
-          {@const am = islandStore.activeModule}
-          {@const ActiveIcon = getIcon(am.icon)}
-          {@const islandItem = getIslandItem(am.id)}
-          <div class="module-active">
-            <div class="module-active-header">
-              <div class="module-active-info">
-                <span class="module-active-icon" style="color: {islandItem?.accentColor ?? '#5f61ed'}">
-                  <ActiveIcon size={18} strokeWidth={1.6} />
-                </span>
-                <div class="module-active-titles">
-                  <span class="module-active-name">{am.label}</span>
-                  <span class="module-active-status">{am.status}</span>
-                </div>
-              </div>
-              <div class="module-active-actions">
-                <button
-                  class="module-active-back"
-                  onclick={() => { islandStore.activeModule = null; }}
-                  aria-label="Back to apps"
-                >
-                  <xIcon size={14} color="rgba(255,255,255,0.3)" strokeWidth={1.8} />
-                </button>
-              </div>
-            </div>
-            <div class="module-active-body">
-              <div class="module-active-card">
-                {#if am.activityType === "recording"}
-                  <div class="module-active-recording">
-                    <div class="mar-waveform">
-                      {#each [0.3, 0.5, 0.8, 0.6, 0.9, 0.4, 0.7, 0.5, 0.85, 0.6] as base, i}
-                        <div
-                          class="mar-bar"
-                          style="animation-delay: {i * 0.08}s; transform: scaleY({base})"
-                        ></div>
-                      {/each}
-                    </div>
-                    <div class="mar-label">
-                      <span class="mar-dot"></span>
-                      <span>Recording active</span>
-                    </div>
-                  </div>
-                {:else}
-                  <div class="module-active-default">
-                    <span class="mad-icon">
-                      <ActiveIcon size={24} strokeWidth={1.5} />
-                    </span>
-                    <span class="mad-label">{am.status}</span>
-                  </div>
-                {/if}
-                <span class="module-active-hint">
-                  Open in main window for full controls
-                </span>
-              </div>
-            </div>
-          </div>
+          <ModuleActive activeModule={islandStore.activeModule} />
         {:else if islandStore.page === "apps"}
           <div class="w-grid" bind:this={appGridEl} onkeydown={handleGridKeydown} role="listbox" tabindex="-1">
             {#each islandStore.filteredItems as item (item.id)}
@@ -309,6 +307,7 @@
                 class:w-sm={w.width === "sm"}
                 class:w-md={w.width === "md"}
                 class:widget-card--selected={islandStore.selectedItemId === item.id}
+                data-item-id={item.id}
                 onclick={() => islandStore.selectItem(item.id)}
                 ondblclick={() => onLaunch(item)}
                 role="option"
@@ -974,163 +973,6 @@
     transform: rotate(-90deg);
   }
 
-  /* ── Module Active View ── */
-  .module-active {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    padding: 0 12px 10px;
-    min-height: 0;
-  }
-
-  .module-active-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 0 10px;
-    flex-shrink: 0;
-  }
-
-  .module-active-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .module-active-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.04);
-  }
-
-  .module-active-titles {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .module-active-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.85);
-  }
-
-  .module-active-status {
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.3);
-  }
-
-  .module-active-back {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: rgba(255, 255, 255, 0.3);
-  }
-
-  .module-active-back:hover {
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.6);
-  }
-
-  .module-active-body {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    min-height: 0;
-  }
-
-  .module-active-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 14px;
-    padding: 24px 20px;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 0.5px solid rgba(255, 255, 255, 0.06);
-    width: 100%;
-    max-width: 380px;
-  }
-
-  .module-active-hint {
-    font-size: 10px;
-    font-weight: 400;
-    color: rgba(255, 255, 255, 0.2);
-  }
-
-  /* Recording layout */
-  .module-active-recording {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-  }
-
-  .mar-waveform {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    height: 32px;
-  }
-
-  .mar-bar {
-    width: 4px;
-    border-radius: 2px;
-    background: #8b5cf6;
-    transition: transform 0.08s;
-    animation: mar-bounce 0.6s ease-in-out infinite alternate;
-    transform-origin: bottom;
-  }
-
-  @keyframes mar-bounce {
-    0% { transform: scaleY(0.3); }
-    100% { transform: scaleY(1); }
-  }
-
-  .mar-label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.4);
-  }
-
-  .mar-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #ef4444;
-    animation: live-pulse 1s ease-in-out infinite;
-  }
-
-  /* Default layout */
-  .module-active-default {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .mad-icon {
-    display: flex;
-    color: rgba(255, 255, 255, 0.25);
-  }
-
-  .mad-label {
-    font-size: 12px;
-    font-weight: 400;
-    color: rgba(255, 255, 255, 0.35);
-  }
+  /* Module Active styles now live in ModuleActive.svelte */
+  /* (scoped styles kept there, nothing unused here) */
 </style>
