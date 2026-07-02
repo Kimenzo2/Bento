@@ -17,6 +17,9 @@ export type ActiveModuleState = {
 } | null;
 
 class IslandStore {
+  #transitionStart = 0;
+  #diagnostics = true;
+
   mode = $state<IslandMode>("compact");
   page = $state<IslandPage>("apps");
   selectedItemId = $state<string | null>(null);
@@ -26,20 +29,66 @@ class IslandStore {
   /** When a module is actively running inside the island (e.g. recording). */
   activeModule = $state<ActiveModuleState>(null);
 
+  /** Diagnostics: time since mode last changed (ms). */
+  get msSinceModeChange(): number {
+    return this.#transitionStart ? Date.now() - this.#transitionStart : 0;
+  }
+
+  /** Diagnostics: health check. Returns warnings if state appears stuck. */
+  healthCheck(): string[] {
+    const warnings: string[] = [];
+    if (this.mode === "expanded" && this.msSinceModeChange > 30_000) {
+      warnings.push(`[island-diag] EXPANDED for ${(this.msSinceModeChange / 1000).toFixed(1)}s without collapse`);
+    }
+    if (this.mode === "compact" && this.msSinceModeChange > 300_000) {
+      warnings.push(`[island-diag] COMPACT for ${(this.msSinceModeChange / 1000).toFixed(1)}s (possible leak)`);
+    }
+    return warnings;
+  }
+
+  /** Diagnostics: force health check on window. Exposed for stress testing. */
+  runHealthCheck() {
+    const warnings = this.healthCheck();
+    warnings.forEach((w) => console.warn(w));
+    return warnings;
+  }
+
   expand(page: IslandPage = "apps") {
+    const prevMode = this.mode;
+    this.#transitionStart = Date.now();
     this.mode = "expanded";
     this.page = page;
     this.selectedItemId = null;
-    invoke("island_expand").catch((e) => console.error("[island] expand failed:", e));
+    const elapsed = Date.now() - this.#transitionStart;
+    console.log(`[island-store] expand() ${prevMode} -> expanded (page=${page}) [${elapsed}ms]`);
+    if (prevMode === "expanded") {
+      console.warn(`[island-store] WARN: expand() called while already expanded`);
+    }
+    invoke("island_expand").catch((e) => {
+      console.error("[island] expand invoke failed:", e);
+      // DESYNC WARNING: store says expanded, but Rust ISLAND_EXPANDED may still be false
+      console.warn(`[island-store] DESYNC: mode=expanded but island_expand invoke failed — Rust flag may be out of sync`);
+    });
   }
 
   collapse() {
+    const prevMode = this.mode;
+    this.#transitionStart = Date.now();
     this.mode = "compact";
     this.page = "apps";
     this.selectedItemId = null;
     this.searchQuery = "";
     this.activeModule = null;
-    invoke("island_compact").catch((e) => console.error("[island] collapse failed:", e));
+    const elapsed = Date.now() - this.#transitionStart;
+    console.log(`[island-store] collapse() ${prevMode} -> compact [${elapsed}ms]`);
+    if (prevMode === "compact") {
+      console.warn(`[island-store] WARN: collapse() called while already compact`);
+    }
+    invoke("island_compact").catch((e) => {
+      console.error("[island] collapse invoke failed:", e);
+      // DESYNC WARNING: store says compact, but Rust ISLAND_EXPANDED may still be true
+      console.warn(`[island-store] DESYNC: mode=compact but island_compact invoke failed — Rust flag may be out of sync`);
+    });
   }
 
   /**
@@ -48,13 +97,17 @@ class IslandStore {
    * state will display live status instead of the default dot.
    */
   activateModule(state: NonNullable<ActiveModuleState>) {
+    const prevMode = this.mode;
+    this.#transitionStart = Date.now();
     this.activeModule = state;
     this.mode = "expanded";
     this.selectedItemId = null;
     this.searchQuery = "";
+    console.log(`[island-store] activateModule(${state.id}) ${prevMode} -> expanded`);
   }
 
   toggle() {
+    console.log(`[island-store] toggle() current mode=${this.mode}`);
     if (this.mode === "compact") {
       this.expand();
     } else {
@@ -63,12 +116,16 @@ class IslandStore {
   }
 
   selectItem(id: string) {
+    const prev = this.selectedItemId;
     this.selectedItemId = this.selectedItemId === id ? null : id;
+    console.log(`[island-store] selectItem(${id}) ${prev} -> ${this.selectedItemId}`);
   }
 
   setPage(page: IslandPage) {
+    const prev = this.page;
     this.page = page;
     this.selectedItemId = null;
+    console.log(`[island-store] setPage(${page}) ${prev} -> ${page}`);
   }
 
   setSearch(query: string) {

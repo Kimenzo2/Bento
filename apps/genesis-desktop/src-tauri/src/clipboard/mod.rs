@@ -21,6 +21,7 @@ use sha2::{Digest, Sha256};
 use sqlx::Row;
 use std::path::PathBuf;
 use std::sync::LazyLock;
+use std::time::Instant;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::io::AsyncWriteExt;
 use tokio::sync::{Mutex, mpsc};
@@ -28,6 +29,18 @@ use tokio::sync::{Mutex, mpsc};
 use crate::db::BentoAppState;
 use crate::search::{SearchDocument, SearchService};
 use crate::util::time;
+
+// ─── Instrumentation ─────────────────────────────────────────────────────────
+fn log_timing(category: &str, op: &str, start: Instant, detail: impl std::fmt::Display) {
+    let ms = start.elapsed().as_secs_f64() * 1000.0;
+    if ms > 100.0 {
+        eprintln!("\u{26a0} [{category}] {op} took {ms:.1}ms — {detail}");
+    } else if ms > 10.0 {
+        eprintln!("[{category}] {op} took {ms:.1}ms — {detail}");
+    } else {
+        eprintln!("[{category}] {op} took {ms:.3}ms — {detail}");
+    }
+}
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 /// Maximum number of items returned by list/search.
@@ -38,6 +51,12 @@ const PREVIEW_MAX_LEN: usize = 200;
 /// Lower = more responsive, higher = less CPU. 300ms gives responsive capture
 /// while still being gentle on battery.
 const POLL_INTERVAL_MS: u64 = 300;
+/// Maximum image size (bytes) for clipboard polling. Images larger than this
+/// are saved once but re-polling is skipped to avoid 100ms+ clipboard reads
+/// every 900ms on the spawn_blocking thread pool.
+const MAX_POLL_IMAGE_SIZE: usize = 2_000_000; // 2 MB
+/// Number of image poll cycles to skip after detecting a large image.
+const LARGE_IMAGE_COOLDOWN_CYCLES: u32 = 30; // ~30 * 900ms = ~27s cooldown
 /// Faster polling interval when actively copying.
 const POLL_INTERVAL_FOCUSED_MS: u64 = 200;
 /// Auto-expiry for sensitive items (milliseconds). Default: 10 minutes.
@@ -588,6 +607,7 @@ pub async fn clipboard_list(
     favorite_only: Option<bool>,
     offset: Option<u32>,
 ) -> Result<Vec<ClipEntry>, String> {
+    let _start = Instant::now();
     let pool = state.db();
     let limit = limit.unwrap_or(DEFAULT_PAGE_SIZE).min(1000) as i64;
     let offset = offset.unwrap_or(0) as i64;
@@ -620,7 +640,10 @@ pub async fn clipboard_list(
         .await
         .map_err(|e| e.to_string())?;
 
-    Ok(rows.into_iter().map(ClipEntry::from_row).collect())
+    let entries: Vec<ClipEntry> = rows.into_iter().map(ClipEntry::from_row).collect();
+    let total_bytes: usize = entries.iter().map(|e| e.content.len() + e.content_hash.len() + e.preview.as_ref().map_or(0, |s| s.len())).sum();
+    log_timing("Clipboard", "list", _start, format_args!("{} rows, ~{}KB payload", entries.len(), total_bytes / 1024));
+    Ok(entries)
 }
 
 /// Get a single clipboard item by ID.
@@ -1191,6 +1214,8 @@ pub async fn clipboard_count(
 /// Save a clipboard image entry from the monitoring system.
 /// Stores the PNG bytes in the content-addressable store and creates a ClipEntry.
 async fn save_clipboard_image_entry(app: &AppHandle, state: &BentoAppState, image_bytes: &[u8]) -> Result<(), String> {
+    let _start = Instant::now();
+    let bytes_len = image_bytes.len();
     if image_bytes.len() < 16 {
         return Ok(());
     }
@@ -1219,8 +1244,11 @@ async fn save_clipboard_image_entry(app: &AppHandle, state: &BentoAppState, imag
         .execute(&pool)
         .await
         .map_err(|e| e.to_string())?;
+        log_timing("Clipboard::ImageSave", "dedup-hit", _start, format_args!("{} bytes", bytes_len));
         return Ok(());
     }
+
+    log_timing("Clipboard::ImageSave", "dedup-miss", _start, format_args!("{} bytes → storing", bytes_len));
 
     let id = uuid::Uuid::new_v4().to_string();
     let byte_size = image_bytes.len() as i64;
@@ -1264,6 +1292,7 @@ async fn save_clipboard_image_entry(app: &AppHandle, state: &BentoAppState, imag
     .await
     .map_err(|e| e.to_string())?;
 
+    let hash_str = hash.clone();
     let entry = ClipEntry {
         id,
         kind: ClipKind::Image,
@@ -1285,6 +1314,7 @@ async fn save_clipboard_image_entry(app: &AppHandle, state: &BentoAppState, imag
     // Notify frontend
     let _ = app.emit("clipboard://new-entry", entry);
 
+    log_timing("Clipboard::ImageSave", "complete", _start, format_args!("{} bytes, hash={:.12}", bytes_len, hash_str));
     Ok(())
 }
 
@@ -1298,6 +1328,7 @@ pub async fn clipboard_copy(
     id: String,
     _mode: Option<String>,
 ) -> Result<(), String> {
+    let _start = Instant::now();
     let pool = state.db();
     let row = sqlx::query(
         "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
@@ -1313,6 +1344,7 @@ pub async fn clipboard_copy(
     };
 
     let entry = ClipEntry::from_row(row);
+    log_timing("Clipboard::Copy", "db-lookup", _start, format_args!("id={:.12}, kind={:?}", id, entry.kind));
     match entry.kind {
         ClipKind::Image => {
             let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
@@ -1331,18 +1363,27 @@ pub async fn clipboard_copy(
                 .map_err(|e| format!("Failed to read image: {e}"))?;
 
             // Write image back to system clipboard using RGBA
+            let image_size = image_bytes.len();
+            log_timing("Clipboard::Copy", "fs-read", _start, format_args!("{} KB image", image_size / 1024));
             let app_clone = app.clone();
             tokio::task::spawn_blocking(move || -> Result<(), String> {
                 #[cfg(desktop)]
                 {
                     use tauri_plugin_clipboard_manager::ClipboardExt;
+                    let decode_start = Instant::now();
                     // Decode PNG bytes back to RGBA pixels
                     let img = image::load_from_memory(&image_bytes)
                         .map_err(|e| format!("Failed to decode image: {e}"))?
                         .into_rgba8();
+                    let decode_ms = decode_start.elapsed().as_secs_f64() * 1000.0;
                     let (width, height) = img.dimensions();
                     let rgba = img.into_raw();
+                    let output_size = rgba.len();
                     let image_obj = tauri::image::Image::new(&rgba, width, height);
+                    eprintln!("[Clipboard::Copy] decoded {}x{} PNG → {} RGBA in {decode_ms:.1}ms", width, height, output_size);
+                    if decode_ms > 50.0 {
+                        eprintln!("\u{26a0} [Clipboard::Copy] SLOW image decode: {decode_ms:.1}ms for {}x{}", width, height);
+                    }
                     app_clone.clipboard()
                         .write_image(&image_obj)
                         .map_err(|e| format!("Failed to write image to clipboard: {e}"))
@@ -1396,6 +1437,7 @@ pub async fn clipboard_get_image_path(
     state: State<'_, BentoAppState>,
     hash: String,
 ) -> Result<Option<String>, String> {
+    let _start = Instant::now();
     if hash.is_empty() || hash.len() < 8 {
         return Err("Invalid content hash.".to_string());
     }
@@ -1405,12 +1447,14 @@ pub async fn clipboard_get_image_path(
     // Try PNG extension path first (new storage format)
     let png_path = image_content_path(&data_dir, &hash);
     if png_path.exists() {
+        log_timing("Clipboard::ImagePath", "lookup", _start, format_args!("hash={:.12} fs-hit", hash));
         return Ok(Some(png_path.to_string_lossy().to_string()));
     }
 
     // Fallback: try extensionless path (legacy storage format)
     let store_path = content_path(&data_dir, &hash);
     if store_path.exists() {
+        log_timing("Clipboard::ImagePath", "lookup", _start, format_args!("hash={:.12} legacy-fs-hit", hash));
         return Ok(Some(store_path.to_string_lossy().to_string()));
     }
 
@@ -1431,21 +1475,64 @@ pub async fn clipboard_get_image_path(
                 std::path::PathBuf::from(&path)
             } else {
                 let png = image_content_path(&data_dir, &hash);
-                if png.exists() { return Ok(Some(png.to_string_lossy().to_string())); }
+                if png.exists() {
+                    log_timing("Clipboard::ImagePath", "lookup", _start, format_args!("hash={:.12} db-fallback-fs-hit", hash));
+                    return Ok(Some(png.to_string_lossy().to_string()));
+                }
                 content_path(&data_dir, &hash)
             };
             if full_path.exists() {
+                log_timing("Clipboard::ImagePath", "lookup", _start, format_args!("hash={:.12} db-hit", hash));
                 Ok(Some(full_path.to_string_lossy().to_string()))
             } else {
-                eprintln!("[clipboard] image file not found at: {path}");
+                log_timing("Clipboard::ImagePath", "lookup", _start, format_args!("hash={:.12} db-path-not-found", hash));
                 Ok(None)
             }
         }
         None => {
-            eprintln!("[clipboard] no content path for hash: {hash}");
+            log_timing("Clipboard::ImagePath", "lookup", _start, format_args!("hash={:.12} db-miss", hash));
             Ok(None)
         }
     }
+}
+
+/// Batch version: look up image file paths for multiple hashes at once.
+/// Returns a map of hash → path (or null if not found).
+/// Eliminates the N+1 IPC problem where each image in the grid fires a
+/// separate invoke call.
+#[tauri::command]
+pub async fn clipboard_get_image_paths(
+    app: AppHandle,
+    _state: State<'_, BentoAppState>,
+    hashes: Vec<String>,
+) -> Result<std::collections::HashMap<String, Option<String>>, String> {
+    let _start = Instant::now();
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let mut results = std::collections::HashMap::new();
+
+    for hash in hashes {
+        if hash.is_empty() || hash.len() < 8 {
+            results.insert(hash, None);
+            continue;
+        }
+
+        let png_path = image_content_path(&data_dir, &hash);
+        if png_path.exists() {
+            results.insert(hash, Some(png_path.to_string_lossy().to_string()));
+            continue;
+        }
+
+        let store_path = content_path(&data_dir, &hash);
+        if store_path.exists() {
+            results.insert(hash, Some(store_path.to_string_lossy().to_string()));
+            continue;
+        }
+
+        results.insert(hash, None);
+    }
+
+    log_timing("Clipboard::ImagePath", "batch-lookup", _start, format_args!("{} hashes", results.len()));
+    Ok(results)
 }
 
 /// Retrieve image data as a base64 data URI for frontend rendering.
@@ -1637,6 +1724,7 @@ pub struct ClipboardMonitor {
     last_image_hash: Mutex<String>,
     last_html_hash: Mutex<String>,
     save_tx: mpsc::Sender<ClipboardChange>,
+    large_image_cooldown_remaining: Mutex<u32>,
 }
 
 impl ClipboardMonitor {
@@ -1648,6 +1736,7 @@ impl ClipboardMonitor {
                 last_image_hash: Mutex::new(String::new()),
                 last_html_hash: Mutex::new(String::new()),
                 save_tx,
+                large_image_cooldown_remaining: Mutex::new(0),
             },
             save_rx,
         )
@@ -1666,6 +1755,7 @@ impl Default for ClipboardMonitor {
             last_image_hash: Mutex::new(String::new()),
             last_html_hash: Mutex::new(String::new()),
             save_tx: tx,
+            large_image_cooldown_remaining: Mutex::new(0),
         }
     }
 }
@@ -1705,9 +1795,6 @@ async fn clipboard_poller_task(app: AppHandle) {
         poll_phase = (poll_phase + 1) % 3;
 
         // Acquire global semaphore — only 1 concurrent clipboard read allowed.
-        // On Windows, opening the clipboard is a cross-process COM operation
-        // that can block for 50-200ms. Without this, multiple spawn_blocking
-        // tasks pile up, saturate the thread pool, and freeze the app.
         let _permit = CLIPBOARD_SEM.acquire().await;
 
         match poll_phase {
@@ -1738,27 +1825,37 @@ async fn clipboard_poller_task(app: AppHandle) {
                 *last = current.clone();
                 drop(last);
 
-                match monitor.save_tx().try_send(ClipboardChange { content: current, image_data: None, html_data: None }) {
-                    Ok(_) => {
-                        interval = tokio::time::interval(tokio::time::Duration::from_millis(POLL_INTERVAL_FOCUSED_MS));
-                    }
-                    Err(mpsc::error::TrySendError::Full(_)) => {
-                        eprintln!("[clipboard] channel full, skipping text change (backpressure)");
-                    }
-                    Err(mpsc::error::TrySendError::Closed(_)) => {
-                        eprintln!("[clipboard] writer channel closed, stopping poller");
-                        break;
-                    }
+                if monitor.save_tx().try_send(ClipboardChange { content: current, image_data: None, html_data: None }).is_ok() {
+                    interval = tokio::time::interval(tokio::time::Duration::from_millis(POLL_INTERVAL_FOCUSED_MS));
                 }
             }
             1 => {
                 // ── Image poll ──
+                let monitor = app.state::<ClipboardMonitor>();
+
+                // Check large-image cooldown before reading clipboard
+                {
+                    let mut cooldown = monitor.large_image_cooldown_remaining.lock().await;
+                    if *cooldown > 0 {
+                        *cooldown -= 1;
+                        drop(cooldown);
+                        continue;
+                    }
+                }
+
                 let image_bytes = match read_system_clipboard_image(&app).await {
                     Some(bytes) if bytes.len() > 16 => bytes,
                     _ => continue,
                 };
+                let image_size = image_bytes.len();
 
-                let monitor = app.state::<ClipboardMonitor>();
+                // Skip large images — enter cooldown to avoid 100ms clipboard reads every 900ms
+                if image_size > MAX_POLL_IMAGE_SIZE {
+                    let mut cooldown = monitor.large_image_cooldown_remaining.lock().await;
+                    *cooldown = LARGE_IMAGE_COOLDOWN_CYCLES;
+                    drop(cooldown);
+                }
+
                 let mut last_img = monitor.last_image_hash.lock().await;
                 let image_hash = content_hash(&image_bytes);
 
@@ -1768,17 +1865,8 @@ async fn clipboard_poller_task(app: AppHandle) {
                 *last_img = image_hash;
                 drop(last_img);
 
-                match monitor.save_tx().try_send(ClipboardChange { content: String::new(), image_data: Some(image_bytes), html_data: None }) {
-                    Ok(_) => {
-                        interval = tokio::time::interval(tokio::time::Duration::from_millis(POLL_INTERVAL_FOCUSED_MS));
-                    }
-                    Err(mpsc::error::TrySendError::Full(_)) => {
-                        eprintln!("[clipboard] channel full, skipping image change (backpressure)");
-                    }
-                    Err(mpsc::error::TrySendError::Closed(_)) => {
-                        eprintln!("[clipboard] writer channel closed, stopping poller");
-                        break;
-                    }
+                if monitor.save_tx().try_send(ClipboardChange { content: String::new(), image_data: Some(image_bytes), html_data: None }).is_ok() {
+                    interval = tokio::time::interval(tokio::time::Duration::from_millis(POLL_INTERVAL_FOCUSED_MS));
                 }
             }
             2 => {
@@ -1821,15 +1909,22 @@ async fn clipboard_poller_task(app: AppHandle) {
 
 /// Writer task: receives clipboard changes and saves them to the DB.
 async fn clipboard_writer_task(app: AppHandle, mut save_rx: mpsc::Receiver<ClipboardChange>) {
+    let mut total_processed = 0u64;
+    let mut total_save_time = std::time::Duration::ZERO;
+
     while let Some(change) = save_rx.recv().await {
+        let _batch_start = Instant::now();
+
         // Small delay to batch rapid copies
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
         // Drain any additional changes that arrived during the delay (keep latest)
+        let mut batch_size = 1u32;
         let mut content = change.content;
         let mut image_data = change.image_data;
         let mut html_data = change.html_data;
         while let Ok(latest) = save_rx.try_recv() {
+            batch_size += 1;
             if !latest.content.is_empty() {
                 content = latest.content;
             }
@@ -1842,6 +1937,7 @@ async fn clipboard_writer_task(app: AppHandle, mut save_rx: mpsc::Receiver<Clipb
         }
 
         let state = app.state::<BentoAppState>();
+        let save_start = Instant::now();
 
         if let Some(img_bytes) = image_data {
             if !img_bytes.is_empty() {
@@ -1860,6 +1956,18 @@ async fn clipboard_writer_task(app: AppHandle, mut save_rx: mpsc::Receiver<Clipb
                 eprintln!("[clipboard] failed to save clipboard entry: {e}");
             }
         }
+
+        let save_ms = save_start.elapsed().as_secs_f64() * 1000.0;
+        total_save_time += save_start.elapsed();
+        total_processed += 1;
+
+        if save_ms > 50.0 {
+            eprintln!("\u{26a0} [Clipboard::Writer] batch #{total_processed}: {batch_size} changes, save took {save_ms:.1}ms (total_save_time={:.1}s)",
+                total_save_time.as_secs_f64());
+        }
+
+        let batch_ms = _batch_start.elapsed().as_secs_f64() * 1000.0;
+        eprintln!("[Clipboard::Writer] batch #{total_processed}: {batch_size} changes, {batch_ms:.1}ms total");
     }
 }
 
@@ -2212,6 +2320,138 @@ async fn save_clipboard_entry(app: &AppHandle, state: &BentoAppState, content: &
     let _ = app.emit("clipboard://new-entry", entry);
 
     Ok(())
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Failure Injection — Stress Test Harness
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// Inject controlled stress scenarios to test clipboard subsystem robustness.
+/// Returns a JSON summary of the injection.
+///
+/// Scenarios:
+/// - `rapid_text` — save N text entries as fast as possible
+/// - `rapid_image` — generate N synthetic 64×64 images and save them
+/// - `corrupted_image` — save a file with valid PNG header but corrupted body
+/// - `huge_image` — generate a 4K (3840×2160) synthetic image
+/// - `massive_text` — save a single ~10MB text entry
+/// - `db_contention` — interleave N saves with N SELECT queries
+#[tauri::command]
+pub async fn clipboard_inject_stress(
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+    scenario: String,
+    count: Option<u32>,
+) -> Result<serde_json::Value, String> {
+    use image::codecs::png::PngEncoder;
+    use image::ImageEncoder;
+    use image::RgbaImage;
+    use serde_json::json;
+
+    let n = count.unwrap_or(50).min(500);
+    let _start = Instant::now();
+    let pool = state.db();
+
+    match scenario.as_str() {
+        "rapid_text" => {
+            let mut saved = 0u32;
+            for i in 0..n {
+                let content = format!("STRESS rapid_text #[{i}] — {}", "x".repeat(500));
+                save_clipboard_entry(&app, &state, &content).await?;
+                saved += 1;
+            }
+            log_timing("Clipboard::Stress", "rapid_text", _start, format_args!("{saved} entries"));
+            Ok(json!({"scenario": "rapid_text", "saved": saved}))
+        }
+
+        "rapid_image" => {
+            let mut saved = 0u32;
+            for i in 0..n {
+                let mut img = RgbaImage::new(64, 64);
+                for (x, y, pixel) in img.enumerate_pixels_mut() {
+                    *pixel = image::Rgba([
+                        ((x as u32 + i) % 256) as u8,
+                        ((y as u32 * 2 + i) % 256) as u8,
+                        ((x as u32 + y as u32 + i) % 256) as u8,
+                        255,
+                    ]);
+                }
+                let mut png_bytes = Vec::new();
+                let encoder = PngEncoder::new(&mut png_bytes);
+                encoder
+                    .write_image(img.as_raw(), 64, 64, image::ColorType::Rgba8.into())
+                    .map_err(|e: image::ImageError| e.to_string())?;
+                save_clipboard_image_entry(&app, &state, &png_bytes).await?;
+                saved += 1;
+            }
+            log_timing("Clipboard::Stress", "rapid_image", _start, format_args!("{saved} images"));
+            Ok(json!({"scenario": "rapid_image", "saved": saved}))
+        }
+
+        "corrupted_image" => {
+            let mut corrupted = Vec::from(&b"\x89PNG\r\n\x1a\n"[..]);
+            corrupted.extend_from_slice(b"\x00\x00\x00\x00CORRUPTED_DATA_THIS_IS_NOT_A_VALID_PNG");
+            save_clipboard_image_entry(&app, &state, &corrupted).await?;
+            log_timing("Clipboard::Stress", "corrupted_image", _start, format_args!("1 entry"));
+            Ok(json!({"scenario": "corrupted_image", "saved": 1}))
+        }
+
+        "huge_image" => {
+            let w = 3840u32;
+            let h = 2160u32;
+            let mut img = RgbaImage::new(w, h);
+            for (x, y, pixel) in img.enumerate_pixels_mut() {
+                *pixel = image::Rgba([
+                    (x % 256) as u8,
+                    (y % 256) as u8,
+                    ((x + y) % 256) as u8,
+                    255,
+                ]);
+            }
+            let mut png_bytes = Vec::new();
+            let encoder = PngEncoder::new(&mut png_bytes);
+            encoder
+                .write_image(img.as_raw(), w, h, image::ColorType::Rgba8.into())
+                .map_err(|e: image::ImageError| e.to_string())?;
+            let size_kb = png_bytes.len() / 1024;
+            save_clipboard_image_entry(&app, &state, &png_bytes).await?;
+            log_timing("Clipboard::Stress", "huge_image", _start, format_args!("{size_kb}KB raw PNG"));
+            Ok(json!({"scenario": "huge_image", "size_bytes": png_bytes.len(), "size_kb": size_kb}))
+        }
+
+        "massive_text" => {
+            let content = "STRESS massive_text entry — MASSIVE_DATA\n".repeat(500_000);
+            let content_str = &content[..content.len().min(10_000_000)];
+            let size_kb = content_str.len() / 1024;
+            save_clipboard_entry(&app, &state, content_str).await?;
+            log_timing("Clipboard::Stress", "massive_text", _start, format_args!("{size_kb}KB text blob"));
+            Ok(json!({"scenario": "massive_text", "size_bytes": content_str.len(), "size_kb": size_kb}))
+        }
+
+        "db_contention" => {
+            let mut saves = 0u32;
+            let mut reads = 0u32;
+            for i in 0..n {
+                let content = format!("STRESS db_contention #[{i}] — {}", "z".repeat(100));
+                save_clipboard_entry(&app, &state, &content).await?;
+                saves += 1;
+                // Run a SELECT query to create DB reader/writer interleave
+                let _rows: Vec<sqlx::sqlite::SqliteRow> = sqlx::query(
+                    "SELECT COUNT(*) as cnt FROM clipboard_items"
+                )
+                .fetch_all(&pool)
+                .await
+                .map_err(|e| e.to_string())?;
+                reads += 1;
+            }
+            log_timing("Clipboard::Stress", "db_contention", _start, format_args!("{saves} saves, {reads} reads"));
+            Ok(json!({"scenario": "db_contention", "saves": saves, "reads": reads}))
+        }
+
+        _ => Err(format!(
+            "Unknown stress scenario: {scenario}. Options: rapid_text, rapid_image, corrupted_image, huge_image, massive_text, db_contention"
+        )),
+    }
 }
 
 impl Default for ClipEntry {

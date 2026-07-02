@@ -1,33 +1,31 @@
 <script lang="ts">
-  import { invoke, convertFileSrc } from "@tauri-apps/api/core";
+  import { convertFileSrc } from "@tauri-apps/api/core";
   import ImageIcon from "@lucide/svelte/icons/image";
 
   let {
     hash,
     alt = "",
     immediate = false,
+    imagePath = null,
     ...restProps
   }: {
     hash: string;
     alt?: string;
     immediate?: boolean;
+    imagePath?: string | null;
   } & Record<string, unknown> = $props();
 
-  let containerRef = $state<HTMLDivElement | null>(null);
   let inView = $state(false);
   let imageSrc = $state<string | null>(null);
+  let error = $state(false);
+  let observerTarget = $state<HTMLDivElement | null>(null);
 
-  // Sync immediate prop to inView reactively
   $effect(() => {
     if (immediate) inView = true;
   });
-  let error = $state(false);
-  let generation = $state(0);
 
-  // Track viewport visibility — only fetch image path when visible
   $effect(() => {
-    if (inView) return;
-    if (!containerRef) return;
+    if (inView || !observerTarget) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -38,46 +36,36 @@
       },
       { rootMargin: "100px" }
     );
-    observer.observe(containerRef);
+    observer.observe(observerTarget);
     return () => observer.disconnect();
   });
 
-  // Fetch image file path only when in view — use asset protocol (no base64!)
   $effect(() => {
     if (!inView || !hash) return;
-
-    generation++;
-    const currentGen = generation;
     error = false;
-
-    invoke<string | null>("clipboard_get_image_path", { hash })
-      .then((filePath) => {
-        if (currentGen !== generation) return;
-        if (filePath) {
-          imageSrc = convertFileSrc(filePath);
-        } else {
-          error = true;
-        }
-      })
-      .catch(() => {
-        if (currentGen === generation) error = true;
-      });
+    if (imagePath) {
+      try {
+        imageSrc = convertFileSrc(imagePath);
+      } catch {
+        error = true;
+      }
+    } else {
+      error = true;
+    }
   });
 </script>
 
-<div bind:this={containerRef} style="display:contents">
-  {#if !inView}
-    <div class="cb-image-skeleton" {...restProps}></div>
-  {:else if imageSrc}
-    <img src={imageSrc} alt={alt} {...restProps} />
-  {:else if error}
-    <div class="cb-image-fallback" {...restProps}>
-      <ImageIcon size={24} />
-    </div>
-  {:else}
-    <div class="cb-image-skeleton" {...restProps}></div>
-  {/if}
-</div>
+{#if !inView}
+  <div bind:this={observerTarget} class="cb-image-skeleton" {...restProps}></div>
+{:else if imageSrc}
+  <img src={imageSrc} alt={alt} decoding="async" onerror={() => { error = true; }} {...restProps} />
+{:else if error}
+  <div class="cb-image-fallback" {...restProps}>
+    <ImageIcon size={24} />
+  </div>
+{:else}
+  <div bind:this={observerTarget} class="cb-image-skeleton" {...restProps}></div>
+{/if}
 
 <style>
   :global(.cb-image-skeleton) {

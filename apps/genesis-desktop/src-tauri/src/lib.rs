@@ -598,6 +598,8 @@ pub fn run() {
             crate::clipboard::clipboard_gc,
             crate::clipboard::clipboard_get_image_data,
             crate::clipboard::clipboard_get_image_path,
+            crate::clipboard::clipboard_get_image_paths,
+            crate::clipboard::clipboard_inject_stress,
             // Budget — Intelligent Budget Planner
             crate::budget::budget_list_categories,
             crate::budget::budget_suggest_limits,

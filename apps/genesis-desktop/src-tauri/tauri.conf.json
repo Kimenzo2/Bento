@@ -41,6 +41,22 @@
         "visible": false,
         "center": false,
         "focus": false
+      },
+      {
+        "label": "agent",
+        "title": "Bento Agent",
+        "url": "/agent",
+        "width": 340,
+        "height": 60,
+        "decorations": false,
+        "shadow": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "visible": false,
+        "center": false,
+        "focus": false
       }
     ],
     "security": {

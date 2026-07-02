@@ -36,7 +36,7 @@ import { time } from "$lib/utils/time";
   let selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
 
   // ── Types ─────────────────────────────────────────────────────────
-  type ClipKind = "text" | "code" | "link" | "image" | "sensitive";
+  type ClipKind = "text" | "code" | "link" | "image" | "sensitive" | "html";
 
   interface ClipEntry {
     id: string;
@@ -62,17 +62,24 @@ import { time } from "$lib/utils/time";
   let loading     = $state(true);
   let pasteMode   = $state<"plain" | "rich" | "image">("plain");
   let imageLayout = $state<"grid" | "masonry">("grid");
+  let imageDisplayCount = $state(20);
+  $effect(() => {
+    if (selectedSection === "Images") imageDisplayCount = 20;
+  });
   let unlisten: (() => void) | null = null;
-
 
   // ── Derived ───────────────────────────────────────────────────────
   const activeClip = $derived(clips.find(c => c.id === activeId) ?? null);
+  const imageEntries = $derived(clips.filter(c => c.kind === "image"));
+  const lightboxIndex = $derived(
+    lightboxHash ? imageEntries.findIndex(c => c.contentHash === lightboxHash) : -1
+  );
 
   const filtered = $derived.by(() => {
     let pool = clips;
     if (selectedSection === "Pinned")   pool = pool.filter(c => c.pinned);
     else if (selectedSection === "Images")   pool = pool.filter(c => c.kind === "image");
-    else if (selectedSection === "Snippets") pool = pool.filter(c => c.kind === "text" || c.kind === "code");
+    else if (selectedSection === "Snippets") pool = pool.filter(c => c.kind === "text" || c.kind === "code" || c.kind === "html");
     else if (selectedSection === "Sensitive") pool = pool.filter(c => c.isSensitive);
 
     const q = searchQuery.trim().toLowerCase();
@@ -105,7 +112,7 @@ import { time } from "$lib/utils/time";
   function kindColor(kind: ClipKind): string {
     const map: Record<ClipKind, string> = {
       text: "var(--cb-ink)", code: "var(--cb-code)", link: "var(--cb-link)",
-      image: "var(--cb-image)", sensitive: "var(--cb-sensitive)",
+      image: "var(--cb-image)", sensitive: "var(--cb-sensitive)", html: "var(--cb-code)",
     };
     return map[kind];
   }
@@ -113,16 +120,32 @@ import { time } from "$lib/utils/time";
   function kindIcon(kind: ClipKind) {
     const map: Record<ClipKind, any> = {
       text: TypeIcon, code: CodeIcon, link: Link2Icon,
-      image: ImageIcon, sensitive: ShieldIcon,
+      image: ImageIcon, sensitive: ShieldIcon, html: CodeIcon,
     };
     return map[kind];
   }
 
   function kindLabel(kind: ClipKind): string {
     const map: Record<ClipKind, string> = {
-      text: "Text", code: "Code", link: "Link", image: "Image", sensitive: "Sensitive",
+      text: "Text", code: "Code", link: "Link", image: "Image", sensitive: "Sensitive", html: "HTML",
     };
     return map[kind];
+  }
+
+  // ── Image path cache ────────────────────────────────────────────
+  let imagePathCache = $state<Map<string, string>>(new Map());
+
+  async function preloadImagePaths(entries: ClipEntry[]) {
+    const imageHashes = entries.filter(e => e.kind === "image").map(e => e.contentHash);
+    if (imageHashes.length === 0) return;
+    try {
+      const result = await invoke<Record<string, string | null>>("clipboard_get_image_paths", { hashes: imageHashes });
+      const cached = new Map<string, string>();
+      for (const [hash, path] of Object.entries(result)) {
+        if (path) cached.set(hash, path);
+      }
+      imagePathCache = cached;
+    } catch {}
   }
 
   // ── Backend ───────────────────────────────────────────────────────
@@ -132,6 +155,7 @@ import { time } from "$lib/utils/time";
       const rows = await invoke<ClipEntry[]>("clipboard_list", { limit: 100 });
       clips = rows;
       if (clips.length > 0 && !activeId) activeId = clips[0].id;
+      void preloadImagePaths(rows);
     } catch {
       clips = [];
     } finally {
@@ -169,8 +193,13 @@ import { time } from "$lib/utils/time";
   }
 
   async function deleteClip(id: string) {
+    const deleted = clips.find(c => c.id === id);
     clips = clips.filter(c => c.id !== id);
     if (activeId === id) activeId = clips[0]?.id ?? null;
+    if (deleted?.kind === "image" && deleted.contentHash) {
+      imagePathCache.delete(deleted.contentHash);
+    }
+    if (lightboxHash === deleted?.contentHash) lightboxHash = null;
     try { await invoke("clipboard_delete", { id }); } catch {}
   }
 
@@ -200,10 +229,13 @@ import { time } from "$lib/utils/time";
   function flushPending() {
     const batch = pendingEntries;
     pendingEntries = [];
+    const newImages: ClipEntry[] = [];
     for (const entry of batch) {
       if (clips.find(c => c.contentHash === entry.contentHash)) continue;
       clips = [entry, ...clips];
+      if (entry.kind === "image") newImages.push(entry);
     }
+    if (newImages.length > 0) void preloadImagePaths(newImages);
     if (!activeId && clips.length > 0) activeId = clips[0].id;
   }
 
@@ -225,6 +257,32 @@ import { time } from "$lib/utils/time";
       if (lightboxHash) { lightboxHash = null; return; }
       activeId = null; return;
     }
+    if ((e.metaKey || e.ctrlKey) && e.key === "f") {
+      e.preventDefault();
+      const searchInput = document.querySelector("[data-cb-search] input") as HTMLInputElement;
+      if (searchInput) { searchInput.focus(); return; }
+    }
+    // Lightbox image navigation (works from any section)
+    if (lightboxHash && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+      e.preventDefault();
+      if (imageEntries.length < 2) return;
+      const currentIdx = imageEntries.findIndex(c => c.contentHash === lightboxHash);
+      const next = e.key === "ArrowRight"
+        ? Math.min(currentIdx + 1, imageEntries.length - 1)
+        : Math.max(currentIdx - 1, 0);
+      lightboxHash = imageEntries[next]?.contentHash ?? lightboxHash;
+      return;
+    }
+    if (selectedSection === "Images") {
+      if ((e.target as HTMLElement)?.closest("[data-cb-search]")) return;
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+      }
+      if (e.key === "Enter" && lightboxHash) {
+        e.preventDefault();
+      }
+      return;
+    }
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       if ((e.target as HTMLElement)?.closest("[data-cb-search]")) return;
       e.preventDefault();
@@ -238,11 +296,6 @@ import { time } from "$lib/utils/time";
     if (e.key === "Enter" && activeId && !e.metaKey && !e.ctrlKey) {
       if ((e.target as HTMLElement)?.closest("[data-cb-search]")) return;
       void copyClip(activeId, pasteMode);
-      return;
-    }
-    if ((e.metaKey || e.ctrlKey) && e.key === "f") {
-      e.preventDefault();
-      (document.querySelector("[data-cb-search] input") as HTMLInputElement)?.focus();
       return;
     }
   }
@@ -259,6 +312,16 @@ import { time } from "$lib/utils/time";
     if (flushTimer) clearTimeout(flushTimer);
     unlisten?.();
     window.removeEventListener("keydown", handleKeydown);
+    document.body.style.overflow = "";
+  });
+
+  // Lock body scroll when lightbox is open
+  $effect(() => {
+    if (lightboxHash) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
   });
 
   // ── Section-specific descriptions ─────────────────────────────────
@@ -429,11 +492,9 @@ import { time } from "$lib/utils/time";
               </CardHeader>
               <CardContent class="cb-detail__content">
                 {#if clip.kind === "image"}
-                  <div class="cb-detail__image-wrap">
-                    <div class="cb-detail__image-wrap" onclick={() => lightboxHash = clip.contentHash}>
-                      <ClipboardImage hash={clip.contentHash} alt="" class="cb-detail__image" immediate />
-                      <button class="cb-detail__zoom" onclick={(e) => { e.stopPropagation(); lightboxHash = clip.contentHash; }}><ZoomInIcon size={14}/></button>
-                    </div>
+                  <div class="cb-detail__image-wrap" onclick={() => lightboxHash = clip.contentHash} role="button" tabindex="0" onkeydown={(e) => { if (e.key === 'Enter') lightboxHash = clip.contentHash; }} aria-label="Open in lightbox">
+                    <ClipboardImage hash={clip.contentHash} alt="" class="cb-detail__image" immediate imagePath={imagePathCache.get(clip.contentHash)} />
+                    <button class="cb-detail__zoom" onclick={(e) => { e.stopPropagation(); lightboxHash = clip.contentHash; }} aria-label="Zoom in"><ZoomInIcon size={14}/></button>
                   </div>
                 {:else if clip.isSensitive && !clip.revealed}
                   <div class="cb-detail__sensitive">
@@ -496,21 +557,31 @@ import { time } from "$lib/utils/time";
         </div>
 
       {:else if selectedSection === "Images"}
-        <!-- ─── IMAGES ─── -->
+        <!-- ─── IMAGES (virtualized) ─── -->
         {#if filtered.length > 0}
           <div
             class="cb-image-grid"
             class:cb-image-grid--masonry={imageLayout === "masonry"}
           >
-            {#each filtered as clip (clip.id)}
-              <button
+            {#each filtered.slice(0, imageDisplayCount) as clip (clip.id)}
+              <div
                 class="cb-image-card"
-                onclick={() => { searchQuery = ""; activeId = clip.id; setModuleSection(moduleId, "History", sectionLabels); }}
-                aria-label="View in detail panel"
+                role="button"
+                tabindex="0"
+                onclick={() => lightboxHash = clip.contentHash}
+                onkeydown={(e) => { if (e.key === 'Enter') lightboxHash = clip.contentHash; }}
+                aria-label="Preview image"
               >
                 <span class="cb-image-card__frame">
-                  <ClipboardImage hash={clip.contentHash} alt="" class="cb-image-card__img" />
-                  <span class="cb-image-card__cue">View details</span>
+                  <ClipboardImage hash={clip.contentHash} alt="" class="cb-image-card__img" imagePath={imagePathCache.get(clip.contentHash)} />
+                  <span class="cb-image-card__actions">
+                    <button class="cb-image-card__action" onclick={(e) => { e.stopPropagation(); activeId = clip.id; setModuleSection(moduleId, "History", sectionLabels); }} aria-label="View in detail panel" title="View details">
+                      <EyeIcon size={12} />
+                    </button>
+                    <button class="cb-image-card__action cb-image-card__action--danger" onclick={(e) => { e.stopPropagation(); deleteClip(clip.id); }} aria-label="Delete image" title="Delete">
+                      <Trash2Icon size={12} />
+                    </button>
+                  </span>
                 </span>
                 <span class="cb-image-card__meta">
                   <span class="cb-image-card__time">
@@ -524,9 +595,16 @@ import { time } from "$lib/utils/time";
                     <span class="cb-clip-row__pin">Pinned</span>
                   {/if}
                 </span>
-              </button>
+              </div>
             {/each}
           </div>
+          {#if filtered.length > imageDisplayCount}
+            <div class="cb-image-show-more">
+              <button onclick={() => imageDisplayCount += 20}>
+                Show {Math.min(20, filtered.length - imageDisplayCount)} more ({filtered.length - imageDisplayCount} remaining)
+              </button>
+            </div>
+          {/if}
         {:else}
           <div class="cb-image-empty">
             <ImageIcon size={32} />
@@ -611,7 +689,16 @@ import { time } from "$lib/utils/time";
   <div class="cb-lightbox" role="dialog" aria-modal="true" aria-label="Image preview"
     onclick={() => lightboxHash = null} onkeydown={(e) => { if (e.key === "Escape") lightboxHash = null; }} tabindex="-1">
     <button class="cb-lightbox__close" onclick={() => lightboxHash = null} aria-label="Close"><XIcon size={20}/></button>
-    <ClipboardImage hash={lightboxHash} alt="" class="cb-lightbox__img" immediate />
+    <ClipboardImage hash={lightboxHash} alt="" class="cb-lightbox__img" immediate imagePath={imagePathCache.get(lightboxHash)} />
+    {#if imageEntries.length > 1 && lightboxIndex >= 0}
+      <span class="cb-lightbox__counter">{lightboxIndex + 1} / {imageEntries.length}</span>
+    {/if}
+    {#if lightboxIndex > 0}
+      <button class="cb-lightbox__nav cb-lightbox__nav--prev" onclick={(e) => { e.stopPropagation(); lightboxHash = imageEntries[lightboxIndex - 1]?.contentHash ?? null; }} aria-label="Previous image">‹</button>
+    {/if}
+    {#if lightboxIndex < imageEntries.length - 1}
+      <button class="cb-lightbox__nav cb-lightbox__nav--next" onclick={(e) => { e.stopPropagation(); lightboxHash = imageEntries[lightboxIndex + 1]?.contentHash ?? null; }} aria-label="Next image">›</button>
+    {/if}
   </div>
 {/if}
 

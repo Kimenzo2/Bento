@@ -1,4 +1,5 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::time::{Duration, Instant};
 
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
 
@@ -8,9 +9,26 @@ const EXPANDED_W: f64 = 560.0;
 
 /// Tracks whether the frontend island is currently expanded.
 /// Used by the mouse monitor to compute the correct hit bounds
-/// (compact: 260×40 centered in the 320×480 window).
+/// (compact: 260x40 centered in the 320x480 window).
 #[cfg(target_os = "windows")]
 static ISLAND_EXPANDED: AtomicBool = AtomicBool::new(false);
+
+#[cfg(target_os = "windows")]
+static LAST_EXPAND_CHANGE_MS: AtomicU64 = AtomicU64::new(0);
+
+/// Returns seconds since the last expand/compact toggle (or 0 if never toggled).
+#[cfg(target_os = "windows")]
+fn seconds_since_last_toggle() -> f64 {
+    let last = LAST_EXPAND_CHANGE_MS.load(Ordering::Relaxed);
+    if last == 0 {
+        return 0.0;
+    }
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64;
+    (now.saturating_sub(last) as f64) / 1000.0
+}
 
 /// Cursor polling interval in milliseconds (~30 fps).
 const POLL_MS: u64 = 33;
@@ -53,7 +71,7 @@ fn remove_class_shadow(window: &WebviewWindow) -> Result<(), Box<dyn std::error:
 ///
 /// When the cursor is within (or near) the island window bounds, click-through
 /// is disabled so the user can click the island. When the cursor is outside,
-/// click-through is enabled — clicks pass through the transparent window to
+/// click-through is enabled -- clicks pass through the transparent window to
 /// whatever is beneath.
 ///
 /// Hysteresis (larger exit margin) prevents flickering at the boundary.
@@ -68,31 +86,52 @@ fn start_mouse_monitor(app: AppHandle) {
         .spawn(move || {
         let mut was_inside = false;
         let mut hidden_count: u32 = 0;
+        let mut transition_count: u32 = 0;
+        let mut last_log = Instant::now();
+
+        eprintln!("[island-monitor] thread started");
 
         loop {
             std::thread::sleep(std::time::Duration::from_millis(POLL_MS));
 
             let Some(window) = app.get_webview_window("island") else {
+                if last_log.elapsed() > Duration::from_secs(5) {
+                    eprintln!("[island-monitor] WARN: island window not found, waiting...");
+                    last_log = Instant::now();
+                }
                 continue;
             };
 
-            // Skip polling when the window is hidden — no point checking cursor
-            // against an invisible window. After 100 consecutive hidden polls
-            // (~3.3s) the thread exits to avoid zombie threads when the island
-            // is permanently disabled at runtime.
             if !window.is_visible().unwrap_or(false) {
                 hidden_count += 1;
                 if hidden_count > 100 {
-                    return; // thread exits
+                    eprintln!("[island-monitor] thread exiting after {hidden_count} consecutive hidden polls (3.3s idle)");
+                    return;
                 }
-                // Reset was_inside so the next show() starts fresh
+                if hidden_count == 1 || hidden_count % 20 == 0 {
+                    eprintln!("[island-monitor] window hidden (poll #{hidden_count})");
+                }
                 was_inside = false;
                 continue;
             }
+            if hidden_count > 0 {
+                eprintln!("[island-monitor] window became visible after {hidden_count} hidden polls");
+            }
             hidden_count = 0;
+
+            // Watchdog: check if ISLAND_EXPANDED has been stuck for > 30s
+            let toggle_secs = seconds_since_last_toggle();
+            let expanded_now = ISLAND_EXPANDED.load(Ordering::Relaxed);
+            if expanded_now && toggle_secs > 30.0 && toggle_secs < 30.5 {
+                eprintln!("[island-monitor] WARN: ISLAND_EXPANDED = true for {toggle_secs:.1}s without toggle. Possible freeze.");
+            }
 
             let mut pt = POINT { x: 0, y: 0 };
             if unsafe { GetCursorPos(&mut pt) } == 0 {
+                if last_log.elapsed() > Duration::from_secs(5) {
+                    eprintln!("[island-monitor] GetCursorPos failed");
+                    last_log = Instant::now();
+                }
                 continue;
             }
 
@@ -104,10 +143,7 @@ fn start_mouse_monitor(app: AppHandle) {
             let win_w = size.width as f64;
             let win_h = size.height as f64;
 
-            // The window is always at the expanded size (320×480).
-            // When the island is compact (260×40) we narrow the hit area
-            // to the centermost 260×40 region of the window.
-            let (island_w, island_h) = if ISLAND_EXPANDED.load(Ordering::Relaxed) {
+            let (island_w, island_h) = if expanded_now {
                 (win_w, win_h)
             } else {
                 (COMPACT_W, COMPACT_H)
@@ -124,13 +160,26 @@ fn start_mouse_monitor(app: AppHandle) {
 
             if inside != was_inside {
                 was_inside = inside;
-                let _ = window.set_ignore_cursor_events(!inside);
+                transition_count += 1;
+                eprintln!(
+                    "[island-monitor] cursor {} bounds at ({},{}) island=({:.0},{:.0})+({:.0},{:.0}) [transition #{}, expanded={}, toggle_secs={:.1}]",
+                    if inside { "ENTERED" } else { "LEFT" },
+                    pt.x, pt.y,
+                    island_x, island_y, island_w, island_h,
+                    transition_count,
+                    expanded_now,
+                    toggle_secs,
+                );
+                let result = window.set_ignore_cursor_events(!inside);
+                if let Err(e) = result {
+                    eprintln!("[island-monitor] set_ignore_cursor_events failed: {e}");
+                }
             }
         }
     });
 }
 
-/// Setup the island window — position, transparency, then show.
+/// Setup the island window -- position, transparency, then show.
 /// `visible: false` in config prevents DWM compositor crash on Windows.
 pub fn setup_island_window(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let settings = crate::settings::load_desktop_settings(app.handle());
@@ -144,57 +193,46 @@ pub fn setup_island_window(app: &tauri::App) -> Result<(), Box<dyn std::error::E
         return Ok(());
     };
 
+    eprintln!("[island] setup_island_window: starting");
+
     #[cfg(target_os = "macos")]
     if let Err(e) = set_macos_window_level(&window) {
         eprintln!("[island] macOS window level setup failed (island may sit below menu bar): {e}");
     }
 
-    // Strip the DWM drop-shadow at the class level — otherwise the
-    // WS_EX_LAYERED style (required for transparency) makes DWM paint a
-    // shadow rectangle below the window.  The top half clips off-screen
-    // (y=0) so only the bottom shadow is visible as a floating bar.
     #[cfg(target_os = "windows")]
     remove_class_shadow(&window).unwrap_or_else(|e| {
         eprintln!("[island] remove_class_shadow failed: {e}");
     });
 
-    // Transparent webview background — prevents white flash.
-    // MUST happen before show() on Windows to avoid DWM compositor crash.
     if let Err(e) = window.set_background_color(Some(tauri::webview::Color(0, 0, 0, 0))) {
         eprintln!("[island] set_background_color failed: {e}");
     }
 
-    // Windows: default click-through ON. The mouse monitor thread toggles this
-    // off when the cursor enters the island window area.
-    // macOS: native per-pixel hit-testing for transparent windows handles
-    // click-through automatically — no need to call this (doing so would make
-    // the entire island, including opaque content, unclickable).
     #[cfg(target_os = "windows")]
     if let Err(e) = window.set_ignore_cursor_events(true) {
         eprintln!("[island] set_ignore_cursor_events failed: {e}");
     }
 
-    // Pre-warm the webview compositor on Windows so the first frame is already transparent
     #[cfg(target_os = "windows")]
     {
         let _ = window.eval("document.body.style.background='transparent'");
     }
 
-    // Position before show() so the window appears at the correct
-    // top-center position on first paint — no wrong-position glitch.
     position_top_center_expanded(&window).unwrap_or_else(|e| {
         eprintln!("[island] position_top_center_expanded failed: {e}");
     });
 
-    // Show after fully configured — avoids DWM compositor crash on Windows.
     if let Err(e) = window.show() {
         eprintln!("[island] window.show() failed: {e}");
     }
 
-    // Start the background mouse monitor on Windows
+    eprintln!("[island] setup_island_window: window shown");
+
     #[cfg(target_os = "windows")]
     start_mouse_monitor(app.handle().clone());
 
+    eprintln!("[island] setup_island_window: complete");
     Ok(())
 }
 
@@ -220,7 +258,7 @@ fn set_macos_window_level(window: &WebviewWindow) -> Result<(), Box<dyn std::err
 }
 
 /// Position the island window at top-center of the primary monitor.
-/// Uses outer_size() for the window width — call this after the window is shown.
+/// Uses outer_size() for the window width -- call this after the window is shown.
 pub fn position_top_center(window: &WebviewWindow) -> Result<(), Box<dyn std::error::Error>> {
     let Some(monitor) = window.app_handle().primary_monitor()? else {
         return Err("no primary monitor found".into());
@@ -252,24 +290,31 @@ fn position_top_center_expanded(window: &WebviewWindow) -> Result<(), Box<dyn st
 /// Toggle compact/expanded state on the frontend.
 #[tauri::command]
 pub fn toggle_island(window: tauri::WebviewWindow) -> Result<(), String> {
+    eprintln!("[island] toggle_island() called");
     if window.label() == "island" {
         position_top_center(&window).unwrap_or_else(|e| {
             eprintln!("[island] reposition on toggle failed: {e}");
         });
         window.emit("island:toggle", ()).map_err(|e| e.to_string())?;
+        eprintln!("[island] toggle_island: emitted island:toggle event");
+    } else {
+        eprintln!("[island] toggle_island: wrong window label '{}'", window.label());
     }
     Ok(())
 }
 
 /// Expand the island via frontend event.
-/// The frontend store drives the actual resize through island_expand.
 #[tauri::command]
 pub fn show_island(window: tauri::WebviewWindow) -> Result<(), String> {
+    eprintln!("[island] show_island() called");
     if window.label() == "island" {
         position_top_center(&window).unwrap_or_else(|e| {
             eprintln!("[island] reposition on show failed: {e}");
         });
         window.emit("island:show", ()).map_err(|e| e.to_string())?;
+        eprintln!("[island] show_island: emitted island:show event");
+    } else {
+        eprintln!("[island] show_island: wrong window label '{}'", window.label());
     }
     Ok(())
 }
@@ -277,51 +322,109 @@ pub fn show_island(window: tauri::WebviewWindow) -> Result<(), String> {
 /// Collapse to compact via frontend event.
 #[tauri::command]
 pub fn hide_island(window: tauri::WebviewWindow) -> Result<(), String> {
+    eprintln!("[island] hide_island() called");
     if window.label() == "island" {
         window.emit("island:hide", ()).map_err(|e| e.to_string())?;
+        eprintln!("[island] hide_island: emitted island:hide event");
+    } else {
+        eprintln!("[island] hide_island: wrong window label '{}'", window.label());
     }
     Ok(())
 }
 
 /// Toggle whether the island window accepts cursor events.
-///
-/// Deprecated: the background mouse monitor (`start_mouse_monitor`) manages
-/// click-through internally. This command is retained for debugging only.
+/// Deprecated: the background mouse monitor manages click-through internally.
 #[tauri::command]
 pub fn island_set_ignore_cursor_events(window: tauri::WebviewWindow, ignore: bool) -> Result<(), String> {
+    eprintln!("[island] set_ignore_cursor_events({ignore}) called");
     if window.label() == "island" {
         window.set_ignore_cursor_events(ignore).map_err(|e| e.to_string())?;
+        eprintln!("[island] set_ignore_cursor_events({ignore}) succeeded");
+    } else {
+        eprintln!("[island] set_ignore_cursor_events: wrong window label '{}'", window.label());
     }
     Ok(())
 }
 
 #[tauri::command]
 pub fn island_compact() -> Result<(), String> {
+    eprintln!("[island] island_compact() called");
     #[cfg(target_os = "windows")]
-    ISLAND_EXPANDED.store(false, Ordering::SeqCst);
+    {
+        let prev = ISLAND_EXPANDED.swap(false, Ordering::SeqCst);
+        LAST_EXPAND_CHANGE_MS.store(
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis() as u64,
+            Ordering::Relaxed,
+        );
+        eprintln!("[island] compact() -- ISLAND_EXPANDED: {prev} -> false");
+    }
     Ok(())
 }
 
 #[tauri::command]
 pub fn island_expand() -> Result<(), String> {
+    eprintln!("[island] island_expand() called");
     #[cfg(target_os = "windows")]
-    ISLAND_EXPANDED.store(true, Ordering::SeqCst);
+    {
+        let prev = ISLAND_EXPANDED.swap(true, Ordering::SeqCst);
+        LAST_EXPAND_CHANGE_MS.store(
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis() as u64,
+            Ordering::Relaxed,
+        );
+        eprintln!("[island] expand() -- ISLAND_EXPANDED: {prev} -> true");
+    }
     Ok(())
+}
+
+/// Diagnostics command -- dumps current island state.
+#[tauri::command]
+pub fn island_dump_state() -> Result<serde_json::Value, String> {
+    #[cfg(target_os = "windows")]
+    {
+        let expanded = ISLAND_EXPANDED.load(Ordering::Relaxed);
+        let toggle_secs = seconds_since_last_toggle();
+        Ok(serde_json::json!({
+            "expanded": expanded,
+            "seconds_since_last_toggle": toggle_secs,
+            "stuck_warning": expanded && toggle_secs > 10.0,
+        }))
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        Ok(serde_json::json!({
+            "expanded": null,
+            "note": "ISLAND_EXPANDED only tracked on Windows"
+        }))
+    }
 }
 
 #[tauri::command]
 pub fn island_start_drag(window: tauri::WebviewWindow) -> Result<(), String> {
+    eprintln!("[island] start_drag() called");
     if window.label() == "island" {
         window.start_dragging().map_err(|e| e.to_string())?;
+        eprintln!("[island] start_drag() succeeded");
+    } else {
+        eprintln!("[island] start_drag: wrong window label '{}'", window.label());
     }
     Ok(())
 }
 
 #[tauri::command]
 pub fn focus_main_window(app: AppHandle) -> Result<(), String> {
+    eprintln!("[island] focus_main_window() called");
     if let Some(window) = app.get_webview_window("main") {
         window.show().map_err(|e: tauri::Error| e.to_string())?;
         window.set_focus().map_err(|e: tauri::Error| e.to_string())?;
+        eprintln!("[island] focus_main_window: main window focused");
+    } else {
+        eprintln!("[island] focus_main_window: main window not found");
     }
     Ok(())
 }
@@ -335,39 +438,43 @@ pub fn set_island_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
         return Err("island window not found".into());
     };
 
-    if enabled {
-        // Window stays at expanded size — the frontend island div animates
-        // between compact/expanded via CSS transitions.
-        #[cfg(target_os = "windows")]
-        ISLAND_EXPANDED.store(false, Ordering::SeqCst);
+    eprintln!("[island] set_island_enabled({enabled}) called");
 
-        // Restore transparent background (idempotent).
+    if enabled {
+        #[cfg(target_os = "windows")]
+        {
+            ISLAND_EXPANDED.store(false, Ordering::SeqCst);
+            LAST_EXPAND_CHANGE_MS.store(
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis() as u64,
+                Ordering::Relaxed,
+            );
+        }
+
         if let Err(e) = window.set_background_color(Some(tauri::webview::Color(0, 0, 0, 0))) {
             eprintln!("[island] set_background_color on re-enable failed: {e}");
         }
 
-        // Position before show so the window appears at the correct
-        // top-center position on first paint — no wrong-position glitch.
         position_top_center_expanded(&window).unwrap_or_else(|e| {
             eprintln!("[island] reposition on re-enable failed: {e}");
         });
 
         window.show().map_err(|e| e.to_string())?;
 
-        // Reset frontend state to compact (the Svelte store persists across
-        // hide/show since the webview process stays alive).
         let _ = window.emit("island:hide", ());
 
-        // Windows: start clickable — the mouse monitor thread will toggle
-        // click-through ON within the next poll cycle if the cursor is outside.
-        // macOS: default per-pixel hit-testing is correct; no override needed.
         #[cfg(target_os = "windows")]
         {
             let _ = window.set_ignore_cursor_events(false);
             start_mouse_monitor(app.clone());
         }
+
+        eprintln!("[island] set_island_enabled(true): complete");
     } else {
         window.hide().map_err(|e| e.to_string())?;
+        eprintln!("[island] set_island_enabled(false): window hidden");
     }
 
     Ok(())

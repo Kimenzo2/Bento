@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { fade } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
+  import { invoke } from "@tauri-apps/api/core";
   import { islandStore } from "$lib/stores/island.store.svelte";
   import type { IslandItem } from "$lib/data/island-catalog";
   import { islandItems } from "$lib/data/island-catalog";
@@ -10,6 +11,34 @@
   import { widgetStore } from "$lib/stores/widget.store.svelte";
   import { getLiveWidget, initWidgetData } from "$lib/stores/widget-data.svelte";
   import ModuleActive from "./ModuleActive.svelte";
+
+  // ── Diagnostics ──
+  const DIAG = true;
+  let diagModeChanges = 0;
+  let diagEscapeCount = 0;
+  let diagClickListenerCount = 0;
+  let diagKeydownCount = 0;
+  let diagLastModeChange = 0;
+  let diagWatchdogInterval: ReturnType<typeof setInterval> | null = null;
+  let diagMountTime = Date.now();
+  let diagListenerLeakCheck = false;
+
+  // Animation/interruption tracking
+  let islandEl = $state<HTMLElement | null>(null);
+  let diagTransitionCount = 0;
+  let diagTransitionInterruptions = 0;
+  let diagTransitionStartTime = 0;
+  let diagLastTransitionProperty = "";
+  let diagInvokeTimeout = 5000; // 5s timeout for Rust invokes
+  let diagInvokeTimedOut = false;
+  let diagVisibilityHiddenCount = 0;
+
+  if (DIAG) {
+    // Check for pre-existing document listeners (leak detection)
+    // Svelte 5 onMount fires once; if onDestroy fires and re-mounts,
+    // the old listeners should be gone. We track expected listener count.
+    console.log("[island-diag] Island.svelte mounted at", new Date().toISOString());
+  }
 
   const layoutGridIcon = getIcon("layout-grid");
   const clockIcon = getIcon("clock");
@@ -26,6 +55,18 @@
   let appGridEl = $state<HTMLElement | null>(null);
   let searchActive = $state(false);
   let searchInputEl = $state<HTMLInputElement | null>(null);
+
+  // ── Diagnostics: mode change watcher ──
+  let diagPrevMode = islandStore.mode;
+  $effect(() => {
+    const mode = islandStore.mode;
+    if (mode !== diagPrevMode) {
+      diagModeChanges++;
+      diagLastModeChange = Date.now();
+      console.log(`[island-diag] mode change #${diagModeChanges}: ${diagPrevMode} -> ${mode} (${new Date().toISOString()})`);
+      diagPrevMode = mode;
+    }
+  });
 
   // ── Live recording timer for compact state ──
   let compactTimerStart = $state(0);
@@ -69,6 +110,7 @@
   }
 
   function onLaunch(item: IslandItem) {
+    console.log(`[island-diag] onLaunch(${item.id})`);
     closeSearch();
     islandStore.pushRecent(item.id);
     handleLaunch(item);
@@ -76,6 +118,7 @@
   }
 
   function onQuickAction(action: string, item: IslandItem) {
+    console.log(`[island-diag] onQuickAction(${action}, ${item.id})`);
     closeSearch();
     islandStore.pushRecent(item.id);
     handleQuickAction(action, item);
@@ -84,16 +127,24 @@
   }
 
   function onKeydown(e: KeyboardEvent) {
+    diagKeydownCount++;
     const target = e.target as HTMLElement;
     const inWidget = target.closest(".widget-card-w") || target.closest(".widget-wrapper");
 
     if (e.key === "Escape") {
-      if (inWidget) return;
+      diagEscapeCount++;
+      console.log(`[island-diag] Escape pressed (#${diagEscapeCount}), mode=${islandStore.mode}, searchActive=${searchActive}, inWidget=${!!inWidget}`);
+      if (inWidget) {
+        console.log("[island-diag] Escape ignored — inside widget");
+        return;
+      }
       if (searchActive) {
+        console.log("[island-diag] Escape closes search");
         searchActive = false;
         islandStore.searchQuery = "";
         return;
       }
+      console.log("[island-diag] Escape collapses island");
       islandStore.collapse();
     }
   }
@@ -109,10 +160,57 @@
   }
 
   function onClickOutside(e: MouseEvent) {
+    diagClickListenerCount++;
     const target = e.target as HTMLElement;
-    if (islandStore.mode === "expanded" && !target.closest(".island")) {
-      islandStore.collapse();
+    const insideIsland = target.closest(".island");
+    if (islandStore.mode === "expanded") {
+      if (!insideIsland) {
+        console.log(`[island-diag] click outside island — collapsing (click #${diagClickListenerCount})`);
+        islandStore.collapse();
+      }
     }
+  }
+
+  // ── Diagnostics: invoke with timeout ──
+  async function invokeWithTimeout<T>(cmd: string, args?: Record<string, unknown>, timeoutMs = diagInvokeTimeout): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        diagInvokeTimedOut = true;
+        const err = new Error(`[island-diag] INVOKE TIMEOUT: ${cmd} > ${timeoutMs}ms`);
+        console.error(err.message);
+        reject(err);
+      }, timeoutMs);
+      invoke<T>(cmd, args)
+        .then((result) => {
+          clearTimeout(timer);
+          resolve(result);
+        })
+        .catch((e) => {
+          clearTimeout(timer);
+          reject(e);
+        });
+    });
+  }
+
+  // ── Diagnostics: transitionend handler ──
+  function onTransitionEnd(e: TransitionEvent) {
+    diagTransitionCount++;
+    const elapsed = diagTransitionStartTime ? Date.now() - diagTransitionStartTime : 0;
+    const prop = e.propertyName;
+    console.log(`[island-diag] transitionend #${diagTransitionCount}: property=${prop}, elapsed=${elapsed}ms, mode=${islandStore.mode}`);
+    diagLastTransitionProperty = prop;
+    diagTransitionStartTime = 0;
+  }
+
+  // ── Diagnostics: track animation interruptions ──
+  function onTransitionRun(e: TransitionEvent) {
+    // If a transition starts while another is in progress, it's an interruption
+    if (diagTransitionStartTime > 0) {
+      diagTransitionInterruptions++;
+      console.warn(`[island-diag] TRANSITION INTERRUPTION #${diagTransitionInterruptions}: ${diagLastTransitionProperty} interrupted by ${e.propertyName}`);
+    }
+    diagTransitionStartTime = Date.now();
+    diagLastTransitionProperty = e.propertyName;
   }
 
   function getGridColumns(): number {
@@ -161,11 +259,171 @@
     initWidgetData();
     document.addEventListener("keydown", onKeydown);
     document.addEventListener("mousedown", onClickOutside);
+    // Transition tracking on island element
+    if (islandEl) {
+      islandEl.addEventListener("transitionend", onTransitionEnd);
+      islandEl.addEventListener("transitionrun", onTransitionRun);
+    }
+    // Visibility change — detect tab switches mid-animation
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        diagVisibilityHiddenCount++;
+        console.log(`[island-diag] page hidden #${diagVisibilityHiddenCount} (mode=${islandStore.mode})`);
+      } else {
+        console.log(`[island-diag] page visible (mode=${islandStore.mode}, was hidden ${diagVisibilityHiddenCount} times)`);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    // Initial listener leak baseline
+    diagListenerLeakCheck = true;
+    console.log(`[island-diag] onMount complete — listeners registered, islandEl=${!!islandEl}`);
+
+    // ── Watchdog: periodic health check every 10s ──
+    diagWatchdogInterval = setInterval(() => {
+      const warnings = islandStore.healthCheck();
+
+      // Check for stuck transitions
+      if (diagTransitionStartTime > 0 && Date.now() - diagTransitionStartTime > 6000) {
+        const stuck = `[island-diag] TRANSITION STUCK for ${((Date.now() - diagTransitionStartTime) / 1000).toFixed(1)}s on ${diagLastTransitionProperty}`;
+        console.warn(stuck);
+        warnings.push(stuck);
+        // Reset to avoid repeated warnings
+        diagTransitionStartTime = 0;
+      }
+
+      // Check invoke timeout
+      if (diagInvokeTimedOut) {
+        warnings.push("[island-diag] Invoke timeout detected — Rust command may be stuck");
+      }
+
+      if (warnings.length > 0) {
+        console.warn(`[island-diag] Watchdog health check FAILED:`);
+        warnings.forEach((w) => console.warn(`  ${w}`));
+      }
+    }, 10_000);
+
     return () => {
+      const uptime = Date.now() - diagMountTime;
+      console.log(`[island-diag] onDestroy: cleaning up (mounted ${uptime}ms, modeChanges=${diagModeChanges})`);
       document.removeEventListener("keydown", onKeydown);
       document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      if (islandEl) {
+        islandEl.removeEventListener("transitionend", onTransitionEnd);
+        islandEl.removeEventListener("transitionrun", onTransitionRun);
+      }
+      if (diagWatchdogInterval) {
+        clearInterval(diagWatchdogInterval);
+        diagWatchdogInterval = null;
+      }
+      console.log(`[island-diag] cleanup complete — keydown=${diagKeydownCount}, escape=${diagEscapeCount}, clickOutside=${diagClickListenerCount}, transitions=${diagTransitionCount}, interruptions=${diagTransitionInterruptions}`);
     };
   });
+
+  // ── Diagnostics: global stress test harness ──
+  if (typeof window !== "undefined") {
+    (window as any).__islandDiagnostics = {
+      store: islandStore,
+      expand: () => islandStore.expand(),
+      collapse: () => islandStore.collapse(),
+      toggle: () => islandStore.toggle(),
+      healthCheck: () => islandStore.healthCheck(),
+      runHealthCheck: () => islandStore.runHealthCheck(),
+    };
+    (window as any).__stressIsland = async function(options?: {
+      iterations?: number;
+      interval?: number;
+      randomDelay?: boolean;
+    }) {
+      const iters = options?.iterations ?? 20;
+      const baseInterval = options?.interval ?? 200;
+      const randomDelay = options?.randomDelay ?? true;
+      const results: { action: string; time: number; ok: boolean }[] = [];
+
+      console.log(`[stress] Starting island stress test: ${iters} iterations`);
+
+      for (let i = 0; i < iters; i++) {
+        const action = i % 2 === 0 ? "expand" : "collapse";
+        const start = performance.now();
+
+        try {
+          if (action === "expand") {
+            islandStore.expand();
+          } else {
+            islandStore.collapse();
+          }
+          const elapsed = performance.now() - start;
+          results.push({ action, time: elapsed, ok: true });
+          console.log(`[stress] #${i + 1}/${iters} ${action} OK (${elapsed.toFixed(1)}ms)`);
+        } catch (e) {
+          const elapsed = performance.now() - start;
+          results.push({ action, time: elapsed, ok: false });
+          console.error(`[stress] #${i + 1}/${iters} ${action} FAILED:`, e);
+        }
+
+        const delay = randomDelay
+          ? baseInterval + Math.random() * 300
+          : baseInterval;
+        await new Promise((r) => setTimeout(r, delay));
+      }
+
+      const finalHealth = islandStore.healthCheck();
+      console.log(`[stress] Complete. ${results.filter((r) => r.ok).length}/${iters} OK`);
+      if (finalHealth.length > 0) {
+        console.error(`[stress] Health check FAILED:`, finalHealth);
+      } else {
+        console.log(`[stress] Health check PASSED`);
+      }
+      return { results, finalHealth };
+    };
+
+    // ── Aggressive stress: rapid open/close with random timing ──
+    (window as any).__stressIslandRapid = async function(options?: {
+      bursts?: number;
+      perBurst?: number;
+      minDelay?: number;
+      maxDelay?: number;
+    }) {
+      const bursts = options?.bursts ?? 5;
+      const perBurst = options?.perBurst ?? 10;
+      const minDelay = options?.minDelay ?? 30;
+      const maxDelay = options?.maxDelay ?? 150;
+      let totalOps = 0;
+      let failures = 0;
+
+      console.log(`[stress-rapid] Starting RAPID stress: ${bursts} bursts x ${perBurst} ops, delay ${minDelay}-${maxDelay}ms`);
+
+      for (let b = 0; b < bursts; b++) {
+        console.log(`[stress-rapid] Burst ${b + 1}/${bursts}`);
+        for (let i = 0; i < perBurst; i++) {
+          const expand = Math.random() > 0.5;
+          try {
+            if (expand) islandStore.expand();
+            else islandStore.collapse();
+            totalOps++;
+          } catch (e) {
+            failures++;
+            console.error(`[stress-rapid] FAIL at op ${totalOps}:`, e);
+          }
+          await new Promise((r) => setTimeout(r, minDelay + Math.random() * (maxDelay - minDelay)));
+        }
+        // Between bursts, wait longer to let animations settle
+        console.log(`[stress-rapid] Burst ${b + 1} complete. Waiting 500ms for settle...`);
+        await new Promise((r) => setTimeout(r, 500));
+      }
+
+      // Final health check after settling
+      await new Promise((r) => setTimeout(r, 2000));
+      const finalHealth = islandStore.healthCheck();
+      if (finalHealth.length > 0) {
+        console.error(`[stress-rapid] HEALTH CHECK FAILED after ${totalOps} ops:`, finalHealth);
+      } else {
+        console.log(`[stress-rapid] Complete: ${totalOps} ops, ${failures} failures, health PASSED`);
+      }
+      return { totalOps, failures, finalHealth };
+    };
+  }
 </script>
 
 <div
@@ -177,6 +435,7 @@
     class:island--compact={islandStore.mode === "compact"}
     class:island--expanded={islandStore.mode === "expanded"}
     onmousedown={(e) => { if (islandStore.mode === "expanded") e.stopPropagation(); }}
+    bind:this={islandEl}
   >
     {#if islandStore.mode === "compact"}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -187,6 +446,7 @@
         out:fade={{ duration: 120 }}
         onclick={(e: MouseEvent) => {
           e.stopPropagation();
+          console.log(`[island-diag] compact-body click — expanding, activeModule=${!!islandStore.activeModule}`);
           islandStore.expand();
         }}
         role="button"
@@ -195,6 +455,7 @@
         onkeydown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
+            console.log(`[island-diag] compact-body keydown(${e.key}) — expanding`);
             islandStore.expand();
           }
         }}
@@ -272,7 +533,10 @@
             </button>
             <button
               class="close-btn"
-              onclick={() => islandStore.collapse()}
+              onclick={() => {
+                console.log(`[island-diag] close button clicked — collapsing`);
+                islandStore.collapse();
+              }}
               aria-label="Close"
             >
               <xIcon size={14} strokeWidth={1.8}></xIcon>
@@ -384,6 +648,31 @@
     {/if}
   </div>
 </div>
+
+<!-- ── Diagnostics: expose state for stress testing ── -->
+<svelte:window on:keydown={(e) => {
+  if (e.key === "F12" && e.shiftKey && e.ctrlKey) {
+    console.log("[island-diag] Ctrl+Shift+F12: dumping diagnostics");
+    console.log({
+      mode: islandStore.mode,
+      page: islandStore.page,
+      searchActive,
+      activeModule: islandStore.activeModule,
+      selectedItemId: islandStore.selectedItemId,
+      modeChanges: diagModeChanges,
+      keydownCount: diagKeydownCount,
+      escapePresses: diagEscapeCount,
+      clickOutsideCount: diagClickListenerCount,
+      transitionCount: diagTransitionCount,
+      transitionInterruptions: diagTransitionInterruptions,
+      invokeTimedOut: diagInvokeTimedOut,
+      visibilityHiddenCount: diagVisibilityHiddenCount,
+      mountTime: new Date(diagMountTime).toISOString(),
+      uptime: ((Date.now() - diagMountTime) / 1000).toFixed(1) + "s",
+      msSinceModeChange: islandStore.msSinceModeChange,
+    });
+  }
+}} />
 
 <style>
   :global(.island-overlay), :global(.island-overlay *) {

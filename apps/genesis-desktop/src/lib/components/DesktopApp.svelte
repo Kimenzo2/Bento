@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
   import { Router } from "@mateothegreat/svelte5-router";
   import AppLaunchCanvas from "$lib/components/AppLaunchCanvas.svelte";
   import CrashDialog from "$lib/components/CrashDialog.svelte";
@@ -26,6 +26,8 @@
   <Router routes={appRoutes} />
 </div>
 
+
 <UpdateNotification />
 <CrashDialog />
 <Toaster richColors position="top-center" offset={56} />
+
