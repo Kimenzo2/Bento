@@ -21,7 +21,7 @@
   {type}
   aria-label={label || undefined}
   title={label || undefined}
-  {onclick}
+  onclick={() => onclick?.()}
 >
   <span class="dock-btn__icon"><Icon size={16} /></span>
 </button>

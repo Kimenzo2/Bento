@@ -1,4 +1,5 @@
 pub mod actors;
+pub mod agent;
 pub mod audio;
 pub mod auth;
 pub mod budget;
@@ -305,6 +306,33 @@ pub fn run() {
         // ── Dynamic Island overlay window ────────────────────────────
         if let Err(e) = crate::island::setup_island_window(app) {
             eprintln!("[island] failed to setup island window: {e}");
+        }
+
+        // ── Agent dock window ────────────────────────────────────────
+        if let Err(e) = crate::agent::setup_agent_window(app) {
+            eprintln!("[agent] failed to setup agent window: {e}");
+        }
+
+        // ── System tray icon (persistent background operation) ───────
+        if let Err(e) = crate::agent::setup_tray(app) {
+            eprintln!("[agent] failed to setup tray icon: {e}");
+        }
+
+        // ── Global shortcut: Ctrl+Shift+A → toggle agent ──
+        {
+            let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyA);
+            match app.global_shortcut().on_shortcut(
+                shortcut,
+                |app_handle: &AppHandle, _shortcut: &Shortcut, event: tauri_plugin_global_shortcut::ShortcutEvent| {
+                    if event.state != tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                        return;
+                    }
+                    let _ = crate::agent::toggle_agent(app_handle.clone());
+                },
+            ) {
+                Ok(_) => eprintln!("[shortcut] registered Ctrl+Shift+A for agent toggle"),
+                Err(e) => eprintln!("[shortcut] failed to register agent shortcut: {e}"),
+            }
         }
 
         // ── Media player audio state ────────────────────────────────
@@ -865,6 +893,14 @@ pub fn run() {
             crate::crypto_commands::crypto_migrate_unencrypted_db,
             crate::crypto_commands::crypto_create_backup,
             crate::window_effects::set_window_glass,
+            // Agent dock
+            crate::agent::toggle_agent,
+            crate::agent::show_agent,
+            crate::agent::hide_agent,
+            crate::agent::agent_start_drag,
+            crate::agent::agent_set_composer_open,
+            crate::agent::focus_main_from_agent,
+            crate::agent::capture_screen,
             // Dynamic Island
             crate::island::toggle_island,
             crate::island::show_island,

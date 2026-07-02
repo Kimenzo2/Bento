@@ -1,7 +1,9 @@
 ﻿<script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { toast } from "svelte-sonner";
   import { fly } from "svelte/transition";
+  import { invoke, isTauri } from "@tauri-apps/api/core";
+
   import ChatIcon from "@lucide/svelte/icons/message-square";
   import MicIcon from "@lucide/svelte/icons/mic";
   import MicOffIcon from "@lucide/svelte/icons/mic-off";
@@ -69,7 +71,22 @@
   let messagesContainer = $state<HTMLDivElement | null>(null);
 
   let submitBusy = $state(false);
+  let userNearBottom = $state(true);
+  let lastSentMessage = $state("");
   let recognitionRef = $state<any>(null);
+
+  function checkScrollPosition() {
+    if (!messagesContainer) return;
+    const threshold = 80;
+    const dist = messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight;
+    userNearBottom = dist < threshold;
+  }
+
+  function scrollToBottom() {
+    if (!messagesContainer?.isConnected) return;
+    userNearBottom = true;
+    messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: "smooth" });
+  }
   let isListening = $state(false);
   const hasSpeech = $derived(
     typeof window !== "undefined" &&
@@ -108,19 +125,90 @@
     onComposerStateChange?.(isExpanded);
   });
 
-  // ── Auto-scroll messages container when new content arrives ───────────────
-  $effect(() => {
+  // ── Smart auto-scroll: only scroll when user is near bottom ───────────────
+  $effect.pre(() => {
     if (!messagesContainer) return;
-    // Read values to create reactive dependencies
+    // Create reactive deps on these values
     messages.length;
     streamingText.length;
-    requestAnimationFrame(() => {
-      if (!messagesContainer?.isConnected) return;
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    });
+
+    if (userNearBottom) {
+      tick().then(() => {
+        if (!messagesContainer?.isConnected) return;
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      });
+    }
   });
 
+  // ── Shared streaming logic — called by both submitMessage and retryLastMessage ──
+  async function sendAndStream(text: string) {
+    submitBusy = true;
+    mode = "working";
+    streamingError = null;
+    streamingText = "";
+    try {
+      await withTimeout(
+        streamAiResponse(text, (token) => {
+          streamingText += token;
+        })
+      );
+
+      if (streamingText.trim()) {
+        messages = [...messages, { role: "assistant", content: streamingText }];
+      }
+      streamingText = "";
+      mode = "idle";
+    } catch (err) {
+      console.warn("[agent-dock] sendAndStream failed:", err);
+      streamingError = categorizeError(err);
+      streamingText = "";
+      mode = "idle";
+      toast.error("AI response failed", {
+        description: err instanceof Error ? err.message : "Unknown error",
+        duration: 5000,
+      });
+    } finally {
+      submitBusy = false;
+    }
+  }
+
+  function categorizeError(err: unknown): string {
+    if (err instanceof Error) {
+      const msg = err.message.toLowerCase();
+      if (msg.includes("timed out") || msg.includes("timeout")) {
+        return "Request timed out after 30s. The server may be overloaded.";
+      }
+      if (msg.includes("network") || msg.includes("fetch") || msg.includes("connection")) {
+        return "Network error. Check your connection and try again.";
+      }
+      if (msg.includes("rate limit") || msg.includes("429")) {
+        return "Rate limit reached. Please wait a moment before asking another question.";
+      }
+      if (msg.includes("auth") || msg.includes("api key") || msg.includes("401") || msg.includes("403")) {
+        return "Authentication error. Your API key may be invalid or expired.";
+      }
+      return err.message;
+    }
+    return "An unexpected error occurred.";
+  }
+
+  async function retryLastMessage() {
+    if (!lastSentMessage || submitBusy) return;
+    const msg = lastSentMessage;
+    // Remove the last user message — will be restored if retry fails
+    const prevMessages = messages;
+    messages = messages.slice(0, -1);
+    lastSentMessage = "";
+    await sendAndStream(msg);
+    // If the stream failed, restore the user message so they can retry again
+    if (streamingError) {
+      messages = prevMessages;
+      lastSentMessage = msg;
+    }
+  }
+
   function openComposer() {
+    streamingError = null;
     mode = "composing";
     requestAnimationFrame(() => textareaRef?.focus());
   }
@@ -142,7 +230,7 @@
     if (transcript.trim()) context.transcript = transcript.trim();
     if (screenCapture) context.screenCapture = screenCapture;
 
-    // Push user message
+    // Push user message — reassign for reactivity
     messages = [...messages, { role: "user", content: finalMessage }];
 
     message = "";
@@ -151,38 +239,21 @@
     streamingError = null;
     streamingText = "";
     submitBusy = true;
+    lastSentMessage = finalMessage;
     mode = "working";
 
-    try {
-      // Notify page (e.g. focus main window) — await to ensure it completes first
-      if (onMessageSubmit) {
-        await withTimeout(Promise.resolve(onMessageSubmit(finalMessage, context)));
-      }
-
-      // Stream AI response directly
-      await withTimeout(
-        streamAiResponse(finalMessage, (token) => {
-          streamingText += token;
-        })
+    // Notify page (e.g. focus main window) — fire-and-forget, best effort
+    if (onMessageSubmit) {
+      withTimeout(Promise.resolve(onMessageSubmit(finalMessage, context))).catch(
+        (e) => console.warn("[agent-dock] onMessageSubmit failed:", e)
       );
+    }
 
-      // Finalize — push assistant message
-      if (streamingText.trim()) {
-        messages = [...messages, { role: "assistant", content: streamingText }];
-      }
-      streamingText = "";
-      mode = "idle";
-    } catch (err) {
-      console.warn("[agent-dock] streamAiResponse failed:", err);
-      streamingError = err instanceof Error ? err.message : "AI request failed";
-      streamingText = "";
-      mode = "idle";
-      toast.error("AI response failed", {
-        description: err instanceof Error ? err.message : "Unknown error",
-        duration: 5000,
-      });
-    } finally {
-      submitBusy = false;
+    // Stream AI response via shared helper (handles errors internally)
+    await sendAndStream(finalMessage);
+    // On success, clear saved text. On failure, lastSentMessage stays for retry.
+    if (!streamingError) {
+      lastSentMessage = "";
     }
   }
 
@@ -304,8 +375,22 @@
     }
   }
 
-  // ── S7: Screen capture with guaranteed stream cleanup ─────────────────────
+  // ── S7: Screen capture — Rust xcap in Tauri, getDisplayMedia fallback in browser ──
   async function captureScreen() {
+    if (isTauri()) {
+      try {
+        const dataUri = await invoke<string>("capture_screen");
+        screenCapture = dataUri;
+        return;
+      } catch (err) {
+        const msg = typeof err === "string" ? err : err instanceof Error ? err.message : "Unknown error";
+        console.warn("[agent-dock] screen capture invoke failed:", msg);
+        toast.error("Screen capture failed", { description: msg, duration: 8000 });
+        return;
+      }
+    }
+
+    // Browser dev mode: fall back to getDisplayMedia (standard Web API)
     let stream: MediaStream | null = null;
     let track: MediaStreamTrack | null = null;
     try {
@@ -395,6 +480,7 @@
     return () => {
       mq.removeEventListener("change", updateMotion);
       window.removeEventListener("keydown", handleKeydown);
+      // Scroll handler is wired via Svelte's onscroll attribute — cleanup not needed here
       if (recognitionRef) {
         try { recognitionRef.abort(); } catch { /* ignore */ }
         recognitionRef = null;
@@ -474,7 +560,7 @@
     {/if}
 
     {#if messages.length > 0 || streamingText}
-      <div class="dock-messages" bind:this={messagesContainer}>
+      <div class="dock-messages" bind:this={messagesContainer} role="log" aria-live="polite" aria-atomic="false" aria-label="Conversation" onscroll={checkScrollPosition}>
         {#each messages as msg}
           <div class="dock-msg" class:dock-msg--user={msg.role === "user"} class:dock-msg--assistant={msg.role === "assistant"}>
             {#if msg.role === "user"}
@@ -495,10 +581,18 @@
         {/if}
         {#if streamingError}
           <div class="dock-msg dock-msg--error">
-            <p class="dock-msg-text">{streamingError}</p>
+            <p class="dock-msg-text">
+              {streamingError}
+              <button class="dock-msg-retry" onclick={() => retryLastMessage()}>Retry</button>
+            </p>
           </div>
         {/if}
       </div>
+      {#if !userNearBottom && (messages.length > 0 || streamingText)}
+        <button class="dock-jump-bottom" onclick={scrollToBottom}>
+          ↓ Jump to latest
+        </button>
+      {/if}
     {/if}
 
     <div
@@ -858,5 +952,61 @@
 
   @media (prefers-reduced-motion: reduce) {
     .dock-msg-dots span { animation: none; opacity: 0.6; }
+  }
+
+  /* ── Jump to latest button ───────────────────────────────────────── */
+  .dock-jump-bottom {
+    align-self: center;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    color: #a3a3a3;
+    font-size: 11px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    user-select: none;
+  }
+
+  .dock-jump-bottom:hover {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+  }
+
+  .dock-jump-bottom:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+
+  /* ── Retry button in error bubble ────────────────────────────────── */
+  .dock-msg-retry {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    font-size: 11px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    vertical-align: middle;
+  }
+
+  .dock-msg-retry:hover {
+    background: rgba(239, 68, 68, 0.2);
+  }
+
+  .dock-msg-retry:focus-visible {
+    outline: 2px solid rgba(239, 68, 68, 0.5);
+    outline-offset: 2px;
   }
 </style>

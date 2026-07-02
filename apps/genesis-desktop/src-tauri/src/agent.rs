@@ -4,6 +4,74 @@ use std::thread;
 use std::time::Duration;
 
 use tauri::{AppHandle, Manager, WebviewWindow};
+use tauri::tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState};
+
+// ── Screen capture via xcap (no browser permission dialog) ────────────────
+
+/// Capture the primary monitor as a base64-encoded JPEG data URI.
+///
+/// Uses the `xcap` crate to capture the screen directly from the OS,
+/// bypassing the browser's `getDisplayMedia()` API entirely.
+/// The result is a `data:image/jpeg;base64,...` string ready for `<img>`.
+///
+/// # Errors
+/// - No primary monitor found
+/// - xcap capture failure
+/// - JPEG encoding failure
+#[tauri::command]
+pub fn capture_screen() -> Result<String, String> {
+    eprintln!("[capture_screen] starting...");
+    use base64::Engine;
+    use std::io::Cursor;
+    use xcap::Monitor;
+
+    let monitors = match Monitor::all() {
+        Ok(m) => {
+            eprintln!("[capture_screen] found {} monitors", m.len());
+            m
+        }
+        Err(e) => {
+            eprintln!("[capture_screen] FAILED to enumerate monitors: {e}");
+            return Err(format!("Failed to enumerate monitors: {e}"));
+        }
+    };
+
+    let monitor = match monitors.into_iter().find(|m| m.is_primary().unwrap_or(false)) {
+        Some(m) => {
+            eprintln!("[capture_screen] found primary monitor");
+            m
+        }
+        None => {
+            eprintln!("[capture_screen] FAILED: no primary monitor");
+            return Err("No primary monitor found".to_string());
+        }
+    };
+
+    let image = match monitor.capture_image() {
+        Ok(img) => {
+            eprintln!("[capture_screen] captured image: {}x{}", img.width(), img.height());
+            img
+        }
+        Err(e) => {
+            eprintln!("[capture_screen] FAILED to capture image: {e}");
+            return Err(format!("Failed to capture screen: {e}"));
+        }
+    };
+
+    // xcap returns ImageBuffer<Rgba<u8>> — wrap in DynamicImage for JPEG encoding
+    let dyn_img = image::DynamicImage::from(image);
+    let mut buf = Cursor::new(Vec::new());
+    if let Err(e) = dyn_img.write_to(&mut buf, image::ImageFormat::Jpeg) {
+        eprintln!("[capture_screen] FAILED to encode JPEG: {e}");
+        return Err(format!("Failed to encode JPEG: {e}"));
+    }
+
+    let bytes = buf.into_inner();
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+    let result = format!("data:image/jpeg;base64,{b64}");
+    eprintln!("[capture_screen] success: {} bytes, {} base64 chars", bytes.len(), b64.len());
+    Ok(result)
+}
 
 /// Compact dimensions when idle — only the dock bar is visible.
 const AGENT_W: f64 = 340.0;
@@ -98,6 +166,14 @@ pub fn setup_agent_window(app: &tauri::App) -> Result<(), Box<dyn std::error::Er
 
     // Start the mouse monitor — toggles click-through based on cursor position.
     start_mouse_monitor(app.handle().clone());
+
+    // Auto-open DevTools for the agent window in debug builds
+    // (right-click and keyboard shortcuts are unreliable on transparent windows)
+    #[cfg(debug_assertions)]
+    {
+        let _ = window.open_devtools();
+        eprintln!("[agent] DevTools auto-opened for agent window");
+    }
 
     Ok(())
 }
@@ -326,6 +402,66 @@ pub fn agent_start_drag(window: tauri::WebviewWindow) -> Result<(), String> {
     let result = window.start_dragging().map_err(|e| e.to_string());
     DRAG_IN_PROGRESS.store(false, Ordering::SeqCst);
     result
+}
+
+/// Set up the system tray icon with context menu.
+///
+/// - Left-click: toggles the agent window.
+/// - Right-click menu: Show Agent / Hide Agent / Quit
+///
+/// The tray persists even when all windows are hidden, allowing the app
+/// to run in the background permanently.
+pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    use tauri::menu::{MenuBuilder, MenuItemBuilder};
+
+    let show = MenuItemBuilder::with_id("show_agent", "Show Agent").build(app)?;
+    let hide = MenuItemBuilder::with_id("hide_agent", "Hide Agent").build(app)?;
+    let sep = tauri::menu::PredefinedMenuItem::separator(app)?;
+    let quit = MenuItemBuilder::with_id("quit", "Quit Bento").build(app)?;
+
+    let menu = MenuBuilder::new(app)
+        .items(&[&show, &hide, &sep, &quit])
+        .build()?;
+
+    let Some(icon) = app.default_window_icon().cloned() else {
+        eprintln!("[agent] no default window icon found, skipping tray setup");
+        return Ok(());
+    };
+
+    TrayIconBuilder::new()
+        .icon(icon)
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                let app = tray.app_handle();
+                let _ = crate::agent::toggle_agent(app.clone());
+            }
+        })
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "show_agent" => {
+                let _ = crate::agent::show_agent(app.clone());
+            }
+            "hide_agent" => {
+                let _ = crate::agent::hide_agent(app.clone());
+            }
+            "quit" => {
+                // Signal mouse monitor to stop, then use the existing graceful shutdown path
+                // (saves state, emits lifecycle events, closes DB connections).
+                stop_mouse_monitor();
+                let _ = crate::commands::quit_app(app.clone());
+            }
+            _ => {}
+        })
+        .build(app)?;
+
+    eprintln!("[agent] tray icon created");
+    Ok(())
 }
 
 /// Focus the main Bento window from the agent.

@@ -87,6 +87,7 @@ rmcp = { version = "1.7", features = [
   "transport-streamable-http-server-session",
 ] }
 tower = { version = "0.5", features = ["util"] }
+xcap = "0.9.6"
 axum = { version = "0.7", default-features = false, features = ["json", "tokio", "http1"] }
 schemars = "0.8"
 

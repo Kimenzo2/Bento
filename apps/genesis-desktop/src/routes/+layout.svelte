@@ -7,12 +7,15 @@
   import { listen } from "@tauri-apps/api/event";
   import { isTauri } from "@tauri-apps/api/core";
 
-  // ── Island window: bare render, no shell/auth ────────────────────────
+  // ── Island/Agent windows: bare render, no shell/auth ────────────────
   let isIsland = $state(false);
+  let isAgent = $state(false);
 
   $effect(() => {
-    if (browser && window.location.pathname === "/island") {
-      isIsland = true;
+    if (browser) {
+      const path = window.location.pathname;
+      isIsland = path === "/island";
+      isAgent = path === "/agent";
     }
   });
   import { initEnterprisePolish } from "$lib/enterprise";
@@ -147,57 +150,60 @@
     const historyEvents = ["popstate", "pushState", "replaceState", "hashchange"] as const;
     historyEvents.forEach((eventName) => window.addEventListener(eventName, syncCurrentPath));
 
-    // Listen for auth:success — OAuth completed, transition to shell.
-    const unlistenSuccess = listen<{ user: { id: string; name: string; email: string; avatarUrl: string } }>(
-      "auth:success",
-      async (event) => {
-        const { user } = event.payload;
+    // Listen for auth events — Tauri events only (guarded for browser mode)
+    let unlistenSuccess: Promise<() => void> | undefined;
+    let unlistenExpired: Promise<() => void> | undefined;
+    let unlistenError: Promise<() => void> | undefined;
 
-        // ── CRITICAL ORDER ─────────────────────────────────────────────────
-        // Update auth state FIRST so the UI unblocks immediately.
-        // NEVER await prepare_shell_window before this: if the Tauri invoke
-        // hangs for any reason, the app stays on "Signing in..." forever.
-        // ───────────────────────────────────────────────────────────────────
-        try {
-          await invoke("enforce_auth_user_boundary");
-          shellTransitioned = true;
-          clearBillingProfile();
-          setAuthRestored(user);
-          setAuthLoginLoading(false);
-          void refreshBillingProfile();
-        } catch (error) {
-          console.error("[Auth] Failed to enforce user data boundary:", error);
-          setAuthError("Could not safely switch accounts. Please sign in again.");
-          setAuthLoginLoading(false);
-          return;
+    if (isTauri()) {
+      unlistenSuccess = listen<{ user: { id: string; name: string; email: string; avatarUrl: string } }>(
+        "auth:success",
+        async (event) => {
+          const { user } = event.payload;
+
+          // ── CRITICAL ORDER ─────────────────────────────────────────────
+          // Update auth state FIRST so the UI unblocks immediately.
+          // NEVER await prepare_shell_window before this: if the Tauri invoke
+          // hangs for any reason, the app stays on "Signing in..." forever.
+          // ───────────────────────────────────────────────────────────────
+          try {
+            await invoke("enforce_auth_user_boundary");
+            shellTransitioned = true;
+            clearBillingProfile();
+            setAuthRestored(user);
+            setAuthLoginLoading(false);
+            void refreshBillingProfile();
+          } catch (error) {
+            console.error("[Auth] Failed to enforce user data boundary:", error);
+            setAuthError("Could not safely switch accounts. Please sign in again.");
+            setAuthLoginLoading(false);
+            return;
+          }
+
+          void invoke("prepare_shell_window").catch((e: unknown) => {
+            console.warn("[Auth] Failed to resize window after login:", e);
+          });
         }
+      );
 
-        // Fire-and-forget: maximize window after the UI transition is done.
-        void invoke("prepare_shell_window").catch((e: unknown) => {
-          console.warn("[Auth] Failed to resize window after login:", e);
-        });
-      }
-    );
-
-    // Listen for auth:session_expired — show non-blocking overlay
-    const unlistenExpired = listen<{ message: string }>(
-      "auth:session_expired",
-      (event) => {
-        setAuthSessionExpired(event.payload.message);
-      }
-    );
-
-    // Listen for auth:error
-    const unlistenError = listen<{ message: string }>(
-      "auth:error",
-      (event) => {
-        if (get(authStore).status === "restored") {
-          return;
+      unlistenExpired = listen<{ message: string }>(
+        "auth:session_expired",
+        (event) => {
+          setAuthSessionExpired(event.payload.message);
         }
-        setAuthError(event.payload.message);
-        setAuthLoginLoading(false);
-      }
-    );
+      );
+
+      unlistenError = listen<{ message: string }>(
+        "auth:error",
+        (event) => {
+          if (get(authStore).status === "restored") {
+            return;
+          }
+          setAuthError(event.payload.message);
+          setAuthLoginLoading(false);
+        }
+      );
+    }
 
     // ── Wake-from-sleep / visibility recovery ───────────────────────
     // When the laptop wakes from sleep, the webview may reload or the page
@@ -242,9 +248,9 @@
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("focus", onFocus);
       if (checkAuthTimer) clearTimeout(checkAuthTimer);
-      void unlistenSuccess.then((fn) => fn());
-      void unlistenExpired.then((fn) => fn());
-      void unlistenError.then((fn) => fn());
+      if (unlistenSuccess) void unlistenSuccess.then((fn) => fn());
+      if (unlistenExpired) void unlistenExpired.then((fn) => fn());
+      if (unlistenError) void unlistenError.then((fn) => fn());
     };
 
     function onVisibilityChange() {
@@ -260,6 +266,8 @@
 </script>
 
 {#if isIsland}
+  {@render children?.()}
+{:else if isAgent}
   {@render children?.()}
 {:else if $authStore.status === "restored"}
   <DatabaseUnlockGate>
