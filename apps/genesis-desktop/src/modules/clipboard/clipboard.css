@@ -628,46 +628,25 @@
   color: var(--cb-muted);
 }
 
-/* ═══ IMAGE GRID ═══ */
+/* ═══ IMAGE FEED (CSS columns masonry) ═══ */
 :global(.cb-image-grid) {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
+  column-width: 260px;
+  column-gap: 16px;
   min-height: 0;
   overflow-y: auto;
   padding-bottom: 4px;
-  align-content: start;
 }
 
-/* Masonry layout — CSS columns for waterfall effect */
-:global(.cb-image-grid--masonry) {
-  display: block;
-  column-width: 260px;
-  column-gap: 16px;
-  padding-bottom: 4px;
-}
-
-:global(.cb-image-grid--masonry) :global(.cb-image-card) {
+/* Card — minimal container, content determines height */
+:global(.cb-image-card) {
   display: inline-block;
   width: 100%;
   margin-bottom: 16px;
   break-inside: avoid;
   page-break-inside: avoid;
-}
-
-/* Per-image Card — matches Sleep panel gradient pattern exactly */
-:global(.cb-image-card) {
-  display: flex;
-  flex-direction: column;
   border: none;
-  border-radius: 16px;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--cb-surface) 98%, var(--background)),
-    color-mix(in srgb, var(--cb-surface) 86%, var(--background))
-  );
-  padding: 0;
-  overflow: hidden;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--cb-surface) 94%, var(--background));
   cursor: pointer;
   text-align: left;
   font: inherit;
@@ -675,29 +654,24 @@
 }
 
 :global(.cb-image-card:hover) {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--cb-surface) 100%, var(--background)),
-    color-mix(in srgb, var(--cb-surface) 92%, var(--background))
-  );
+  background: color-mix(in srgb, var(--cb-surface) 98%, var(--background));
 }
 
-/* Image frame — locked aspect ratio prevents CLS */
+/* Image frame — background shows through transparent images, no forced ratio */
 :global(.cb-image-card__frame) {
   display: block;
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 3;
   background: color-mix(in srgb, var(--cb-ink) 4%, transparent);
+  border-radius: 10px 10px 0 0;
   overflow: hidden;
+  line-height: 0;
 }
 
 :global(.cb-image-card__img) {
   display: block;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
+  height: auto;
   animation: cb-fade-in 0.2s ease-out;
 }
 
@@ -746,7 +720,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 10px 12px;
   font-size: 0.78rem;
   color: var(--cb-muted);
 }
@@ -992,14 +966,10 @@
     grid-template-columns: 1fr;
   }
   :global(.cb-image-grid) {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px;
-  }
-  :global(.cb-image-grid--masonry) {
-    column-width: 180px;
+    column-width: 200px;
     column-gap: 12px;
   }
-  :global(.cb-image-grid--masonry) :global(.cb-image-card) {
+  :global(.cb-image-card) {
     margin-bottom: 12px;
   }
 }

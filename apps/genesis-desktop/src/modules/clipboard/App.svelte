@@ -19,7 +19,7 @@ import { time } from "$lib/utils/time";
   import ShieldIcon        from "@lucide/svelte/icons/shield";
   import EyeIcon           from "@lucide/svelte/icons/eye";
   import ImageIcon         from "@lucide/svelte/icons/image";
-  import LayoutGridIcon    from "@lucide/svelte/icons/layout-grid";
+
   import Link2Icon         from "@lucide/svelte/icons/link-2";
   import CodeIcon          from "@lucide/svelte/icons/code";
   import TypeIcon          from "@lucide/svelte/icons/type";
@@ -61,7 +61,6 @@ import { time } from "$lib/utils/time";
   let copyFeedback= $state<string | null>(null);
   let loading     = $state(true);
   let pasteMode   = $state<"plain" | "rich" | "image">("plain");
-  let imageLayout = $state<"grid" | "masonry">("grid");
   let imageDisplayCount = $state(20);
   $effect(() => {
     if (selectedSection === "Images") imageDisplayCount = 20;
@@ -368,17 +367,6 @@ import { time } from "$lib/utils/time";
             {/if}
           </div>
         {/if}
-        {#if selectedSection === "Images" && filtered.length > 0}
-          <Button
-            variant="outline"
-            onclick={() => imageLayout = imageLayout === "grid" ? "masonry" : "grid"}
-            aria-label="Toggle layout"
-            title={imageLayout === "grid" ? "Switch to masonry" : "Switch to grid"}
-          >
-            <LayoutGridIcon data-icon="inline-start" size={14} />
-            {imageLayout === "grid" ? "Masonry" : "Grid"}
-          </Button>
-        {/if}
         {#if selectedSection === "History" || selectedSection === "Pinned" || selectedSection === "Snippets"}
           <Button variant="outline" onclick={clearAll} disabled={loading}>
             <Trash2Icon data-icon="inline-start" size={14} />
@@ -561,7 +549,6 @@ import { time } from "$lib/utils/time";
         {#if filtered.length > 0}
           <div
             class="cb-image-grid"
-            class:cb-image-grid--masonry={imageLayout === "masonry"}
           >
             {#each filtered.slice(0, imageDisplayCount) as clip (clip.id)}
               <div
