@@ -9,12 +9,19 @@
   import SendIcon from "@lucide/svelte/icons/send";
   import XIcon from "@lucide/svelte/icons/x";
   import DockButton from "./DockButton.svelte";
+  import StreamingMarkdown from "$lib/components/StreamingMarkdown.svelte";
+  import { streamAiResponse } from "$lib/desktop/ai";
 
   type AgentDockMode = "idle" | "composing" | "listening" | "working";
 
   type AgentContext = {
     screenCapture?: string;
     transcript?: string;
+  };
+
+  type ChatMessage = {
+    role: "user" | "assistant";
+    content: string;
   };
 
   type AgentDockProps = {
@@ -56,7 +63,12 @@
   let mounted = $state(false);
   let transcript = $state("");
   let screenCapture = $state<string | null>(null);
+  let messages = $state<ChatMessage[]>([]);
+  let streamingText = $state("");
+  let streamingError = $state<string | null>(null);
+  let messagesContainer = $state<HTMLDivElement | null>(null);
 
+  let submitBusy = $state(false);
   let recognitionRef = $state<any>(null);
   let isListening = $state(false);
   const hasSpeech = $derived(
@@ -96,13 +108,27 @@
     onComposerStateChange?.(isExpanded);
   });
 
+  // ── Auto-scroll messages container when new content arrives ───────────────
+  $effect(() => {
+    if (!messagesContainer) return;
+    // Read values to create reactive dependencies
+    messages.length;
+    streamingText.length;
+    requestAnimationFrame(() => {
+      if (!messagesContainer?.isConnected) return;
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    });
+  });
+
   function openComposer() {
     mode = "composing";
     requestAnimationFrame(() => textareaRef?.focus());
   }
 
-  // ── S3/S11: submitMessage with timeout and guaranteed recovery ─────────────
+  // ── submitMessage: pushes user message, streams AI response, updates conversation ──
   async function submitMessage() {
+    if (submitBusy) return;
+
     const nextMessage = message.trim();
     if (!nextMessage && !transcript.trim()) {
       openComposer();
@@ -116,22 +142,47 @@
     if (transcript.trim()) context.transcript = transcript.trim();
     if (screenCapture) context.screenCapture = screenCapture;
 
+    // Push user message
+    messages = [...messages, { role: "user", content: finalMessage }];
+
     message = "";
     transcript = "";
     screenCapture = null;
+    streamingError = null;
+    streamingText = "";
+    submitBusy = true;
     mode = "working";
+
     try {
+      // Notify page (e.g. focus main window) — await to ensure it completes first
       if (onMessageSubmit) {
         await withTimeout(Promise.resolve(onMessageSubmit(finalMessage, context)));
       }
+
+      // Stream AI response directly
+      await withTimeout(
+        streamAiResponse(finalMessage, (token) => {
+          streamingText += token;
+        })
+      );
+
+      // Finalize — push assistant message
+      if (streamingText.trim()) {
+        messages = [...messages, { role: "assistant", content: streamingText }];
+      }
+      streamingText = "";
       mode = "idle";
     } catch (err) {
-      console.warn("[agent-dock] submitMessage failed:", err);
+      console.warn("[agent-dock] streamAiResponse failed:", err);
+      streamingError = err instanceof Error ? err.message : "AI request failed";
+      streamingText = "";
       mode = "idle";
-      toast.error("Failed to send message. Please try again.", {
+      toast.error("AI response failed", {
         description: err instanceof Error ? err.message : "Unknown error",
         duration: 5000,
       });
+    } finally {
+      submitBusy = false;
     }
   }
 
@@ -422,6 +473,34 @@
       </div>
     {/if}
 
+    {#if messages.length > 0 || streamingText}
+      <div class="dock-messages" bind:this={messagesContainer}>
+        {#each messages as msg}
+          <div class="dock-msg" class:dock-msg--user={msg.role === "user"} class:dock-msg--assistant={msg.role === "assistant"}>
+            {#if msg.role === "user"}
+              <p class="dock-msg-text">{msg.content}</p>
+            {:else}
+              <StreamingMarkdown content={msg.content} />
+            {/if}
+          </div>
+        {/each}
+        {#if streamingText}
+          <div class="dock-msg dock-msg--assistant dock-msg--streaming">
+            <StreamingMarkdown content={streamingText} />
+          </div>
+        {:else if mode === "working" && !streamingText}
+          <div class="dock-msg dock-msg--assistant dock-msg--loading">
+            <div class="dock-msg-dots"><span></span><span></span><span></span></div>
+          </div>
+        {/if}
+        {#if streamingError}
+          <div class="dock-msg dock-msg--error">
+            <p class="dock-msg-text">{streamingError}</p>
+          </div>
+        {/if}
+      </div>
+    {/if}
+
     <div
       class="dock-composer"
       class:dock-composer--open={mode === "composing"}
@@ -671,5 +750,113 @@
 
   .dock-textarea::placeholder {
     color: #737373;
+  }
+
+  /* ── Chat messages container ─────────────────────────────────────── */
+  .dock-messages {
+    max-height: 280px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin: 4px 0 2px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.15) transparent;
+  }
+
+  .dock-messages::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .dock-messages::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .dock-messages::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+  }
+
+  .dock-msg {
+    max-width: 85%;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    word-break: break-word;
+    animation: dock-msg-in 0.15s ease both;
+  }
+
+  @keyframes dock-msg-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dock-msg { animation: none; }
+  }
+
+  .dock-msg--user {
+    align-self: flex-end;
+    background: #3b82f6;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+
+  .dock-msg--assistant {
+    align-self: flex-start;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.9);
+    border-bottom-left-radius: 4px;
+  }
+
+  .dock-msg--streaming {
+    border-left: 2px solid #3b82f6;
+  }
+
+  .dock-msg--loading {
+    align-self: flex-start;
+    background: transparent;
+    padding: 4px 8px;
+  }
+
+  .dock-msg--error {
+    align-self: center;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+  }
+
+  .dock-msg-text {
+    margin: 0;
+    white-space: pre-wrap;
+  }
+
+  .dock-msg-dots {
+    display: flex;
+    gap: 4px;
+    padding: 4px 0;
+  }
+
+  .dock-msg-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    animation: dock-dot-bounce 1.2s ease-in-out infinite;
+  }
+
+  .dock-msg-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .dock-msg-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes dock-dot-bounce {
+    0%, 80%, 100% { transform: scale(0.8); opacity: 0.4; }
+    40% { transform: scale(1.1); opacity: 0.9; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dock-msg-dots span { animation: none; opacity: 0.6; }
   }
 </style>
