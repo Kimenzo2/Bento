@@ -119,7 +119,7 @@
     }
   });
 
-  // Dismiss on Escape — registered only while card is visible
+  // Dismiss on Escape or click outside — registered only while card is visible
   $effect(() => {
     if (!browser || !$updateStore.showPanel) return;
 
@@ -127,8 +127,19 @@
       if (e.key === "Escape") dismiss();
     }
 
+    function onClick(e: MouseEvent) {
+      const target = e.target as Node | null;
+      if (!target) return;
+      const card = document.querySelector(".update-notification");
+      if (card && !card.contains(target)) dismiss();
+    }
+
     window.addEventListener("keydown", onKeydown);
-    return () => window.removeEventListener("keydown", onKeydown);
+    window.addEventListener("click", onClick, true);
+    return () => {
+      window.removeEventListener("keydown", onKeydown);
+      window.removeEventListener("click", onClick, true);
+    };
   });
 
   // ── Install & restart (Anytype: updateConfirm → quitAndInstall) ────
