@@ -9,6 +9,7 @@
 //   - voice_cancel: Cancel and discard the current session
 // ═══════════════════════════════════════════════════════════════════════
 
+use crate::audio::dictation::{post_process, detect_agent_trigger, DictationProcessResult, AgentTriggerResult, DictationStyle};
 use crate::audio::AudioState;
 use serde::{Deserialize, Serialize};
 
@@ -89,4 +90,25 @@ pub async fn voice_resume(state: tauri::State<'_, AudioState>) -> Result<VoiceSe
 #[tauri::command]
 pub async fn voice_cancel(state: tauri::State<'_, AudioState>) -> Result<(), String> {
     state.engine.cancel_recording()
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Dictation Post-Processing Commands
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Post-process raw dictation text: strip fillers, apply style, detect agent triggers.
+#[tauri::command]
+pub fn dictation_process(text: String, style: String) -> Result<DictationProcessResult, String> {
+    let dictation_style = match style.to_lowercase().as_str() {
+        "casual" => DictationStyle::Casual,
+        "formal" => DictationStyle::Formal,
+        _ => DictationStyle::Standard,
+    };
+    Ok(post_process(&text, dictation_style))
+}
+
+/// Check if text contains an agent trigger ("hey bento", "ask bento", "bento ").
+#[tauri::command]
+pub fn dictation_detect_agent(text: String) -> Result<AgentTriggerResult, String> {
+    Ok(detect_agent_trigger(&text))
 }

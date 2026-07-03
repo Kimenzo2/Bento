@@ -155,6 +155,9 @@
 
   const isExpanded = $derived(mode !== "idle" || voiceEngine.isActive);
 
+  // ── Pill mode: dock transforms into compact recording pill ─────
+  const isPill = $derived(voiceEngine.isRecording || voiceEngine.status === "paused");
+
   $effect(() => {
     onComposerStateChange?.(isExpanded);
   });
@@ -499,10 +502,11 @@
 </script>
 
 <form class={className} onsubmit={handleSubmit} novalidate>
-  <div class="dock-root" class:dock-root--expanded={isExpanded}>
+  <div class="dock-root" class:dock-root--expanded={isExpanded} class:dock-root--pill={isPill}>
     <div class="dock-bar">
       <img
         class="dock-avatar"
+        class:dock-avatar--pill={isPill}
         src={avatarSrc}
         alt=""
         aria-hidden="true"
@@ -511,20 +515,39 @@
       />
 
       <div class="dock-info">
-        {#key mode || voiceEngine.status}
-          <p
-            class="dock-status"
-            class:dock-status--listening={voiceEngine.isRecording || mode === "listening"}
-            class:dock-status--working={mode === "working" || voiceEngine.status === "processing" || voiceEngine.status === "summarizing"}
-            class:dock-status--recording={voiceEngine.status === "recording"}
-            class:dock-status--error={voiceEngine.status === "error"}
-            in:fly={statusFly}
-            out:fly={{ y: -6, duration: 160 }}
-          >
-            {statusText}
-          </p>
+        {#key isPill}
+          {#if isPill}
+            <!-- Pill mode: show elapsed timer instead of status -->
+            <p class="dock-status dock-status--timer">
+              {voiceEngine.elapsedFormatted}
+            </p>
+          {:else}
+            <p
+              class="dock-status"
+              class:dock-status--listening={voiceEngine.isRecording || mode === "listening"}
+              class:dock-status--working={mode === "working" || voiceEngine.status === "processing" || voiceEngine.status === "summarizing"}
+              class:dock-status--recording={voiceEngine.status === "recording"}
+              class:dock-status--error={voiceEngine.status === "error"}
+              in:fly={statusFly}
+              out:fly={{ y: -6, duration: 160 }}
+            >
+              {statusText}
+            </p>
+          {/if}
         {/key}
       </div>
+
+      {#if isPill}
+        <!-- Inline waveform inside the bar during pill mode -->
+        <div class="dock-waveform-inline" aria-hidden="true">
+          {#each waveformLevels as level}
+            <span
+              class="dock-waveform-bar-inline"
+              style="--level: {level}"
+            ></span>
+          {/each}
+        </div>
+      {/if}
 
       <div class="dock-actions">
         <DockButton
@@ -583,6 +606,7 @@
           ></span>
         {/each}
       </div>
+
     {/if}
 
     {#if voiceEngine.isRecording && voiceEngine.session?.interimText}
@@ -765,6 +789,40 @@
 
   .dock-root--expanded {
     width: 460px;
+  }
+
+  /* ── Pill mode: compact recording pill ─────────────────────────── */
+  .dock-root--pill {
+    width: 280px;
+    border-radius: 100px;
+    padding: 6px 8px;
+    transition:
+      width 0.4s cubic-bezier(0.34, 1.3, 0.64, 1),
+      border-radius 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      padding 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @supports (animation-timing-function: linear(0, 1)) {
+    .dock-root--pill {
+      transition:
+        width 0.4s linear(0, 0.09 10%, 0.26 20%, 0.5 33%, 0.74 46%, 0.9 58%, 1.02 76%, 1 88%, 1),
+        border-radius 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+        padding 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+  }
+
+  .dock-avatar--pill {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+  }
+
+  .dock-status--timer {
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: 0.02em;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -987,6 +1045,31 @@
 
   .dock-action-item input[type="checkbox"] {
     accent-color: #3b82f6;
+  }
+
+  /* ── Inline waveform (inside bar during pill mode) ── */
+  .dock-waveform-inline {
+    display: flex;
+    align-items: center;
+    gap: 1.5px;
+    height: 20px;
+    flex: 0 1 60px;
+    min-width: 36px;
+  }
+
+  .dock-waveform-bar-inline {
+    flex: 1;
+    height: calc(var(--level, 0.02) * 16px);
+    min-height: 2px;
+    border-radius: 2px;
+    background: #ef4444;
+    opacity: calc(0.3 + var(--level, 0.02) * 0.7);
+    transition: height 0.05s ease, opacity 0.05s ease;
+    transform-origin: bottom;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dock-waveform-bar-inline { transition: none; }
   }
 
   /* ── Recording controls ── */

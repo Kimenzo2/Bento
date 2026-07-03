@@ -109,10 +109,6 @@ const EXIT_MARGIN: f64 = 30.0;
 /// Prevents the race where show() forces click-through OFF then the monitor
 /// immediately forces it back ON because the cursor hasn't moved yet.
 const SHOW_COOLDOWN_MS: u64 = 300;
-/// Maximum consecutive hidden polls before the monitor thread self-destructs.
-/// At 33ms per poll, 200 polls ≈ 6.6 seconds of being hidden.
-/// Prevents zombie thread accumulation (S1 fix).
-const MAX_HIDDEN_POLLS: u32 = 200;
 
 static INITIAL_POSITION_SET: AtomicBool = AtomicBool::new(false);
 /// When true, the composer is open — expands the hit area vertically.
@@ -221,18 +217,23 @@ pub fn stop_mouse_monitor() {
 ///
 /// Hysteresis (larger exit margin) prevents flickering at the boundary.
 ///
-/// SAFETY: Self-terminates after MAX_HIDDEN_POLLS consecutive hidden polls
-/// to prevent zombie thread accumulation (island.rs pattern + our own MONITOR_STOP).
+/// Uses a static flag to prevent duplicate thread spawns.
 #[cfg(target_os = "windows")]
 fn start_mouse_monitor(app: AppHandle) {
     use windows_sys::Win32::Foundation::POINT;
     use windows_sys::Win32::UI::WindowsAndMessaging::GetCursorPos;
 
+    // Track whether a monitor thread is already running to prevent duplicates.
+    static MONITOR_SPAWNED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    if MONITOR_SPAWNED.swap(true, std::sync::atomic::Ordering::SeqCst) {
+        eprintln!("[agent] mouse monitor already running, skipping duplicate spawn");
+        return;
+    }
+
     let _ = thread::Builder::new()
         .name("agent-mouse-monitor".into())
         .spawn(move || {
             let mut was_inside = false;
-            let mut hidden_count: u32 = 0;
 
             loop {
                 thread::sleep(Duration::from_millis(POLL_MS));
@@ -248,17 +249,13 @@ fn start_mouse_monitor(app: AppHandle) {
                     return;
                 };
 
-                // Skip when hidden — track consecutive hidden polls to self-destruct.
+                // Skip when hidden but do NOT self-terminate — the agent window
+                // may be toggled on/off many times during a session. Each hide
+                // would kill the thread, leaving no monitor on next show.
                 if !window.is_visible().unwrap_or(false) {
-                    hidden_count += 1;
-                    if hidden_count > MAX_HIDDEN_POLLS {
-                        eprintln!("[agent] mouse monitor: hidden too long, exiting");
-                        return; // thread exits
-                    }
                     was_inside = false;
                     continue;
                 }
-                hidden_count = 0;
 
                 // Pause during drag.
                 if DRAG_IN_PROGRESS.load(Ordering::Relaxed) {

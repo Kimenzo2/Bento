@@ -9,6 +9,14 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { islandStore } from "$lib/stores/island.store.svelte";
 
+// ─── Constants ───────────────────────────────────────────────────────
+
+/** Push-to-talk minimum hold duration (ms). Shorter presses are ignored. */
+export const PTT_GRACE_MS = 160;
+
+/** Dictation writing style options. */
+export type DictationStyle = "standard" | "casual" | "formal";
+
 // ─── Island State Type (mirrors ActiveModuleState) ────────────────
 
 interface VoiceIslandState {
@@ -17,6 +25,27 @@ interface VoiceIslandState {
   icon: string;
   status: string;
   activityType?: "recording" | "timer" | "active" | "playback";
+}
+
+interface LiveTranscriptEvent {
+  noteId: string;
+  sessionId: string;
+  source: string;
+  segmentId: string;
+  startMs: number;
+  endMs: number;
+  text: string;
+  isFinal: boolean;
+}
+
+interface DictationProcessResult {
+  text: string;
+  agentTrigger: {
+    detected: boolean;
+    agentPrompt: string | null;
+    triggerPhrase: string | null;
+  };
+  charCount: number;
 }
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -73,6 +102,18 @@ class VoiceEngineStore {
   status = $state<VoiceStatus>("inactive");
   session = $state<VoiceSession | null>(null);
 
+  // ── Dictation style (persisted choice) ─────────────────────────
+  /** Current dictation writing style. */
+  dictationStyle = $state<DictationStyle>("standard");
+
+  // ── Push-to-talk grace period tracking ─────────────────────────
+  /** Timestamp (performance.now()) when PTT was pressed, null if not pressed. */
+  pttPressStart = $state<number | null>(null);
+  /** Whether the current PTT press has exceeded the grace period threshold. */
+  pttHeldLongEnough = $derived(
+    this.pttPressStart !== null ? (performance.now() - this.pttPressStart) >= PTT_GRACE_MS : false
+  );
+
   // ── Derived ────────────────────────────────────────────────────
   isActive = $derived(this.status !== "inactive");
   isRecording = $derived(this.status === "recording" || this.status === "listening");
@@ -94,18 +135,37 @@ class VoiceEngineStore {
   /** Elapsed ms — updated every 200ms via timer. */
   elapsedMs = $state(0);
 
+  /** Set the dictation writing style. */
+  setDictationStyle(style: DictationStyle): void {
+    this.dictationStyle = style;
+  }
+
+  /**
+   * Record PTT press start time for grace period detection.
+   * Call this when the user presses the mic button.
+   */
+  recordPttPress(): void {
+    this.pttPressStart = performance.now();
+  }
+
+  /**
+   * Check if a PTT release should be discarded (too short a press).
+   * Returns true if the press was too short (graze) and should be ignored.
+   */
+  checkPttRelease(): boolean {
+    if (this.pttPressStart === null) return false;
+    const held = performance.now() - this.pttPressStart;
+    this.pttPressStart = null;
+    return held < PTT_GRACE_MS;
+  }
+
   /**
    * Update the island's voice module state via the cross-window Rust bridge.
-   * This updates both the local islandStore (for main window) AND sends the
-   * state to the island window via Rust events.
    */
   #setIslandState(state: VoiceIslandState | null): void {
-    // Update local islandStore for main window context
     if (state) {
       islandStore.activateModule(state);
     }
-
-    // Send to island window via Rust cross-window bridge
     invoke("voice_set_island_state", { state }).catch((err) => {
       console.warn("[voice-engine] Failed to update island state:", err);
     });
@@ -117,8 +177,6 @@ class VoiceEngineStore {
   }
 
   async #registerListeners() {
-    // Listen for audio level events from Rust capture thread
-    // Updates fine-grained `audioLevel` field directly — avoids full session spread
     const unsubLevel = await listen<{ level: number; rms: number; peak: number }>(
       "voice:audio-level",
       (event) => {
@@ -127,44 +185,43 @@ class VoiceEngineStore {
     );
     this.#unlisteners.push(unsubLevel);
 
-    // Listen for sleep detection
     const unsubSleep = await listen<{ driftMs: number }>("voice:sleep-detected", (event) => {
       if (this.session) {
-        console.warn(
-          `[voice-engine] Sleep detected mid-recording: drift=${event.payload.driftMs}ms`,
-        );
+        console.warn(`[voice-engine] Sleep detected mid-recording: drift=${event.payload.driftMs}ms`);
       }
     });
     this.#unlisteners.push(unsubSleep);
 
-    // Listen for errors from Rust
     const unsubError = await listen<{ code: string; message: string }>("voice:error", (event) => {
       if (this.session) {
-        this.session = {
-          ...this.session,
-          status: "error",
-          error: event.payload.message,
-        };
+        this.session = { ...this.session, status: "error", error: event.payload.message };
         this.status = "error";
       }
     });
     this.#unlisteners.push(unsubError);
 
-    // Listen for recording session completion
     const unsubCompleted = await listen<{ sessionId: string; status: string }>(
       "voice:session-completed",
       () => {
         if (this.session) {
-          this.session = {
-            ...this.session,
-            status: "completed",
-          };
+          this.session = { ...this.session, status: "completed" };
           this.status = "completed";
           this.#stopElapsedTimer();
         }
       },
     );
     this.#unlisteners.push(unsubCompleted);
+
+    const unsubLiveTranscript = await listen<LiveTranscriptEvent>(
+      "voice:live-transcript",
+      (event) => {
+        if (this.isRecording && this.session) {
+          this.interimText = event.payload.text;
+          this.session = { ...this.session, interimText: event.payload.text };
+        }
+      },
+    );
+    this.#unlisteners.push(unsubLiveTranscript);
   }
 
   // ── Elapsed timer ──────────────────────────────────────────────
@@ -201,6 +258,32 @@ class VoiceEngineStore {
     return recognition;
   }
 
+  // ── Dictation Post-Processing ──────────────────────────────────
+
+  /**
+   * Post-process raw dictation text through the Rust pipeline:
+   * 1. Strip filler words
+   * 2. Apply writing style formatting
+   * 3. Detect agent triggers
+   */
+  async #postProcessDictation(rawText: string): Promise<DictationProcessResult> {
+    try {
+      const result = await invoke<DictationProcessResult>("dictation_process", {
+        text: rawText,
+        style: this.dictationStyle,
+      });
+      return result;
+    } catch (err) {
+      console.warn("[voice-engine] Dictation post-process failed, falling back:", err);
+      // Fallback: do basic client-side cleanup
+      return {
+        text: rawText.trim(),
+        agentTrigger: { detected: false, agentPrompt: null, triggerPhrase: null },
+        charCount: rawText.trim().length,
+      };
+    }
+  }
+
   // ── Public API ─────────────────────────────────────────────────
 
   /**
@@ -214,7 +297,6 @@ class VoiceEngineStore {
       return;
     }
 
-    // Reset fine-grained fields
     this.audioLevel = 0;
     this.interimText = "";
     this.finalText = "";
@@ -242,7 +324,6 @@ class VoiceEngineStore {
     this.session = session;
     this.#startElapsedTimer();
 
-    // Activate the Island voice module
     this.#setIslandState({
       id: "voice",
       label: mode === "meeting" ? "Meeting" : "Voice",
@@ -252,54 +333,29 @@ class VoiceEngineStore {
     });
 
     if (mode === "dictation" || mode === "agent_conversation") {
-      // Use Web Speech API for real-time streaming
       await this.#startWebSpeech(mode);
     } else {
-      // Use Rust cpal for long-form recording
       await this.#startRustRecording(mode);
     }
   }
 
   async #requestMicPermission(): Promise<boolean> {
-    if (typeof navigator === "undefined") {
-      console.warn("[voice-engine] navigator undefined");
-      return true;
-    }
-    if (!navigator.mediaDevices) {
-      console.warn("[voice-engine] navigator.mediaDevices is undefined");
-      return true;
-    }
-    if (!navigator.mediaDevices.getUserMedia) {
-      console.warn("[voice-engine] getUserMedia is undefined");
-      return true;
-    }
+    if (typeof navigator === "undefined") return true;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true;
 
-    // ── Step 1: Clear WebView2 browsing data to reset cached permission state ──
-    // WebView2 (Windows) caches "denied" permission decisions. If the user previously
-    // denied the mic prompt, subsequent getUserMedia calls fail with NotAllowedError.
-    // Clearing browsing data resets this cache so the next call shows the prompt again.
-    // On macOS, WKWebView does not cache permissions the same way, so skip this.
     if (navigator.userAgent.includes("Windows")) {
       try {
         await invoke("clear_webview_browsing_data");
-        console.info("[voice-engine] Cleared WebView2 browsing data (permission cache reset)");
-      } catch (err) {
-        // Best-effort — if this fails, proceed anyway
-        console.warn("[voice-engine] Failed to clear browsing data:", err);
+      } catch {
+        // best-effort
       }
     }
 
-    // ── Step 2: Request mic access ──
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach((t) => t.stop());
-      console.info("[voice-engine] Mic permission granted via getUserMedia");
       return true;
-    } catch (err) {
-      console.error("[voice-engine] getUserMedia failed:", err);
-      if (err instanceof DOMException) {
-        console.error("[voice-engine] DOMException name:", err.name, "message:", err.message);
-      }
+    } catch {
       return false;
     }
   }
@@ -312,11 +368,8 @@ class VoiceEngineStore {
         this.session = {
           ...this.session,
           status: "error",
-          error: "Microphone not accessible. Try restarting the app to reset the permission cache.",
+          error: "Microphone not accessible. Try restarting the app.",
         };
-        console.info(
-          "[voice-engine] WebView2 caches denied mic permissions. If restarting doesn't help, delete the EBWebView folder in %LOCALAPPDATA%\\Bento to fully reset browser permissions.",
-        );
       }
       return;
     }
@@ -370,19 +423,13 @@ class VoiceEngineStore {
           this.session = {
             ...this.session,
             status: "error",
-            error:
-              "Microphone not accessible. Try the voice button again — we already reset the browser permission cache.",
+            error: "Microphone not accessible. Try the voice button again.",
           };
         }
-        console.info(
-          "[voice-engine] WebView2 caches denied mic permissions. If restarting doesn't help, delete the EBWebView folder in %LOCALAPPDATA%\\Bento to fully reset browser permissions.",
-        );
       }
     };
 
     recognition.onend = () => {
-      // onend fires when recognition naturally stops (silence timeout) or is manually stopped.
-      // If we manually stopped (disposed), skip auto-stop to avoid double-call.
       if (this.#recognitionDisposed) return;
       if (this.status === "listening" && this.interimText) {
         this.stop();
@@ -396,7 +443,6 @@ class VoiceEngineStore {
         this.session = { ...this.session, status: "listening" };
       }
     } catch (err) {
-      console.warn("[voice-engine] Web Speech start failed:", err);
       this.status = "error";
       if (this.session) {
         this.session = {
@@ -429,7 +475,6 @@ class VoiceEngineStore {
         this.status = "recording";
       }
     } catch (err) {
-      console.warn("[voice-engine] Rust recording start failed:", err);
       this.status = "error";
       if (this.session) {
         this.session = {
@@ -443,12 +488,20 @@ class VoiceEngineStore {
 
   /**
    * Stop recording and process the result.
-   * After stopping, classifies the input and routes to the correct handler:
-   * - dictation → auto-paste at cursor
-   * - voice_note → save as note with AI title
-   * - agent_query → submit to agent conversation
+   * Applies dictation post-processing (filler stripping + style) for dictation/agent modes.
    */
   async stop(): Promise<void> {
+    // ── PTT grace period: discard if held too short ──────────────
+    // If the session was shorter than the grace period, treat as
+    // an accidental tap ("graze") and discard without processing.
+    const elapsed = this.elapsedMs;
+    if (this.#hasShortRecording(elapsed)) {
+      console.log("[voice-engine] PTT graze detected — discarding");
+      this.#stopWebSpeech();
+      this.#reset();
+      return;
+    }
+
     if (this.mode === "dictation" || this.mode === "agent_conversation") {
       this.#stopWebSpeech();
     } else {
@@ -460,7 +513,6 @@ class VoiceEngineStore {
       this.session = { ...this.session, status: "processing" };
     }
 
-    // Update Island to processing state
     this.#setIslandState({
       id: "voice",
       label: "Voice",
@@ -469,27 +521,45 @@ class VoiceEngineStore {
       activityType: "active",
     });
 
-    // Classify intent and route
     await this.#classifyAndRouteSession();
+  }
+
+  /** True when elapsed time is below the PTT grace threshold (accidental tap). */
+  #hasShortRecording(elapsedMs: number): boolean {
+    return elapsedMs > 0 && elapsedMs < PTT_GRACE_MS;
   }
 
   /**
    * Classify the completed session and route to the appropriate handler.
-   * Uses heuristic duration-based classification, then:
-   * - Dictation: auto-paste at cursor
-   * - Voice Note: save as note
-   * - Agent Query: submit to AI (handled externally)
+   * For dictation modes, runs post-processing (fillers + style + agent detection) first.
    */
   async #classifyAndRouteSession() {
-    const transcript = this.session?.finalText?.trim() || this.session?.interimText?.trim() || "";
-    if (!transcript) {
+    const rawTranscript = this.session?.finalText?.trim() || this.session?.interimText?.trim() || "";
+    if (!rawTranscript) {
       this.complete("");
       return;
     }
 
-    const durationSecs = (this.session?.elapsedMs ?? 0) / 1000;
+    // Run dictation post-processing (filler stripping + style + agent detection)
+    const processed = await this.#postProcessDictation(rawTranscript);
+    const transcript = processed.text;
 
-    // Heuristic classification (mirrors Rust classifier)
+    // Update final text with processed version
+    this.finalText = transcript;
+    if (this.session) {
+      this.session = { ...this.session, finalText: transcript };
+    }
+
+    // Check if agent trigger was detected in post-processing
+    if (processed.agentTrigger.detected) {
+      this.mode = "agent_conversation";
+      const prompt = processed.agentTrigger.agentPrompt || transcript;
+      this.complete(transcript);
+      // The Dock will pick up the mode change and submit to AI
+      return;
+    }
+
+    const durationSecs = (this.session?.elapsedMs ?? 0) / 1000;
     const trimmed = transcript.toLowerCase();
     let classifiedMode: VoiceMode;
 
@@ -508,25 +578,17 @@ class VoiceEngineStore {
       classifiedMode = "dictation";
     }
 
-    // Update mode with classification
     this.mode = classifiedMode;
 
     if (classifiedMode === "dictation") {
       await this.#handleDictation(transcript);
     } else if (classifiedMode === "voice_note") {
       await this.#handleVoiceNote(transcript);
-    } else if (classifiedMode === "agent_conversation") {
-      // Agent conversation is handled externally by the Dock — just complete
-      this.complete(transcript);
     } else {
-      // Meeting — just complete for now (Phase 3 will add full processing)
       this.complete(transcript);
     }
   }
 
-  /**
-   * Handle dictation mode: paste transcript at cursor position.
-   */
   async #handleDictation(transcript: string) {
     try {
       const result = await invoke<{ success: boolean; text: string; charCount: number }>(
@@ -537,34 +599,19 @@ class VoiceEngineStore {
       this.complete(transcript);
     } catch (err) {
       console.warn("[voice-engine] Dictation paste failed:", err);
-      // Fall back to just showing the transcript
       this.complete(transcript);
     }
   }
 
-  /**
-   * Handle voice note mode: save transcript as a note with AI title.
-   */
   async #handleVoiceNote(transcript: string) {
     try {
-      const result = await invoke<{
-        success: boolean;
-        noteId: string;
-        title: string;
-        charCount: number;
-      }>("voice_save_note", {
-        transcript,
-        title: null,
-      });
-      console.log(`[voice-engine] Saved voice note "${result.title}" (${result.noteId})`);
-
+      const result = await invoke<{ success: boolean; noteId: string; title: string; charCount: number }>(
+        "voice_save_note",
+        { transcript, title: null },
+      );
       if (this.session) {
-        this.session = {
-          ...this.session,
-          summary: `Saved as note: ${result.title}`,
-        };
+        this.session = { ...this.session, summary: `Saved as note: ${result.title}` };
       }
-
       this.complete(transcript, `Saved as note: ${result.title}`);
     } catch (err) {
       console.warn("[voice-engine] Voice note save failed:", err);
@@ -575,158 +622,79 @@ class VoiceEngineStore {
   #stopWebSpeech() {
     this.#recognitionDisposed = true;
     if (this.#recognition) {
-      try {
-        this.#recognition.stop();
-      } catch {
-        // Already stopped
-      }
+      try { this.#recognition.stop(); } catch { /* already stopped */ }
       this.#recognition = null;
     }
   }
 
-  /**
-   * Check if the speech recognition system is still usable after an error.
-   * Creates a temporary instance to probe availability without starting.
-   */
   #checkSpeechRecovery(): boolean {
     const recognition = this.#createSpeechRecognition();
-    if (!recognition) return false;
-    try {
-      // Don't actually start — just verify the constructor worked
-      return true;
-    } finally {
-      // No cleanup needed since we didn't start
-    }
+    return recognition !== null;
   }
 
   async #stopRustRecording() {
     try {
-      const result = await invoke<{
-        id: string;
-        status: string;
-        elapsedMs: number;
-        filePath: string | null;
-      }>("voice_stop");
+      const result = await invoke<{ id: string; status: string; elapsedMs: number; filePath: string | null }>(
+        "voice_stop",
+      );
       if (this.session) {
-        this.session = {
-          ...this.session,
-          recordingId: result.id,
-          filePath: result.filePath,
-          elapsedMs: result.elapsedMs,
-        };
+        this.session = { ...this.session, recordingId: result.id, filePath: result.filePath, elapsedMs: result.elapsedMs };
       }
     } catch (err) {
       console.warn("[voice-engine] Rust recording stop failed:", err);
     }
   }
 
-  /**
-   * Pause the current recording.
-   */
   async pause(): Promise<void> {
     if (this.mode === "voice_note" || this.mode === "meeting") {
       try {
         await invoke("voice_pause");
         this.status = "paused";
-        if (this.session) {
-          this.session = { ...this.session, status: "paused" };
-        }
-        this.#setIslandState({
-          id: "voice",
-          label: "Voice",
-          icon: "mic",
-          status: "Paused",
-          activityType: "active",
-        });
+        if (this.session) { this.session = { ...this.session, status: "paused" }; }
+        this.#setIslandState({ id: "voice", label: "Voice", icon: "mic", status: "Paused", activityType: "active" });
       } catch (err) {
         console.warn("[voice-engine] Pause failed:", err);
       }
     }
   }
 
-  /**
-   * Resume a paused recording.
-   */
   async resume(): Promise<void> {
     if (this.mode === "voice_note" || this.mode === "meeting") {
       try {
         await invoke("voice_resume");
         this.status = "recording";
-        if (this.session) {
-          this.session = { ...this.session, status: "recording" };
-        }
-        this.#setIslandState({
-          id: "voice",
-          label: "Voice",
-          icon: "mic",
-          status: "Recording",
-          activityType: "recording",
-        });
+        if (this.session) { this.session = { ...this.session, status: "recording" }; }
+        this.#setIslandState({ id: "voice", label: "Voice", icon: "mic", status: "Recording", activityType: "recording" });
       } catch (err) {
         console.warn("[voice-engine] Resume failed:", err);
       }
     }
   }
 
-  /**
-   * Cancel the current recording — discards without saving.
-   */
   async cancel(): Promise<void> {
     if (this.mode === "dictation" || this.mode === "agent_conversation") {
       this.#stopWebSpeech();
     } else {
-      try {
-        await invoke("voice_cancel");
-      } catch (err) {
-        console.warn("[voice-engine] Cancel failed:", err);
-      }
+      try { await invoke("voice_cancel"); } catch { /* best-effort */ }
     }
-
     this.#reset();
   }
 
-  /**
-   * Set audio level from external source (e.g., Web Speech simulated levels).
-   * Updates fine-grained field directly — avoids full session spread.
-   */
   setAudioLevel(level: number): void {
     this.audioLevel = level;
   }
 
-  /**
-   * Update interim transcript text.
-   * Updates fine-grained field directly — avoids full session spread.
-   */
   updateInterimText(text: string): void {
     this.interimText = text;
   }
 
-  /**
-   * Mark the session as completed with the final result.
-   */
   complete(finalText: string, summary?: string | null): void {
     this.status = "completed";
     this.#stopElapsedTimer();
-
     if (this.session) {
-      this.session = {
-        ...this.session,
-        status: "completed",
-        finalText,
-        summary: summary ?? null,
-      };
+      this.session = { ...this.session, status: "completed", finalText, summary: summary ?? null };
     }
-
-    // Show "Done" in Island briefly
-    this.#setIslandState({
-      id: "voice",
-      label: "Voice",
-      icon: "check",
-      status: "Done",
-      activityType: "active",
-    });
-
-    // Auto-reset after 3 seconds (tagged timeout — cancellable via #reset)
+    this.#setIslandState({ id: "voice", label: "Voice", icon: "check", status: "Done", activityType: "active" });
     if (this.#autoResetTimeout) clearTimeout(this.#autoResetTimeout);
     this.#autoResetTimeout = setTimeout(() => {
       this.#autoResetTimeout = null;
@@ -736,31 +704,19 @@ class VoiceEngineStore {
     }, 3000);
   }
 
-  /**
-   * Set error state.
-   */
   setError(error: string): void {
     this.status = "error";
-    if (this.session) {
-      this.session = { ...this.session, status: "error", error };
-    }
+    if (this.session) { this.session = { ...this.session, status: "error", error }; }
   }
 
-  /**
-   * Cancel the auto-reset timeout (tagged for cleanup).
-   */
   #autoResetTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  /**
-   * Reset to idle state.
-   */
   #reset(): void {
     this.#stopElapsedTimer();
     if (this.#autoResetTimeout) {
       clearTimeout(this.#autoResetTimeout);
       this.#autoResetTimeout = null;
     }
-    // Reset disposed flag so future starts work
     this.#recognitionDisposed = false;
     this.#recognition = null;
     this.mode = "idle";
@@ -770,11 +726,9 @@ class VoiceEngineStore {
     this.interimText = "";
     this.finalText = "";
     this.elapsedMs = 0;
+    this.pttPressStart = null;
   }
 
-  /**
-   * Clean up event listeners (call on component destroy).
-   */
   destroy(): void {
     this.#stopElapsedTimer();
     this.#stopWebSpeech();

@@ -90,11 +90,17 @@ fn start_mouse_monitor(app: AppHandle) {
     use windows_sys::Win32::Foundation::POINT;
     use windows_sys::Win32::UI::WindowsAndMessaging::GetCursorPos;
 
+    // Track whether a monitor thread is already running to prevent duplicates.
+    static MONITOR_SPAWNED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    if MONITOR_SPAWNED.swap(true, std::sync::atomic::Ordering::SeqCst) {
+        eprintln!("[island-monitor] monitor already running, skipping duplicate spawn");
+        return;
+    }
+
     let _ = std::thread::Builder::new()
         .name("island-mouse-monitor".into())
         .spawn(move || {
         let mut was_inside = false;
-        let mut hidden_count: u32 = 0;
         let mut transition_count: u32 = 0;
         let mut last_log = Instant::now();
 
@@ -111,22 +117,14 @@ fn start_mouse_monitor(app: AppHandle) {
                 continue;
             };
 
+            // Skip processing when hidden but do NOT exit — the island window
+            // starts hidden (see setup_island_window) and is shown later via
+            // toggle_island / show_island. Exiting here would leave no monitor
+            // when the window becomes visible.
             if !window.is_visible().unwrap_or(false) {
-                hidden_count += 1;
-                if hidden_count > 100 {
-                    eprintln!("[island-monitor] thread exiting after {hidden_count} consecutive hidden polls (3.3s idle)");
-                    return;
-                }
-                if hidden_count == 1 || hidden_count % 20 == 0 {
-                    eprintln!("[island-monitor] window hidden (poll #{hidden_count})");
-                }
                 was_inside = false;
                 continue;
             }
-            if hidden_count > 0 {
-                eprintln!("[island-monitor] window became visible after {hidden_count} hidden polls");
-            }
-            hidden_count = 0;
 
             // Watchdog: check if ISLAND_EXPANDED has been stuck for > 30s
             let toggle_secs = seconds_since_last_toggle();
@@ -188,8 +186,11 @@ fn start_mouse_monitor(app: AppHandle) {
     });
 }
 
-/// Setup the island window -- position, transparency, then show.
-/// `visible: false` in config prevents DWM compositor crash on Windows.
+/// Setup the island window -- position, transparency.
+/// Does NOT call `window.show()` because showing a transparent+alwaysOnTop
+/// window during startup can corrupt the DWM compositor on Windows, causing
+/// the app (and sometimes the entire desktop) to crash irrecoverably.
+/// The island is shown later via `show_island` / `toggle_island` commands.
 pub fn setup_island_window(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let settings = crate::settings::load_desktop_settings(app.handle());
     if !settings.dynamic_island_enabled {
@@ -232,11 +233,8 @@ pub fn setup_island_window(app: &tauri::App) -> Result<(), Box<dyn std::error::E
         eprintln!("[island] position_top_center_expanded failed: {e}");
     });
 
-    if let Err(e) = window.show() {
-        eprintln!("[island] window.show() failed: {e}");
-    }
-
-    eprintln!("[island] setup_island_window: window shown");
+    // DO NOT call window.show() here. See doc comment above.
+    eprintln!("[island] setup_island_window: window configured (not shown — deferred)");
 
     #[cfg(target_os = "windows")]
     start_mouse_monitor(app.handle().clone());

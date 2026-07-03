@@ -276,22 +276,36 @@ pub fn run() {
     }
 
     builder = builder.setup(|app| {
+        eprintln!("[init] phase=0 install_runtime_panic_hook");
         install_runtime_panic_hook(app.handle().clone());
 
-        let data_dir = app
-            .path()
-            .app_data_dir()
-            .map_err(|e| std::io::Error::other(e))?;
+        eprintln!("[init] phase=1 app_data_dir");
+        let data_dir = match app.path().app_data_dir() {
+            Ok(d) => d,
+            Err(e) => {
+                eprintln!("[init] FATAL: cannot resolve app_data_dir: {e}");
+                return Err(std::io::Error::other(e).into());
+            }
+        };
 
-        if let Err(error) = apply_pending_restore(app.handle()) {
-            eprintln!("[cloud-backup] pending restore skipped: {error}");
-        }
+        // ── Pending restore: run on background thread so it never blocks startup ──
+        eprintln!("[init] phase=2 spawn_apply_pending_restore");
+        let restore_handle = app.handle().clone();
+        std::thread::spawn(move || {
+            if let Err(error) = apply_pending_restore(&restore_handle) {
+                eprintln!("[cloud-backup] pending restore skipped: {error}");
+            }
+        });
 
+        eprintln!("[init] phase=3 load_desktop_settings");
         let settings = settings::load_desktop_settings(app.handle());
         app.manage(DesktopRuntime::new(settings.clone()));
-        let _ = settings::apply_configured_shortcuts(app.handle(), &settings);
+        if let Err(e) = settings::apply_configured_shortcuts(app.handle(), &settings) {
+            eprintln!("[init] apply_configured_shortcuts failed: {e}");
+        }
 
         // ── Native window frame (border + shadow, custom titlebar) ──────
+        eprintln!("[init] phase=4 native_window_frame");
         if let Some(ww) = app.get_webview_window("main") {
             #[cfg(target_os = "windows")]
             if let Err(e) = crate::window_effects::configure_native_frame(&ww) {
@@ -305,21 +319,25 @@ pub fn run() {
         }
 
         // ── Dynamic Island overlay window ────────────────────────────
+        eprintln!("[init] phase=5 setup_island_window");
         if let Err(e) = crate::island::setup_island_window(app) {
-            eprintln!("[island] failed to setup island window: {e}");
+            eprintln!("[island] failed to setup island window (non-fatal): {e}");
         }
 
         // ── Agent dock window ────────────────────────────────────────
+        eprintln!("[init] phase=6 setup_agent_window");
         if let Err(e) = crate::agent::setup_agent_window(app) {
-            eprintln!("[agent] failed to setup agent window: {e}");
+            eprintln!("[agent] failed to setup agent window (non-fatal): {e}");
         }
 
         // ── System tray icon (persistent background operation) ───────
+        eprintln!("[init] phase=7 setup_tray");
         if let Err(e) = crate::agent::setup_tray(app) {
-            eprintln!("[agent] failed to setup tray icon: {e}");
+            eprintln!("[agent] failed to setup tray icon (non-fatal): {e}");
         }
 
         // ── Global shortcut: Ctrl+Shift+A → toggle agent ──
+        eprintln!("[init] phase=8 register_shortcut_agent_toggle");
         {
             let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyA);
             match app.global_shortcut().on_shortcut(
@@ -339,19 +357,26 @@ pub fn run() {
         }
 
         // ── Database ──────────────────────────────────────────────────
+        eprintln!("[init] phase=9 init_db");
         let db = match tauri::async_runtime::block_on(db::init_db(app.handle())) {
-            Ok(db) => db,
+            Ok(db) => {
+                eprintln!("[init] phase=9 db_init_ok");
+                db
+            }
             Err(error) => {
+                eprintln!("[init] phase=9 db_init_failed: {error}");
                 return Err(std::io::Error::other(error).into());
             }
         };
         app.manage(BentoAppState::new(db));
 
         // ── Encryption service ────────────────────────────────────────
+        eprintln!("[init] phase=10 crypto_service");
         let crypto = CryptoService::new(data_dir.clone());
         app.manage(crypto.clone());
 
         // ── Voice Engine audio state ────────────────────────────────
+        eprintln!("[init] phase=11 audio_state");
         {
             let audio_state = crate::audio::AudioState::new(
                 data_dir.clone(),
@@ -362,10 +387,12 @@ pub fn run() {
         }
 
         // ── Media player audio state ────────────────────────────────
+        eprintln!("[init] phase=12 media_player");
         crate::media_player::init_audio_state();
         crate::media_player::setup_audio_monitoring(app.handle().clone());
 
         // ── Global shortcut: Ctrl+Shift+I → toggle island ──
+        eprintln!("[init] phase=13 register_shortcut_island_toggle");
         {
             let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyI);
             match app
@@ -381,18 +408,29 @@ pub fn run() {
             }
         }
 
-        let search_base_dir = app
-            .path()
-            .app_data_dir()
-            .map_err(|error| std::io::Error::other(error))?;
+        eprintln!("[init] phase=14 search_service");
+        let search_base_dir = match app.path().app_data_dir() {
+            Ok(d) => d,
+            Err(e) => {
+                eprintln!("[init] FATAL: cannot resolve app_data_dir for search: {e}");
+                return Err(std::io::Error::other(e).into());
+            }
+        };
         let search_service =
             SearchService::new(search_base_dir).map_err(|error| std::io::Error::other(error))?;
         app.manage(search_service);
 
-        let auth_manager =
-            AuthManager::new(data_dir.clone()).map_err(|e| std::io::Error::other(e))?;
+        eprintln!("[init] phase=15 auth_manager");
+        let auth_manager = match AuthManager::new(data_dir.clone()) {
+            Ok(am) => am,
+            Err(e) => {
+                eprintln!("[init] auth_manager failed: {e}");
+                return Err(std::io::Error::other(e).into());
+            }
+        };
         app.manage(auth_manager);
 
+        eprintln!("[init] phase=16 production_deep_link_setup");
         #[cfg(not(debug_assertions))]
         {
             #[cfg(any(windows, target_os = "linux"))]
@@ -421,7 +459,7 @@ pub fn run() {
             }
         }
 
-        // Spawn background scheduler worker
+        eprintln!("[init] phase=17 background_workers");
         crate::scheduler::spawn_scheduler_worker(
             app.state::<BentoAppState>().inner().clone(),
             app.handle().clone(),
@@ -429,21 +467,16 @@ pub fn run() {
 
         spawn_cloud_backup_worker(app.handle().clone());
 
-        // Spawn last-active timestamp tracker (updates every 60s)
         crate::sleep::spawn_last_active_tracker();
-
-        // Spawn OS sleep detection monitor
         crate::sleep::spawn_sleep_monitor(app.handle().clone());
 
-        // Ensure clipboard database tables exist before starting the monitor
+        // Clipboard tables + monitor
         let clipboard_pool = app.state::<BentoAppState>().inner().db();
         if let Err(e) = tauri::async_runtime::block_on(crate::clipboard::ensure_clipboard_tables(
             &clipboard_pool,
         )) {
             eprintln!("[clipboard] failed to ensure clipboard tables: {e}");
         }
-
-        // Spawn clipboard background monitor (poller + writer tasks)
         crate::clipboard::spawn_clipboard_monitor(app.handle().clone());
 
         // ── Spawn MCP Streamable HTTP server ────────────────────────────
@@ -463,6 +496,7 @@ pub fn run() {
             });
         }
 
+        eprintln!("[init] phase=18 setup_complete");
         Ok(())
     });
 
@@ -932,6 +966,9 @@ pub fn run() {
             crate::commands::transcription::voice_paste_dictation,
             crate::commands::transcription::voice_save_note,
             crate::commands::transcription::voice_get_note,
+            // Dictation post-processing (styles, filler stripping, agent detection)
+            crate::commands::voice::dictation_process,
+            crate::commands::voice::dictation_detect_agent,
             // Dynamic Island
             crate::island::toggle_island,
             crate::island::show_island,

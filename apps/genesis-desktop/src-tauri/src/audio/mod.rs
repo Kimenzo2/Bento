@@ -19,6 +19,12 @@ use std::thread;
 use tauri::Emitter;
 
 pub mod classifier;
+pub mod dictation;
+pub mod live_preview;
+pub mod processing;
+pub mod processing_queue;
+pub mod turns;
+pub mod validation;
 pub mod moonshine;
 
 // ─── Audio Level Payload (emitted to frontend via events) ────────────
