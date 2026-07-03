@@ -172,7 +172,8 @@ impl Moonshine {
 
     /// Get the expected model directory for the default architecture.
     pub fn model_dir(&self) -> PathBuf {
-        self.model_root.join(MoonshineModelArch::default().model_dir())
+        self.model_root
+            .join(MoonshineModelArch::default().model_dir())
     }
 
     /// Ensure the transcriber model is loaded. Lazy-initialised on first call.
@@ -180,9 +181,10 @@ impl Moonshine {
     /// The model files are expected at:
     /// `{app_dir}/models/moonshine/moonshine-tiny-streaming/`
     pub fn ensure_loaded(&self) -> Result<(), MoonshineError> {
-        let mut loaded = self.loaded.lock().map_err(|e| {
-            MoonshineError::TranscriptionFailed(-1, format!("mutex: {e}"))
-        })?;
+        let mut loaded = self
+            .loaded
+            .lock()
+            .map_err(|e| MoonshineError::TranscriptionFailed(-1, format!("mutex: {e}")))?;
 
         if *loaded {
             return Ok(());

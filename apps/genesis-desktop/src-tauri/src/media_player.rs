@@ -153,9 +153,18 @@ fn get_now_playing_windows() -> NowPlayingData {
     let parsed = output.and_then(|o| {
         let v: std::collections::HashMap<String, serde_json::Value> =
             serde_json::from_str(&o).ok()?;
-        let title = v.get("title").and_then(|t| t.as_str()).map(|s| s.to_string());
-        let artist = v.get("artist").and_then(|t| t.as_str()).map(|s| s.to_string());
-        let album = v.get("album").and_then(|t| t.as_str()).map(|s| s.to_string());
+        let title = v
+            .get("title")
+            .and_then(|t| t.as_str())
+            .map(|s| s.to_string());
+        let artist = v
+            .get("artist")
+            .and_then(|t| t.as_str())
+            .map(|s| s.to_string());
+        let album = v
+            .get("album")
+            .and_then(|t| t.as_str())
+            .map(|s| s.to_string());
         let app = v.get("app").and_then(|t| t.as_str()).map(|s| s.to_string());
         let duration = v.get("duration").and_then(|d| d.as_f64());
         let position = v.get("position").and_then(|d| d.as_f64());
@@ -274,9 +283,18 @@ pub async fn get_now_playing() -> NowPlayingData {
             let v: std::collections::HashMap<String, serde_json::Value> =
                 serde_json::from_str(first).ok()?;
 
-            let title = v.get("title").and_then(|t| t.as_str()).map(|s| s.to_string());
-            let artist = v.get("artist").and_then(|t| t.as_str()).map(|s| s.to_string());
-            let album = v.get("album").and_then(|t| t.as_str()).map(|s| s.to_string());
+            let title = v
+                .get("title")
+                .and_then(|t| t.as_str())
+                .map(|s| s.to_string());
+            let artist = v
+                .get("artist")
+                .and_then(|t| t.as_str())
+                .map(|s| s.to_string());
+            let album = v
+                .get("album")
+                .and_then(|t| t.as_str())
+                .map(|s| s.to_string());
             let app = v.get("app").and_then(|t| t.as_str()).map(|s| s.to_string());
             let duration = v.get("duration").and_then(|d| d.as_f64());
             let position = v.get("position").and_then(|d| d.as_f64());
@@ -488,12 +506,12 @@ pub fn activate_media_app(app_name: String) -> Result<(), String> {
         use std::process::Command;
         match app_name.to_lowercase().as_str() {
             "spotify" => {
-                let _ = Command::new("cmd").args(["/C", "start", "spotify:"]).spawn();
+                let _ = Command::new("cmd")
+                    .args(["/C", "start", "spotify:"])
+                    .spawn();
             }
             _ => {
-                let _ = Command::new("cmd")
-                    .args(["/C", "start", &app_name])
-                    .spawn();
+                let _ = Command::new("cmd").args(["/C", "start", &app_name]).spawn();
             }
         }
         Ok(())
@@ -556,7 +574,11 @@ pub fn setup_audio_monitoring(app_handle: tauri::AppHandle) {
                 energy * (0.18 + (t * 11.2).sin() * 0.1 + (t * 9.7).cos() * 0.08 + noise() * 0.06);
 
             for i in 0..6 {
-                let smoothing = if levels[i] > prev_levels[i] { 0.5 } else { 0.25 };
+                let smoothing = if levels[i] > prev_levels[i] {
+                    0.5
+                } else {
+                    0.25
+                };
                 levels[i] = prev_levels[i] + (levels[i] - prev_levels[i]) * smoothing;
                 levels[i] = levels[i].clamp(0.08, 0.92);
             }

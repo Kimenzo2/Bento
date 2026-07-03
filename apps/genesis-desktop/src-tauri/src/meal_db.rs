@@ -7,15 +7,15 @@ use std::collections::HashMap;
 use tauri::State;
 
 use crate::db::BentoAppState;
-use crate::recipes::{NewRecipePayload, NewIngredient, NewStep, RecipeRow};
+use crate::recipes::{NewIngredient, NewRecipePayload, NewStep, RecipeRow};
 use crate::util::time;
 
 // ── API Base ──────────────────────────────────────────────────────────────────
 const MEALDB_BASE: &str = "https://www.themealdb.com/api/json/v1/1";
 
 // ── Cache TTLs (milliseconds) ────────────────────────────────────────────────
-const CACHE_TTL_SEARCH: i64 = 3_600_000;   // 1 hour
-const CACHE_TTL_LIST:   i64 = 86_400_000;  // 24 hours
+const CACHE_TTL_SEARCH: i64 = 3_600_000; // 1 hour
+const CACHE_TTL_LIST: i64 = 86_400_000; // 24 hours
 
 // ── TheMealDB Response Types ─────────────────────────────────────────────────
 
@@ -176,14 +176,15 @@ async fn ensure_cache_table(pool: &sqlx::SqlitePool) -> Result<(), String> {
 
 async fn cache_get(pool: &sqlx::SqlitePool, key: &str, ttl_ms: i64) -> Option<String> {
     use sqlx::Row;
-    let row = sqlx::query(
-        "SELECT data, created_at FROM meal_cache WHERE cache_key = ?",
-    )
-    .bind(key)
-    .fetch_optional(pool)
-    .await
-    .ok()?;
-    let (data, created_at): (String, i64) = (row.as_ref()?.try_get("data").ok()?, row?.try_get("created_at").ok()?);
+    let row = sqlx::query("SELECT data, created_at FROM meal_cache WHERE cache_key = ?")
+        .bind(key)
+        .fetch_optional(pool)
+        .await
+        .ok()?;
+    let (data, created_at): (String, i64) = (
+        row.as_ref()?.try_get("data").ok()?,
+        row?.try_get("created_at").ok()?,
+    );
     if time::now_ms() - created_at > ttl_ms {
         // Expired — remove and return None
         let _ = sqlx::query("DELETE FROM meal_cache WHERE cache_key = ?")
@@ -227,7 +228,9 @@ async fn fetch_json(url: &str) -> Result<String, String> {
             format!("TheMealDB request failed: {e}")
         }
     })?;
-    resp.text().await.map_err(|e| format!("Failed to read response: {e}"))
+    resp.text()
+        .await
+        .map_err(|e| format!("Failed to read response: {e}"))
 }
 
 // ── Ingredient extraction from flattened HashMap ─────────────────────────────
@@ -237,8 +240,16 @@ fn extract_ingredients(extra: &HashMap<String, String>) -> Vec<DiscoverIngredien
     for i in 1..=20 {
         let ing_key = format!("strIngredient{i}");
         let meas_key = format!("strMeasure{i}");
-        let name = extra.get(&ing_key).map(|s| s.trim()).unwrap_or("").to_string();
-        let measure = extra.get(&meas_key).map(|s| s.trim()).unwrap_or("").to_string();
+        let name = extra
+            .get(&ing_key)
+            .map(|s| s.trim())
+            .unwrap_or("")
+            .to_string();
+        let measure = extra
+            .get(&meas_key)
+            .map(|s| s.trim())
+            .unwrap_or("")
+            .to_string();
         if name.is_empty() {
             continue;
         }
@@ -249,9 +260,11 @@ fn extract_ingredients(extra: &HashMap<String, String>) -> Vec<DiscoverIngredien
 
 fn parse_tags(tags_str: Option<String>) -> Vec<String> {
     match tags_str {
-        Some(t) if !t.trim().is_empty() => {
-            t.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect()
-        }
+        Some(t) if !t.trim().is_empty() => t
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect(),
         _ => vec![],
     }
 }
@@ -303,7 +316,11 @@ fn meal_detail_to_recipe_payload(meal: &MealDbFullMeal) -> NewRecipePayload {
     NewRecipePayload {
         title: meal.str_meal.clone(),
         time_label: time_estimate,
-        cook_time_min: if category == "Breakfast" || category == "Dessert" { 30 } else { 45 },
+        cook_time_min: if category == "Breakfast" || category == "Dessert" {
+            30
+        } else {
+            45
+        },
         servings: 4,
         calories: 0,
         protein: 0,
@@ -315,7 +332,10 @@ fn meal_detail_to_recipe_payload(meal: &MealDbFullMeal) -> NewRecipePayload {
         tags,
         diet_tags: vec![],
         allergens: vec![],
-        notes: format!("Imported from TheMealDB\nArea: {area}\nSource: {}", meal.str_source.as_deref().unwrap_or("")),
+        notes: format!(
+            "Imported from TheMealDB\nArea: {area}\nSource: {}",
+            meal.str_source.as_deref().unwrap_or("")
+        ),
         ingredients: ingredients
             .into_iter()
             .map(|ing| NewIngredient {
@@ -347,9 +367,8 @@ pub async fn discover_search(
     let url = format!("{MEALDB_BASE}/search.php?s={}", urlencoding(&query));
     let body = fetch_json(&url).await?;
 
-    let resp: MealDbSearchResponse = serde_json::from_str(&body).map_err(|e| {
-        format!("Failed to parse TheMealDB response: {e}")
-    })?;
+    let resp: MealDbSearchResponse = serde_json::from_str(&body)
+        .map_err(|e| format!("Failed to parse TheMealDB response: {e}"))?;
 
     let meals: Vec<DiscoverRecipeSummary> = resp
         .meals
@@ -381,9 +400,8 @@ pub async fn discover_random(
     let url = format!("{MEALDB_BASE}/random.php");
     let body = fetch_json(&url).await?;
 
-    let resp: MealDbLookupResponse = serde_json::from_str(&body).map_err(|e| {
-        format!("Failed to parse TheMealDB response: {e}")
-    })?;
+    let resp: MealDbLookupResponse = serde_json::from_str(&body)
+        .map_err(|e| format!("Failed to parse TheMealDB response: {e}"))?;
 
     let meal = resp
         .meals
@@ -409,9 +427,8 @@ pub async fn discover_meal_detail(
     let url = format!("{MEALDB_BASE}/lookup.php?i={meal_id}");
     let body = fetch_json(&url).await?;
 
-    let resp: MealDbLookupResponse = serde_json::from_str(&body).map_err(|e| {
-        format!("Failed to parse TheMealDB response: {e}")
-    })?;
+    let resp: MealDbLookupResponse = serde_json::from_str(&body)
+        .map_err(|e| format!("Failed to parse TheMealDB response: {e}"))?;
 
     let meal = resp
         .meals
@@ -440,9 +457,8 @@ pub async fn discover_categories(
     let url = format!("{MEALDB_BASE}/categories.php");
     let body = fetch_json(&url).await?;
 
-    let resp: MealDbCategoriesResponse = serde_json::from_str(&body).map_err(|e| {
-        format!("Failed to parse TheMealDB categories: {e}")
-    })?;
+    let resp: MealDbCategoriesResponse = serde_json::from_str(&body)
+        .map_err(|e| format!("Failed to parse TheMealDB categories: {e}"))?;
 
     let cats: Vec<DiscoverCategory> = resp
         .categories
@@ -476,17 +492,14 @@ pub async fn discover_areas(
     let url = format!("{MEALDB_BASE}/list.php?a=list");
     let body = fetch_json(&url).await?;
 
-    let resp: MealDbListResponse = serde_json::from_str(&body).map_err(|e| {
-        format!("Failed to parse TheMealDB areas: {e}")
-    })?;
+    let resp: MealDbListResponse =
+        serde_json::from_str(&body).map_err(|e| format!("Failed to parse TheMealDB areas: {e}"))?;
 
     let areas: Vec<DiscoverFilterOption> = resp
         .meals
         .unwrap_or_default()
         .into_iter()
-        .map(|m| DiscoverFilterOption {
-            name: m.str_meal,
-        })
+        .map(|m| DiscoverFilterOption { name: m.str_meal })
         .collect();
 
     let json = serde_json::to_string(&areas).map_err(|e| e.to_string())?;
@@ -501,7 +514,12 @@ pub async fn discover_filter_by_category(
     state: State<'_, BentoAppState>,
     category: String,
 ) -> Result<Vec<DiscoverRecipeSummary>, String> {
-    filter_meals(&state, &format!("filter_category:{}", category), &format!("{MEALDB_BASE}/filter.php?c={}", urlencoding(&category))).await
+    filter_meals(
+        &state,
+        &format!("filter_category:{}", category),
+        &format!("{MEALDB_BASE}/filter.php?c={}", urlencoding(&category)),
+    )
+    .await
 }
 
 /// Filter meals by area
@@ -510,7 +528,12 @@ pub async fn discover_filter_by_area(
     state: State<'_, BentoAppState>,
     area: String,
 ) -> Result<Vec<DiscoverRecipeSummary>, String> {
-    filter_meals(&state, &format!("filter_area:{}", area), &format!("{MEALDB_BASE}/filter.php?a={}", urlencoding(&area))).await
+    filter_meals(
+        &state,
+        &format!("filter_area:{}", area),
+        &format!("{MEALDB_BASE}/filter.php?a={}", urlencoding(&area)),
+    )
+    .await
 }
 
 /// Filter meals by ingredient
@@ -519,7 +542,12 @@ pub async fn discover_filter_by_ingredient(
     state: State<'_, BentoAppState>,
     ingredient: String,
 ) -> Result<Vec<DiscoverRecipeSummary>, String> {
-    filter_meals(&state, &format!("filter_ingredient:{}", ingredient), &format!("{MEALDB_BASE}/filter.php?i={}", urlencoding(&ingredient))).await
+    filter_meals(
+        &state,
+        &format!("filter_ingredient:{}", ingredient),
+        &format!("{MEALDB_BASE}/filter.php?i={}", urlencoding(&ingredient)),
+    )
+    .await
 }
 
 /// List all ingredients
@@ -537,17 +565,14 @@ pub async fn discover_ingredients(
     let url = format!("{MEALDB_BASE}/list.php?i=list");
     let body = fetch_json(&url).await?;
 
-    let resp: MealDbListResponse = serde_json::from_str(&body).map_err(|e| {
-        format!("Failed to parse TheMealDB ingredients: {e}")
-    })?;
+    let resp: MealDbListResponse = serde_json::from_str(&body)
+        .map_err(|e| format!("Failed to parse TheMealDB ingredients: {e}"))?;
 
     let ingredients: Vec<DiscoverFilterOption> = resp
         .meals
         .unwrap_or_default()
         .into_iter()
-        .map(|m| DiscoverFilterOption {
-            name: m.str_meal,
-        })
+        .map(|m| DiscoverFilterOption { name: m.str_meal })
         .collect();
 
     let json = serde_json::to_string(&ingredients).map_err(|e| e.to_string())?;
@@ -569,9 +594,8 @@ pub async fn discover_import_meal(
     let url = format!("{MEALDB_BASE}/lookup.php?i={meal_id}");
     let body = fetch_json(&url).await?;
 
-    let resp: MealDbLookupResponse = serde_json::from_str(&body).map_err(|e| {
-        format!("Failed to parse TheMealDB response: {e}")
-    })?;
+    let resp: MealDbLookupResponse = serde_json::from_str(&body)
+        .map_err(|e| format!("Failed to parse TheMealDB response: {e}"))?;
 
     let meal = resp
         .meals
@@ -615,9 +639,8 @@ async fn filter_meals(
 
     let body = fetch_json(url).await?;
 
-    let resp: MealDbSearchResponse = serde_json::from_str(&body).map_err(|e| {
-        format!("Failed to parse TheMealDB response: {e}")
-    })?;
+    let resp: MealDbSearchResponse = serde_json::from_str(&body)
+        .map_err(|e| format!("Failed to parse TheMealDB response: {e}"))?;
 
     // Filter results only have idMeal, strMeal, strMealThumb — no category/area
     // We need to enrich them with lookup, but for now show what we have

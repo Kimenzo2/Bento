@@ -78,9 +78,7 @@ impl GeminiProvider {
         let json: serde_json::Value = resp.json().await.map_err(|e| format!("Parse error: {e}"))?;
 
         if !status.is_success() {
-            let msg = json["error"]["message"]
-                .as_str()
-                .unwrap_or("unknown error");
+            let msg = json["error"]["message"].as_str().unwrap_or("unknown error");
             return Err(format!("Gemini ({status}): {msg}"));
         }
 
@@ -142,9 +140,7 @@ impl GeminiProvider {
                     if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
                         // Check for error
                         if json.get("error").is_some() {
-                            let msg = json["error"]["message"]
-                                .as_str()
-                                .unwrap_or("stream error");
+                            let msg = json["error"]["message"].as_str().unwrap_or("stream error");
                             let _ = tx.send(format!("__ERROR__:{msg}"));
                             return Err(msg.to_string());
                         }

@@ -12,8 +12,10 @@ use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::Mutex;
 
 use crate::actors::{self, ModuleActorHandle};
-use crate::commands::{DashboardCache, emit_main_window_event};
-use crate::db::{BentoAppState, ModuleContext, record_dashboard_event, read_runtime_state, write_runtime_state};
+use crate::commands::{emit_main_window_event, DashboardCache};
+use crate::db::{
+    read_runtime_state, record_dashboard_event, write_runtime_state, BentoAppState, ModuleContext,
+};
 use crate::modules::is_installed;
 use crate::telemetry::{BackendTraceInput, Severity, TelemetryState};
 
@@ -110,7 +112,11 @@ impl TabSessionManager {
 
     /// Return the sorted list of module IDs for all open tabs (for persistence).
     pub fn open_module_ids(&self) -> Vec<String> {
-        let mut ids: Vec<String> = self.tabs.values().map(|t| t.info.module_id.clone()).collect();
+        let mut ids: Vec<String> = self
+            .tabs
+            .values()
+            .map(|t| t.info.module_id.clone())
+            .collect();
         ids.sort();
         ids.dedup();
         ids
@@ -398,7 +404,10 @@ impl ManagedTabSession {
 // ── Persistence helpers ─────────────────────────────────────────────────
 
 /// Persist the current list of open tab module IDs to `runtime_state`.
-async fn persist_open_tab_ids(state: &BentoAppState, manager: &TabSessionManager) -> Result<(), String> {
+async fn persist_open_tab_ids(
+    state: &BentoAppState,
+    manager: &TabSessionManager,
+) -> Result<(), String> {
     let ids = manager.open_module_ids();
     let json = serde_json::to_string(&ids).map_err(|e| e.to_string())?;
     write_runtime_state(&state.db(), "open_tab_ids", &json).await
@@ -429,12 +438,19 @@ pub async fn restore_tabs_from_db(
         }
 
         // Skip uninstalled modules
-        if !crate::modules::is_installed(state, module_id).await.unwrap_or(false) {
+        if !crate::modules::is_installed(state, module_id)
+            .await
+            .unwrap_or(false)
+        {
             continue;
         }
 
-        let telemetry: Option<TelemetryState> = app.try_state::<TelemetryState>().as_deref().cloned();
-        match session.open_tab(module_id.clone(), &state.db(), telemetry, app).await {
+        let telemetry: Option<TelemetryState> =
+            app.try_state::<TelemetryState>().as_deref().cloned();
+        match session
+            .open_tab(module_id.clone(), &state.db(), telemetry, app)
+            .await
+        {
             Ok(info) => restored.push(info),
             Err(e) => {
                 eprintln!("[TabSession] Failed to restore tab for module \"{module_id}\": {e}");

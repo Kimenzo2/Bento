@@ -65,9 +65,7 @@ impl GrokProvider {
         let json: serde_json::Value = resp.json().await.map_err(|e| format!("Parse error: {e}"))?;
 
         if !status.is_success() {
-            let msg = json["error"]["message"]
-                .as_str()
-                .unwrap_or("unknown error");
+            let msg = json["error"]["message"].as_str().unwrap_or("unknown error");
             return Err(format!("Grok ({status}): {msg}"));
         }
 

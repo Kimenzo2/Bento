@@ -16,13 +16,13 @@ use crate::db::BentoAppState;
 use crate::search::SearchService;
 
 use super::service::{
-    BlockCreateParams, CreateNoteParams, DuplicateBlocksParams, HistoryInfo, MoveBlocksParams,
-    NoteObject, NoteSummary, NoteWithBlocks, SetMarkParams, UpdateNoteParams, block_create,
-    clear_text_content, clear_text_style, create_note_object, delete_note_object, duplicate_blocks,
-    get_note_full_cached, get_note_object, list_note_objects, merge_block, move_blocks,
-    object_duplicate, redo, replace_block, set_align, set_background_color, set_layout,
-    set_text_checked, set_text_color, set_text_content, set_text_mark, set_text_style, split_block,
-    turn_into, undo, unlink_block, update_note_object,
+    block_create, clear_text_content, clear_text_style, create_note_object, delete_note_object,
+    duplicate_blocks, get_note_full_cached, get_note_object, list_note_objects, merge_block,
+    move_blocks, object_duplicate, redo, replace_block, set_align, set_background_color,
+    set_layout, set_text_checked, set_text_color, set_text_content, set_text_mark, set_text_style,
+    split_block, turn_into, undo, unlink_block, update_note_object, BlockCreateParams,
+    CreateNoteParams, DuplicateBlocksParams, HistoryInfo, MoveBlocksParams, NoteObject,
+    NoteSummary, NoteWithBlocks, SetMarkParams, UpdateNoteParams,
 };
 use super::undo::HistoryRegistry;
 
@@ -44,9 +44,15 @@ pub async fn notes_object_create(
     cache: State<'_, Arc<super::NoteFullCache>>,
     params: CreateNoteParams,
 ) -> Result<NoteWithBlocks, String> {
-    create_note_object(&db(&state), &history, &search, cache.inner().as_ref(), params)
-        .await
-        .map_err(|e| e.message)
+    create_note_object(
+        &db(&state),
+        &history,
+        &search,
+        cache.inner().as_ref(),
+        params,
+    )
+    .await
+    .map_err(|e| e.message)
 }
 
 /// Get a note object by ID (metadata only, no blocks).
@@ -116,9 +122,15 @@ pub async fn notes_object_delete(
     cache: State<'_, Arc<super::NoteFullCache>>,
     note_id: String,
 ) -> Result<(), String> {
-    delete_note_object(&db(&state), &history, &search, cache.inner().as_ref(), &note_id)
-        .await
-        .map_err(|e| e.message)
+    delete_note_object(
+        &db(&state),
+        &history,
+        &search,
+        cache.inner().as_ref(),
+        &note_id,
+    )
+    .await
+    .map_err(|e| e.message)
 }
 
 /// Duplicate a note object (all blocks copied).
@@ -131,9 +143,15 @@ pub async fn notes_object_duplicate(
     cache: State<'_, Arc<super::NoteFullCache>>,
     source_id: String,
 ) -> Result<NoteWithBlocks, String> {
-    object_duplicate(&db(&state), &history, &search, cache.inner().as_ref(), &source_id)
-        .await
-        .map_err(|e| e.message)
+    object_duplicate(
+        &db(&state),
+        &history,
+        &search,
+        cache.inner().as_ref(),
+        &source_id,
+    )
+    .await
+    .map_err(|e| e.message)
 }
 
 // ─── Block commands ───────────────────────────────────────────────────────────

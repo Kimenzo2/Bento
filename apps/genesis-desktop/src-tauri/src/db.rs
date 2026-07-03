@@ -1,19 +1,19 @@
-﻿use std::{
+use std::{
     str::FromStr,
     sync::{Arc, Mutex},
 };
 
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use sqlx::{
-    Row, SqlitePool,
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
+    Row, SqlitePool,
 };
-use tauri::{AppHandle, Manager, State, ipc::Channel};
+use tauri::{ipc::Channel, AppHandle, Manager, State};
 use uuid::Uuid;
 
-use crate::auth::{AuthManager, BillingTier, module_allowed_by_tier};
-use crate::commands::{DashboardCache, emit_main_window_event};
+use crate::auth::{module_allowed_by_tier, AuthManager, BillingTier};
+use crate::commands::{emit_main_window_event, DashboardCache};
 use crate::crypto::CryptoService;
 use crate::search::SearchService;
 

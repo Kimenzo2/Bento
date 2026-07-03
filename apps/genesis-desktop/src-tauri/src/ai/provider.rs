@@ -8,10 +8,10 @@ use std::collections::HashMap;
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::anthropic::AnthropicProvider;
-use super::openai::OpenAIProvider;
+use super::gemini::GeminiProvider;
 use super::grok::GrokProvider;
 use super::ollama::OllamaProvider;
-use super::gemini::GeminiProvider;
+use super::openai::OpenAIProvider;
 
 /// Enum dispatching to the correct AI provider implementation.
 pub enum AiProvider {

@@ -8,9 +8,9 @@ use chrono::{Datelike, Timelike};
 
 use crate::mcp::analytics;
 use crate::util::time;
-use tracing::info;
 use serde_json::{json, Value};
 use sqlx::{Row, SqlitePool};
+use tracing::info;
 use uuid::Uuid;
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -80,13 +80,12 @@ pub async fn get_life_context_impl(pool: &SqlitePool, depth: &str) -> Result<Val
     .await
     .unwrap_or(0);
 
-    let journal_count: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM journal_entries WHERE date = ?",
-    )
-    .bind(&today)
-    .fetch_one(pool)
-    .await
-    .unwrap_or(0);
+    let journal_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM journal_entries WHERE date = ?")
+            .bind(&today)
+            .fetch_one(pool)
+            .await
+            .unwrap_or(0);
 
     // Mood — latest today
     let mood_latest: Option<(String, i64)> = sqlx::query_as::<_, (String, i64)>(
@@ -143,28 +142,29 @@ pub async fn get_life_context_impl(pool: &SqlitePool, depth: &str) -> Result<Val
     .unwrap_or(0.0);
 
     // Weekly averages
-    let week_mood_rows: Vec<String> = sqlx::query_scalar::<_, String>(
-        "SELECT mood FROM mood_checkins WHERE logged_at >= ?",
-    )
-    .bind(seven_days_ago)
-    .fetch_all(pool)
-    .await
-    .unwrap_or_default();
+    let week_mood_rows: Vec<String> =
+        sqlx::query_scalar::<_, String>("SELECT mood FROM mood_checkins WHERE logged_at >= ?")
+            .bind(seven_days_ago)
+            .fetch_all(pool)
+            .await
+            .unwrap_or_default();
 
     let avg_mood = if week_mood_rows.is_empty() {
         0.0
     } else {
-        let scores: Vec<f64> = week_mood_rows.iter().map(|m| analytics::mood_string_to_score(m)).collect();
+        let scores: Vec<f64> = week_mood_rows
+            .iter()
+            .map(|m| analytics::mood_string_to_score(m))
+            .collect();
         analytics::mean(&scores)
     };
 
-    let week_sleep_hours: Vec<f64> = sqlx::query_scalar::<_, f64>(
-        "SELECT hours FROM sleep_logs WHERE created_at >= ?",
-    )
-    .bind(seven_days_ago)
-    .fetch_all(pool)
-    .await
-    .unwrap_or_default();
+    let week_sleep_hours: Vec<f64> =
+        sqlx::query_scalar::<_, f64>("SELECT hours FROM sleep_logs WHERE created_at >= ?")
+            .bind(seven_days_ago)
+            .fetch_all(pool)
+            .await
+            .unwrap_or_default();
 
     let avg_sleep = analytics::mean(&week_sleep_hours);
 
@@ -215,15 +215,30 @@ pub async fn get_life_context_impl(pool: &SqlitePool, depth: &str) -> Result<Val
             };
             let mood_boost = avg_mood / 5.0 * 20.0;
             let hour = chrono::Local::now().hour();
-            let time_mod = if hour < 6 || hour >= 22 { -10.0 } else if hour < 9 { 5.0 } else if hour >= 14 && hour < 16 { -5.0 } else { 0.0 };
-            ((base + mood_boost + time_mod).round().max(0.0).min(100.0) as i64, "inferred")
+            let time_mod = if hour < 6 || hour >= 22 {
+                -10.0
+            } else if hour < 9 {
+                5.0
+            } else if hour >= 14 && hour < 16 {
+                -5.0
+            } else {
+                0.0
+            };
+            (
+                (base + mood_boost + time_mod).round().max(0.0).min(100.0) as i64,
+                "inferred",
+            )
         }
     };
 
     // Pressure signals
     let mut pressure: Vec<String> = Vec::new();
     if tasks_overdue > 0 {
-        pressure.push(format!("{} task{} overdue", tasks_overdue, if tasks_overdue == 1 { "" } else { "s" }));
+        pressure.push(format!(
+            "{} task{} overdue",
+            tasks_overdue,
+            if tasks_overdue == 1 { "" } else { "s" }
+        ));
     }
     if budget_total > 0.0 {
         let pct_spent = (spending / budget_total * 100.0).round() as i64;
@@ -246,13 +261,26 @@ pub async fn get_life_context_impl(pool: &SqlitePool, depth: &str) -> Result<Val
     // budget pressure (×0.2), and incomplete goals (×0.25). Thresholds: >4=critical,
     // >2.5=high, >1.0=moderate, else low.
     let cognitive_score = tasks_overdue as f64 * 0.3
-        + (if let Some((h, _)) = sleep_last_night { (8.0 - h).max(0.0) * 0.25 } else { 0.0 })
-        + (if budget_total > 0.0 { (spending / budget_total).max(0.0) * 0.2 } else { 0.0 })
+        + (if let Some((h, _)) = sleep_last_night {
+            (8.0 - h).max(0.0) * 0.25
+        } else {
+            0.0
+        })
+        + (if budget_total > 0.0 {
+            (spending / budget_total).max(0.0) * 0.2
+        } else {
+            0.0
+        })
         + incomplete_goals as f64 * 0.25;
-    let cognitive_load = if cognitive_score > 4.0 { "critical" }
-        else if cognitive_score > 2.5 { "high" }
-        else if cognitive_score > 1.0 { "moderate" }
-        else { "low" };
+    let cognitive_load = if cognitive_score > 4.0 {
+        "critical"
+    } else if cognitive_score > 2.5 {
+        "high"
+    } else if cognitive_score > 1.0 {
+        "moderate"
+    } else {
+        "low"
+    };
 
     let coverage = analytics::data_coverage(&[
         tasks_completed + tasks_pending + tasks_overdue > 0,
@@ -357,8 +385,12 @@ pub async fn get_cross_module_correlations_impl(
     // Align by date
     let dates: Vec<String> = {
         let mut d = std::collections::BTreeSet::new();
-        for (date, _) in &series_a { d.insert(date.clone()); }
-        for (date, _) in &series_b { d.insert(date.clone()); }
+        for (date, _) in &series_a {
+            d.insert(date.clone());
+        }
+        for (date, _) in &series_b {
+            d.insert(date.clone());
+        }
         d.into_iter().collect()
     };
 
@@ -401,12 +433,18 @@ pub async fn get_cross_module_correlations_impl(
     sorted_indices.sort_by(|&i, &j| {
         let (_, ai, bi) = &aligned[i];
         let (_, aj, bj) = &aligned[j];
-        ((ai + bi) * 100.0).total_cmp(&((aj + bj) * 100.0)).reverse()
+        ((ai + bi) * 100.0)
+            .total_cmp(&((aj + bj) * 100.0))
+            .reverse()
     });
-    let highest_days: Vec<Value> = sorted_indices.iter().take(5).map(|&idx| {
-        let (d, a, b) = &aligned[idx];
-        json!({"date": d, "a_value": a, "b_value": b})
-    }).collect();
+    let highest_days: Vec<Value> = sorted_indices
+        .iter()
+        .take(5)
+        .map(|&idx| {
+            let (d, a, b) = &aligned[idx];
+            json!({"date": d, "a_value": a, "b_value": b})
+        })
+        .collect();
 
     // Anomalies: days where both deviate >1.5 std dev from their means
     let mean_a = analytics::mean(&x_vals);
@@ -443,7 +481,12 @@ pub async fn get_cross_module_correlations_impl(
 }
 
 /// Fetch a metric as daily (date, value) pairs.
-async fn fetch_metric_daily(pool: &SqlitePool, metric: &str, start_ms: i64, end_ms: i64) -> Result<Vec<(String, f64)>, String> {
+async fn fetch_metric_daily(
+    pool: &SqlitePool,
+    metric: &str,
+    start_ms: i64,
+    end_ms: i64,
+) -> Result<Vec<(String, f64)>, String> {
     match metric {
         "sleep_hours" => {
             let rows = sqlx::query_as::<_, (String, f64)>(
@@ -481,10 +524,13 @@ async fn fetch_metric_daily(pool: &SqlitePool, metric: &str, start_ms: i64, end_
             .fetch_all(pool)
             .await
             .map_err(|e| format!("focus query: {e}"))?;
-            Ok(rows.into_iter().map(|(day_offset, val)| {
-                let date = time::date_key(day_offset * 86_400_000);
-                (date, val)
-            }).collect())
+            Ok(rows
+                .into_iter()
+                .map(|(day_offset, val)| {
+                    let date = time::date_key(day_offset * 86_400_000);
+                    (date, val)
+                })
+                .collect())
         }
         "calories" => {
             let rows = sqlx::query_as::<_, (i64, f64)>(
@@ -495,10 +541,13 @@ async fn fetch_metric_daily(pool: &SqlitePool, metric: &str, start_ms: i64, end_
             .fetch_all(pool)
             .await
             .map_err(|e| format!("calories query: {e}"))?;
-            Ok(rows.into_iter().map(|(day_offset, val)| {
-                let date = time::date_key(day_offset * 86_400_000);
-                (date, val)
-            }).collect())
+            Ok(rows
+                .into_iter()
+                .map(|(day_offset, val)| {
+                    let date = time::date_key(day_offset * 86_400_000);
+                    (date, val)
+                })
+                .collect())
         }
         "spending_amount" => {
             let rows = sqlx::query_as::<_, (String, f64)>(
@@ -520,10 +569,13 @@ async fn fetch_metric_daily(pool: &SqlitePool, metric: &str, start_ms: i64, end_
             .fetch_all(pool)
             .await
             .map_err(|e| format!("tasks query: {e}"))?;
-            Ok(rows.into_iter().map(|(day_offset, count)| {
-                let date = time::date_key(day_offset * 86_400_000);
-                (date, count as f64)
-            }).collect())
+            Ok(rows
+                .into_iter()
+                .map(|(day_offset, count)| {
+                    let date = time::date_key(day_offset * 86_400_000);
+                    (date, count as f64)
+                })
+                .collect())
         }
         "habit_completion_rate" => {
             let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM habits")
@@ -541,10 +593,13 @@ async fn fetch_metric_daily(pool: &SqlitePool, metric: &str, start_ms: i64, end_
             .fetch_all(pool)
             .await
             .map_err(|e| format!("habits query: {e}"))?;
-            Ok(rows.into_iter().map(|(day_offset, count)| {
-                let date = time::date_key(day_offset * 86_400_000);
-                (date, count as f64 / total as f64 * 100.0)
-            }).collect())
+            Ok(rows
+                .into_iter()
+                .map(|(day_offset, count)| {
+                    let date = time::date_key(day_offset * 86_400_000);
+                    (date, count as f64 / total as f64 * 100.0)
+                })
+                .collect())
         }
         "energy_score" => {
             let manual: Vec<(String, f64)> = sqlx::query_as::<_, (String, f64)>(
@@ -567,7 +622,8 @@ async fn fetch_metric_daily(pool: &SqlitePool, metric: &str, start_ms: i64, end_
 
 /// Full-resolution portrait of any past date.
 pub async fn get_day_reconstruction_impl(pool: &SqlitePool, date: &str) -> Result<Value, String> {
-    let (day_start, day_end) = analytics::date_range_ms(date).ok_or_else(|| format!("Invalid date: {date}"))?;
+    let (day_start, day_end) =
+        analytics::date_range_ms(date).ok_or_else(|| format!("Invalid date: {date}"))?;
 
     let day_of_week = chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d")
         .ok()
@@ -625,16 +681,22 @@ pub async fn get_day_reconstruction_impl(pool: &SqlitePool, date: &str) -> Resul
     .await
     .map_err(|e| format!("meals query: {e}"))?;
 
-    let total_calories: i64 = meals.iter().map(|r| r.try_get::<i64, _>("total_kcal").unwrap_or(0)).sum();
-    let meals_json: Vec<Value> = meals.into_iter().map(|row| {
-        json!({
-            "id": row.try_get::<String, _>("id").unwrap_or_default(),
-            "name": row.try_get::<String, _>("name").unwrap_or_default(),
-            "meal_type": row.try_get::<String, _>("meal_type").unwrap_or_default(),
-            "calories": row.try_get::<i64, _>("total_kcal").unwrap_or(0),
-            "notes": row.try_get::<Option<String>, _>("notes").ok().flatten()
+    let total_calories: i64 = meals
+        .iter()
+        .map(|r| r.try_get::<i64, _>("total_kcal").unwrap_or(0))
+        .sum();
+    let meals_json: Vec<Value> = meals
+        .into_iter()
+        .map(|row| {
+            json!({
+                "id": row.try_get::<String, _>("id").unwrap_or_default(),
+                "name": row.try_get::<String, _>("name").unwrap_or_default(),
+                "meal_type": row.try_get::<String, _>("meal_type").unwrap_or_default(),
+                "calories": row.try_get::<i64, _>("total_kcal").unwrap_or(0),
+                "notes": row.try_get::<Option<String>, _>("notes").ok().flatten()
+            })
         })
-    }).collect();
+        .collect();
 
     // Focus sessions
     let focus_sessions = sqlx::query(
@@ -646,19 +708,25 @@ pub async fn get_day_reconstruction_impl(pool: &SqlitePool, date: &str) -> Resul
     .await
     .map_err(|e| format!("focus query: {e}"))?;
 
-    let total_focus: f64 = focus_sessions.iter().map(|r| r.try_get::<f64, _>("value").unwrap_or(0.0)).sum();
-    let focus_json: Vec<Value> = focus_sessions.into_iter().map(|row| {
-        let meta: String = row.try_get("metadata").unwrap_or_default();
-        let meta_v: Value = serde_json::from_str(&meta).unwrap_or(json!({}));
-        json!({
-            "id": row.try_get::<i64, _>("id").unwrap_or(0),
-            "duration_minutes": row.try_get::<f64, _>("value").unwrap_or(0.0),
-            "description": meta_v["note"].as_str().unwrap_or(""),
-            "session_type": meta_v["label"].as_str().unwrap_or("focus"),
-            "started_at": row.try_get::<Option<i64>, _>("started_at").ok().flatten(),
-            "ended_at": row.try_get::<Option<i64>, _>("ended_at").ok().flatten()
+    let total_focus: f64 = focus_sessions
+        .iter()
+        .map(|r| r.try_get::<f64, _>("value").unwrap_or(0.0))
+        .sum();
+    let focus_json: Vec<Value> = focus_sessions
+        .into_iter()
+        .map(|row| {
+            let meta: String = row.try_get("metadata").unwrap_or_default();
+            let meta_v: Value = serde_json::from_str(&meta).unwrap_or(json!({}));
+            json!({
+                "id": row.try_get::<i64, _>("id").unwrap_or(0),
+                "duration_minutes": row.try_get::<f64, _>("value").unwrap_or(0.0),
+                "description": meta_v["note"].as_str().unwrap_or(""),
+                "session_type": meta_v["label"].as_str().unwrap_or("focus"),
+                "started_at": row.try_get::<Option<i64>, _>("started_at").ok().flatten(),
+                "ended_at": row.try_get::<Option<i64>, _>("ended_at").ok().flatten()
+            })
         })
-    }).collect();
+        .collect();
 
     // Tasks
     let tasks_completed = sqlx::query(
@@ -709,14 +777,13 @@ pub async fn get_day_reconstruction_impl(pool: &SqlitePool, date: &str) -> Resul
     .await
     .map_err(|e| format!("habits done: {e}"))?;
 
-    let all_habits: Vec<String> = sqlx::query_scalar::<_, String>(
-        "SELECT name FROM habits",
-    )
-    .fetch_all(pool)
-    .await
-    .map_err(|e| format!("all habits: {e}"))?;
+    let all_habits: Vec<String> = sqlx::query_scalar::<_, String>("SELECT name FROM habits")
+        .fetch_all(pool)
+        .await
+        .map_err(|e| format!("all habits: {e}"))?;
 
-    let habits_missed: Vec<String> = all_habits.into_iter()
+    let habits_missed: Vec<String> = all_habits
+        .into_iter()
         .filter(|h| !habits_done.contains(h))
         .collect();
 
@@ -749,19 +816,23 @@ pub async fn get_day_reconstruction_impl(pool: &SqlitePool, date: &str) -> Resul
     .await
     .map_err(|e| format!("budget query: {e}"))?;
 
-    let total_spent: f64 = transactions.iter()
+    let total_spent: f64 = transactions
+        .iter()
         .filter(|r| r.try_get::<String, _>("tx_type").unwrap_or_default() == "expense")
         .map(|r| r.try_get::<f64, _>("amount").unwrap_or(0.0))
         .sum();
 
-    let tx_json: Vec<Value> = transactions.into_iter().map(|row| {
-        json!({
-            "id": row.try_get::<String, _>("id").unwrap_or_default(),
-            "amount": row.try_get::<f64, _>("amount").unwrap_or(0.0),
-            "type": row.try_get::<String, _>("tx_type").unwrap_or_default(),
-            "note": row.try_get::<Option<String>, _>("note").ok().flatten()
+    let tx_json: Vec<Value> = transactions
+        .into_iter()
+        .map(|row| {
+            json!({
+                "id": row.try_get::<String, _>("id").unwrap_or_default(),
+                "amount": row.try_get::<f64, _>("amount").unwrap_or(0.0),
+                "type": row.try_get::<String, _>("tx_type").unwrap_or_default(),
+                "note": row.try_get::<Option<String>, _>("note").ok().flatten()
+            })
         })
-    }).collect();
+        .collect();
 
     // Notes created
     let notes_created = sqlx::query(
@@ -773,12 +844,15 @@ pub async fn get_day_reconstruction_impl(pool: &SqlitePool, date: &str) -> Resul
     .await
     .map_err(|e| format!("notes query: {e}"))?;
 
-    let notes_json: Vec<Value> = notes_created.into_iter().map(|row| {
-        json!({
-            "id": row.try_get::<String, _>("id").unwrap_or_default(),
-            "title": row.try_get::<String, _>("title").unwrap_or_default()
+    let notes_json: Vec<Value> = notes_created
+        .into_iter()
+        .map(|row| {
+            json!({
+                "id": row.try_get::<String, _>("id").unwrap_or_default(),
+                "title": row.try_get::<String, _>("title").unwrap_or_default()
+            })
         })
-    }).collect();
+        .collect();
 
     // Goal events
     let goal_events: Vec<Value> = sqlx::query(
@@ -806,23 +880,33 @@ pub async fn get_day_reconstruction_impl(pool: &SqlitePool, date: &str) -> Resul
     .collect();
 
     // Narrative (deterministic templating)
-    let mood_label = mood.as_ref().and_then(|m| m["mood"].as_str().map(|s| s.to_string())).unwrap_or_else(|| "unlogged".to_string());
+    let mood_label = mood
+        .as_ref()
+        .and_then(|m| m["mood"].as_str().map(|s| s.to_string()))
+        .unwrap_or_else(|| "unlogged".to_string());
     let focus_note = if total_focus > 0.0 {
-        format!("{} of focus, {} sessions", analytics::format_minutes(total_focus), focus_json.len())
+        format!(
+            "{} of focus, {} sessions",
+            analytics::format_minutes(total_focus),
+            focus_json.len()
+        )
     } else {
         "no focus sessions".to_string()
     };
     let tasks_done_count = tasks_completed.len();
-    let sleep_note = sleep.as_ref().map(|s| {
-        let h = s["hours"].as_f64().unwrap_or(0.0);
-        if h >= 7.0 {
-            format!("Slept well ({:.1}h)", h)
-        } else if h > 0.0 {
-            format!("Only {:.1}h of sleep", h)
-        } else {
-            "No sleep data".to_string()
-        }
-    }).unwrap_or_else(|| "No sleep data".to_string());
+    let sleep_note = sleep
+        .as_ref()
+        .map(|s| {
+            let h = s["hours"].as_f64().unwrap_or(0.0);
+            if h >= 7.0 {
+                format!("Slept well ({:.1}h)", h)
+            } else if h > 0.0 {
+                format!("Only {:.1}h of sleep", h)
+            } else {
+                "No sleep data".to_string()
+            }
+        })
+        .unwrap_or_else(|| "No sleep data".to_string());
     let budget_note = if total_spent > 0.0 {
         format!("Spent €{:.2}", total_spent)
     } else {
@@ -905,8 +989,11 @@ pub async fn get_life_delta_impl(
         let vals: Vec<f64> = sqlx::query_scalar::<_, f64>(
             "SELECT hours FROM sleep_logs WHERE created_at >= ? AND created_at < ?",
         )
-        .bind(start).bind(end)
-        .fetch_all(pool).await.unwrap_or_default();
+        .bind(start)
+        .bind(end)
+        .fetch_all(pool)
+        .await
+        .unwrap_or_default();
         analytics::mean(&vals)
     }
 
@@ -914,9 +1001,15 @@ pub async fn get_life_delta_impl(
         let vals: Vec<String> = sqlx::query_scalar::<_, String>(
             "SELECT mood FROM mood_checkins WHERE logged_at >= ? AND logged_at < ?",
         )
-        .bind(start).bind(end)
-        .fetch_all(pool).await.unwrap_or_default();
-        let scores: Vec<f64> = vals.iter().map(|m| analytics::mood_string_to_score(m)).collect();
+        .bind(start)
+        .bind(end)
+        .fetch_all(pool)
+        .await
+        .unwrap_or_default();
+        let scores: Vec<f64> = vals
+            .iter()
+            .map(|m| analytics::mood_string_to_score(m))
+            .collect();
         analytics::mean(&scores)
     }
 
@@ -931,8 +1024,12 @@ pub async fn get_life_delta_impl(
 
     async fn habit_consistency(pool: &SqlitePool, start: i64, end: i64) -> f64 {
         let total_habits: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM habits")
-            .fetch_one(pool).await.unwrap_or(0);
-        if total_habits == 0 { return 0.0; }
+            .fetch_one(pool)
+            .await
+            .unwrap_or(0);
+        if total_habits == 0 {
+            return 0.0;
+        }
         let days: i64 = ((end - start) / 86_400_000).max(1);
         let completions: i64 = sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(DISTINCT CAST(completed_at / 86400000 AS INTEGER)) FROM habit_completions WHERE completed_at >= ? AND completed_at < ?",
@@ -946,8 +1043,11 @@ pub async fn get_life_delta_impl(
         let count: i64 = sqlx::query_scalar::<_, i64>(
             "SELECT COUNT(*) FROM tasks WHERE done = 1 AND completed_at >= ? AND completed_at < ?",
         )
-        .bind(start).bind(end)
-        .fetch_one(pool).await.unwrap_or(0);
+        .bind(start)
+        .bind(end)
+        .fetch_one(pool)
+        .await
+        .unwrap_or(0);
         let days = ((end - start) / 86_400_000).max(1) as f64;
         count as f64 / days
     }
@@ -971,13 +1071,41 @@ pub async fn get_life_delta_impl(
 
     // Compute all dimensions
     let dims: [(&str, f64, f64); 7] = [
-        ("Sleep Quality", avg_sleep(pool, a_start, a_end).await, avg_sleep(pool, b_start, b_end).await),
-        ("Mood", avg_mood_score(pool, a_start, a_end).await, avg_mood_score(pool, b_start, b_end).await),
-        ("Focus (avg session min)", avg_focus(pool, a_start, a_end).await, avg_focus(pool, b_start, b_end).await),
-        ("Focus (total min)", total_focus_minutes(pool, a_start, a_end).await, total_focus_minutes(pool, b_start, b_end).await),
-        ("Habit Consistency", habit_consistency(pool, a_start, a_end).await, habit_consistency(pool, b_start, b_end).await),
-        ("Tasks Completed/Day", tasks_per_day(pool, a_start, a_end).await, tasks_per_day(pool, b_start, b_end).await),
-        ("Avg Daily Spending", avg_spending(pool, a_start, a_end).await, avg_spending(pool, b_start, b_end).await),
+        (
+            "Sleep Quality",
+            avg_sleep(pool, a_start, a_end).await,
+            avg_sleep(pool, b_start, b_end).await,
+        ),
+        (
+            "Mood",
+            avg_mood_score(pool, a_start, a_end).await,
+            avg_mood_score(pool, b_start, b_end).await,
+        ),
+        (
+            "Focus (avg session min)",
+            avg_focus(pool, a_start, a_end).await,
+            avg_focus(pool, b_start, b_end).await,
+        ),
+        (
+            "Focus (total min)",
+            total_focus_minutes(pool, a_start, a_end).await,
+            total_focus_minutes(pool, b_start, b_end).await,
+        ),
+        (
+            "Habit Consistency",
+            habit_consistency(pool, a_start, a_end).await,
+            habit_consistency(pool, b_start, b_end).await,
+        ),
+        (
+            "Tasks Completed/Day",
+            tasks_per_day(pool, a_start, a_end).await,
+            tasks_per_day(pool, b_start, b_end).await,
+        ),
+        (
+            "Avg Daily Spending",
+            avg_spending(pool, a_start, a_end).await,
+            avg_spending(pool, b_start, b_end).await,
+        ),
     ];
 
     let mut biggest_improvement = String::new();
@@ -987,23 +1115,41 @@ pub async fn get_life_delta_impl(
 
     for (name, a_avg, b_avg) in &dims {
         let delta_pct = if *a_avg == 0.0 {
-            if *b_avg == 0.0 { 0.0 } else { 100.0 }
+            if *b_avg == 0.0 {
+                0.0
+            } else {
+                100.0
+            }
         } else {
             ((b_avg - a_avg) / a_avg.abs()) * 100.0
         };
-        let direction = if delta_pct > 3.0 { "improved" }
-            else if delta_pct < -3.0 { "declined" }
-            else { "unchanged" };
-        let significance = if delta_pct.abs() > 30.0 { "major" }
-            else if delta_pct.abs() > 10.0 { "moderate" }
-            else { "minor" };
+        let direction = if delta_pct > 3.0 {
+            "improved"
+        } else if delta_pct < -3.0 {
+            "declined"
+        } else {
+            "unchanged"
+        };
+        let significance = if delta_pct.abs() > 30.0 {
+            "major"
+        } else if delta_pct.abs() > 10.0 {
+            "moderate"
+        } else {
+            "minor"
+        };
 
         // For spending, "declined" means spent less (good), "improved" means spent more (bad)
         // But for simplicity, we just report the raw delta
 
         if *name != "Avg Daily Spending" {
-            if delta_pct > best_delta { best_delta = delta_pct; biggest_improvement = name.to_string(); }
-            if delta_pct < worst_delta { worst_delta = delta_pct; biggest_decline = name.to_string(); }
+            if delta_pct > best_delta {
+                best_delta = delta_pct;
+                biggest_improvement = name.to_string();
+            }
+            if delta_pct < worst_delta {
+                worst_delta = delta_pct;
+                biggest_decline = name.to_string();
+            }
         }
 
         dimensions.push(json!({
@@ -1016,10 +1162,15 @@ pub async fn get_life_delta_impl(
         }));
     }
 
-    let trajectory = if best_delta > 10.0 && worst_delta > -5.0 { "ascending" }
-        else if worst_delta < -10.0 && best_delta < 5.0 { "descending" }
-        else if best_delta.abs() < 10.0 && worst_delta.abs() < 10.0 { "stable" }
-        else { "mixed" };
+    let trajectory = if best_delta > 10.0 && worst_delta > -5.0 {
+        "ascending"
+    } else if worst_delta < -10.0 && best_delta < 5.0 {
+        "descending"
+    } else if best_delta.abs() < 10.0 && worst_delta.abs() < 10.0 {
+        "stable"
+    } else {
+        "mixed"
+    };
 
     let summary = format!(
         "Compared {} to {}: biggest improvement in {}, biggest decline in {}. Overall trajectory: {}.",
@@ -1046,7 +1197,10 @@ pub async fn get_life_delta_impl(
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// Analyze historical focus/mood to find peak performance windows.
-pub async fn get_cognitive_schedule_impl(pool: &SqlitePool, window_days: i64) -> Result<Value, String> {
+pub async fn get_cognitive_schedule_impl(
+    pool: &SqlitePool,
+    window_days: i64,
+) -> Result<Value, String> {
     let start_ms = time::now_ms() - window_days * 86_400_000;
 
     // Pull focus sessions
@@ -1078,7 +1232,7 @@ pub async fn get_cognitive_schedule_impl(pool: &SqlitePool, window_days: i64) ->
                 let dow = dt.weekday().num_days_from_monday();
                 let hour = dt.hour();
                 let entry = buckets.entry((dow, hour)).or_default();
-                entry.0 += value;  // focus quality/duration
+                entry.0 += value; // focus quality/duration
                 entry.1 += 1;
             }
         }
@@ -1098,8 +1252,16 @@ pub async fn get_cognitive_schedule_impl(pool: &SqlitePool, window_days: i64) ->
     // Rate each bucket: composite score = (avg_focus * 0.6 + avg_mood_normalized * 0.4)
     let mut ratings: Vec<(u32, u32, f64, f64, i64)> = Vec::new();
     for ((dow, hour), (focus_sum, focus_count, mood_sum, mood_count)) in &buckets {
-        let avg_focus = if *focus_count > 0 { focus_sum / *focus_count as f64 } else { 0.0 };
-        let avg_mood = if *mood_count > 0 { mood_sum / *mood_count as f64 } else { 3.0 };
+        let avg_focus = if *focus_count > 0 {
+            focus_sum / *focus_count as f64
+        } else {
+            0.0
+        };
+        let avg_mood = if *mood_count > 0 {
+            mood_sum / *mood_count as f64
+        } else {
+            3.0
+        };
         let mood_norm = (avg_mood - 1.0) / 4.0 * 100.0; // 0-100
         let focus_norm = (avg_focus / 60.0).min(1.0) * 100.0; // normalize to 0-100 (60min = 100%)
         let composite = focus_norm * 0.6 + mood_norm * 0.4;
@@ -1110,7 +1272,15 @@ pub async fn get_cognitive_schedule_impl(pool: &SqlitePool, window_days: i64) ->
     // Sort by composite descending
     ratings.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
 
-    let day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    let day_names = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ];
 
     let mk_window = |(dow, hour, score, confidence, _count): &(u32, u32, f64, f64, i64)| -> Value {
         let day_name = day_names.get(*dow as usize).unwrap_or(&"Unknown");
@@ -1142,14 +1312,23 @@ pub async fn get_cognitive_schedule_impl(pool: &SqlitePool, window_days: i64) ->
         entry.0 += score * *count as f64;
         entry.1 += count;
     }
-    let day_ratings: Vec<(u32, f64)> = day_avg.into_iter()
+    let day_ratings: Vec<(u32, f64)> = day_avg
+        .into_iter()
         .map(|(dow, (total, count))| (dow, if count > 0 { total / count as f64 } else { 0.0 }))
         .collect();
 
-    let best_day = day_ratings.iter().max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
-        .and_then(|(d, _)| day_names.get(*d as usize)).unwrap_or(&"Unknown").to_string();
-    let worst_day = day_ratings.iter().min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
-        .and_then(|(d, _)| day_names.get(*d as usize)).unwrap_or(&"Unknown").to_string();
+    let best_day = day_ratings
+        .iter()
+        .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
+        .and_then(|(d, _)| day_names.get(*d as usize))
+        .unwrap_or(&"Unknown")
+        .to_string();
+    let worst_day = day_ratings
+        .iter()
+        .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
+        .and_then(|(d, _)| day_names.get(*d as usize))
+        .unwrap_or(&"Unknown")
+        .to_string();
 
     let insight = format!(
         "Your peak focus windows are on {} (score: {:.0}). Your lowest energy periods are on {}. Schedule demanding cognitive work during peak windows and routine tasks during avoid windows.",
@@ -1211,7 +1390,10 @@ pub async fn create_commitment_bond_impl(
     }))
 }
 
-pub async fn get_commitment_bonds_impl(pool: &SqlitePool, status: Option<&str>) -> Result<Value, String> {
+pub async fn get_commitment_bonds_impl(
+    pool: &SqlitePool,
+    status: Option<&str>,
+) -> Result<Value, String> {
     let rows = if let Some(s) = status {
         sqlx::query(
             "SELECT id, title, goal_id, deadline, success_metric, consequence, check_in_days, status, check_in_history, created_at, updated_at FROM commitment_bonds WHERE status = ? ORDER BY created_at DESC",
@@ -1263,14 +1445,13 @@ pub async fn update_bond_status_impl(
 
     if let Some(note) = check_in_note {
         // Append check-in to history
-        let existing: String = sqlx::query_scalar(
-            "SELECT check_in_history FROM commitment_bonds WHERE id = ?",
-        )
-        .bind(bond_id)
-        .fetch_optional(pool)
-        .await
-        .map_err(|e| format!("Failed to query bond: {e}"))?
-        .ok_or_else(|| format!("Bond not found: {bond_id}"))?;
+        let existing: String =
+            sqlx::query_scalar("SELECT check_in_history FROM commitment_bonds WHERE id = ?")
+                .bind(bond_id)
+                .fetch_optional(pool)
+                .await
+                .map_err(|e| format!("Failed to query bond: {e}"))?
+                .ok_or_else(|| format!("Bond not found: {bond_id}"))?;
 
         let mut history: Vec<Value> = serde_json::from_str(&existing).unwrap_or_default();
         history.push(json!({
@@ -1291,15 +1472,13 @@ pub async fn update_bond_status_impl(
         .await
         .map_err(|e| format!("Failed to update bond: {e}"))?;
     } else {
-        sqlx::query(
-            "UPDATE commitment_bonds SET status = ?, updated_at = ? WHERE id = ?",
-        )
-        .bind(status)
-        .bind(now_ms)
-        .bind(bond_id)
-        .execute(pool)
-        .await
-        .map_err(|e| format!("Failed to update bond: {e}"))?;
+        sqlx::query("UPDATE commitment_bonds SET status = ?, updated_at = ? WHERE id = ?")
+            .bind(status)
+            .bind(now_ms)
+            .bind(bond_id)
+            .execute(pool)
+            .await
+            .map_err(|e| format!("Failed to update bond: {e}"))?;
     }
 
     Ok(json!({
@@ -1315,7 +1494,10 @@ pub async fn update_bond_status_impl(
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// Analyze abandoned goals, broken streaks, overdue tasks for failure signatures.
-pub async fn get_failure_patterns_impl(pool: &SqlitePool, _min_data_points: i64) -> Result<Value, String> {
+pub async fn get_failure_patterns_impl(
+    pool: &SqlitePool,
+    _min_data_points: i64,
+) -> Result<Value, String> {
     // Abandoned goals (progress never reached 100 and last updated > 14 days ago)
     let now_ms = time::now_ms();
     let fourteen_days_ago = now_ms - 14 * 86_400_000;
@@ -1342,27 +1524,48 @@ pub async fn get_failure_patterns_impl(pool: &SqlitePool, _min_data_points: i64)
 
     // Compute real metrics from data
     let avg_goal_lifetime_days = if !abandoned_goals.is_empty() {
-        let total_days: f64 = abandoned_goals.iter()
+        let total_days: f64 = abandoned_goals
+            .iter()
             .map(|g| (g.4 - g.3) as f64 / 86_400_000.0)
             .sum();
         (total_days / abandoned_goals.len() as f64).round() as i64
-    } else { 0 };
+    } else {
+        0
+    };
 
     let avg_overdue_days = if !overdue_tasks.is_empty() {
-        let total_days: f64 = overdue_tasks.iter()
+        let total_days: f64 = overdue_tasks
+            .iter()
             .filter_map(|(_, _, due)| due.map(|d| (now_ms - d) as f64 / 86_400_000.0))
             .sum::<f64>();
-        let count = overdue_tasks.iter().filter(|(_, _, due)| due.is_some()).count();
-        if count > 0 { (total_days / count as f64).round() as i64 } else { 0 }
-    } else { 0 };
+        let count = overdue_tasks
+            .iter()
+            .filter(|(_, _, due)| due.is_some())
+            .count();
+        if count > 0 {
+            (total_days / count as f64).round() as i64
+        } else {
+            0
+        }
+    } else {
+        0
+    };
 
     // Find most common stagnation progress level
     let stagnation_progress = if !abandoned_goals.is_empty() {
         let pcts: Vec<i32> = abandoned_goals.iter().map(|g| (g.2 / 10) * 10).collect();
         let mut counts: std::collections::HashMap<i32, usize> = std::collections::HashMap::new();
-        for p in &pcts { *counts.entry(*p).or_insert(0) += 1; }
-        counts.into_iter().max_by_key(|&(_, c)| c).map(|(p, _)| p).unwrap_or(0)
-    } else { 0 };
+        for p in &pcts {
+            *counts.entry(*p).or_insert(0) += 1;
+        }
+        counts
+            .into_iter()
+            .max_by_key(|&(_, c)| c)
+            .map(|(p, _)| p)
+            .unwrap_or(0)
+    } else {
+        0
+    };
 
     let total_failures = abandoned_goals.len() + overdue_tasks.len();
     let patterns = if total_failures == 0 {
@@ -1407,7 +1610,10 @@ pub async fn get_failure_patterns_impl(pool: &SqlitePool, _min_data_points: i64)
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// Board-meeting-style weekly review across every module.
-pub async fn generate_weekly_board_report_impl(pool: &SqlitePool, week_offset: i64) -> Result<Value, String> {
+pub async fn generate_weekly_board_report_impl(
+    pool: &SqlitePool,
+    week_offset: i64,
+) -> Result<Value, String> {
     let now_ms = time::now_ms();
     // Week: last 7 days, adjusted by offset
     let period_end = now_ms - week_offset * 7 * 86_400_000;
@@ -1423,26 +1629,36 @@ pub async fn generate_weekly_board_report_impl(pool: &SqlitePool, week_offset: i
     let tasks_completed: i64 = sqlx::query_scalar(
         "SELECT COUNT(*) FROM tasks WHERE done = 1 AND completed_at >= ? AND completed_at < ?",
     )
-    .bind(period_start).bind(period_end)
-    .fetch_one(pool).await.unwrap_or(0);
+    .bind(period_start)
+    .bind(period_end)
+    .fetch_one(pool)
+    .await
+    .unwrap_or(0);
 
-    let tasks_created: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM tasks WHERE created_at >= ? AND created_at < ?",
-    )
-    .bind(period_start).bind(period_end)
-    .fetch_one(pool).await.unwrap_or(0);
+    let tasks_created: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM tasks WHERE created_at >= ? AND created_at < ?")
+            .bind(period_start)
+            .bind(period_end)
+            .fetch_one(pool)
+            .await
+            .unwrap_or(0);
 
     let tasks_overdue: i64 = sqlx::query_scalar(
         "SELECT COUNT(*) FROM tasks WHERE done = 0 AND due_at IS NOT NULL AND due_at < ?",
     )
     .bind(period_end)
-    .fetch_one(pool).await.unwrap_or(0);
+    .fetch_one(pool)
+    .await
+    .unwrap_or(0);
 
     let tasks_completed_prior: i64 = sqlx::query_scalar(
         "SELECT COUNT(*) FROM tasks WHERE done = 1 AND completed_at >= ? AND completed_at < ?",
     )
-    .bind(prior_start).bind(prior_end)
-    .fetch_one(pool).await.unwrap_or(0);
+    .bind(prior_start)
+    .bind(prior_end)
+    .fetch_one(pool)
+    .await
+    .unwrap_or(0);
 
     // ── Habits ──
     let habit_completions: i64 = sqlx::query_scalar::<_, i64>(
@@ -1452,7 +1668,10 @@ pub async fn generate_weekly_board_report_impl(pool: &SqlitePool, week_offset: i
     .fetch_one(pool).await.unwrap_or(0);
 
     let total_habits: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM habits")
-        .fetch_one(pool).await.unwrap_or(1).max(1);
+        .fetch_one(pool)
+        .await
+        .unwrap_or(1)
+        .max(1);
 
     let consistency = habit_completions as f64 / total_habits.min(7) as f64 * 100.0;
 
@@ -1497,7 +1716,11 @@ pub async fn generate_weekly_board_report_impl(pool: &SqlitePool, week_offset: i
     .bind(period_start).bind(period_end)
     .fetch_one(pool).await.unwrap_or(0);
 
-    let avg_session = if focus_count > 0 { focus_minutes / focus_count as f64 } else { 0.0 };
+    let avg_session = if focus_count > 0 {
+        focus_minutes / focus_count as f64
+    } else {
+        0.0
+    };
 
     let focus_prior: f64 = sqlx::query_scalar::<_, f64>(
         "SELECT COALESCE(SUM(value), 0) FROM health_events WHERE module_id = 'focus' AND event_type = 'focus_session' AND logged_at >= ? AND logged_at < ?",
@@ -1522,45 +1745,72 @@ pub async fn generate_weekly_board_report_impl(pool: &SqlitePool, week_offset: i
     let monthly_budget: f64 = sqlx::query_scalar::<_, f64>(
         "SELECT COALESCE(SUM(monthly_budget), 0) FROM budget_categories",
     )
-    .fetch_one(pool).await.unwrap_or(0.0);
+    .fetch_one(pool)
+    .await
+    .unwrap_or(0.0);
 
     let vs_budget_pct = if monthly_budget > 0.0 {
         (spent / monthly_budget * 100.0).round() as i64
-    } else { 0 };
+    } else {
+        0
+    };
 
     // ── Mood ──
     let mood_vals: Vec<String> = sqlx::query_scalar::<_, String>(
         "SELECT mood FROM mood_checkins WHERE logged_at >= ? AND logged_at < ?",
     )
-    .bind(period_start).bind(period_end)
-    .fetch_all(pool).await.unwrap_or_default();
+    .bind(period_start)
+    .bind(period_end)
+    .fetch_all(pool)
+    .await
+    .unwrap_or_default();
 
-    let avg_mood = if mood_vals.is_empty() { 0.0 } else {
-        let scores: Vec<f64> = mood_vals.iter().map(|m| analytics::mood_string_to_score(m)).collect();
+    let avg_mood = if mood_vals.is_empty() {
+        0.0
+    } else {
+        let scores: Vec<f64> = mood_vals
+            .iter()
+            .map(|m| analytics::mood_string_to_score(m))
+            .collect();
         analytics::mean(&scores)
     };
 
     let prior_mood_vals: Vec<String> = sqlx::query_scalar::<_, String>(
         "SELECT mood FROM mood_checkins WHERE logged_at >= ? AND logged_at < ?",
     )
-    .bind(prior_start).bind(prior_end)
-    .fetch_all(pool).await.unwrap_or_default();
+    .bind(prior_start)
+    .bind(prior_end)
+    .fetch_all(pool)
+    .await
+    .unwrap_or_default();
 
-    let prior_avg_mood = if prior_mood_vals.is_empty() { 0.0 } else {
-        let scores: Vec<f64> = prior_mood_vals.iter().map(|m| analytics::mood_string_to_score(m)).collect();
+    let prior_avg_mood = if prior_mood_vals.is_empty() {
+        0.0
+    } else {
+        let scores: Vec<f64> = prior_mood_vals
+            .iter()
+            .map(|m| analytics::mood_string_to_score(m))
+            .collect();
         analytics::mean(&scores)
     };
 
-    let mood_trend = if avg_mood > prior_avg_mood + 0.3 { "up" }
-        else if avg_mood < prior_avg_mood - 0.3 { "down" }
-        else { "stable" };
+    let mood_trend = if avg_mood > prior_avg_mood + 0.3 {
+        "up"
+    } else if avg_mood < prior_avg_mood - 0.3 {
+        "down"
+    } else {
+        "stable"
+    };
 
     // ── Sleep ──
     let sleep_rows: Vec<f64> = sqlx::query_scalar::<_, f64>(
         "SELECT hours FROM sleep_logs WHERE created_at >= ? AND created_at < ?",
     )
-    .bind(period_start).bind(period_end)
-    .fetch_all(pool).await.unwrap_or_default();
+    .bind(period_start)
+    .bind(period_end)
+    .fetch_all(pool)
+    .await
+    .unwrap_or_default();
 
     let avg_sleep = analytics::mean(&sleep_rows);
 
@@ -1570,15 +1820,18 @@ pub async fn generate_weekly_board_report_impl(pool: &SqlitePool, week_offset: i
     .bind(period_start).bind(period_end)
     .fetch_all(pool).await.unwrap_or_default();
 
-    let avg_quality = if sleep_quality.is_empty() { 0.0 } else {
+    let avg_quality = if sleep_quality.is_empty() {
+        0.0
+    } else {
         analytics::mean(&sleep_quality.iter().map(|&q| q as f64).collect::<Vec<_>>())
     };
 
     // ── Goals ──
-    let all_goals: Vec<(i32, String)> = sqlx::query_as::<_, (i32, String)>(
-        "SELECT progress, id FROM goals",
-    )
-    .fetch_all(pool).await.unwrap_or_default();
+    let all_goals: Vec<(i32, String)> =
+        sqlx::query_as::<_, (i32, String)>("SELECT progress, id FROM goals")
+            .fetch_all(pool)
+            .await
+            .unwrap_or_default();
 
     let on_track = all_goals.iter().filter(|(p, _)| *p >= 75).count() as i64;
     let behind = all_goals.iter().filter(|(p, _)| *p < 75 && *p > 0).count() as i64;
@@ -1586,12 +1839,32 @@ pub async fn generate_weekly_board_report_impl(pool: &SqlitePool, week_offset: i
 
     // ── KPIs ──
     let task_trend = if tasks_completed_prior > 0 {
-        format!("{}{:.0}%", if tasks_completed >= tasks_completed_prior { "+" } else { "" }, (tasks_completed as f64 / tasks_completed_prior as f64 - 1.0) * 100.0)
-    } else { "N/A".to_string() };
+        format!(
+            "{}{:.0}%",
+            if tasks_completed >= tasks_completed_prior {
+                "+"
+            } else {
+                ""
+            },
+            (tasks_completed as f64 / tasks_completed_prior as f64 - 1.0) * 100.0
+        )
+    } else {
+        "N/A".to_string()
+    };
 
     let focus_trend = if focus_prior > 0.0 {
-        format!("{}{:.0}%", if focus_minutes >= focus_prior { "+" } else { "" }, (focus_minutes / focus_prior - 1.0) * 100.0)
-    } else { "N/A".to_string() };
+        format!(
+            "{}{:.0}%",
+            if focus_minutes >= focus_prior {
+                "+"
+            } else {
+                ""
+            },
+            (focus_minutes / focus_prior - 1.0) * 100.0
+        )
+    } else {
+        "N/A".to_string()
+    };
 
     let kpis = vec![
         json!({"name": "Tasks Completed", "value": tasks_completed.to_string(), "vs_prior_week": task_trend, "status": if tasks_completed >= tasks_completed_prior.max(1) { "green" } else if tasks_completed > 0 { "yellow" } else { "red" }}),
@@ -1606,18 +1879,43 @@ pub async fn generate_weekly_board_report_impl(pool: &SqlitePool, week_offset: i
     let mut wins = Vec::new();
     let mut risks = Vec::new();
 
-    if tasks_completed > 0 { wins.push(format!("Completed {} tasks", tasks_completed)); }
-    if consistency >= 70.0 { wins.push(format!("Habit consistency at {:.0}%", consistency)); }
-    if focus_minutes >= 300.0 { wins.push(format!("{} of deep focus", analytics::format_minutes(focus_minutes))); }
-    if saved > 0.0 { wins.push(format!("Saved €{:.2}", saved)); }
-    if avg_sleep >= 7.0 { wins.push(format!("Adequate sleep ({:.1}h avg)", avg_sleep)); }
-    if avg_mood >= 3.5 { wins.push(format!("Positive mood ({:.1}/5)", avg_mood)); }
+    if tasks_completed > 0 {
+        wins.push(format!("Completed {} tasks", tasks_completed));
+    }
+    if consistency >= 70.0 {
+        wins.push(format!("Habit consistency at {:.0}%", consistency));
+    }
+    if focus_minutes >= 300.0 {
+        wins.push(format!(
+            "{} of deep focus",
+            analytics::format_minutes(focus_minutes)
+        ));
+    }
+    if saved > 0.0 {
+        wins.push(format!("Saved €{:.2}", saved));
+    }
+    if avg_sleep >= 7.0 {
+        wins.push(format!("Adequate sleep ({:.1}h avg)", avg_sleep));
+    }
+    if avg_mood >= 3.5 {
+        wins.push(format!("Positive mood ({:.1}/5)", avg_mood));
+    }
 
-    if tasks_overdue > 5 { risks.push(format!("{} overdue tasks accumulating", tasks_overdue)); }
-    if consistency < 40.0 { risks.push("Habit consistency dropping below 40%".to_string()); }
-    if spent > income && income > 0.0 { risks.push("Spending exceeded income this week".to_string()); }
-    if avg_sleep > 0.0 && avg_sleep < 6.0 { risks.push(format!("Chronic sleep deprivation ({:.1}h avg)", avg_sleep)); }
-    if behind > 2 { risks.push(format!("{} goals are behind schedule", behind)); }
+    if tasks_overdue > 5 {
+        risks.push(format!("{} overdue tasks accumulating", tasks_overdue));
+    }
+    if consistency < 40.0 {
+        risks.push("Habit consistency dropping below 40%".to_string());
+    }
+    if spent > income && income > 0.0 {
+        risks.push("Spending exceeded income this week".to_string());
+    }
+    if avg_sleep > 0.0 && avg_sleep < 6.0 {
+        risks.push(format!("Chronic sleep deprivation ({:.1}h avg)", avg_sleep));
+    }
+    if behind > 2 {
+        risks.push(format!("{} goals are behind schedule", behind));
+    }
 
     let decisions: Vec<String> = if risks.is_empty() {
         vec!["Continue current trajectory — all metrics stable".to_string()]
@@ -1638,9 +1936,13 @@ pub async fn generate_weekly_board_report_impl(pool: &SqlitePool, week_offset: i
         "At current trajectory, next week projects ~{} tasks completed and ~{} of focus. {}",
         (tasks_completed as f64 * 1.1).round() as i64,
         analytics::format_minutes(focus_minutes * 1.1),
-        if consistency < 50.0 { "Improving habit consistency is the highest-leverage action." }
-        else if tasks_overdue > 3 { "Clearing overdue tasks should be the priority." }
-        else { "Maintain current momentum." }
+        if consistency < 50.0 {
+            "Improving habit consistency is the highest-leverage action."
+        } else if tasks_overdue > 3 {
+            "Clearing overdue tasks should be the priority."
+        } else {
+            "Maintain current momentum."
+        }
     );
 
     Ok(json!({
@@ -1677,7 +1979,10 @@ pub async fn generate_weekly_board_report_impl(pool: &SqlitePool, week_offset: i
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// Project current trajectory forward using linear regression.
-pub async fn get_compound_self_projection_impl(pool: &SqlitePool, projection_days: i64) -> Result<Value, String> {
+pub async fn get_compound_self_projection_impl(
+    pool: &SqlitePool,
+    projection_days: i64,
+) -> Result<Value, String> {
     let now_ms = time::now_ms();
     let history_start = now_ms - 30 * 86_400_000;
 
@@ -1725,16 +2030,27 @@ pub async fn get_compound_self_projection_impl(pool: &SqlitePool, projection_day
     let tasks_per_day: f64 = sqlx::query_scalar::<_, f64>(
         "SELECT COUNT(*) FROM tasks WHERE done = 1 AND completed_at >= ? AND completed_at < ?",
     )
-    .bind(history_start).bind(now_ms)
-    .fetch_one(pool).await.unwrap_or(0.0) / 30.0;
+    .bind(history_start)
+    .bind(now_ms)
+    .fetch_one(pool)
+    .await
+    .unwrap_or(0.0)
+        / 30.0;
 
     let mut projections = Vec::new();
 
     // Focus
     if let Some(slope) = analytics::linear_regression_slope(&focus_daily) {
-        let current_rate = analytics::mean(&focus_daily.iter().map(|(_, v)| *v).collect::<Vec<_>>());
+        let current_rate =
+            analytics::mean(&focus_daily.iter().map(|(_, v)| *v).collect::<Vec<_>>());
         let projected = current_rate + slope * projection_days as f64; // daily-rate projection
-        let confidence = if focus_daily.len() >= 15 { "high" } else if focus_daily.len() >= 5 { "medium" } else { "low" };
+        let confidence = if focus_daily.len() >= 15 {
+            "high"
+        } else if focus_daily.len() >= 5 {
+            "medium"
+        } else {
+            "low"
+        };
         projections.push(json!({
             "dimension": "Focus",
             "current_rate": format!("{:.0} min/day", current_rate),
@@ -1748,7 +2064,13 @@ pub async fn get_compound_self_projection_impl(pool: &SqlitePool, projection_day
     if let Some(slope) = analytics::linear_regression_slope(&mood_daily) {
         let current_avg = analytics::mean(&mood_daily.iter().map(|(_, v)| *v).collect::<Vec<_>>());
         let projected = current_avg + slope * projection_days as f64;
-        let confidence = if mood_daily.len() >= 15 { "high" } else if mood_daily.len() >= 5 { "medium" } else { "low" };
+        let confidence = if mood_daily.len() >= 15 {
+            "high"
+        } else if mood_daily.len() >= 5 {
+            "medium"
+        } else {
+            "low"
+        };
         projections.push(json!({
             "dimension": "Mood",
             "current_rate": format!("{:.1}/5", current_avg),
@@ -1762,7 +2084,13 @@ pub async fn get_compound_self_projection_impl(pool: &SqlitePool, projection_day
     if let Some(slope) = analytics::linear_regression_slope(&sleep_daily) {
         let current_avg = analytics::mean(&sleep_daily.iter().map(|(_, v)| *v).collect::<Vec<_>>());
         let projected = current_avg + slope * projection_days as f64 / 30.0;
-        let confidence = if sleep_daily.len() >= 15 { "high" } else if sleep_daily.len() >= 5 { "medium" } else { "low" };
+        let confidence = if sleep_daily.len() >= 15 {
+            "high"
+        } else if sleep_daily.len() >= 5 {
+            "medium"
+        } else {
+            "low"
+        };
         projections.push(json!({
             "dimension": "Sleep",
             "current_rate": format!("{:.1}h/night", current_avg),
@@ -1800,11 +2128,21 @@ pub async fn get_compound_self_projection_impl(pool: &SqlitePool, projection_day
     // Headline
     let headline = if monthly_savings > 0.0 {
         let projected = monthly_savings * projection_days as f64 / 30.0;
-        format!("At your current pace, you'll save €{:.0} in {} days.", projected, projection_days)
+        format!(
+            "At your current pace, you'll save €{:.0} in {} days.",
+            projected, projection_days
+        )
     } else if tasks_per_day > 0.0 {
-        format!("At your current pace, you'll complete {} tasks in {} days.", (tasks_per_day * projection_days as f64).round() as i64, projection_days)
+        format!(
+            "At your current pace, you'll complete {} tasks in {} days.",
+            (tasks_per_day * projection_days as f64).round() as i64,
+            projection_days
+        )
     } else {
-        format!("Continue building data for personalized projections over the next {} days.", projection_days)
+        format!(
+            "Continue building data for personalized projections over the next {} days.",
+            projection_days
+        )
     };
 
     // Biggest lever
@@ -1847,7 +2185,8 @@ pub async fn write_ambient_journal_entry_impl(
     date: &str,
     style: &str,
 ) -> Result<Value, String> {
-    let (day_start, day_end) = analytics::date_range_ms(date).ok_or_else(|| format!("Invalid date: {date}"))?;
+    let (day_start, day_end) =
+        analytics::date_range_ms(date).ok_or_else(|| format!("Invalid date: {date}"))?;
 
     // Gather data
     let mood: Option<(String, String)> = sqlx::query_as::<_, (String, Option<String>)>(
@@ -1859,13 +2198,12 @@ pub async fn write_ambient_journal_entry_impl(
     .map_err(|e| format!("mood query: {e}"))?
     .map(|(m, n)| (m, n.unwrap_or_default()));
 
-    let sleep_hours: Option<f64> = sqlx::query_scalar::<_, f64>(
-        "SELECT hours FROM sleep_logs WHERE date_key = ? LIMIT 1",
-    )
-    .bind(date)
-    .fetch_optional(pool)
-    .await
-    .unwrap_or(None);
+    let sleep_hours: Option<f64> =
+        sqlx::query_scalar::<_, f64>("SELECT hours FROM sleep_logs WHERE date_key = ? LIMIT 1")
+            .bind(date)
+            .fetch_optional(pool)
+            .await
+            .unwrap_or(None);
 
     let focus_total: f64 = sqlx::query_scalar::<_, f64>(
         "SELECT COALESCE(SUM(value), 0) FROM health_events WHERE module_id = 'focus' AND event_type = 'focus_session' AND logged_at >= ? AND logged_at < ?",
@@ -1876,28 +2214,40 @@ pub async fn write_ambient_journal_entry_impl(
     let tasks_done: i64 = sqlx::query_scalar::<_, i64>(
         "SELECT COUNT(*) FROM tasks WHERE done = 1 AND completed_at >= ? AND completed_at < ?",
     )
-    .bind(day_start).bind(day_end)
-    .fetch_one(pool).await.unwrap_or(0);
+    .bind(day_start)
+    .bind(day_end)
+    .fetch_one(pool)
+    .await
+    .unwrap_or(0);
 
     let tasks_created: i64 = sqlx::query_scalar::<_, i64>(
         "SELECT COUNT(*) FROM tasks WHERE created_at >= ? AND created_at < ?",
     )
-    .bind(day_start).bind(day_end)
-    .fetch_one(pool).await.unwrap_or(0);
+    .bind(day_start)
+    .bind(day_end)
+    .fetch_one(pool)
+    .await
+    .unwrap_or(0);
 
     let habits_done: Vec<String> = sqlx::query_scalar::<_, String>(
         r#"SELECT DISTINCT h.name FROM habits h
            INNER JOIN habit_completions hc ON hc.habit_id = h.id
            WHERE hc.completed_at >= ? AND hc.completed_at < ?"#,
     )
-    .bind(day_start).bind(day_end)
-    .fetch_all(pool).await.unwrap_or_default();
+    .bind(day_start)
+    .bind(day_end)
+    .fetch_all(pool)
+    .await
+    .unwrap_or_default();
 
     let calories: f64 = sqlx::query_scalar::<_, f64>(
         "SELECT COALESCE(SUM(total_kcal), 0) FROM meals WHERE logged_at >= ? AND logged_at < ?",
     )
-    .bind(day_start).bind(day_end)
-    .fetch_one(pool).await.unwrap_or(0.0);
+    .bind(day_start)
+    .bind(day_end)
+    .fetch_one(pool)
+    .await
+    .unwrap_or(0.0);
 
     let spending: f64 = sqlx::query_scalar::<_, f64>(
         "SELECT COALESCE(SUM(amount), 0) FROM budget_transactions WHERE tx_type = 'expense' AND date_key = ?",
@@ -1924,17 +2274,26 @@ pub async fn write_ambient_journal_entry_impl(
     };
 
     let task_desc = if tasks_done > 0 && tasks_created > 0 {
-        format!("completed {} tasks and created {} new ones", tasks_done, tasks_created)
+        format!(
+            "completed {} tasks and created {} new ones",
+            tasks_done, tasks_created
+        )
     } else if tasks_done > 0 {
         format!("completed {} tasks", tasks_done)
     } else if tasks_created > 0 {
-        format!("created {} new tasks but didn't complete any", tasks_created)
+        format!(
+            "created {} new tasks but didn't complete any",
+            tasks_created
+        )
     } else {
         "no task activity".to_string()
     };
 
     let focus_desc = if focus_total >= 60.0 {
-        format!("spent {} in deep focus", analytics::format_minutes(focus_total))
+        format!(
+            "spent {} in deep focus",
+            analytics::format_minutes(focus_total)
+        )
     } else if focus_total > 0.0 {
         format!("focused for {} minutes", focus_total as i64)
     } else {
@@ -1944,7 +2303,12 @@ pub async fn write_ambient_journal_entry_impl(
     let habit_desc = if habits_done.is_empty() {
         "no habits were completed".to_string()
     } else {
-        format!("completed {} habit{}: {}", habits_done.len(), if habits_done.len() == 1 { "" } else { "s" }, habits_done.join(", "))
+        format!(
+            "completed {} habit{}: {}",
+            habits_done.len(),
+            if habits_done.len() == 1 { "" } else { "s" },
+            habits_done.join(", ")
+        )
     };
 
     let nutrition_desc = if calories > 0.0 {
@@ -2011,13 +2375,27 @@ pub async fn write_ambient_journal_entry_impl(
     .map_err(|e| format!("Failed to save journal entry: {e}"))?;
 
     let mut data_sources = Vec::new();
-    if mood.is_some() { data_sources.push("mood"); }
-    if sleep_hours.is_some() { data_sources.push("sleep"); }
-    if focus_total > 0.0 { data_sources.push("focus"); }
-    if tasks_done > 0 || tasks_created > 0 { data_sources.push("tasks"); }
-    if !habits_done.is_empty() { data_sources.push("habits"); }
-    if calories > 0.0 { data_sources.push("nutrition"); }
-    if spending > 0.0 { data_sources.push("budget"); }
+    if mood.is_some() {
+        data_sources.push("mood");
+    }
+    if sleep_hours.is_some() {
+        data_sources.push("sleep");
+    }
+    if focus_total > 0.0 {
+        data_sources.push("focus");
+    }
+    if tasks_done > 0 || tasks_created > 0 {
+        data_sources.push("tasks");
+    }
+    if !habits_done.is_empty() {
+        data_sources.push("habits");
+    }
+    if calories > 0.0 {
+        data_sources.push("nutrition");
+    }
+    if spending > 0.0 {
+        data_sources.push("budget");
+    }
 
     Ok(json!({
         "entry": narrative,
@@ -2085,12 +2463,15 @@ pub async fn get_meal_mood_correlations_impl(
         logged_at: i64,
     }
 
-    let meal_entries: Vec<MealEntry> = meals.into_iter().map(|row| MealEntry {
-        name: row.try_get("name").unwrap_or_default(),
-        meal_type: row.try_get::<String, _>("meal_type").unwrap_or_default(),
-        kcal: row.try_get::<f64, _>("total_kcal").unwrap_or(0.0),
-        logged_at: row.try_get::<i64, _>("logged_at").unwrap_or(0),
-    }).collect();
+    let meal_entries: Vec<MealEntry> = meals
+        .into_iter()
+        .map(|row| MealEntry {
+            name: row.try_get("name").unwrap_or_default(),
+            meal_type: row.try_get::<String, _>("meal_type").unwrap_or_default(),
+            kcal: row.try_get::<f64, _>("total_kcal").unwrap_or(0.0),
+            logged_at: row.try_get::<i64, _>("logged_at").unwrap_or(0),
+        })
+        .collect();
 
     // Group by meal name → average subsequent mood/focus scores
     let mut food_scores: HashMap<String, (Vec<f64>, Vec<f64>, Vec<f64>, usize)> = HashMap::new();
@@ -2098,12 +2479,16 @@ pub async fn get_meal_mood_correlations_impl(
     for meal in &meal_entries {
         let window_end = meal.logged_at + lag_ms;
         // Find mood entries after this meal, within lag window
-        let moods_after: Vec<f64> = mood_entries.iter()
+        let moods_after: Vec<f64> = mood_entries
+            .iter()
             .filter(|(t, _)| *t > meal.logged_at && *t <= window_end)
-            .map(|(_, s)| *s).collect();
-        let focus_after: Vec<f64> = focus_entries.iter()
+            .map(|(_, s)| *s)
+            .collect();
+        let focus_after: Vec<f64> = focus_entries
+            .iter()
             .filter(|(t, _)| *t > meal.logged_at && *t <= window_end)
-            .map(|(_, v)| *v).collect();
+            .map(|(_, v)| *v)
+            .collect();
 
         let key = format!("{} ({})", meal.name, meal.meal_type);
         let entry = food_scores.entry(key).or_default();
@@ -2113,12 +2498,25 @@ pub async fn get_meal_mood_correlations_impl(
         entry.3 += 1;
     }
 
-    let mut correlations: Vec<Value> = food_scores.into_iter()
+    let mut correlations: Vec<Value> = food_scores
+        .into_iter()
         .filter(|(_, (_, moods, focus, _))| moods.len() >= 3 || focus.len() >= 3)
         .map(|(food, (kcls, moods, focus, count))| {
-            let avg_mood = if moods.is_empty() { None } else { Some((analytics::mean(&moods) * 10.0).round() / 10.0) };
-            let avg_focus = if focus.is_empty() { None } else { Some((analytics::mean(&focus) * 10.0).round() / 10.0) };
-            let avg_kcal = if kcls.is_empty() { 0.0 } else { (analytics::mean(&kcls) * 10.0).round() / 10.0 };
+            let avg_mood = if moods.is_empty() {
+                None
+            } else {
+                Some((analytics::mean(&moods) * 10.0).round() / 10.0)
+            };
+            let avg_focus = if focus.is_empty() {
+                None
+            } else {
+                Some((analytics::mean(&focus) * 10.0).round() / 10.0)
+            };
+            let avg_kcal = if kcls.is_empty() {
+                0.0
+            } else {
+                (analytics::mean(&kcls) * 10.0).round() / 10.0
+            };
             json!({
                 "food_and_type": food,
                 "occurrences": count,
@@ -2131,13 +2529,19 @@ pub async fn get_meal_mood_correlations_impl(
         .collect();
 
     correlations.sort_by(|a, b| {
-        let a_score = a["avg_subsequent_mood"].as_f64().unwrap_or(0.0) + a["avg_subsequent_focus_minutes"].as_f64().unwrap_or(0.0);
-        let b_score = b["avg_subsequent_mood"].as_f64().unwrap_or(0.0) + b["avg_subsequent_focus_minutes"].as_f64().unwrap_or(0.0);
-        b_score.partial_cmp(&a_score).unwrap_or(std::cmp::Ordering::Equal)
+        let a_score = a["avg_subsequent_mood"].as_f64().unwrap_or(0.0)
+            + a["avg_subsequent_focus_minutes"].as_f64().unwrap_or(0.0);
+        let b_score = b["avg_subsequent_mood"].as_f64().unwrap_or(0.0)
+            + b["avg_subsequent_focus_minutes"].as_f64().unwrap_or(0.0);
+        b_score
+            .partial_cmp(&a_score)
+            .unwrap_or(std::cmp::Ordering::Equal)
     });
 
     // Best pre-focus food
-    let best_food = correlations.first().and_then(|c| c["food_and_type"].as_str().map(|s| s.to_string()));
+    let best_food = correlations
+        .first()
+        .and_then(|c| c["food_and_type"].as_str().map(|s| s.to_string()));
 
     Ok(json!({
         "window_days": window_days,
@@ -2158,36 +2562,105 @@ pub async fn get_meal_mood_correlations_impl(
 
 /// Extracts stated values from journal entries, cross-references against
 /// actual actions (tasks, habits, budget), returns per-domain alignment scores.
-pub async fn get_integrity_score_impl(pool: &SqlitePool, window_days: i64) -> Result<Value, String> {
+pub async fn get_integrity_score_impl(
+    pool: &SqlitePool,
+    window_days: i64,
+) -> Result<Value, String> {
     let end_ms = time::now_ms();
     let start_ms = end_ms - window_days * 86_400_000;
 
     // Get journal entries — scan for value statements
-    let journal_blocks: Vec<String> = sqlx::query_scalar::<_, String>(
-        "SELECT blocks FROM journal_entries WHERE created_at >= ?",
-    )
-    .bind(start_ms)
-    .fetch_all(pool)
-    .await
-    .unwrap_or_default();
+    let journal_blocks: Vec<String> =
+        sqlx::query_scalar::<_, String>("SELECT blocks FROM journal_entries WHERE created_at >= ?")
+            .bind(start_ms)
+            .fetch_all(pool)
+            .await
+            .unwrap_or_default();
 
     // Value extraction via keyword scan (deterministic, no LLM)
     let value_patterns = [
-        ("discipline", vec!["discipline", "disciplined", "self-control", "willpower", "routine"]),
-        ("health", vec!["health", "healthy", "fitness", "exercise", "nutrition", "sleep", "wellness"]),
-        ("growth", vec!["learn", "learning", "growth", "improve", "skill", "knowledge", "read"]),
-        ("financial", vec!["save", "saving", "money", "budget", "financial", "wealth", "invest"]),
-        ("focus", vec!["focus", "productive", "productivity", "deep work", "create", "build"]),
-        ("connection", vec!["family", "friend", "relationship", "community", "connect", "help"]),
+        (
+            "discipline",
+            vec![
+                "discipline",
+                "disciplined",
+                "self-control",
+                "willpower",
+                "routine",
+            ],
+        ),
+        (
+            "health",
+            vec![
+                "health",
+                "healthy",
+                "fitness",
+                "exercise",
+                "nutrition",
+                "sleep",
+                "wellness",
+            ],
+        ),
+        (
+            "growth",
+            vec![
+                "learn",
+                "learning",
+                "growth",
+                "improve",
+                "skill",
+                "knowledge",
+                "read",
+            ],
+        ),
+        (
+            "financial",
+            vec![
+                "save",
+                "saving",
+                "money",
+                "budget",
+                "financial",
+                "wealth",
+                "invest",
+            ],
+        ),
+        (
+            "focus",
+            vec![
+                "focus",
+                "productive",
+                "productivity",
+                "deep work",
+                "create",
+                "build",
+            ],
+        ),
+        (
+            "connection",
+            vec![
+                "family",
+                "friend",
+                "relationship",
+                "community",
+                "connect",
+                "help",
+            ],
+        ),
     ];
 
     let mut value_hits: HashMap<&str, usize> = HashMap::new();
     for blocks_json in &journal_blocks {
         let text: String = serde_json::from_str::<Value>(blocks_json)
             .ok()
-            .and_then(|v| v.as_array().map(|arr| {
-                arr.iter().filter_map(|b| b["text"].as_str()).collect::<Vec<_>>().join(" ")
-            }))
+            .and_then(|v| {
+                v.as_array().map(|arr| {
+                    arr.iter()
+                        .filter_map(|b| b["text"].as_str())
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                })
+            })
             .unwrap_or_default();
         let lower = text.to_lowercase();
         for (domain, keywords) in &value_patterns {
@@ -2198,17 +2671,25 @@ pub async fn get_integrity_score_impl(pool: &SqlitePool, window_days: i64) -> Re
     }
 
     // Measure actual actions per domain
-    let tasks_done: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM tasks WHERE done = 1 AND completed_at >= ?",
-    ).bind(start_ms).fetch_one(pool).await.unwrap_or(0);
+    let tasks_done: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM tasks WHERE done = 1 AND completed_at >= ?")
+            .bind(start_ms)
+            .fetch_one(pool)
+            .await
+            .unwrap_or(0);
 
-    let habits_done_count: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM habit_completions WHERE completed_at >= ?",
-    ).bind(start_ms).fetch_one(pool).await.unwrap_or(0);
+    let habits_done_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM habit_completions WHERE completed_at >= ?")
+            .bind(start_ms)
+            .fetch_one(pool)
+            .await
+            .unwrap_or(0);
 
-    let habits_total: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM habits",
-    ).fetch_one(pool).await.unwrap_or(1).max(1);
+    let habits_total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM habits")
+        .fetch_one(pool)
+        .await
+        .unwrap_or(1)
+        .max(1);
 
     let focus_total: f64 = sqlx::query_scalar::<_, f64>(
         "SELECT COALESCE(SUM(value), 0) FROM health_events WHERE module_id = 'focus' AND event_type = 'focus_session' AND logged_at >= ?",
@@ -2228,16 +2709,49 @@ pub async fn get_integrity_score_impl(pool: &SqlitePool, window_days: i64) -> Re
     let mut domains = Vec::new();
     let discipline_score = if tasks_done + habits_done_count > 0 {
         ((habits_done_count as f64 / habits_total as f64).min(1.0) * 50.0
-            + (tasks_done as f64 / window_days.max(1) as f64 * 10.0).min(50.0)).round() as i64
-    } else { 0 };
+            + (tasks_done as f64 / window_days.max(1) as f64 * 10.0).min(50.0))
+        .round() as i64
+    } else {
+        0
+    };
 
     let domains_data = [
-        ("Discipline & Routine", value_hits.get("discipline").copied().unwrap_or(0), discipline_score, tasks_done + habits_done_count > 0),
-        ("Health & Wellness", value_hits.get("health").copied().unwrap_or(0), 0i64, habits_done_count > 0),
-        ("Learning & Growth", value_hits.get("growth").copied().unwrap_or(0), 0i64, tasks_done > 0),
-        ("Financial Health", value_hits.get("financial").copied().unwrap_or(0), saved.round() as i64, saved != 0.0),
-        ("Focus & Creation", value_hits.get("focus").copied().unwrap_or(0), focus_total.round() as i64, focus_total > 0.0),
-        ("Connection", value_hits.get("connection").copied().unwrap_or(0), 0i64, false),
+        (
+            "Discipline & Routine",
+            value_hits.get("discipline").copied().unwrap_or(0),
+            discipline_score,
+            tasks_done + habits_done_count > 0,
+        ),
+        (
+            "Health & Wellness",
+            value_hits.get("health").copied().unwrap_or(0),
+            0i64,
+            habits_done_count > 0,
+        ),
+        (
+            "Learning & Growth",
+            value_hits.get("growth").copied().unwrap_or(0),
+            0i64,
+            tasks_done > 0,
+        ),
+        (
+            "Financial Health",
+            value_hits.get("financial").copied().unwrap_or(0),
+            saved.round() as i64,
+            saved != 0.0,
+        ),
+        (
+            "Focus & Creation",
+            value_hits.get("focus").copied().unwrap_or(0),
+            focus_total.round() as i64,
+            focus_total > 0.0,
+        ),
+        (
+            "Connection",
+            value_hits.get("connection").copied().unwrap_or(0),
+            0i64,
+            false,
+        ),
     ];
 
     for (domain, mentions, action_score, has_data) in &domains_data {
@@ -2260,10 +2774,22 @@ pub async fn get_integrity_score_impl(pool: &SqlitePool, window_days: i64) -> Re
     }
 
     let total_mentions: usize = value_hits.values().sum();
-    let aligned_count = domains_data.iter().filter(|(_, _, _, has_data)| *has_data).count();
+    let aligned_count = domains_data
+        .iter()
+        .filter(|(_, _, _, has_data)| *has_data)
+        .count();
     let integrity_pct = if total_mentions > 0 {
-        ((aligned_count as f64 / domains_data.iter().filter(|(_, m, _, _)| *m > 0).count().max(1) as f64) * 100.0).round() as i64
-    } else { 0 };
+        ((aligned_count as f64
+            / domains_data
+                .iter()
+                .filter(|(_, m, _, _)| *m > 0)
+                .count()
+                .max(1) as f64)
+            * 100.0)
+            .round() as i64
+    } else {
+        0
+    };
 
     Ok(json!({
         "period_days": window_days,
@@ -2280,17 +2806,24 @@ pub async fn get_integrity_score_impl(pool: &SqlitePool, window_days: i64) -> Re
 
 /// Categorizes all tasks and focus time into strategic (long-term projects)
 /// vs reactive (inbox, quick fixes, admin) and returns % allocation.
-pub async fn get_attention_allocation_impl(pool: &SqlitePool, window_days: i64) -> Result<Value, String> {
+pub async fn get_attention_allocation_impl(
+    pool: &SqlitePool,
+    window_days: i64,
+) -> Result<Value, String> {
     let end_ms = time::now_ms();
     let start_ms = end_ms - window_days * 86_400_000;
 
-    let reactive_keywords = ["bug", "fix", "urgent", "asap", "reply", "email", "meeting", "admin", "report", "check", "review", "inbox"];
+    let reactive_keywords = [
+        "bug", "fix", "urgent", "asap", "reply", "email", "meeting", "admin", "report", "check",
+        "review", "inbox",
+    ];
 
     // Get tasks with their projects
     let tasks: Vec<(String, Option<String>)> = sqlx::query_as::<_, (String, Option<String>)>(
         "SELECT title, project FROM tasks WHERE created_at >= ? OR completed_at >= ?",
     )
-    .bind(start_ms).bind(start_ms)
+    .bind(start_ms)
+    .bind(start_ms)
     .fetch_all(pool)
     .await
     .map_err(|e| format!("tasks query: {e}"))?;
@@ -2303,10 +2836,14 @@ pub async fn get_attention_allocation_impl(pool: &SqlitePool, window_days: i64) 
     for (title, project) in &tasks {
         let lower = title.to_lowercase();
         let project_lower = project.as_deref().unwrap_or("inbox").to_lowercase();
-        let is_reactive = reactive_keywords.iter().any(|k| lower.contains(k) || project_lower.contains(k))
+        let is_reactive = reactive_keywords
+            .iter()
+            .any(|k| lower.contains(k) || project_lower.contains(k))
             || project_lower == "inbox";
-        let is_strategic = project_lower.contains("roadmap") || project_lower.contains("strategy")
-            || project_lower.contains("long-term") || project_lower.contains("growth")
+        let is_strategic = project_lower.contains("roadmap")
+            || project_lower.contains("strategy")
+            || project_lower.contains("long-term")
+            || project_lower.contains("growth")
             || project_lower.contains("goal");
 
         if is_reactive && !is_strategic {
@@ -2333,7 +2870,8 @@ pub async fn get_attention_allocation_impl(pool: &SqlitePool, window_days: i64) 
         let meta: Value = serde_json::from_str(meta_str).unwrap_or(json!({}));
         let note = meta["note"].as_str().unwrap_or("").to_lowercase();
         let is_reactive = reactive_keywords.iter().any(|k| note.contains(k));
-        let is_strategic = note.contains("strategy") || note.contains("roadmap") || note.contains("goal");
+        let is_strategic =
+            note.contains("strategy") || note.contains("roadmap") || note.contains("goal");
         if is_reactive && !is_strategic {
             reactive_focus += val;
         } else if is_strategic && !is_reactive {
@@ -2371,7 +2909,10 @@ pub async fn get_attention_allocation_impl(pool: &SqlitePool, window_days: i64) 
 
 /// Composites historical task velocity, cognitive schedule, mood patterns,
 /// and pending tasks into an optimized weekly sprint plan.
-pub async fn generate_sprint_plan_impl(pool: &SqlitePool, sprint_days: i64) -> Result<Value, String> {
+pub async fn generate_sprint_plan_impl(
+    pool: &SqlitePool,
+    sprint_days: i64,
+) -> Result<Value, String> {
     let end_ms = time::now_ms();
     let start_ms = end_ms - sprint_days * 86_400_000;
 
@@ -2387,7 +2928,9 @@ pub async fn generate_sprint_plan_impl(pool: &SqlitePool, sprint_days: i64) -> R
     let avg_daily = if !history.is_empty() {
         let total: i64 = history.iter().map(|(_, c)| c).sum();
         (total as f64 / sprint_days as f64 * 100.0).round() / 100.0
-    } else { 0.0 };
+    } else {
+        0.0
+    };
 
     // Tasks per day of week
     let mut dow_tasks: HashMap<u32, Vec<i64>> = HashMap::new();
@@ -2398,15 +2941,36 @@ pub async fn generate_sprint_plan_impl(pool: &SqlitePool, sprint_days: i64) -> R
         }
     }
 
-    let day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-    let mut dow_avg: Vec<Value> = dow_tasks.into_iter().map(|(dow, counts)| {
-        let avg = if counts.is_empty() { 0.0 } else { counts.iter().sum::<i64>() as f64 / counts.len() as f64 };
-        json!({
-            "day": day_names.get(dow as usize).unwrap_or(&"Unknown"),
-            "avg_completions": (avg * 10.0).round() / 10.0
+    let day_names = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ];
+    let mut dow_avg: Vec<Value> = dow_tasks
+        .into_iter()
+        .map(|(dow, counts)| {
+            let avg = if counts.is_empty() {
+                0.0
+            } else {
+                counts.iter().sum::<i64>() as f64 / counts.len() as f64
+            };
+            json!({
+                "day": day_names.get(dow as usize).unwrap_or(&"Unknown"),
+                "avg_completions": (avg * 10.0).round() / 10.0
+            })
         })
-    }).collect();
-    dow_avg.sort_by(|a, b| b["avg_completions"].as_f64().unwrap_or(0.0).partial_cmp(&a["avg_completions"].as_f64().unwrap_or(0.0)).unwrap_or(std::cmp::Ordering::Equal));
+        .collect();
+    dow_avg.sort_by(|a, b| {
+        b["avg_completions"]
+            .as_f64()
+            .unwrap_or(0.0)
+            .partial_cmp(&a["avg_completions"].as_f64().unwrap_or(0.0))
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     // Pending tasks
     let pending_tasks: Vec<(String, String, Option<String>)> = sqlx::query_as::<_, (String, String, Option<String>)>(
@@ -2417,15 +2981,27 @@ pub async fn generate_sprint_plan_impl(pool: &SqlitePool, sprint_days: i64) -> R
     .map_err(|e| format!("pending tasks: {e}"))?;
 
     // Estimate capacity
-    let capacity_per_day = if avg_daily > 0.0 { avg_daily * 1.2 } else { 3.0 }; // 20% buffer
+    let capacity_per_day = if avg_daily > 0.0 {
+        avg_daily * 1.2
+    } else {
+        3.0
+    }; // 20% buffer
     let weekly_capacity = (capacity_per_day * 7.0).round() as i64;
     let total_pending = pending_tasks.len() as i64;
 
-    let weeks_needed = if weekly_capacity > 0 { (total_pending as f64 / weekly_capacity as f64).ceil() as i64 } else { 0 };
+    let weeks_needed = if weekly_capacity > 0 {
+        (total_pending as f64 / weekly_capacity as f64).ceil() as i64
+    } else {
+        0
+    };
 
     // Best days from historical data
-    let best_day = dow_avg.first().and_then(|d| d["day"].as_str().map(|s| s.to_string()));
-    let worst_day = dow_avg.last().and_then(|d| d["day"].as_str().map(|s| s.to_string()));
+    let best_day = dow_avg
+        .first()
+        .and_then(|d| d["day"].as_str().map(|s| s.to_string()));
+    let worst_day = dow_avg
+        .last()
+        .and_then(|d| d["day"].as_str().map(|s| s.to_string()));
 
     Ok(json!({
         "sprint_days": sprint_days,
@@ -2459,8 +3035,14 @@ pub async fn generate_sprint_plan_impl(pool: &SqlitePool, sprint_days: i64) -> R
 pub async fn auto_schedule_tasks_impl(pool: &SqlitePool) -> Result<Value, String> {
     // Get cognitive schedule data (reuse the existing analysis)
     let schedule = get_cognitive_schedule_impl(pool, 30).await?;
-    let peak = schedule["peak_windows"].as_array().cloned().unwrap_or_default();
-    let avoid = schedule["avoid_windows"].as_array().cloned().unwrap_or_default();
+    let peak = schedule["peak_windows"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    let avoid = schedule["avoid_windows"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
 
     // Get pending tasks sorted by priority
     let pending_tasks = sqlx::query(
@@ -2478,7 +3060,13 @@ pub async fn auto_schedule_tasks_impl(pool: &SqlitePool) -> Result<Value, String
         let priority: String = task_row.try_get("priority").unwrap_or_default();
         let project: Option<String> = task_row.try_get("project").ok().flatten();
 
-        let difficulty = if priority == "high" { "hard" } else if priority == "low" { "easy" } else { "medium" };
+        let difficulty = if priority == "high" {
+            "hard"
+        } else if priority == "low" {
+            "easy"
+        } else {
+            "medium"
+        };
 
         let slot = if difficulty == "hard" && !peak.is_empty() {
             let p = &peak[i % peak.len()];
@@ -2538,7 +3126,10 @@ pub async fn get_skill_velocity_impl(pool: &SqlitePool, window_days: i64) -> Res
     let end_ms = time::now_ms();
     let start_ms = end_ms - window_days * 86_400_000;
 
-    let learning_tags = ["learning", "study", "course", "skill", "tutorial", "book", "lecture", "practice", "training", "workshop"];
+    let learning_tags = [
+        "learning", "study", "course", "skill", "tutorial", "book", "lecture", "practice",
+        "training", "workshop",
+    ];
 
     // Get notes with tags matching learning keywords
     let skill_notes = sqlx::query(
@@ -2549,7 +3140,8 @@ pub async fn get_skill_velocity_impl(pool: &SqlitePool, window_days: i64) -> Res
     .await
     .map_err(|e| format!("notes query: {e}"))?;
 
-    let mut monthly: std::collections::BTreeMap<String, (i64, i64)> = std::collections::BTreeMap::new();
+    let mut monthly: std::collections::BTreeMap<String, (i64, i64)> =
+        std::collections::BTreeMap::new();
     let mut total_learning_notes = 0i64;
     let mut total_words = 0i64;
     let mut skill_domains: HashMap<String, i64> = HashMap::new();
@@ -2557,8 +3149,12 @@ pub async fn get_skill_velocity_impl(pool: &SqlitePool, window_days: i64) -> Res
     for row in &skill_notes {
         let tags_str: String = row.try_get("tags").unwrap_or_default();
         let tags: Vec<String> = serde_json::from_str(&tags_str).unwrap_or_default();
-        let is_learning = tags.iter().any(|t| learning_tags.iter().any(|lt| t.to_lowercase().contains(lt)));
-        if !is_learning { continue; }
+        let is_learning = tags
+            .iter()
+            .any(|t| learning_tags.iter().any(|lt| t.to_lowercase().contains(lt)));
+        if !is_learning {
+            continue;
+        }
 
         total_learning_notes += 1;
         total_words += row.try_get::<i64, _>("word_count").unwrap_or(0);
@@ -2572,33 +3168,47 @@ pub async fn get_skill_velocity_impl(pool: &SqlitePool, window_days: i64) -> Res
         }
 
         for tag in &tags {
-            if learning_tags.iter().any(|lt| tag.to_lowercase().contains(lt)) {
+            if learning_tags
+                .iter()
+                .any(|lt| tag.to_lowercase().contains(lt))
+            {
                 *skill_domains.entry(tag.to_lowercase()).or_insert(0) += 1;
             }
         }
     }
 
     // Compute velocity: notes per month over the window
-    let monthly_vec: Vec<Value> = monthly.into_iter().map(|(month, (count, words))| {
-        json!({"month": month, "notes": count, "words": words})
-    }).collect();
+    let monthly_vec: Vec<Value> = monthly
+        .into_iter()
+        .map(|(month, (count, words))| json!({"month": month, "notes": count, "words": words}))
+        .collect();
 
     // Velocity = slope of notes count over months
     let velocity = if monthly_vec.len() >= 2 {
-        let data: Vec<(f64, f64)> = monthly_vec.iter().enumerate()
+        let data: Vec<(f64, f64)> = monthly_vec
+            .iter()
+            .enumerate()
             .filter_map(|(i, m)| m["notes"].as_i64().map(|n| (i as f64, n as f64)))
             .collect();
         analytics::linear_regression_slope(&data).unwrap_or(0.0)
-    } else { 0.0 };
+    } else {
+        0.0
+    };
 
-    let domains: Vec<Value> = skill_domains.into_iter().map(|(tag, count)| {
-        json!({"tag": tag, "notes": count})
-    }).collect();
+    let domains: Vec<Value> = skill_domains
+        .into_iter()
+        .map(|(tag, count)| json!({"tag": tag, "notes": count}))
+        .collect();
 
-    let trend = if velocity > 0.5 { "accelerating" }
-        else if velocity > 0.0 { "steady" }
-        else if velocity < 0.0 { "declining" }
-        else { "insufficient data" };
+    let trend = if velocity > 0.5 {
+        "accelerating"
+    } else if velocity > 0.0 {
+        "steady"
+    } else if velocity < 0.0 {
+        "declining"
+    } else {
+        "insufficient data"
+    };
 
     Ok(json!({
         "period_days": window_days,
@@ -2625,8 +3235,17 @@ pub async fn generate_standup_impl(pool: &SqlitePool) -> Result<Value, String> {
     let day_start = time::start_of_today_ms();
     let yesterday_start = day_start - 86_400_000;
 
-    let (yesterday_tasks, today_tasks, in_progress, in_progress_total,
-         yesterday_focus, today_focus, yesterday_notes, yesterday_habits, yesterday_mood) = tokio::try_join!(
+    let (
+        yesterday_tasks,
+        today_tasks,
+        in_progress,
+        in_progress_total,
+        yesterday_focus,
+        today_focus,
+        yesterday_notes,
+        yesterday_habits,
+        yesterday_mood,
+    ) = tokio::try_join!(
         async {
             sqlx::query_as::<_, (String, String)>(
                 "SELECT id, title FROM tasks WHERE done = 1 AND completed_at >= ? AND completed_at < ? ORDER BY completed_at",
@@ -2707,18 +3326,26 @@ pub async fn generate_standup_impl(pool: &SqlitePool) -> Result<Value, String> {
             .map_err(|e| format!("mood query: {e}"))
         },
     )?;
-    info!("generate_standup: {} tasks, {} focus sessions, {} notes, {} habits",
-        yesterday_tasks.len(), yesterday_focus.len(), yesterday_notes.len(), yesterday_habits.len());
+    info!(
+        "generate_standup: {} tasks, {} focus sessions, {} notes, {} habits",
+        yesterday_tasks.len(),
+        yesterday_focus.len(),
+        yesterday_notes.len(),
+        yesterday_habits.len()
+    );
 
     let y_focus_total: f64 = yesterday_focus.iter().map(|(v, _)| v).sum();
     let y_focus_count = yesterday_focus.len();
     let t_focus_total: f64 = today_focus.iter().map(|(v, _)| v).sum();
     let t_focus_count = today_focus.len();
 
-    let y_focus_desc: Vec<String> = yesterday_focus.iter().filter_map(|(_, meta)| {
-        let m: Value = serde_json::from_str(meta).ok()?;
-        m["note"].as_str().map(|s| s.to_string())
-    }).collect();
+    let y_focus_desc: Vec<String> = yesterday_focus
+        .iter()
+        .filter_map(|(_, meta)| {
+            let m: Value = serde_json::from_str(meta).ok()?;
+            m["note"].as_str().map(|s| s.to_string())
+        })
+        .collect();
 
     let mood_str = yesterday_mood.as_ref().map(|(m,)| m.as_str());
 
@@ -2726,7 +3353,11 @@ pub async fn generate_standup_impl(pool: &SqlitePool) -> Result<Value, String> {
     let mut parts: Vec<String> = Vec::with_capacity(7);
     parts.push(if !yesterday_tasks.is_empty() {
         let titles: Vec<&str> = yesterday_tasks.iter().map(|(_, t)| t.as_str()).collect();
-        format!("Completed {} tasks: {}", yesterday_tasks.len(), titles.join(", "))
+        format!(
+            "Completed {} tasks: {}",
+            yesterday_tasks.len(),
+            titles.join(", ")
+        )
     } else {
         "No tasks completed yesterday".to_string()
     });
@@ -2738,8 +3369,17 @@ pub async fn generate_standup_impl(pool: &SqlitePool) -> Result<Value, String> {
     });
 
     if y_focus_total > 0.0 {
-        let desc = if !y_focus_desc.is_empty() { format!(" ({})", y_focus_desc.join(", ")) } else { String::new() };
-        parts.push(format!("{} across {} sessions{}", analytics::format_minutes(y_focus_total), y_focus_count, desc));
+        let desc = if !y_focus_desc.is_empty() {
+            format!(" ({})", y_focus_desc.join(", "))
+        } else {
+            String::new()
+        };
+        parts.push(format!(
+            "{} across {} sessions{}",
+            analytics::format_minutes(y_focus_total),
+            y_focus_count,
+            desc
+        ));
     } else {
         parts.push("No focus sessions logged".to_string());
     }
@@ -2758,7 +3398,10 @@ pub async fn generate_standup_impl(pool: &SqlitePool) -> Result<Value, String> {
             today_parts.push(format!("{} tasks", today_tasks.len()));
         }
         if t_focus_total > 0.0 {
-            today_parts.push(format!("{} focus", analytics::format_minutes(t_focus_total)));
+            today_parts.push(format!(
+                "{} focus",
+                analytics::format_minutes(t_focus_total)
+            ));
         }
         parts.push(format!("Today so far: {}", today_parts.join(", ")));
     }
@@ -2768,11 +3411,19 @@ pub async fn generate_standup_impl(pool: &SqlitePool) -> Result<Value, String> {
         parts.push(format!("In progress: {}", titles.join(", ")));
     }
 
-    let standup = format!("{}.", parts.join(". ").trim_end_matches(|c| c == ' ' || c == '.'));
+    let standup = format!(
+        "{}.",
+        parts.join(". ").trim_end_matches(|c| c == ' ' || c == '.')
+    );
     let standup_char_count = standup.chars().count();
     let (final_standup, standup_truncated) = if standup_char_count > 1000 {
-        (format!("{}…", standup.chars().take(997).collect::<String>()), true)
-    } else { (standup, false) };
+        (
+            format!("{}…", standup.chars().take(997).collect::<String>()),
+            true,
+        )
+    } else {
+        (standup, false)
+    };
 
     Ok(json!({
         "standup": final_standup,
@@ -2810,7 +3461,11 @@ pub async fn generate_standup_impl(pool: &SqlitePool) -> Result<Value, String> {
 
 /// Stores a developer preference key-value pair in a Bento note tagged "agent-context".
 /// Title = key, Content = value (JSON-safe string). Creates or overwrites by key.
-pub async fn save_agent_context_impl(pool: &SqlitePool, key: &str, value: &str) -> Result<Value, String> {
+pub async fn save_agent_context_impl(
+    pool: &SqlitePool,
+    key: &str,
+    value: &str,
+) -> Result<Value, String> {
     info!("save_agent_context: key={}", key);
     if key.trim().is_empty() {
         return Err("key must not be empty".to_string());
@@ -2828,7 +3483,9 @@ pub async fn save_agent_context_impl(pool: &SqlitePool, key: &str, value: &str) 
     let (_, action) = match existing {
         Some(id) => {
             sqlx::query("UPDATE note_objects SET content = ?, updated_at = ? WHERE id = ?")
-                .bind(value).bind(now_ms).bind(&id)
+                .bind(value)
+                .bind(now_ms)
+                .bind(&id)
                 .execute(pool)
                 .await
                 .map_err(|e| format!("update error: {e}"))?;
@@ -2879,9 +3536,10 @@ pub async fn get_agent_context_impl(pool: &SqlitePool, key: Option<&str>) -> Res
         .map_err(|e| format!("query error: {e}"))?
     };
 
-    let entries: Vec<Value> = rows.into_iter().map(|(title, content)| {
-        json!({"key": title, "value": content})
-    }).collect();
+    let entries: Vec<Value> = rows
+        .into_iter()
+        .map(|(title, content)| json!({"key": title, "value": content}))
+        .collect();
 
     Ok(json!({
         "entries": entries,
@@ -2922,15 +3580,29 @@ pub async fn get_burnout_risk_impl(pool: &SqlitePool) -> Result<Value, String> {
     .await
     .map_err(|e| format!("mood query: {e}"))?;
 
-    let mood_scores: Vec<f64> = mood_vals.iter().map(|(_, m)| analytics::mood_string_to_score(m)).collect();
+    let mood_scores: Vec<f64> = mood_vals
+        .iter()
+        .map(|(_, m)| analytics::mood_string_to_score(m))
+        .collect();
     let (recent_mood, older_mood) = if mood_scores.is_empty() {
         (0.0, 0.0)
     } else {
-        let split_idx = mood_vals.iter().position(|(t, _)| *t >= start_7d).unwrap_or(mood_scores.len());
+        let split_idx = mood_vals
+            .iter()
+            .position(|(t, _)| *t >= start_7d)
+            .unwrap_or(mood_scores.len());
         let recent = &mood_scores[split_idx..];
         let older = &mood_scores[..split_idx];
-        let recent_mean = if !recent.is_empty() { analytics::mean(recent) } else { analytics::mean(older) };
-        let older_mean = if !older.is_empty() { analytics::mean(older) } else { recent_mean };
+        let recent_mean = if !recent.is_empty() {
+            analytics::mean(recent)
+        } else {
+            analytics::mean(older)
+        };
+        let older_mean = if !older.is_empty() {
+            analytics::mean(older)
+        } else {
+            recent_mean
+        };
         (recent_mean, older_mean)
     };
     let mood_trend = recent_mood - older_mood;
@@ -2947,11 +3619,22 @@ pub async fn get_burnout_risk_impl(pool: &SqlitePool) -> Result<Value, String> {
     let (recent_sleep, older_sleep) = if sleep_vals.is_empty() {
         (0.0, 0.0)
     } else {
-        let split_idx = sleep_vals.iter().position(|(t, _)| *t >= start_7d).unwrap_or(sleep_vals.len());
+        let split_idx = sleep_vals
+            .iter()
+            .position(|(t, _)| *t >= start_7d)
+            .unwrap_or(sleep_vals.len());
         let recent: Vec<f64> = sleep_vals[split_idx..].iter().map(|(_, h)| *h).collect();
         let older: Vec<f64> = sleep_vals[..split_idx].iter().map(|(_, h)| *h).collect();
-        let recent_mean = if !recent.is_empty() { analytics::mean(&recent) } else { analytics::mean(&older) };
-        let older_mean = if !older.is_empty() { analytics::mean(&older) } else { recent_mean };
+        let recent_mean = if !recent.is_empty() {
+            analytics::mean(&recent)
+        } else {
+            analytics::mean(&older)
+        };
+        let older_mean = if !older.is_empty() {
+            analytics::mean(&older)
+        } else {
+            recent_mean
+        };
         (recent_mean, older_mean)
     };
     let sleep_trend = recent_sleep - older_sleep;
@@ -2965,7 +3648,8 @@ pub async fn get_burnout_risk_impl(pool: &SqlitePool) -> Result<Value, String> {
     .await
     .map_err(|e| format!("focus query: {e}"))?;
 
-    let (focus_recent, focus_older): (Vec<&(i64, f64)>, Vec<&(i64, f64)>) = focus_vals.iter().partition(|(t, _)| *t >= start_7d);
+    let (focus_recent, focus_older): (Vec<&(i64, f64)>, Vec<&(i64, f64)>) =
+        focus_vals.iter().partition(|(t, _)| *t >= start_7d);
     let total_focus_7d: f64 = focus_recent.iter().map(|(_, v)| v).sum();
     let total_focus_prior: f64 = focus_older.iter().map(|(_, v)| v).sum();
     let focus_sessions_7d = focus_recent.len();
@@ -3030,10 +3714,15 @@ pub async fn get_burnout_risk_impl(pool: &SqlitePool) -> Result<Value, String> {
         signals.push(json!({"signal": "high_backlog", "severity": "mild", "detail": format!("{} overdue tasks — backlog exceeds 10", overdue_now)}));
     }
 
-    let risk_level = if risk_score >= 5.0 { "high" }
-        else if risk_score >= 3.0 { "moderate" }
-        else if risk_score >= 1.0 { "mild" }
-        else { "low" };
+    let risk_level = if risk_score >= 5.0 {
+        "high"
+    } else if risk_score >= 3.0 {
+        "moderate"
+    } else if risk_score >= 1.0 {
+        "mild"
+    } else {
+        "low"
+    };
 
     let alert = match risk_level {
         "high" => "Multiple burnout risk signals detected. Consider deferring non-critical work, prioritizing 7h+ sleep, and scheduling recovery time.".to_string(),
@@ -3042,7 +3731,11 @@ pub async fn get_burnout_risk_impl(pool: &SqlitePool) -> Result<Value, String> {
         _ => "No burnout risk signals. Current trajectory looks sustainable.".to_string(),
     };
 
-    info!("get_burnout_risk: level={}, signals={}", risk_level, signals.len());
+    info!(
+        "get_burnout_risk: level={}, signals={}",
+        risk_level,
+        signals.len()
+    );
 
     Ok(json!({
         "risk_level": risk_level,

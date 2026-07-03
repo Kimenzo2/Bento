@@ -5,7 +5,7 @@ use std::{
 };
 
 use aes_gcm_siv::{aead::Aead, Aes256GcmSiv, KeyInit, Nonce};
-use base64::{Engine as _, engine::general_purpose::STANDARD as B64};
+use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
 use chrono::Utc;
 use keyring::Entry;
 use rand::RngCore;
@@ -209,8 +209,8 @@ fn service_role_key() -> Result<Option<String>, String> {
 }
 
 fn load_or_create_backup_key() -> Result<[u8; 32], String> {
-    let entry = Entry::new(AUTH_KEYRING_SERVICE, BACKUP_KEY_ACCOUNT)
-        .map_err(|error| error.to_string())?;
+    let entry =
+        Entry::new(AUTH_KEYRING_SERVICE, BACKUP_KEY_ACCOUNT).map_err(|error| error.to_string())?;
 
     match entry.get_password() {
         Ok(password) => {
@@ -272,9 +272,7 @@ fn rand_nonce() -> [u8; 12] {
 }
 
 fn backup_file_name(backup_id: &str) -> String {
-    format!(
-        "{BACKUP_PREFIX}/{backup_id}.{BACKUP_OBJECT_EXTENSION}"
-    )
+    format!("{BACKUP_PREFIX}/{backup_id}.{BACKUP_OBJECT_EXTENSION}")
 }
 
 fn backup_id_from_object_path(object_path: &str) -> String {
@@ -379,8 +377,7 @@ async fn ensure_bucket(
     let body = response.text().await.unwrap_or_default();
     Err(format!(
         "Unable to create cloud backup bucket '{bucket_name}'. {} {}",
-        status,
-        body
+        status, body
     ))
 }
 
@@ -409,7 +406,10 @@ async fn list_backup_objects(
     if !response.status().is_success() {
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
-        return Err(format!("Failed to list cloud backup objects: {} {}", status, body));
+        return Err(format!(
+            "Failed to list cloud backup objects: {} {}",
+            status, body
+        ));
     }
 
     response
@@ -446,8 +446,7 @@ async fn delete_backup_object(
     let body = response.text().await.unwrap_or_default();
     Err(format!(
         "Failed to delete cloud backup object: {} {}",
-        status,
-        body
+        status, body
     ))
 }
 
@@ -473,8 +472,7 @@ async fn download_backup_object(
         let body = response.text().await.unwrap_or_default();
         return Err(format!(
             "Failed to download cloud backup object: {} {}",
-            status,
-            body
+            status, body
         ));
     }
 
@@ -496,7 +494,10 @@ fn load_local_file(path: &Path) -> Result<(Vec<u8>, Option<i64>, u64), String> {
     Ok((bytes, modified_at_ms, metadata.len()))
 }
 
-fn collect_bundle_files(app: &AppHandle, settings: &DesktopSettings) -> Result<Vec<CloudBackupFile>, String> {
+fn collect_bundle_files(
+    app: &AppHandle,
+    settings: &DesktopSettings,
+) -> Result<Vec<CloudBackupFile>, String> {
     let data_dir = app
         .path()
         .app_data_dir()
@@ -550,7 +551,10 @@ fn parse_backup_object_info(object: StorageObjectInfo) -> Option<CloudBackupObje
 
     let backup_id = backup_id_from_object_path(&object.name);
     let size_bytes = object.metadata.and_then(|meta| meta.size).unwrap_or(0);
-    let created_at = object.created_at.or(object.updated_at).unwrap_or_else(|| Utc::now().to_rfc3339());
+    let created_at = object
+        .created_at
+        .or(object.updated_at)
+        .unwrap_or_else(|| Utc::now().to_rfc3339());
 
     Some(CloudBackupObjectInfo {
         object_path: object.name,
@@ -597,11 +601,18 @@ async fn state_snapshot(
     let has_service_role = service_role_key()?.is_some();
     if auth_header.is_empty() {
         return Err(
-            "Cloud backup requires an active Supabase session or a configured service role key.".to_string(),
+            "Cloud backup requires an active Supabase session or a configured service role key."
+                .to_string(),
         );
     }
 
-    Ok((settings, project_url, anon_key, auth_header, has_service_role))
+    Ok((
+        settings,
+        project_url,
+        anon_key,
+        auth_header,
+        has_service_role,
+    ))
 }
 
 async fn ensure_backup_ready(
@@ -630,10 +641,7 @@ fn staging_payload_dir(root: &Path) -> PathBuf {
     root.join("payload")
 }
 
-fn write_staged_restore(
-    app: &AppHandle,
-    bundle: &CloudBackupBundle,
-) -> Result<PathBuf, String> {
+fn write_staged_restore(app: &AppHandle, bundle: &CloudBackupBundle) -> Result<PathBuf, String> {
     let root = backup_root(app)?;
     fs::create_dir_all(staging_payload_dir(&root)).map_err(|error| error.to_string())?;
 
@@ -662,8 +670,11 @@ fn write_staged_restore(
     });
 
     let manifest_path = staging_manifest_path(&root);
-    fs::write(&manifest_path, serde_json::to_vec_pretty(&manifest).map_err(|error| error.to_string())?)
-        .map_err(|error| error.to_string())?;
+    fs::write(
+        &manifest_path,
+        serde_json::to_vec_pretty(&manifest).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())?;
 
     Ok(root)
 }
@@ -677,7 +688,10 @@ fn merge_preserving_cloud_backup_config(
     merged
 }
 
-fn warn_if_newer_local_data(app: &AppHandle, bundle: &CloudBackupBundle) -> Result<Vec<String>, String> {
+fn warn_if_newer_local_data(
+    app: &AppHandle,
+    bundle: &CloudBackupBundle,
+) -> Result<Vec<String>, String> {
     let data_dir = app
         .path()
         .app_data_dir()
@@ -708,7 +722,10 @@ fn warn_if_newer_local_data(app: &AppHandle, bundle: &CloudBackupBundle) -> Resu
 }
 
 #[tauri::command]
-pub async fn get_state(app: AppHandle, auth: State<'_, crate::auth::AuthManager>) -> Result<CloudBackupState, String> {
+pub async fn get_state(
+    app: AppHandle,
+    auth: State<'_, crate::auth::AuthManager>,
+) -> Result<CloudBackupState, String> {
     let settings = read_current_settings(&app);
     let configured = !settings.cloud_backup.project_url.trim().is_empty()
         && !settings.cloud_backup.anon_key.trim().is_empty()
@@ -884,7 +901,10 @@ async fn backup_now_with_auth(
     let status = response.status();
     if !status.is_success() {
         let body = response.text().await.unwrap_or_default();
-        return Err(format!("Failed to upload cloud backup: {} {}", status, body));
+        return Err(format!(
+            "Failed to upload cloud backup: {} {}",
+            status, body
+        ));
     }
 
     let storage_usage_bytes = list_backup_objects(
@@ -953,7 +973,8 @@ pub async fn restore_backup(
     if let Some(settings_file) = staging_payload_dir(&root).join("settings.json").to_str() {
         let restored_settings = settings::current_settings(&app);
         let raw = fs::read_to_string(settings_file).map_err(|error| error.to_string())?;
-        let parsed = serde_json::from_str::<DesktopSettings>(&raw).map_err(|error| error.to_string())?;
+        let parsed =
+            serde_json::from_str::<DesktopSettings>(&raw).map_err(|error| error.to_string())?;
         let merged = merge_preserving_cloud_backup_config(&restored_settings, &parsed);
         let payload = serde_json::to_string_pretty(&merged).map_err(|error| error.to_string())?;
         fs::write(settings_file, payload).map_err(|error| error.to_string())?;
@@ -1071,8 +1092,12 @@ pub async fn maybe_run_scheduled_backup(
 
     let now = Utc::now().timestamp();
     let due = match settings_snapshot.cloud_backup.schedule {
-        CloudBackupSchedule::Daily => last_backup_at.map(|value| now - value >= 24 * 60 * 60).unwrap_or(true),
-        CloudBackupSchedule::Weekly => last_backup_at.map(|value| now - value >= 7 * 24 * 60 * 60).unwrap_or(true),
+        CloudBackupSchedule::Daily => last_backup_at
+            .map(|value| now - value >= 24 * 60 * 60)
+            .unwrap_or(true),
+        CloudBackupSchedule::Weekly => last_backup_at
+            .map(|value| now - value >= 7 * 24 * 60 * 60)
+            .unwrap_or(true),
     };
 
     if !due {
@@ -1094,7 +1119,9 @@ pub async fn maybe_run_scheduled_backup(
 
 pub fn spawn_cloud_backup_worker(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(BACKUP_RETRY_WINDOW_SECS as u64));
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(
+            BACKUP_RETRY_WINDOW_SECS as u64,
+        ));
         loop {
             interval.tick().await;
             let auth = match app.try_state::<crate::auth::AuthManager>() {

@@ -4,12 +4,12 @@ use std::{
 };
 
 use crate::telemetry::{
-    ActiveJsHeapInput, ActivityFeedItem, AnomalyHistoryEntry, AnomalyType, BrainEvent,
-    BrainOverviewPayload, GraphPoint, HealAction, HealingFeedItem, InsightCard, InsightsPayload,
-    MiniAppPickerItem, MiniAppTile, ModuleDetailPayload, ModuleState, OverviewCard,
-    PredictionInsightCard, RangeSpec, Severity, StateHistoryEntry, StoredAnomaly, TickRecord,
     format_bytes, format_bytes_per_second, format_clock, format_relative, mean, module_label_map,
-    now_ms, percentile, recent_activity_title,
+    now_ms, percentile, recent_activity_title, ActiveJsHeapInput, ActivityFeedItem,
+    AnomalyHistoryEntry, AnomalyType, BrainEvent, BrainOverviewPayload, GraphPoint, HealAction,
+    HealingFeedItem, InsightCard, InsightsPayload, MiniAppPickerItem, MiniAppTile,
+    ModuleDetailPayload, ModuleState, OverviewCard, PredictionInsightCard, RangeSpec, Severity,
+    StateHistoryEntry, StoredAnomaly, TickRecord,
 };
 
 use super::{

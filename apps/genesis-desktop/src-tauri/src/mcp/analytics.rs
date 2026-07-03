@@ -12,7 +12,10 @@ pub fn mood_string_to_score(mood: &str) -> f64 {
         "very-bad" => 1.0,
         _ => {
             // Try parsing as a number if it's stored as a numeric string
-            mood.parse::<f64>().ok().filter(|&n| (1.0..=5.0).contains(&n)).unwrap_or(3.0)
+            mood.parse::<f64>()
+                .ok()
+                .filter(|&n| (1.0..=5.0).contains(&n))
+                .unwrap_or(3.0)
         }
     }
 }
@@ -67,7 +70,12 @@ pub fn pearson_correlation(x: &[f64], y: &[f64]) -> f64 {
 pub fn date_to_ms(date: &str) -> Option<i64> {
     chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d")
         .ok()
-        .map(|nd| nd.and_hms_opt(0, 0, 0).unwrap().and_utc().timestamp_millis())
+        .map(|nd| {
+            nd.and_hms_opt(0, 0, 0)
+                .unwrap()
+                .and_utc()
+                .timestamp_millis()
+        })
 }
 
 /// Get the start-of-day (ms) and end-of-day (ms) for the given date string.

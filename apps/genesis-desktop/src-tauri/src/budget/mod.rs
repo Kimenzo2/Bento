@@ -67,7 +67,7 @@ pub struct Transaction {
     pub category_id: Option<String>,
     pub category_name: Option<String>,
     pub amount: f64,
-    pub tx_type: String,       // "income" | "expense"
+    pub tx_type: String, // "income" | "expense"
     pub note: Option<String>,
     pub date_key: String,
     pub project: Option<String>,
@@ -274,7 +274,9 @@ pub async fn budget_suggest_limits(
     let window_start = now - chrono::Months::new(3);
     let total_months_in_window = {
         // Number of months between window_start and now (minimum 1)
-        let months_diff = ((now.year() - window_start.year()) * 12 + now.month() as i32 - window_start.month() as i32).max(1);
+        let months_diff = ((now.year() - window_start.year()) * 12 + now.month() as i32
+            - window_start.month() as i32)
+            .max(1);
         months_diff as u64
     };
 
@@ -449,8 +451,6 @@ pub async fn ensure_budget_tables(pool: &sqlx::SqlitePool) -> Result<(), String>
     Ok(())
 }
 
-
-
 #[tauri::command]
 pub async fn budget_list_categories(
     state: State<'_, BentoAppState>,
@@ -483,7 +483,11 @@ pub async fn budget_list_categories(
             let percent = if budget > 0.0 {
                 (spent / budget * 100.0).min(100.0)
             } else {
-                if spent > 0.0 { 100.0 } else { 0.0 }
+                if spent > 0.0 {
+                    100.0
+                } else {
+                    0.0
+                }
             };
             BudgetCategoryWithSpending {
                 id: r.try_get("id").unwrap_or_default(),
@@ -713,9 +717,7 @@ pub async fn budget_add_bill(
 }
 
 #[tauri::command]
-pub async fn budget_list_bills(
-    state: State<'_, BentoAppState>,
-) -> Result<Vec<Bill>, String> {
+pub async fn budget_list_bills(state: State<'_, BentoAppState>) -> Result<Vec<Bill>, String> {
     ensure_budget_tables(&state.db()).await?;
 
     let month_prefix = format!("{}%", current_year_month());
@@ -763,14 +765,13 @@ pub async fn budget_toggle_bill_paid(
     let date = today_key();
 
     // Check if already paid this month
-    let existing = sqlx::query(
-        "SELECT id FROM budget_bill_payments WHERE bill_id = ? AND date_key = ?",
-    )
-    .bind(&bill_id)
-    .bind(&date)
-    .fetch_optional(&state.db())
-    .await
-    .map_err(|e| e.to_string())?;
+    let existing =
+        sqlx::query("SELECT id FROM budget_bill_payments WHERE bill_id = ? AND date_key = ?")
+            .bind(&bill_id)
+            .bind(&date)
+            .fetch_optional(&state.db())
+            .await
+            .map_err(|e| e.to_string())?;
 
     if existing.is_some() {
         // Unpay
@@ -806,10 +807,7 @@ pub async fn budget_toggle_bill_paid(
 }
 
 #[tauri::command]
-pub async fn budget_delete_bill(
-    state: State<'_, BentoAppState>,
-    id: String,
-) -> Result<(), String> {
+pub async fn budget_delete_bill(state: State<'_, BentoAppState>, id: String) -> Result<(), String> {
     ensure_budget_tables(&state.db()).await?;
     sqlx::query("UPDATE budget_bills SET active = 0 WHERE id = ?")
         .bind(&id)
@@ -1121,12 +1119,11 @@ pub async fn budget_financial_health(
     };
 
     // Bill payment rate
-    let total_due: f64 = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*) FROM budget_bills WHERE active = 1",
-    )
-    .fetch_one(&state.db())
-    .await
-    .map_err(|e| e.to_string())? as f64;
+    let total_due: f64 =
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM budget_bills WHERE active = 1")
+            .fetch_one(&state.db())
+            .await
+            .map_err(|e| e.to_string())? as f64;
 
     let month_prefix = format!("{}%", current_ym);
     let paid: f64 = sqlx::query_scalar::<_, i64>(
@@ -1148,7 +1145,11 @@ pub async fn budget_financial_health(
     let adherence_score = (adherence_pct / 100.0 * 30.0).min(30.0); // 30 pts
     let bill_score = (bill_rate / 100.0 * 20.0).min(20.0); // 20 pts
     let base_score = savings_score + adherence_score + bill_score;
-    let diversity_bonus = if cat_count >= 5.0 { 15.0 } else { (cat_count / 5.0 * 15.0).min(15.0) };
+    let diversity_bonus = if cat_count >= 5.0 {
+        15.0
+    } else {
+        (cat_count / 5.0 * 15.0).min(15.0)
+    };
     let consistency_bonus = if income_3 > 0.0 { 10.0 } else { 0.0 };
 
     let score = (base_score + diversity_bonus + consistency_bonus).round() as u8;
@@ -1157,11 +1158,20 @@ pub async fn budget_financial_health(
     let mut insights = vec![];
 
     if savings_rate_pct >= 20.0 {
-        insights.push(format!("Excellent savings rate of {:.0}% — you're building strong financial security.", savings_rate_pct));
+        insights.push(format!(
+            "Excellent savings rate of {:.0}% — you're building strong financial security.",
+            savings_rate_pct
+        ));
     } else if savings_rate_pct >= 10.0 {
-        insights.push(format!("Good savings rate at {:.0}%. Try to push toward 20% for optimal growth.", savings_rate_pct));
+        insights.push(format!(
+            "Good savings rate at {:.0}%. Try to push toward 20% for optimal growth.",
+            savings_rate_pct
+        ));
     } else if savings_rate_pct > 0.0 {
-        insights.push(format!("Savings rate is {:.0}%. Consider reducing discretionary spending to boost savings.", savings_rate_pct));
+        insights.push(format!(
+            "Savings rate is {:.0}%. Consider reducing discretionary spending to boost savings.",
+            savings_rate_pct
+        ));
     } else {
         insights.push("Your savings rate is low. Track expenses to find areas to cut back.".into());
     }
@@ -1170,21 +1180,48 @@ pub async fn budget_financial_health(
         insights.push(format!(
             "{} budget {} over budget this month. Review category limits.",
             cat_over as u64,
-            if cat_over as u64 == 1 { "category is" } else { "categories are" }
+            if cat_over as u64 == 1 {
+                "category is"
+            } else {
+                "categories are"
+            }
         ));
     } else if cat_count > 0.0 {
         insights.push("All categories are within budget — great discipline!".into());
     }
 
     if bill_rate < 100.0 {
-        insights.push(format!("{:.0}% of bills paid this month. Set up auto-pay to avoid late fees.", bill_rate));
+        insights.push(format!(
+            "{:.0}% of bills paid this month. Set up auto-pay to avoid late fees.",
+            bill_rate
+        ));
     } else if total_due > 0.0 {
         insights.push("All bills paid on time this month — perfect record!".into());
     }
 
-    let savings_grade = if savings_rate_pct >= 20.0 { "Excellent" } else if savings_rate_pct >= 10.0 { "Good" } else if savings_rate_pct > 0.0 { "Needs Work" } else { "Critical" };
-    let adherence_grade = if adherence_pct >= 90.0 { "Excellent" } else if adherence_pct >= 70.0 { "Good" } else { "Needs Work" };
-    let bill_grade = if bill_rate >= 90.0 { "Excellent" } else if bill_rate >= 70.0 { "Good" } else { "Needs Work" };
+    let savings_grade = if savings_rate_pct >= 20.0 {
+        "Excellent"
+    } else if savings_rate_pct >= 10.0 {
+        "Good"
+    } else if savings_rate_pct > 0.0 {
+        "Needs Work"
+    } else {
+        "Critical"
+    };
+    let adherence_grade = if adherence_pct >= 90.0 {
+        "Excellent"
+    } else if adherence_pct >= 70.0 {
+        "Good"
+    } else {
+        "Needs Work"
+    };
+    let bill_grade = if bill_rate >= 90.0 {
+        "Excellent"
+    } else if bill_rate >= 70.0 {
+        "Good"
+    } else {
+        "Needs Work"
+    };
     let debt_grade = "No tracked debt"; // Simplification
 
     Ok(FinancialHealthScore {
@@ -1213,21 +1250,23 @@ pub async fn budget_cash_flow_forecast(
         past.format("%Y-%m-%d").to_string()
     };
 
-    let avg_monthly_income: f64 =
-        sqlx::query_scalar("SELECT COALESCE(SUM(amount), 0.0) / 3.0 FROM budget_transactions
-                           WHERE tx_type = 'income' AND date_key >= ?")
-            .bind(&three_months_ago)
-            .fetch_one(&state.db())
-            .await
-            .map_err(|e| e.to_string())?;
+    let avg_monthly_income: f64 = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(amount), 0.0) / 3.0 FROM budget_transactions
+                           WHERE tx_type = 'income' AND date_key >= ?",
+    )
+    .bind(&three_months_ago)
+    .fetch_one(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
 
-    let avg_monthly_expenses: f64 =
-        sqlx::query_scalar("SELECT COALESCE(SUM(amount), 0.0) / 3.0 FROM budget_transactions
-                           WHERE tx_type = 'expense' AND date_key >= ?")
-            .bind(&three_months_ago)
-            .fetch_one(&state.db())
-            .await
-            .map_err(|e| e.to_string())?;
+    let avg_monthly_expenses: f64 = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(amount), 0.0) / 3.0 FROM budget_transactions
+                           WHERE tx_type = 'expense' AND date_key >= ?",
+    )
+    .bind(&three_months_ago)
+    .fetch_one(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
 
     // Current balance (this month's income - expenses so far)
     let current_pattern = format!("{}%", current_year_month());
@@ -1329,7 +1368,8 @@ pub async fn budget_forecast_chart_data(
     .await
     .map_err(|e| e.to_string())?;
 
-    let mut historical_map: std::collections::BTreeMap<String, (f64, f64)> = std::collections::BTreeMap::new();
+    let mut historical_map: std::collections::BTreeMap<String, (f64, f64)> =
+        std::collections::BTreeMap::new();
     for row in &historical_rows {
         let ym: String = row.try_get("ym").unwrap_or_default();
         let income: f64 = row.try_get("income").unwrap_or(0.0);
@@ -1338,7 +1378,9 @@ pub async fn budget_forecast_chart_data(
     }
 
     // ── 2. Calculate averages for projection ────────────────────────────────
-    let three_months_ago = (today - chrono::Months::new(3)).format("%Y-%m-%d").to_string();
+    let three_months_ago = (today - chrono::Months::new(3))
+        .format("%Y-%m-%d")
+        .to_string();
     let avg_income: f64 = sqlx::query_scalar(
         "SELECT COALESCE(SUM(amount), 0.0) / 3.0 FROM budget_transactions WHERE tx_type = 'income' AND date_key >= ?",
     )
@@ -1463,14 +1505,16 @@ pub async fn budget_save_template(
     let id = Uuid::new_v4().to_string();
     let now = time::now_ms();
 
-    sqlx::query("INSERT INTO budget_templates (id, name, total_income, created_at) VALUES (?, ?, ?, ?)")
-        .bind(&id)
-        .bind(name.trim())
-        .bind(total_income)
-        .bind(now)
-        .execute(&state.db())
-        .await
-        .map_err(|e| e.to_string())?;
+    sqlx::query(
+        "INSERT INTO budget_templates (id, name, total_income, created_at) VALUES (?, ?, ?, ?)",
+    )
+    .bind(&id)
+    .bind(name.trim())
+    .bind(total_income)
+    .bind(now)
+    .execute(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
 
     for item in &items {
         let item_id = Uuid::new_v4().to_string();
@@ -1626,7 +1670,11 @@ async fn budget_monthly_overview_inner(
     .map_err(|e| e.to_string())?;
 
     let net = total_income - total_expenses;
-    let savings_rate = if total_income > 0.0 { (net / total_income * 100.0).max(0.0) } else { 0.0 };
+    let savings_rate = if total_income > 0.0 {
+        (net / total_income * 100.0).max(0.0)
+    } else {
+        0.0
+    };
 
     let tx_count: i64 = sqlx::query_scalar::<_, i64>(
         "SELECT COUNT(*) FROM budget_transactions WHERE date_key LIKE ?",
@@ -1668,21 +1716,28 @@ async fn budget_list_categories_inner(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(rows.into_iter().map(|r| {
-        let budget: f64 = r.try_get("monthly_budget").unwrap_or(0.0);
-        let spent: f64 = r.try_get("spent").unwrap_or(0.0);
-        BudgetCategoryWithSpending {
-            id: r.try_get("id").unwrap_or_default(),
-            name: r.try_get("name").unwrap_or_default(),
-            group_name: r.try_get("group_name").unwrap_or_default(),
-            icon: r.try_get("icon").unwrap_or_default(),
-            monthly_budget: budget,
-            color: r.try_get("color").unwrap_or_default(),
-            spent,
-            remaining: budget - spent,
-            percent_used: if budget > 0.0 { (spent / budget * 100.0).min(100.0) } else { 0.0 },
-        }
-    }).collect())
+    Ok(rows
+        .into_iter()
+        .map(|r| {
+            let budget: f64 = r.try_get("monthly_budget").unwrap_or(0.0);
+            let spent: f64 = r.try_get("spent").unwrap_or(0.0);
+            BudgetCategoryWithSpending {
+                id: r.try_get("id").unwrap_or_default(),
+                name: r.try_get("name").unwrap_or_default(),
+                group_name: r.try_get("group_name").unwrap_or_default(),
+                icon: r.try_get("icon").unwrap_or_default(),
+                monthly_budget: budget,
+                color: r.try_get("color").unwrap_or_default(),
+                spent,
+                remaining: budget - spent,
+                percent_used: if budget > 0.0 {
+                    (spent / budget * 100.0).min(100.0)
+                } else {
+                    0.0
+                },
+            }
+        })
+        .collect())
 }
 
 async fn budget_financial_health_inner(
@@ -1701,18 +1756,39 @@ async fn budget_financial_health_inner(
         "SELECT COALESCE(SUM(amount), 0.0) FROM budget_transactions WHERE tx_type = 'expense' AND date_key LIKE ?",
     ).bind(&pattern).fetch_one(pool).await.map_err(|e| e.to_string())?;
 
-    let savings_rate = if income > 0.0 { ((income - expenses) / income * 100.0).max(0.0) } else { 0.0 };
+    let savings_rate = if income > 0.0 {
+        ((income - expenses) / income * 100.0).max(0.0)
+    } else {
+        0.0
+    };
     let score = ((savings_rate / 20.0 * 50.0).min(50.0) + 40.0) as u8;
 
     let mut insights = vec![];
-    if savings_rate >= 20.0 { insights.push("Excellent savings rate — you're building strong financial security.".into()); }
-    else if savings_rate >= 10.0 { insights.push(format!("Good savings rate at {:.0}%. Try to push toward 20%.", savings_rate)); }
-    else if savings_rate > 0.0 { insights.push(format!("Savings rate is {:.0}%. Consider reducing discretionary spending.", savings_rate)); }
-    else { insights.push("Your savings rate is low. Track expenses to find areas to cut back.".into()); }
+    if savings_rate >= 20.0 {
+        insights.push("Excellent savings rate — you're building strong financial security.".into());
+    } else if savings_rate >= 10.0 {
+        insights.push(format!(
+            "Good savings rate at {:.0}%. Try to push toward 20%.",
+            savings_rate
+        ));
+    } else if savings_rate > 0.0 {
+        insights.push(format!(
+            "Savings rate is {:.0}%. Consider reducing discretionary spending.",
+            savings_rate
+        ));
+    } else {
+        insights.push("Your savings rate is low. Track expenses to find areas to cut back.".into());
+    }
 
     Ok(FinancialHealthScore {
         score: score.min(100),
-        savings_rate_grade: if savings_rate >= 20.0 { "Excellent".into() } else if savings_rate >= 10.0 { "Good".into() } else { "Needs Work".into() },
+        savings_rate_grade: if savings_rate >= 20.0 {
+            "Excellent".into()
+        } else if savings_rate >= 10.0 {
+            "Good".into()
+        } else {
+            "Needs Work".into()
+        },
         budget_adherence: "—".into(),
         bill_payment_rate: "—".into(),
         debt_income_ratio: "No tracked debt".into(),
@@ -1720,9 +1796,7 @@ async fn budget_financial_health_inner(
     })
 }
 
-async fn budget_list_bills_inner(
-    state: &State<'_, BentoAppState>,
-) -> Result<Vec<Bill>, String> {
+async fn budget_list_bills_inner(state: &State<'_, BentoAppState>) -> Result<Vec<Bill>, String> {
     let pool = &state.db();
     let month_prefix = format!("{}%", current_year_month());
 
@@ -1742,18 +1816,21 @@ async fn budget_list_bills_inner(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(rows.into_iter().map(|r| Bill {
-        id: r.try_get("id").unwrap_or_default(),
-        name: r.try_get("name").unwrap_or_default(),
-        amount: r.try_get("amount").unwrap_or(0.0),
-        due_day: r.try_get::<i64, _>("due_day").unwrap_or(1) as u8,
-        category_id: r.try_get("category_id").unwrap_or(None),
-        category_name: r.try_get("category_name").unwrap_or(None),
-        auto_pay: r.try_get::<i64, _>("auto_pay").unwrap_or(0) != 0,
-        active: r.try_get::<i64, _>("active").unwrap_or(1) != 0,
-        created_at: r.try_get("created_at").unwrap_or(0),
-        paid_this_month: r.try_get::<i64, _>("paid_this_month").unwrap_or(0) != 0,
-    }).collect())
+    Ok(rows
+        .into_iter()
+        .map(|r| Bill {
+            id: r.try_get("id").unwrap_or_default(),
+            name: r.try_get("name").unwrap_or_default(),
+            amount: r.try_get("amount").unwrap_or(0.0),
+            due_day: r.try_get::<i64, _>("due_day").unwrap_or(1) as u8,
+            category_id: r.try_get("category_id").unwrap_or(None),
+            category_name: r.try_get("category_name").unwrap_or(None),
+            auto_pay: r.try_get::<i64, _>("auto_pay").unwrap_or(0) != 0,
+            active: r.try_get::<i64, _>("active").unwrap_or(1) != 0,
+            created_at: r.try_get("created_at").unwrap_or(0),
+            paid_this_month: r.try_get::<i64, _>("paid_this_month").unwrap_or(0) != 0,
+        })
+        .collect())
 }
 
 async fn budget_list_ai_costs_inner(
@@ -1774,17 +1851,20 @@ async fn budget_list_ai_costs_inner(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(rows.into_iter().map(|r| AiCostEntry {
-        id: r.try_get("id").unwrap_or_default(),
-        provider: r.try_get("provider").unwrap_or_default(),
-        model: r.try_get("model").unwrap_or_default(),
-        cost: r.try_get("cost").unwrap_or(0.0),
-        tokens_in: r.try_get::<i64, _>("tokens_in").unwrap_or(0) as u64,
-        tokens_out: r.try_get::<i64, _>("tokens_out").unwrap_or(0) as u64,
-        date_key: r.try_get("date_key").unwrap_or_default(),
-        note: r.try_get("note").unwrap_or(None),
-        created_at: r.try_get("created_at").unwrap_or(0),
-    }).collect())
+    Ok(rows
+        .into_iter()
+        .map(|r| AiCostEntry {
+            id: r.try_get("id").unwrap_or_default(),
+            provider: r.try_get("provider").unwrap_or_default(),
+            model: r.try_get("model").unwrap_or_default(),
+            cost: r.try_get("cost").unwrap_or(0.0),
+            tokens_in: r.try_get::<i64, _>("tokens_in").unwrap_or(0) as u64,
+            tokens_out: r.try_get::<i64, _>("tokens_out").unwrap_or(0) as u64,
+            date_key: r.try_get("date_key").unwrap_or_default(),
+            note: r.try_get("note").unwrap_or(None),
+            created_at: r.try_get("created_at").unwrap_or(0),
+        })
+        .collect())
 }
 
 async fn budget_ai_cost_summary_inner(
@@ -1806,13 +1886,16 @@ async fn budget_ai_cost_summary_inner(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(rows.into_iter().map(|r| AiCostSummary {
-        provider: r.try_get("provider").unwrap_or_default(),
-        total_cost: r.try_get("total_cost").unwrap_or(0.0),
-        total_tokens_in: r.try_get::<i64, _>("total_tokens_in").unwrap_or(0) as u64,
-        total_tokens_out: r.try_get::<i64, _>("total_tokens_out").unwrap_or(0) as u64,
-        month_count: r.try_get::<i64, _>("month_count").unwrap_or(0) as u64,
-    }).collect())
+    Ok(rows
+        .into_iter()
+        .map(|r| AiCostSummary {
+            provider: r.try_get("provider").unwrap_or_default(),
+            total_cost: r.try_get("total_cost").unwrap_or(0.0),
+            total_tokens_in: r.try_get::<i64, _>("total_tokens_in").unwrap_or(0) as u64,
+            total_tokens_out: r.try_get::<i64, _>("total_tokens_out").unwrap_or(0) as u64,
+            month_count: r.try_get::<i64, _>("month_count").unwrap_or(0) as u64,
+        })
+        .collect())
 }
 
 async fn budget_cash_flow_forecast_inner(
@@ -1849,9 +1932,21 @@ async fn budget_cash_flow_forecast_inner(
     let mut projections = vec![];
 
     for i in 0..num_months {
-        let proj_month = if i == 0 { now } else { now + chrono::Months::new(i as u32) };
-        let income = if i == 0 { avg_income.max(current_income) } else { avg_income };
-        let expenses = if i == 0 { avg_expenses.max(current_expenses) } else { avg_expenses };
+        let proj_month = if i == 0 {
+            now
+        } else {
+            now + chrono::Months::new(i as u32)
+        };
+        let income = if i == 0 {
+            avg_income.max(current_income)
+        } else {
+            avg_income
+        };
+        let expenses = if i == 0 {
+            avg_expenses.max(current_expenses)
+        } else {
+            avg_expenses
+        };
         balance = balance + income - expenses;
         projections.push(CashFlowProjection {
             month: proj_month.format("%Y-%m").to_string(),

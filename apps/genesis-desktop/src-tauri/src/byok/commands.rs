@@ -40,7 +40,9 @@ fn validate_key_format(provider: &ByokProvider, key: &str) -> Result<(), String>
                 return Err("Anthropic keys must start with 'sk-ant-'".to_string());
             }
             if trimmed.len() < 30 {
-                return Err("Anthropic key is too short (expected at least 30 characters)".to_string());
+                return Err(
+                    "Anthropic key is too short (expected at least 30 characters)".to_string(),
+                );
             }
         }
         ByokProvider::Gemini => {

@@ -1,6 +1,6 @@
 use chrono::{Datelike, NaiveDate};
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use sqlx::Row;
 use tauri::State;
 
@@ -164,7 +164,9 @@ fn load_focus_settings(value: Option<String>) -> FocusSettings {
 }
 
 #[tauri::command]
-pub async fn get_focus_dashboard(state: State<'_, BentoAppState>) -> Result<FocusDashboardData, String> {
+pub async fn get_focus_dashboard(
+    state: State<'_, BentoAppState>,
+) -> Result<FocusDashboardData, String> {
     let db = state.db();
     let window_days = 7i64;
     let since = time::now_ms() - (window_days * 24 * 60 * 60 * 1000);
@@ -214,7 +216,9 @@ pub async fn get_focus_dashboard(state: State<'_, BentoAppState>) -> Result<Focu
         let metadata = parse_metadata(row.try_get::<String, _>("metadata").ok());
 
         let minutes = match (started_at, ended_at) {
-            (Some(start), Some(end)) if end > start => ((end - start) as f64 / 60_000.0).round() as i64,
+            (Some(start), Some(end)) if end > start => {
+                ((end - start) as f64 / 60_000.0).round() as i64
+            }
             _ => value.round().max(0.0) as i64,
         };
 
@@ -237,7 +241,12 @@ pub async fn get_focus_dashboard(state: State<'_, BentoAppState>) -> Result<Focu
         entry.0 += minutes.max(0);
         entry.1 += 1;
 
-        if Some(date_key.as_str()) == today.as_ref().map(|d| d.format("%Y-%m-%d").to_string()).as_deref() {
+        if Some(date_key.as_str())
+            == today
+                .as_ref()
+                .map(|d| d.format("%Y-%m-%d").to_string())
+                .as_deref()
+        {
             today_minutes += minutes.max(0);
             today_sessions += 1;
         }
@@ -257,7 +266,13 @@ pub async fn get_focus_dashboard(state: State<'_, BentoAppState>) -> Result<Focu
     for offset in (0..window_days).rev() {
         let date = today
             .and_then(|value| value.checked_sub_days(chrono::Days::new(offset as u64)))
-            .or_else(|| NaiveDate::parse_from_str(&time::date_key(since + offset * 24 * 60 * 60 * 1000), "%Y-%m-%d").ok())
+            .or_else(|| {
+                NaiveDate::parse_from_str(
+                    &time::date_key(since + offset * 24 * 60 * 60 * 1000),
+                    "%Y-%m-%d",
+                )
+                .ok()
+            })
             .unwrap_or_else(|| NaiveDate::parse_from_str(&today_key, "%Y-%m-%d").unwrap());
         let key = date.format("%Y-%m-%d").to_string();
         let (minutes, sessions_count) = history_map.get(&key).copied().unwrap_or((0, 0));
@@ -362,7 +377,9 @@ pub async fn export_focus_sessions(
         let metadata = parse_metadata(row.try_get::<String, _>("metadata").ok());
 
         let minutes = match (started_at, ended_at) {
-            (Some(start), Some(end)) if end > start => ((end - start) as f64 / 60_000.0).round() as i64,
+            (Some(start), Some(end)) if end > start => {
+                ((end - start) as f64 / 60_000.0).round() as i64
+            }
             _ => value.round().max(0.0) as i64,
         };
 
@@ -373,8 +390,8 @@ pub async fn export_focus_sessions(
 
         let label = metadata_string(&metadata, &["label", "title", "mode"])
             .unwrap_or_else(|| "Focus session".to_string());
-        let note = metadata_string(&metadata, &["note", "description"])
-            .unwrap_or_else(|| String::new());
+        let note =
+            metadata_string(&metadata, &["note", "description"]).unwrap_or_else(|| String::new());
 
         let logged_at_str = time::datetime_key(logged_at);
 

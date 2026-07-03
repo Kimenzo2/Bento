@@ -4,8 +4,8 @@ use std::time::Instant;
 use std::path::Path;
 
 use sysinfo::{
-    Disk, Disks, MemoryRefreshKind, Networks, ProcessRefreshKind, ProcessesToUpdate, RefreshKind,
-    System, get_current_pid,
+    get_current_pid, Disk, Disks, MemoryRefreshKind, Networks, ProcessRefreshKind,
+    ProcessesToUpdate, RefreshKind, System,
 };
 
 use crate::telemetry::SystemSnapshot;

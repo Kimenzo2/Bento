@@ -8,12 +8,14 @@
     type = "button",
     class: className = "",
     onclick,
-  }: {
+      disabled = false,
+}: {
     icon: Component<{ size?: number; class?: string }>;
     label?: string;
     shortcut?: string;
     type?: "button" | "submit";
     class?: string;
+    disabled?: boolean;
     onclick?: () => void;
   } = $props();
 </script>
@@ -21,6 +23,7 @@
 <button
   class={`dock-btn ${className}`.trim()}
   {type}
+  {disabled}
   aria-label={label || undefined}
   title={label || undefined}
   onclick={() => onclick?.()}

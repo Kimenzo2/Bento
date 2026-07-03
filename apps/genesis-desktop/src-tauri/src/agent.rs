@@ -3,8 +3,8 @@ use std::sync::LazyLock;
 use std::thread;
 use std::time::Duration;
 
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, WebviewWindow};
-use tauri::tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState};
 
 /// macOS window level for the agent dock — NSFloatingWindowLevel (5).
 /// Above normal windows but below the menu bar, so the dock is always reachable.
@@ -45,7 +45,10 @@ pub fn capture_screen() -> Result<String, String> {
         }
     };
 
-    let monitor = match monitors.into_iter().find(|m| m.is_primary().unwrap_or(false)) {
+    let monitor = match monitors
+        .into_iter()
+        .find(|m| m.is_primary().unwrap_or(false))
+    {
         Some(m) => {
             eprintln!("[capture_screen] found primary monitor");
             m
@@ -58,7 +61,11 @@ pub fn capture_screen() -> Result<String, String> {
 
     let image = match monitor.capture_image() {
         Ok(img) => {
-            eprintln!("[capture_screen] captured image: {}x{}", img.width(), img.height());
+            eprintln!(
+                "[capture_screen] captured image: {}x{}",
+                img.width(),
+                img.height()
+            );
             img
         }
         Err(e) => {
@@ -78,7 +85,11 @@ pub fn capture_screen() -> Result<String, String> {
     let bytes = buf.into_inner();
     let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
     let result = format!("data:image/jpeg;base64,{b64}");
-    eprintln!("[capture_screen] success: {} bytes, {} base64 chars", bytes.len(), b64.len());
+    eprintln!(
+        "[capture_screen] success: {} bytes, {} base64 chars",
+        bytes.len(),
+        b64.len()
+    );
     Ok(result)
 }
 
@@ -270,8 +281,12 @@ fn start_mouse_monitor(app: AppHandle) {
                     continue;
                 }
 
-                let Ok(pos) = window.outer_position() else { continue; };
-                let Ok(size) = window.outer_size() else { continue; };
+                let Ok(pos) = window.outer_position() else {
+                    continue;
+                };
+                let Ok(size) = window.outer_size() else {
+                    continue;
+                };
 
                 let win_x = pos.x as f64;
                 let win_y = pos.y as f64;
@@ -288,7 +303,11 @@ fn start_mouse_monitor(app: AppHandle) {
                 let dock_x = win_x;
                 let dock_y = win_y + (win_h - dock_h);
 
-                let margin = if was_inside { EXIT_MARGIN } else { ENTER_MARGIN };
+                let margin = if was_inside {
+                    EXIT_MARGIN
+                } else {
+                    ENTER_MARGIN
+                };
 
                 let inside = pt.x as f64 >= dock_x - margin
                     && pt.x as f64 <= dock_x + AGENT_W + margin
@@ -521,7 +540,9 @@ pub fn focus_main_from_agent(app: AppHandle) -> Result<(), String> {
             // Window exists but is hidden — bring it back as the user expects
             // (they initiated an action in the agent that requires the main window).
             window.show().map_err(|e: tauri::Error| e.to_string())?;
-            window.set_focus().map_err(|e: tauri::Error| e.to_string())?;
+            window
+                .set_focus()
+                .map_err(|e: tauri::Error| e.to_string())?;
         }
     }
     Ok(())

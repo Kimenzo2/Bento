@@ -12,9 +12,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::{Row, SqlitePool};
 use std::path::PathBuf;
 use std::sync::{
-    Arc, Mutex,
     atomic::{AtomicBool, AtomicU32, Ordering},
-    mpsc,
+    mpsc, Arc, Mutex,
 };
 use std::thread;
 use tauri::Emitter;
@@ -191,10 +190,13 @@ impl RecordingEngine {
 
     /// Set the recording status atomically (lock-free).
     fn set_status(&self, status: RecordingStatus) {
-        self.status_atomic.store(status.to_u32(), match status {
-            RecordingStatus::Idle => Ordering::Release,
-            _ => Ordering::Relaxed,
-        });
+        self.status_atomic.store(
+            status.to_u32(),
+            match status {
+                RecordingStatus::Idle => Ordering::Release,
+                _ => Ordering::Relaxed,
+            },
+        );
     }
 
     /// Enumerate available input audio devices.
@@ -219,7 +221,11 @@ impl RecordingEngine {
                         .filter_map(|c| {
                             let min = c.min_sample_rate().0;
                             let max = c.max_sample_rate().0;
-                            if min == max { Some(min) } else { None }
+                            if min == max {
+                                Some(min)
+                            } else {
+                                None
+                            }
                         })
                         .collect();
                     rates.sort();
@@ -364,7 +370,8 @@ impl RecordingEngine {
                         // Scale RMS to 0.0–1.0 range and emit event
                         let level = (rms * 3.0).min(1.0);
                         let peak = data.iter().map(|s| s.abs()).fold(0.0f32, f32::max);
-                        let _ = app_handle.emit("voice:audio-level", AudioLevelPayload { level, rms, peak });
+                        let _ = app_handle
+                            .emit("voice:audio-level", AudioLevelPayload { level, rms, peak });
                     }
 
                     // Write samples to WAV
@@ -450,10 +457,13 @@ impl RecordingEngine {
 
                         // Emit voice:session-completed event to frontend
                         if let Some(ref app_handle) = app_handle_for_completed {
-                            let _ = app_handle.emit("voice:session-completed", SessionCompletedPayload {
-                                session_id: session_id_for_thread.clone(),
-                                status: "completed".to_string(),
-                            });
+                            let _ = app_handle.emit(
+                                "voice:session-completed",
+                                SessionCompletedPayload {
+                                    session_id: session_id_for_thread.clone(),
+                                    status: "completed".to_string(),
+                                },
+                            );
                         }
 
                         // Persist metadata to SQLite synchronously on this background thread
@@ -667,7 +677,8 @@ impl RecordingEngine {
 
             RecordingSession {
                 id: inner.id.clone(),
-                status: RecordingStatus::from_u32(self.status_atomic.load(Ordering::Relaxed)).to_string(),
+                status: RecordingStatus::from_u32(self.status_atomic.load(Ordering::Relaxed))
+                    .to_string(),
                 start_time: time::now_ms() - inner.start_time.elapsed().as_millis() as i64,
                 elapsed_ms: actual.as_millis() as i64,
                 paused_duration_ms: inner.paused_duration.as_millis() as i64,
@@ -781,9 +792,9 @@ impl RecordingEngine {
             let mono = downmix_to_mono_f32(&samples, channels);
             let audio = resample_linear(&mono, sample_rate, 16_000);
 
-            let transcriber = moonshine::Moonshine::new(&app_dir)
-                .map_err(|e| e.to_string())?;
-            let text = transcriber.transcribe(&audio, 16_000)
+            let transcriber = moonshine::Moonshine::new(&app_dir).map_err(|e| e.to_string())?;
+            let text = transcriber
+                .transcribe(&audio, 16_000)
                 .map_err(|e| e.to_string())?;
 
             Ok::<String, String>(text.trim().to_string())

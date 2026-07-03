@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::telemetry::{BrainEvent, ModuleState, registry::ModuleRegistry};
+use crate::telemetry::{registry::ModuleRegistry, BrainEvent, ModuleState};
 
 #[derive(Clone, Debug, Default)]
 struct ModuleDeltaSnapshot {

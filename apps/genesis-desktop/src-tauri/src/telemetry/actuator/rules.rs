@@ -1,5 +1,5 @@
 use crate::telemetry::{
-    AnomalyType, HealAction, StoredAnomaly, storage::ringbuffer::RingBufferStore,
+    storage::ringbuffer::RingBufferStore, AnomalyType, HealAction, StoredAnomaly,
 };
 
 #[derive(Clone)]

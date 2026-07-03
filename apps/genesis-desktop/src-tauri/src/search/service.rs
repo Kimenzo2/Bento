@@ -84,7 +84,9 @@ impl SearchService {
         let module = cache.entry(module_id.clone()).or_insert(ModuleCache {
             documents: BTreeMap::new(),
         });
-        module.documents.insert(document.id.clone(), document.clone());
+        module
+            .documents
+            .insert(document.id.clone(), document.clone());
 
         snapshot::save_module_snapshot(&self.base_dir, &module_id, &module.documents)?;
         Ok(())
@@ -106,10 +108,7 @@ impl SearchService {
         let docs = snapshot::load_module_snapshot(&self.base_dir, &module_id)?;
 
         let mut cache = self.cache.lock().await;
-        cache.insert(
-            module_id,
-            ModuleCache { documents: docs },
-        );
+        cache.insert(module_id, ModuleCache { documents: docs });
         Ok(())
     }
 
@@ -121,13 +120,11 @@ impl SearchService {
         let module_id = normalize_module_id(&module_id);
         let mut cache = self.cache.lock().await;
 
-        let module = cache
-            .entry(module_id.clone())
-            .or_insert_with(|| {
-                let docs =
-                    snapshot::load_module_snapshot(&self.base_dir, &module_id).unwrap_or_default();
-                ModuleCache { documents: docs }
-            });
+        let module = cache.entry(module_id.clone()).or_insert_with(|| {
+            let docs =
+                snapshot::load_module_snapshot(&self.base_dir, &module_id).unwrap_or_default();
+            ModuleCache { documents: docs }
+        });
 
         let limit = query.limit.unwrap_or(25).clamp(1, 100);
         let offset = query.offset.unwrap_or(0);
@@ -255,11 +252,8 @@ impl SearchService {
                 .collect();
             if !required.is_empty() {
                 filtered.retain(|d| {
-                    let doc_tags: Vec<String> = d
-                        .tags
-                        .iter()
-                        .map(|t| t.trim().to_lowercase())
-                        .collect();
+                    let doc_tags: Vec<String> =
+                        d.tags.iter().map(|t| t.trim().to_lowercase()).collect();
                     required.iter().all(|r| doc_tags.contains(r))
                 });
             }
@@ -274,11 +268,8 @@ impl SearchService {
                 .collect();
             if !required.is_empty() {
                 filtered.retain(|d| {
-                    let doc_projects: Vec<String> = d
-                        .projects
-                        .iter()
-                        .map(|p| p.trim().to_lowercase())
-                        .collect();
+                    let doc_projects: Vec<String> =
+                        d.projects.iter().map(|p| p.trim().to_lowercase()).collect();
                     required.iter().all(|r| doc_projects.contains(r))
                 });
             }

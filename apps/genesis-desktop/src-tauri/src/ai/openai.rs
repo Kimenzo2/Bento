@@ -61,9 +61,7 @@ impl OpenAIProvider {
         let json: serde_json::Value = resp.json().await.map_err(|e| format!("Parse error: {e}"))?;
 
         if !status.is_success() {
-            let msg = json["error"]["message"]
-                .as_str()
-                .unwrap_or("unknown error");
+            let msg = json["error"]["message"].as_str().unwrap_or("unknown error");
             return Err(format!("OpenAI ({status}): {msg}"));
         }
 
@@ -120,14 +118,12 @@ impl OpenAIProvider {
         let client = Self::client();
 
         let resp = match api_key {
-            Some(key) => {
-                client
-                    .get(format!("{}/models", self.base_url))
-                    .header("Authorization", format!("Bearer {key}"))
-                    .send()
-                    .await
-                    .map_err(|e| format!("OpenAI models request failed: {e}"))?
-            }
+            Some(key) => client
+                .get(format!("{}/models", self.base_url))
+                .header("Authorization", format!("Bearer {key}"))
+                .send()
+                .await
+                .map_err(|e| format!("OpenAI models request failed: {e}"))?,
             None => {
                 // Return known models without making a request
                 return Ok(crate::byok::ByokProvider::OpenAI

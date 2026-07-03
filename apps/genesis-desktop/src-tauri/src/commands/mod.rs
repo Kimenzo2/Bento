@@ -1,15 +1,15 @@
+pub mod countdown;
 pub mod dashboard;
 pub mod feedback;
 pub mod focus;
 pub mod journal;
-pub mod countdown;
 pub mod nutrition;
 pub mod passwords;
 pub mod sync;
 pub mod tasks;
 pub mod transcription;
 pub mod voice;
-pub use dashboard::{DashboardCache, get_dashboard_data};
+pub use dashboard::{get_dashboard_data, DashboardCache};
 pub use feedback::{
     get_feedback_by_id, get_feedback_realtime_config, get_my_feedback, submit_feedback,
 };
@@ -402,7 +402,7 @@ pub fn clear_webview_browsing_data(app: AppHandle) -> Result<(), String> {
             .clear_all_browsing_data()
             .map_err(|e| format!("Failed to clear browsing data: {e}"))?;
     }
-    
+
     Ok(())
 }
 
@@ -457,8 +457,6 @@ pub fn save_export_manifest(
     busy.finish();
     result
 }
-
-
 
 #[tauri::command]
 pub fn consume_pending_deep_link(pending: State<'_, PendingDeepLink>) -> Option<String> {

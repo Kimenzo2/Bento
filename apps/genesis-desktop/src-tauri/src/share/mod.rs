@@ -149,12 +149,8 @@ pub async fn share_content(
     let _size_bytes = formatted.len();
 
     match destination {
-        ShareDestination::Clipboard => {
-            share_to_clipboard(&app, &formatted, &opts).await
-        }
-        ShareDestination::File => {
-            share_to_file(&app, &formatted, &format, &opts).await
-        }
+        ShareDestination::Clipboard => share_to_clipboard(&app, &formatted, &opts).await,
+        ShareDestination::File => share_to_file(&app, &formatted, &format, &opts).await,
     }
 }
 
@@ -217,7 +213,9 @@ async fn share_to_file(
         });
     };
 
-    let path = path.into_path().map_err(|e: tauri_plugin_fs::Error| e.to_string())?;
+    let path = path
+        .into_path()
+        .map_err(|e: tauri_plugin_fs::Error| e.to_string())?;
     fs::write(&path, content).map_err(|e| format!("Failed to write file: {e}"))?;
 
     let path_str = path.to_string_lossy().to_string();

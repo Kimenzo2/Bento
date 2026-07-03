@@ -53,7 +53,7 @@
 // ════════════════════════════════════════════════════════════════════════
 
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use sqlx::SqlitePool;
 use std::collections::{HashMap, HashSet};
 use std::sync::Mutex;
@@ -61,9 +61,9 @@ use uuid::Uuid;
 
 use crate::local_store::block::{BlockRow, TextStyle};
 use crate::local_store::operations::{
-    BlockAddParams, BlockMergeParams, BlockMoveParams, BlockSplitParams, BlockUpdateParams,
-    OpResult, OperationError, block_add, block_delete, block_merge, block_move, block_split,
-    block_update, create_object, delete_object, get_block_by_id, get_blocks_by_object,
+    block_add, block_delete, block_merge, block_move, block_split, block_update, create_object,
+    delete_object, get_block_by_id, get_blocks_by_object, BlockAddParams, BlockMergeParams,
+    BlockMoveParams, BlockSplitParams, BlockUpdateParams, OpResult, OperationError,
 };
 use crate::search::{SearchDocument, SearchService};
 
@@ -822,8 +822,7 @@ pub async fn list_note_objects(
         LEFT JOIN previews p ON p.object_id = n.id
         ORDER BY n.pinned DESC, n.updated_at DESC
         LIMIT ? OFFSET ?
-        "#
-        ,
+        "#,
         title_style = TextStyle::Title as i32
     );
 

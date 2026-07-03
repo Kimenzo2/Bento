@@ -9,8 +9,8 @@
 //   - voice_cancel: Cancel and discard the current session
 // ═══════════════════════════════════════════════════════════════════════
 
-use serde::{Deserialize, Serialize};
 use crate::audio::AudioState;
+use serde::{Deserialize, Serialize};
 
 /// Response returned by voice_start / voice_stop.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -45,9 +45,7 @@ pub async fn voice_start(
 
 /// Stop the current voice recording.
 #[tauri::command]
-pub async fn voice_stop(
-    state: tauri::State<'_, AudioState>,
-) -> Result<VoiceSessionDto, String> {
+pub async fn voice_stop(state: tauri::State<'_, AudioState>) -> Result<VoiceSessionDto, String> {
     let session = state.engine.stop_recording()?;
 
     Ok(VoiceSessionDto {
@@ -61,9 +59,7 @@ pub async fn voice_stop(
 
 /// Pause the current voice recording.
 #[tauri::command]
-pub async fn voice_pause(
-    state: tauri::State<'_, AudioState>,
-) -> Result<VoiceSessionDto, String> {
+pub async fn voice_pause(state: tauri::State<'_, AudioState>) -> Result<VoiceSessionDto, String> {
     let session = state.engine.pause_recording()?;
 
     Ok(VoiceSessionDto {
@@ -77,9 +73,7 @@ pub async fn voice_pause(
 
 /// Resume a paused voice recording.
 #[tauri::command]
-pub async fn voice_resume(
-    state: tauri::State<'_, AudioState>,
-) -> Result<VoiceSessionDto, String> {
+pub async fn voice_resume(state: tauri::State<'_, AudioState>) -> Result<VoiceSessionDto, String> {
     let session = state.engine.resume_recording()?;
 
     Ok(VoiceSessionDto {
@@ -93,8 +87,6 @@ pub async fn voice_resume(
 
 /// Cancel the current voice recording — discards without saving.
 #[tauri::command]
-pub async fn voice_cancel(
-    state: tauri::State<'_, AudioState>,
-) -> Result<(), String> {
+pub async fn voice_cancel(state: tauri::State<'_, AudioState>) -> Result<(), String> {
     state.engine.cancel_recording()
 }

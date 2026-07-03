@@ -2,17 +2,17 @@ use crate::util::time;
 use std::path::{Component, Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use sqlx::Row;
 use tauri::{
-    AppHandle, Manager, Runtime, State, UriSchemeContext,
     http::{Request, Response, StatusCode},
     ipc::Channel,
+    AppHandle, Manager, Runtime, State, UriSchemeContext,
 };
 
 use crate::auth::AuthManager;
-use crate::commands::{DashboardCache, emit_main_window_event};
-use crate::db::{BentoAppState, is_builtin_module_id, write_runtime_state};
+use crate::commands::{emit_main_window_event, DashboardCache};
+use crate::db::{is_builtin_module_id, write_runtime_state, BentoAppState};
 
 const BUILTIN_MODULES: &[(&str, &str, &str, &str, f64, &str, &str)] = &[
     (

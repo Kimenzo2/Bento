@@ -154,42 +154,36 @@ pub async fn ensure_goals_tables(pool: &sqlx::SqlitePool) -> Result<(), String> 
     }
 
     // Migration: add update_history column if not present
-    let cols1: Vec<(String,)> = sqlx::query_as(
-        "SELECT name FROM pragma_table_info('goals') WHERE name = 'update_history'",
-    )
-    .fetch_all(pool)
-    .await
-    .map_err(|e| e.to_string())?;
+    let cols1: Vec<(String,)> =
+        sqlx::query_as("SELECT name FROM pragma_table_info('goals') WHERE name = 'update_history'")
+            .fetch_all(pool)
+            .await
+            .map_err(|e| e.to_string())?;
     if cols1.is_empty() {
-        let _ = sqlx::query(
-            "ALTER TABLE goals ADD COLUMN update_history TEXT NOT NULL DEFAULT '[]'",
-        )
-        .execute(pool)
-        .await;
+        let _ =
+            sqlx::query("ALTER TABLE goals ADD COLUMN update_history TEXT NOT NULL DEFAULT '[]'")
+                .execute(pool)
+                .await;
     }
 
     // Migration: add is_big_3 column if not present
-    let cols2: Vec<(String,)> = sqlx::query_as(
-        "SELECT name FROM pragma_table_info('goals') WHERE name = 'is_big_3'",
-    )
-    .fetch_all(pool)
-    .await
-    .map_err(|e| e.to_string())?;
+    let cols2: Vec<(String,)> =
+        sqlx::query_as("SELECT name FROM pragma_table_info('goals') WHERE name = 'is_big_3'")
+            .fetch_all(pool)
+            .await
+            .map_err(|e| e.to_string())?;
     if cols2.is_empty() {
-        let _ = sqlx::query(
-            "ALTER TABLE goals ADD COLUMN is_big_3 INTEGER NOT NULL DEFAULT 0",
-        )
-        .execute(pool)
-        .await;
+        let _ = sqlx::query("ALTER TABLE goals ADD COLUMN is_big_3 INTEGER NOT NULL DEFAULT 0")
+            .execute(pool)
+            .await;
     }
 
     // Migration: add focus_area_id column if not present
-    let cols3: Vec<(String,)> = sqlx::query_as(
-        "SELECT name FROM pragma_table_info('goals') WHERE name = 'focus_area_id'",
-    )
-    .fetch_all(pool)
-    .await
-    .map_err(|e| e.to_string())?;
+    let cols3: Vec<(String,)> =
+        sqlx::query_as("SELECT name FROM pragma_table_info('goals') WHERE name = 'focus_area_id'")
+            .fetch_all(pool)
+            .await
+            .map_err(|e| e.to_string())?;
     if cols3.is_empty() {
         let _ = sqlx::query(
             "ALTER TABLE goals ADD COLUMN focus_area_id TEXT REFERENCES focus_areas(id)",
@@ -203,14 +197,13 @@ pub async fn ensure_goals_tables(pool: &sqlx::SqlitePool) -> Result<(), String> 
 
 /// Append a timestamp (epoch ms) to the goal's update_history JSON array.
 async fn append_update_history(pool: &sqlx::SqlitePool, goal_id: &str, now: &str) {
-    let current: Option<(String,)> = sqlx::query_as(
-        "SELECT update_history FROM goals WHERE id = ?",
-    )
-    .bind(goal_id)
-    .fetch_optional(pool)
-    .await
-    .ok()
-    .flatten();
+    let current: Option<(String,)> =
+        sqlx::query_as("SELECT update_history FROM goals WHERE id = ?")
+            .bind(goal_id)
+            .fetch_optional(pool)
+            .await
+            .ok()
+            .flatten();
 
     let updated = if let Some((history,)) = current {
         if history == "[]" || history.is_empty() {
@@ -242,13 +235,17 @@ fn row_to_goal(row: sqlx::sqlite::SqliteRow) -> GoalRow {
         id: row.try_get("id").unwrap_or_default(),
         title: row.try_get("title").unwrap_or_default(),
         description: row.try_get("description").unwrap_or_default(),
-        horizon: row.try_get("horizon").unwrap_or_else(|_| "weekly".to_string()),
+        horizon: row
+            .try_get("horizon")
+            .unwrap_or_else(|_| "weekly".to_string()),
         progress: row.try_get("progress").unwrap_or(0),
         target_date: row.try_get("target_date").ok().flatten(),
         success_criteria: row.try_get("success_criteria").ok().flatten(),
         notes: row.try_get("notes").ok().flatten(),
         image_data: row.try_get("image_data").ok().flatten(),
-        update_history: row.try_get("update_history").unwrap_or_else(|_| "[]".to_string()),
+        update_history: row
+            .try_get("update_history")
+            .unwrap_or_else(|_| "[]".to_string()),
         is_big_3: row.try_get::<i64, _>("is_big_3").unwrap_or(0) == 1,
         focus_area_id: row.try_get("focus_area_id").ok().flatten(),
         created_at: row.try_get("created_at").unwrap_or_default(),
@@ -336,18 +333,21 @@ pub async fn goals_save(
     let success_criteria = payload.success_criteria;
     let notes = payload.notes;
     let image_data = payload.image_data;
-    let is_big_3 = if payload.is_big_3.unwrap_or(false) { 1i64 } else { 0i64 };
+    let is_big_3 = if payload.is_big_3.unwrap_or(false) {
+        1i64
+    } else {
+        0i64
+    };
     let focus_area_id = payload.focus_area_id;
 
     // Check if goal exists (upsert)
-    let existing: Option<(String, String, String)> =
-        sqlx::query_as::<_, (String, String, String)>(
-            "SELECT id, created_at, update_history FROM goals WHERE id = ?",
-        )
-        .bind(&id)
-        .fetch_optional(&db)
-        .await
-        .map_err(|e| e.to_string())?;
+    let existing: Option<(String, String, String)> = sqlx::query_as::<_, (String, String, String)>(
+        "SELECT id, created_at, update_history FROM goals WHERE id = ?",
+    )
+    .bind(&id)
+    .fetch_optional(&db)
+    .await
+    .map_err(|e| e.to_string())?;
 
     if let Some((_, created_at, update_history)) = existing {
         sqlx::query(
@@ -433,10 +433,7 @@ pub async fn goals_save(
 // ═══ GOALS_DELETE ═════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn goals_delete(
-    state: State<'_, BentoAppState>,
-    id: String,
-) -> Result<(), String> {
+pub async fn goals_delete(state: State<'_, BentoAppState>, id: String) -> Result<(), String> {
     let db = state.db();
     ensure_goals_tables(&db).await?;
 
@@ -528,13 +525,12 @@ pub async fn goal_subtask_save(
     let id = payload.id.unwrap_or_else(|| Uuid::new_v4().to_string());
     let position = payload.position.unwrap_or(0);
 
-    let existing: Option<(String,)> = sqlx::query_as::<_, (String,)>(
-        "SELECT id FROM goal_subtasks WHERE id = ?",
-    )
-    .bind(&id)
-    .fetch_optional(&db)
-    .await
-    .map_err(|e| e.to_string())?;
+    let existing: Option<(String,)> =
+        sqlx::query_as::<_, (String,)>("SELECT id FROM goal_subtasks WHERE id = ?")
+            .bind(&id)
+            .fetch_optional(&db)
+            .await
+            .map_err(|e| e.to_string())?;
 
     if existing.is_some() {
         sqlx::query("UPDATE goal_subtasks SET title = ?, position = ? WHERE id = ?")
@@ -667,16 +663,14 @@ pub async fn goal_add_review(
     let id = Uuid::new_v4().to_string();
     let now = time::now_ms().to_string();
 
-    sqlx::query(
-        "INSERT INTO goal_reviews (id, goal_id, content, created_at) VALUES (?, ?, ?, ?)",
-    )
-    .bind(&id)
-    .bind(&payload.goal_id)
-    .bind(&content)
-    .bind(&now)
-    .execute(&db)
-    .await
-    .map_err(|e| e.to_string())?;
+    sqlx::query("INSERT INTO goal_reviews (id, goal_id, content, created_at) VALUES (?, ?, ?, ?)")
+        .bind(&id)
+        .bind(&payload.goal_id)
+        .bind(&content)
+        .bind(&now)
+        .execute(&db)
+        .await
+        .map_err(|e| e.to_string())?;
 
     append_update_history(&db, &payload.goal_id, &now).await;
 
@@ -739,13 +733,12 @@ pub async fn goals_toggle_big_3(
 
     if is_big_3 {
         // Count current Big 3 goals, un-set oldest if at 3
-        let count: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM goals WHERE is_big_3 = 1 AND id != ?",
-        )
-        .bind(&id)
-        .fetch_one(&db)
-        .await
-        .map_err(|e| e.to_string())?;
+        let count: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM goals WHERE is_big_3 = 1 AND id != ?")
+                .bind(&id)
+                .fetch_one(&db)
+                .await
+                .map_err(|e| e.to_string())?;
 
         if count.0 >= 3 {
             // Un-set the oldest big-3 goal (by updated_at ASC)
@@ -783,12 +776,11 @@ pub async fn focus_areas_list(
     let db = state.db();
     ensure_goals_tables(&db).await?;
 
-    let rows = sqlx::query(
-        "SELECT id, name, position FROM focus_areas ORDER BY position ASC, name ASC",
-    )
-    .fetch_all(&db)
-    .await
-    .map_err(|e| e.to_string())?;
+    let rows =
+        sqlx::query("SELECT id, name, position FROM focus_areas ORDER BY position ASC, name ASC")
+            .fetch_all(&db)
+            .await
+            .map_err(|e| e.to_string())?;
 
     Ok(rows
         .into_iter()
@@ -821,13 +813,12 @@ pub async fn focus_area_save(
         .unwrap_or_else(|| Uuid::new_v4().to_string());
     let position = payload.position.unwrap_or(0);
 
-    let existing: Option<(String,)> = sqlx::query_as::<_, (String,)>(
-        "SELECT id FROM focus_areas WHERE id = ?",
-    )
-    .bind(&id)
-    .fetch_optional(&db)
-    .await
-    .map_err(|e| e.to_string())?;
+    let existing: Option<(String,)> =
+        sqlx::query_as::<_, (String,)>("SELECT id FROM focus_areas WHERE id = ?")
+            .bind(&id)
+            .fetch_optional(&db)
+            .await
+            .map_err(|e| e.to_string())?;
 
     if existing.is_some() {
         sqlx::query("UPDATE focus_areas SET name = ?, position = ? WHERE id = ?")
@@ -847,20 +838,13 @@ pub async fn focus_area_save(
             .map_err(|e| e.to_string())?;
     }
 
-    Ok(FocusAreaRow {
-        id,
-        name,
-        position,
-    })
+    Ok(FocusAreaRow { id, name, position })
 }
 
 // ═══ FOCUS_AREA_DELETE ═════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn focus_area_delete(
-    state: State<'_, BentoAppState>,
-    id: String,
-) -> Result<(), String> {
+pub async fn focus_area_delete(state: State<'_, BentoAppState>, id: String) -> Result<(), String> {
     let db = state.db();
     ensure_goals_tables(&db).await?;
 

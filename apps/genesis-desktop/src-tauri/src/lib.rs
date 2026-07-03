@@ -1,9 +1,9 @@
 pub mod actors;
 pub mod agent;
+pub mod ai;
 pub mod audio;
 pub mod auth;
 pub mod budget;
-pub mod ai;
 pub mod byok;
 pub mod clipboard;
 pub mod cloud_backup;
@@ -30,8 +30,8 @@ pub mod runtime;
 pub mod scheduler;
 pub mod search;
 pub mod session;
-pub mod share;
 pub mod settings;
+pub mod share;
 pub mod sleep;
 pub mod telemetry;
 pub mod util;
@@ -52,22 +52,22 @@ use tauri_plugin_window_state::StateFlags;
 use crate::auth::AuthManager;
 use crate::cloud_backup::{
     apply_pending_restore, backup_now, clear_service_role_key, delete_backup, get_key_state,
-    get_state, restore_backup, set_service_role_key,
-    spawn_cloud_backup_worker, test_connection,
+    get_state, restore_backup, set_service_role_key, spawn_cloud_backup_worker, test_connection,
 };
 use crate::commands::{
-    DashboardCache, PendingDeepLink, backup_desktop_settings, begin_background_task,
+    backup_desktop_settings, begin_background_task, clear_webview_browsing_data,
     consume_pending_deep_link, emit_main_window_event, export_content_to_file,
-    finish_background_task, get_dashboard_data, get_feedback_by_id, get_feedback_realtime_config,
-    get_focus_dashboard, get_lifecycle_state, get_my_feedback, load_desktop_settings,
-    pick_export_directory, pick_import_file, pick_transcription_model, quit_app,
-    record_focus_session, export_focus_sessions, restore_desktop_settings_backup, restore_window, save_desktop_settings,
-    clear_webview_browsing_data, save_export_manifest, submit_feedback, write_debug_log,
+    export_focus_sessions, finish_background_task, get_dashboard_data, get_feedback_by_id,
+    get_feedback_realtime_config, get_focus_dashboard, get_lifecycle_state, get_my_feedback,
+    load_desktop_settings, pick_export_directory, pick_import_file, pick_transcription_model,
+    quit_app, record_focus_session, restore_desktop_settings_backup, restore_window,
+    save_desktop_settings, save_export_manifest, submit_feedback, write_debug_log, DashboardCache,
+    PendingDeepLink,
 };
 use crate::crypto::CryptoService;
 use crate::db::{
-    BentoAppState, create_quick_task, enforce_auth_user_boundary, flush_module_state,
-    get_module_context, get_module_fonts, save_module_context, set_module_fonts,
+    create_quick_task, enforce_auth_user_boundary, flush_module_state, get_module_context,
+    get_module_fonts, save_module_context, set_module_fonts, BentoAppState,
 };
 use crate::modules::{
     fetch_module_registry, get_active_module, get_installed_modules, get_module_settings,
@@ -324,7 +324,9 @@ pub fn run() {
             let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyA);
             match app.global_shortcut().on_shortcut(
                 shortcut,
-                |app_handle: &AppHandle, _shortcut: &Shortcut, event: tauri_plugin_global_shortcut::ShortcutEvent| {
+                |app_handle: &AppHandle,
+                 _shortcut: &Shortcut,
+                 event: tauri_plugin_global_shortcut::ShortcutEvent| {
                     if event.state != tauri_plugin_global_shortcut::ShortcutState::Pressed {
                         return;
                     }
@@ -366,12 +368,14 @@ pub fn run() {
         // ── Global shortcut: Ctrl+Shift+I → toggle island ──
         {
             let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyI);
-            match app.global_shortcut().on_shortcut(shortcut, |handle, _event, _shortcut| {
-                if let Some(window) = handle.get_webview_window("island") {
-                    let _ = crate::island::position_top_center(&window);
-                    let _ = window.emit("island:toggle", ());
-                }
-            }) {
+            match app
+                .global_shortcut()
+                .on_shortcut(shortcut, |handle, _event, _shortcut| {
+                    if let Some(window) = handle.get_webview_window("island") {
+                        let _ = crate::island::position_top_center(&window);
+                        let _ = window.emit("island:toggle", ());
+                    }
+                }) {
                 Ok(_) => eprintln!("[shortcut] registered Ctrl+Shift+I for island toggle"),
                 Err(e) => eprintln!("[shortcut] failed to register island shortcut: {e}"),
             }
@@ -381,8 +385,8 @@ pub fn run() {
             .path()
             .app_data_dir()
             .map_err(|error| std::io::Error::other(error))?;
-        let search_service = SearchService::new(search_base_dir)
-            .map_err(|error| std::io::Error::other(error))?;
+        let search_service =
+            SearchService::new(search_base_dir).map_err(|error| std::io::Error::other(error))?;
         app.manage(search_service);
 
         let auth_manager =
@@ -433,7 +437,9 @@ pub fn run() {
 
         // Ensure clipboard database tables exist before starting the monitor
         let clipboard_pool = app.state::<BentoAppState>().inner().db();
-        if let Err(e) = tauri::async_runtime::block_on(crate::clipboard::ensure_clipboard_tables(&clipboard_pool)) {
+        if let Err(e) = tauri::async_runtime::block_on(crate::clipboard::ensure_clipboard_tables(
+            &clipboard_pool,
+        )) {
             eprintln!("[clipboard] failed to ensure clipboard tables: {e}");
         }
 

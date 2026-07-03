@@ -18,8 +18,8 @@ use tauri::Manager;
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use uuid::Uuid;
 
-use crate::db::BentoAppState;
 use crate::audio::classifier::generate_note_title;
+use crate::db::BentoAppState;
 
 /// Result of a dictation paste operation.
 #[derive(Debug, Clone, Serialize)]
@@ -67,10 +67,7 @@ pub async fn voice_paste_dictation(
     if let Some(window) = app.get_webview_window("main") {
         // Use serde_json for safe JS string escaping
         let escaped = serde_json::to_string(&text).unwrap_or_else(|_| "\"\"".to_string());
-        let js = format!(
-            "document.execCommand('insertText', false, {});",
-            escaped
-        );
+        let js = format!("document.execCommand('insertText', false, {});", escaped);
         let _: Result<(), _> = window.eval(&js);
     }
 

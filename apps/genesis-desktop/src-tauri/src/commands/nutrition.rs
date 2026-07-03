@@ -22,12 +22,18 @@ use crate::util::time;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-fn now_ms() -> i64 { time::now_ms() }
+fn now_ms() -> i64 {
+    time::now_ms()
+}
 
 /// Start of the current calendar day in local-time ms.
-fn today_start_ms() -> i64 { time::start_of_today() }
+fn today_start_ms() -> i64 {
+    time::start_of_today()
+}
 
-fn today_end_ms() -> i64 { time::start_of_today() + 86_399_999 }
+fn today_end_ms() -> i64 {
+    time::start_of_today() + 86_399_999
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -51,7 +57,7 @@ pub struct TodayWater {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WeeklyWaterDay {
-    pub date: String,     // "YYYY-MM-DD"
+    pub date: String,      // "YYYY-MM-DD"
     pub day_label: String, // "Mon", "Tue" …
     pub total_ml: i64,
     pub goal_ml: i64,
@@ -77,7 +83,7 @@ pub struct FoodItem {
 pub struct MealEntry {
     pub id: String,
     pub name: String,
-    pub meal_type: String,  // "breakfast" | "lunch" | "dinner" | "snack" | "meal"
+    pub meal_type: String, // "breakfast" | "lunch" | "dinner" | "snack" | "meal"
     pub notes: String,
     pub total_kcal: i64,
     pub logged_at: i64,
@@ -168,7 +174,15 @@ pub struct UpdateGoalsParams {
 }
 
 impl Default for UpdateGoalsParams {
-    fn default() -> Self { Self { water_goal_ml: None, calorie_goal: None, protein_goal_g: None, carbs_goal_g: None, fat_goal_g: None } }
+    fn default() -> Self {
+        Self {
+            water_goal_ml: None,
+            calorie_goal: None,
+            protein_goal_g: None,
+            carbs_goal_g: None,
+            fat_goal_g: None,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -198,17 +212,19 @@ pub async fn nutrition_log_water(
     let id = Uuid::new_v4().to_string();
     let logged_at = now_ms();
 
-    sqlx::query(
-        "INSERT INTO water_logs (id, amount_ml, logged_at) VALUES (?, ?, ?)",
-    )
-    .bind(&id)
-    .bind(params.amount_ml)
-    .bind(logged_at)
-    .execute(&db)
-    .await
-    .map_err(|e| e.to_string())?;
+    sqlx::query("INSERT INTO water_logs (id, amount_ml, logged_at) VALUES (?, ?, ?)")
+        .bind(&id)
+        .bind(params.amount_ml)
+        .bind(logged_at)
+        .execute(&db)
+        .await
+        .map_err(|e| e.to_string())?;
 
-    Ok(WaterEntry { id, amount_ml: params.amount_ml, logged_at })
+    Ok(WaterEntry {
+        id,
+        amount_ml: params.amount_ml,
+        logged_at,
+    })
 }
 
 /// Get today's hydration: total, goal, percentage, and individual entries.
@@ -218,7 +234,7 @@ pub async fn nutrition_get_today_water(
 ) -> Result<TodayWater, String> {
     let db = state.db();
     let start = today_start_ms();
-    let end   = today_end_ms();
+    let end = today_end_ms();
 
     let goals = fetch_goals(&db).await?;
 
@@ -241,25 +257,28 @@ pub async fn nutrition_get_today_water(
     let total_ml: i64 = entries.iter().map(|e| e.amount_ml).sum::<i64>().max(0);
     let pct = if goals.water_goal_ml > 0 {
         ((total_ml * 100) / goals.water_goal_ml).min(100)
-    } else { 0 };
+    } else {
+        0
+    };
 
-    Ok(TodayWater { total_ml, goal_ml: goals.water_goal_ml, percentage: pct, entries })
+    Ok(TodayWater {
+        total_ml,
+        goal_ml: goals.water_goal_ml,
+        percentage: pct,
+        entries,
+    })
 }
 
 /// Delete all of today's water logs (reset button).
 #[tauri::command]
-pub async fn nutrition_reset_water(
-    state: State<'_, BentoAppState>,
-) -> Result<(), String> {
+pub async fn nutrition_reset_water(state: State<'_, BentoAppState>) -> Result<(), String> {
     let db = state.db();
-    sqlx::query(
-        "DELETE FROM water_logs WHERE logged_at >= ? AND logged_at <= ?",
-    )
-    .bind(today_start_ms())
-    .bind(today_end_ms())
-    .execute(&db)
-    .await
-    .map_err(|e| e.to_string())?;
+    sqlx::query("DELETE FROM water_logs WHERE logged_at >= ? AND logged_at <= ?")
+        .bind(today_start_ms())
+        .bind(today_end_ms())
+        .execute(&db)
+        .await
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -377,7 +396,9 @@ pub async fn nutrition_log_meal(
         .map_err(|e| e.to_string())?;
 
         food_entries.push(FoodItem {
-            id: fid, meal_id: id.clone(), name: food.name.clone(),
+            id: fid,
+            meal_id: id.clone(),
+            name: food.name.clone(),
             quantity: food.quantity.unwrap_or(1.0),
             unit: food.unit.clone().unwrap_or_else(|| "serving".to_string()),
             calories_kcal: food.calories_kcal.unwrap_or(0),
@@ -389,7 +410,13 @@ pub async fn nutrition_log_meal(
     }
 
     Ok(MealEntry {
-        id, name: params.name, meal_type, notes, total_kcal, logged_at, foods: food_entries,
+        id,
+        name: params.name,
+        meal_type,
+        notes,
+        total_kcal,
+        logged_at,
+        foods: food_entries,
     })
 }
 
@@ -410,10 +437,12 @@ pub async fn nutrition_get_meals_for_date(
 ) -> Result<Vec<MealEntry>, String> {
     let db = state.db();
     // Parse the date and compute start/end in ms
-    let dt = chrono::NaiveDate::parse_from_str(&date, "%Y-%m-%d")
-        .map_err(|e| e.to_string())?;
-    let start = dt.and_hms_opt(0, 0, 0).unwrap()
-        .and_local_timezone(chrono::Local).unwrap()
+    let dt = chrono::NaiveDate::parse_from_str(&date, "%Y-%m-%d").map_err(|e| e.to_string())?;
+    let start = dt
+        .and_hms_opt(0, 0, 0)
+        .unwrap()
+        .and_local_timezone(chrono::Local)
+        .unwrap()
         .timestamp_millis();
     let end = start + 86_399_999;
     fetch_meals_for_range(&db, start, end).await
@@ -438,19 +467,24 @@ async fn fetch_meals_for_range(
         let meal_id: String = row.try_get("id").unwrap_or_default();
         let foods = fetch_foods_for_meal(db, &meal_id).await?;
         meals.push(MealEntry {
-            id:         meal_id,
-            name:       row.try_get("name").unwrap_or_default(),
-            meal_type:  row.try_get("meal_type").unwrap_or_else(|_| "meal".to_string()),
-            notes:      row.try_get("notes").unwrap_or_default(),
+            id: meal_id,
+            name: row.try_get("name").unwrap_or_default(),
+            meal_type: row
+                .try_get("meal_type")
+                .unwrap_or_else(|_| "meal".to_string()),
+            notes: row.try_get("notes").unwrap_or_default(),
             total_kcal: row.try_get("total_kcal").unwrap_or(0),
-            logged_at:  row.try_get("logged_at").unwrap_or(0),
+            logged_at: row.try_get("logged_at").unwrap_or(0),
             foods,
         });
     }
     Ok(meals)
 }
 
-async fn fetch_foods_for_meal(db: &sqlx::SqlitePool, meal_id: &str) -> Result<Vec<FoodItem>, String> {
+async fn fetch_foods_for_meal(
+    db: &sqlx::SqlitePool,
+    meal_id: &str,
+) -> Result<Vec<FoodItem>, String> {
     let rows = sqlx::query(
         "SELECT id, meal_id, name, quantity, unit, calories_kcal, protein_g, carbs_g, fat_g, created_at FROM meal_foods WHERE meal_id = ? ORDER BY created_at ASC",
     )
@@ -459,18 +493,23 @@ async fn fetch_foods_for_meal(db: &sqlx::SqlitePool, meal_id: &str) -> Result<Ve
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(rows.into_iter().map(|row| FoodItem {
-        id:           row.try_get("id").unwrap_or_default(),
-        meal_id:      row.try_get("meal_id").unwrap_or_default(),
-        name:         row.try_get("name").unwrap_or_default(),
-        quantity:     row.try_get("quantity").unwrap_or(1.0),
-        unit:         row.try_get("unit").unwrap_or_else(|_| "serving".to_string()),
-        calories_kcal:row.try_get("calories_kcal").unwrap_or(0),
-        protein_g:    row.try_get("protein_g").unwrap_or(0.0),
-        carbs_g:      row.try_get("carbs_g").unwrap_or(0.0),
-        fat_g:        row.try_get("fat_g").unwrap_or(0.0),
-        created_at:   row.try_get("created_at").unwrap_or(0),
-    }).collect())
+    Ok(rows
+        .into_iter()
+        .map(|row| FoodItem {
+            id: row.try_get("id").unwrap_or_default(),
+            meal_id: row.try_get("meal_id").unwrap_or_default(),
+            name: row.try_get("name").unwrap_or_default(),
+            quantity: row.try_get("quantity").unwrap_or(1.0),
+            unit: row
+                .try_get("unit")
+                .unwrap_or_else(|_| "serving".to_string()),
+            calories_kcal: row.try_get("calories_kcal").unwrap_or(0),
+            protein_g: row.try_get("protein_g").unwrap_or(0.0),
+            carbs_g: row.try_get("carbs_g").unwrap_or(0.0),
+            fat_g: row.try_get("fat_g").unwrap_or(0.0),
+            created_at: row.try_get("created_at").unwrap_or(0),
+        })
+        .collect())
 }
 
 /// Delete a meal and all its food items.
@@ -528,7 +567,9 @@ pub async fn nutrition_add_food_to_meal(
     .map_err(|e| e.to_string())?;
 
     Ok(FoodItem {
-        id, meal_id, name: food.name,
+        id,
+        meal_id,
+        name: food.name,
         quantity: food.quantity.unwrap_or(1.0),
         unit: food.unit.unwrap_or_else(|| "serving".to_string()),
         calories_kcal: food.calories_kcal.unwrap_or(0),
@@ -550,11 +591,11 @@ async fn fetch_goals(db: &sqlx::SqlitePool) -> Result<NutritionGoals, String> {
     .map_err(|e| e.to_string())?;
 
     Ok(NutritionGoals {
-        water_goal_ml:  row.try_get("water_goal_ml").unwrap_or(2000),
-        calorie_goal:   row.try_get("calorie_goal").unwrap_or(2200),
+        water_goal_ml: row.try_get("water_goal_ml").unwrap_or(2000),
+        calorie_goal: row.try_get("calorie_goal").unwrap_or(2200),
         protein_goal_g: row.try_get("protein_goal_g").unwrap_or(150),
-        carbs_goal_g:   row.try_get("carbs_goal_g").unwrap_or(250),
-        fat_goal_g:     row.try_get("fat_goal_g").unwrap_or(70),
+        carbs_goal_g: row.try_get("carbs_goal_g").unwrap_or(250),
+        fat_goal_g: row.try_get("fat_goal_g").unwrap_or(70),
     })
 }
 
@@ -576,11 +617,11 @@ pub async fn nutrition_update_goals(
     let now = now_ms();
     let existing = fetch_goals(&db).await?;
 
-    let water  = params.water_goal_ml.unwrap_or(existing.water_goal_ml);
-    let cal    = params.calorie_goal.unwrap_or(existing.calorie_goal);
-    let prot   = params.protein_goal_g.unwrap_or(existing.protein_goal_g);
-    let carbs  = params.carbs_goal_g.unwrap_or(existing.carbs_goal_g);
-    let fat    = params.fat_goal_g.unwrap_or(existing.fat_goal_g);
+    let water = params.water_goal_ml.unwrap_or(existing.water_goal_ml);
+    let cal = params.calorie_goal.unwrap_or(existing.calorie_goal);
+    let prot = params.protein_goal_g.unwrap_or(existing.protein_goal_g);
+    let carbs = params.carbs_goal_g.unwrap_or(existing.carbs_goal_g);
+    let fat = params.fat_goal_g.unwrap_or(existing.fat_goal_g);
 
     sqlx::query(
         "UPDATE nutrition_goals SET water_goal_ml=?, calorie_goal=?, protein_goal_g=?, carbs_goal_g=?, fat_goal_g=?, updated_at=? WHERE id=1",
@@ -590,7 +631,13 @@ pub async fn nutrition_update_goals(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(NutritionGoals { water_goal_ml: water, calorie_goal: cal, protein_goal_g: prot, carbs_goal_g: carbs, fat_goal_g: fat })
+    Ok(NutritionGoals {
+        water_goal_ml: water,
+        calorie_goal: cal,
+        protein_goal_g: prot,
+        carbs_goal_g: carbs,
+        fat_goal_g: fat,
+    })
 }
 
 // ─── Today summary (combines water + meals + macros) ─────────────────────────
@@ -601,9 +648,9 @@ pub async fn nutrition_get_today_summary(
     state: State<'_, BentoAppState>,
 ) -> Result<TodaySummary, String> {
     let db = state.db();
-    let goals   = fetch_goals(&db).await?;
-    let start   = today_start_ms();
-    let end     = today_end_ms();
+    let goals = fetch_goals(&db).await?;
+    let start = today_start_ms();
+    let end = today_end_ms();
 
     // Water
     let water_entries: Vec<WaterEntry> = sqlx::query(
@@ -619,8 +666,16 @@ pub async fn nutrition_get_today_summary(
     })
     .collect();
 
-    let total_water_ml: i64 = water_entries.iter().map(|e| e.amount_ml).sum::<i64>().max(0);
-    let water_pct = if goals.water_goal_ml > 0 { ((total_water_ml * 100) / goals.water_goal_ml).min(100) } else { 0 };
+    let total_water_ml: i64 = water_entries
+        .iter()
+        .map(|e| e.amount_ml)
+        .sum::<i64>()
+        .max(0);
+    let water_pct = if goals.water_goal_ml > 0 {
+        ((total_water_ml * 100) / goals.water_goal_ml).min(100)
+    } else {
+        0
+    };
 
     // Meals
     let meals = fetch_meals_for_range(&db, start, end).await?;
@@ -639,17 +694,24 @@ pub async fn nutrition_get_today_summary(
         WHERE m.logged_at >= ? AND m.logged_at <= ?
         "#,
     )
-    .bind(start).bind(end)
-    .fetch_one(&db).await.map_err(|e| e.to_string())?;
+    .bind(start)
+    .bind(end)
+    .fetch_one(&db)
+    .await
+    .map_err(|e| e.to_string())?;
 
-    let cal_total:  i64 = macro_row.try_get::<i64,_>("cal").unwrap_or(0);
-    let prot_total: f64 = macro_row.try_get::<f64,_>("prot").unwrap_or(0.0);
-    let carb_total: f64 = macro_row.try_get::<f64,_>("carb").unwrap_or(0.0);
-    let fat_total:  f64 = macro_row.try_get::<f64,_>("fat").unwrap_or(0.0);
+    let cal_total: i64 = macro_row.try_get::<i64, _>("cal").unwrap_or(0);
+    let prot_total: f64 = macro_row.try_get::<f64, _>("prot").unwrap_or(0.0);
+    let carb_total: f64 = macro_row.try_get::<f64, _>("carb").unwrap_or(0.0);
+    let fat_total: f64 = macro_row.try_get::<f64, _>("fat").unwrap_or(0.0);
 
     // Fallback: sum from meal total_kcal when no food items are detailed
     let meal_kcal_sum: i64 = meals.iter().map(|m| m.total_kcal).sum();
-    let effective_cal = if cal_total > 0 { cal_total } else { meal_kcal_sum };
+    let effective_cal = if cal_total > 0 {
+        cal_total
+    } else {
+        meal_kcal_sum
+    };
 
     let cal_remaining = (goals.calorie_goal - effective_cal).max(0);
 
@@ -657,22 +719,24 @@ pub async fn nutrition_get_today_summary(
     let next_cue: Option<String> = sqlx::query(
         "SELECT label FROM nutrition_reminders WHERE enabled = 1 ORDER BY created_at ASC LIMIT 1",
     )
-    .fetch_optional(&db).await.map_err(|e| e.to_string())?
+    .fetch_optional(&db)
+    .await
+    .map_err(|e| e.to_string())?
     .map(|row| row.try_get::<String, _>("label").unwrap_or_default());
 
     Ok(TodaySummary {
         water: TodayWater {
-            total_ml:   total_water_ml,
-            goal_ml:    goals.water_goal_ml,
+            total_ml: total_water_ml,
+            goal_ml: goals.water_goal_ml,
             percentage: water_pct,
-            entries:    water_entries,
+            entries: water_entries,
         },
         meals,
         macros: MacroTotals {
             calories_kcal: effective_cal,
-            protein_g:     prot_total,
-            carbs_g:       carb_total,
-            fat_g:         fat_total,
+            protein_g: prot_total,
+            carbs_g: carb_total,
+            fat_g: fat_total,
         },
         goals: goals.clone(),
         meals_logged,
@@ -691,10 +755,13 @@ pub async fn nutrition_get_macro_totals(
 ) -> Result<MacroTotals, String> {
     let db = state.db();
     let (start, end) = if let Some(d) = date {
-        let dt = chrono::NaiveDate::parse_from_str(&d, "%Y-%m-%d")
-            .map_err(|e| e.to_string())?;
-        let s = dt.and_hms_opt(0,0,0).unwrap()
-            .and_local_timezone(chrono::Local).unwrap().timestamp_millis();
+        let dt = chrono::NaiveDate::parse_from_str(&d, "%Y-%m-%d").map_err(|e| e.to_string())?;
+        let s = dt
+            .and_hms_opt(0, 0, 0)
+            .unwrap()
+            .and_local_timezone(chrono::Local)
+            .unwrap()
+            .timestamp_millis();
         (s, s + 86_399_999)
     } else {
         (today_start_ms(), today_end_ms())
@@ -712,24 +779,30 @@ pub async fn nutrition_get_macro_totals(
         WHERE m.logged_at >= ? AND m.logged_at <= ?
         "#,
     )
-    .bind(start).bind(end)
-    .fetch_one(&db).await.map_err(|e| e.to_string())?;
+    .bind(start)
+    .bind(end)
+    .fetch_one(&db)
+    .await
+    .map_err(|e| e.to_string())?;
 
     // Fallback to meal total_kcal if no food items are broken down
-    let food_kcal: i64 = row.try_get::<i64,_>("cal").unwrap_or(0);
-    let meal_kcal: i64 = if food_kcal == 0 {
-        sqlx::query_scalar::<_,i64>(
+    let food_kcal: i64 = row.try_get::<i64, _>("cal").unwrap_or(0);
+    let meal_kcal: i64 =
+        if food_kcal == 0 {
+            sqlx::query_scalar::<_,i64>(
             "SELECT COALESCE(SUM(total_kcal),0) FROM meals WHERE logged_at >= ? AND logged_at <= ?"
         )
         .bind(start).bind(end)
         .fetch_one(&db).await.unwrap_or(0)
-    } else { 0 };
+        } else {
+            0
+        };
 
     Ok(MacroTotals {
         calories_kcal: food_kcal.max(meal_kcal),
-        protein_g:     row.try_get::<f64,_>("prot").unwrap_or(0.0),
-        carbs_g:       row.try_get::<f64,_>("carb").unwrap_or(0.0),
-        fat_g:         row.try_get::<f64,_>("fat").unwrap_or(0.0),
+        protein_g: row.try_get::<f64, _>("prot").unwrap_or(0.0),
+        carbs_g: row.try_get::<f64, _>("carb").unwrap_or(0.0),
+        fat_g: row.try_get::<f64, _>("fat").unwrap_or(0.0),
     })
 }
 
@@ -746,16 +819,19 @@ pub async fn nutrition_get_reminders(
     )
     .fetch_all(&db).await.map_err(|e| e.to_string())?;
 
-    Ok(rows.into_iter().map(|row| NutritionReminder {
-        id:         row.try_get("id").unwrap_or_default(),
-        label:      row.try_get("label").unwrap_or_default(),
-        detail:     row.try_get("detail").unwrap_or_default(),
-        mode:       row.try_get("mode").unwrap_or_else(|_| "Active".to_string()),
-        schedule:   row.try_get("schedule").unwrap_or_else(|_| "{}".to_string()),
-        enabled:    row.try_get::<i64,_>("enabled").unwrap_or(1) == 1,
-        created_at: row.try_get("created_at").unwrap_or(0),
-        updated_at: row.try_get("updated_at").unwrap_or(0),
-    }).collect())
+    Ok(rows
+        .into_iter()
+        .map(|row| NutritionReminder {
+            id: row.try_get("id").unwrap_or_default(),
+            label: row.try_get("label").unwrap_or_default(),
+            detail: row.try_get("detail").unwrap_or_default(),
+            mode: row.try_get("mode").unwrap_or_else(|_| "Active".to_string()),
+            schedule: row.try_get("schedule").unwrap_or_else(|_| "{}".to_string()),
+            enabled: row.try_get::<i64, _>("enabled").unwrap_or(1) == 1,
+            created_at: row.try_get("created_at").unwrap_or(0),
+            updated_at: row.try_get("updated_at").unwrap_or(0),
+        })
+        .collect())
 }
 
 /// Create or update a reminder.
@@ -767,10 +843,10 @@ pub async fn nutrition_save_reminder(
     let db = state.db();
     let now = now_ms();
     let id = params.id.unwrap_or_else(|| Uuid::new_v4().to_string());
-    let detail   = params.detail.unwrap_or_default();
-    let mode     = params.mode.unwrap_or_else(|| "Active".to_string());
+    let detail = params.detail.unwrap_or_default();
+    let mode = params.mode.unwrap_or_else(|| "Active".to_string());
     let schedule = params.schedule.unwrap_or_else(|| "{}".to_string());
-    let enabled  = params.enabled.unwrap_or(true);
+    let enabled = params.enabled.unwrap_or(true);
 
     sqlx::query(
         r#"
@@ -787,7 +863,16 @@ pub async fn nutrition_save_reminder(
     .bind(now).bind(now)
     .execute(&db).await.map_err(|e| e.to_string())?;
 
-    Ok(NutritionReminder { id, label: params.label, detail, mode, schedule, enabled, created_at: now, updated_at: now })
+    Ok(NutritionReminder {
+        id,
+        label: params.label,
+        detail,
+        mode,
+        schedule,
+        enabled,
+        created_at: now,
+        updated_at: now,
+    })
 }
 
 /// Delete a reminder.
@@ -798,7 +883,9 @@ pub async fn nutrition_delete_reminder(
 ) -> Result<(), String> {
     sqlx::query("DELETE FROM nutrition_reminders WHERE id = ?")
         .bind(&id)
-        .execute(&state.db()).await.map_err(|e| e.to_string())?;
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -813,7 +900,9 @@ pub async fn nutrition_toggle_reminder(
         .bind(if enabled { 1i64 } else { 0i64 })
         .bind(now_ms())
         .bind(&id)
-        .execute(&state.db()).await.map_err(|e| e.to_string())?;
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -848,7 +937,9 @@ pub async fn nutrition_get_hydration_stats(
         "#,
     )
     .bind(today_start_ms() - 29 * 86_400_000)
-    .fetch_all(&db).await.map_err(|e| e.to_string())?;
+    .fetch_all(&db)
+    .await
+    .map_err(|e| e.to_string())?;
 
     let goals = fetch_goals(&db).await?;
     let goal = goals.water_goal_ml;
@@ -863,18 +954,29 @@ pub async fn nutrition_get_hydration_stats(
 
     for (i, row) in rows.iter().enumerate() {
         let day: String = row.try_get("day").unwrap_or_default();
-        let ml: i64 = row.try_get::<i64,_>("total_ml").unwrap_or(0).max(0);
+        let ml: i64 = row.try_get::<i64, _>("total_ml").unwrap_or(0).max(0);
 
-        if ml > best_ml { best_ml = ml; best_date = day.clone(); }
+        if ml > best_ml {
+            best_ml = ml;
+            best_date = day.clone();
+        }
 
         // Streak: consecutive days from today where goal was met
-        if i == 0 && ml >= goal { streak += 1; }
-        else if i > 0 && streak == i as i64 && ml >= goal { streak += 1; }
+        if i == 0 && ml >= goal {
+            streak += 1;
+        } else if i > 0 && streak == i as i64 && ml >= goal {
+            streak += 1;
+        }
 
         // Weekly average (last 7 days)
         let day_ts = chrono::NaiveDate::parse_from_str(&day, "%Y-%m-%d")
-            .map(|d| d.and_hms_opt(0,0,0).unwrap()
-                .and_local_timezone(chrono::Local).unwrap().timestamp_millis())
+            .map(|d| {
+                d.and_hms_opt(0, 0, 0)
+                    .unwrap()
+                    .and_local_timezone(chrono::Local)
+                    .unwrap()
+                    .timestamp_millis()
+            })
             .unwrap_or(0);
 
         if day_ts >= week_cutoff {
@@ -883,7 +985,11 @@ pub async fn nutrition_get_hydration_stats(
         }
     }
 
-    let weekly_avg = if weekly_days > 0 { weekly_sum / weekly_days } else { 0 };
+    let weekly_avg = if weekly_days > 0 {
+        weekly_sum / weekly_days
+    } else {
+        0
+    };
 
     Ok(HydrationStats {
         streak_days: streak,
@@ -956,16 +1062,24 @@ pub async fn nutrition_export_data(
         ORDER BY d.day_ms DESC
         "#,
     )
-    .bind(since).bind(since).bind(since).bind(since)
-    .fetch_all(&db).await.map_err(|e| e.to_string())?;
+    .bind(since)
+    .bind(since)
+    .bind(since)
+    .bind(since)
+    .fetch_all(&db)
+    .await
+    .map_err(|e| e.to_string())?;
 
-    Ok(rows.into_iter().map(|row| NutritionExportRow {
-        date:          row.try_get("day").unwrap_or_default(),
-        water_ml:      row.try_get("water_ml").unwrap_or(0),
-        calories_kcal: row.try_get("kcal").unwrap_or(0),
-        protein_g:     row.try_get("prot").unwrap_or(0.0),
-        carbs_g:       row.try_get("carb").unwrap_or(0.0),
-        fat_g:         row.try_get("fat").unwrap_or(0.0),
-        meals_count:   row.try_get("cnt").unwrap_or(0),
-    }).collect())
+    Ok(rows
+        .into_iter()
+        .map(|row| NutritionExportRow {
+            date: row.try_get("day").unwrap_or_default(),
+            water_ml: row.try_get("water_ml").unwrap_or(0),
+            calories_kcal: row.try_get("kcal").unwrap_or(0),
+            protein_g: row.try_get("prot").unwrap_or(0.0),
+            carbs_g: row.try_get("carb").unwrap_or(0.0),
+            fat_g: row.try_get("fat").unwrap_or(0.0),
+            meals_count: row.try_get("cnt").unwrap_or(0),
+        })
+        .collect())
 }

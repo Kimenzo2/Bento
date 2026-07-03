@@ -18,7 +18,7 @@
   import { streamAiResponse } from "$lib/desktop/ai";
   import { voiceEngine, type VoiceMode } from "$lib/stores/voice-engine.store.svelte";
 
-  type AgentDockMode = "idle" | "composing" | "recording" | "working";
+  type AgentDockMode = "idle" | "composing" | "listening" | "recording" | "working";
 
   type AgentContext = {
     screenCapture?: string;

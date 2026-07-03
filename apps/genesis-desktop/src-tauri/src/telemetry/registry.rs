@@ -1,7 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 
 use crate::telemetry::{
-    ActiveJsHeapInput, MiniReport, ModuleManifest, ModuleState, TRACKED_MINI_APPS, now_ms,
+    now_ms, ActiveJsHeapInput, MiniReport, ModuleManifest, ModuleState, TRACKED_MINI_APPS,
 };
 
 #[derive(Clone, Debug)]

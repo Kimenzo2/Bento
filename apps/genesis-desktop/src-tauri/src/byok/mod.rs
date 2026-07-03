@@ -537,11 +537,16 @@ async fn test_openai_connection(
     base_url: &str,
 ) -> Result<Vec<String>, ConnectionError> {
     // Use validate_key-style: GET /models — free endpoint.
-    let resp = retry_request(client, || {
-        client
-            .get(format!("{base_url}/models"))
-            .header("Authorization", format!("Bearer {key}"))
-    }, 1).await?;
+    let resp = retry_request(
+        client,
+        || {
+            client
+                .get(format!("{base_url}/models"))
+                .header("Authorization", format!("Bearer {key}"))
+        },
+        1,
+    )
+    .await?;
 
     match resp.status().as_u16() {
         200 => {}
@@ -585,12 +590,17 @@ async fn test_anthropic_connection(
     key: &str,
     base_url: &str,
 ) -> Result<Vec<String>, ConnectionError> {
-    let resp = retry_request(client, || {
-        client
-            .get(format!("{base_url}/models"))
-            .header("x-api-key", key)
-            .header("anthropic-version", "2023-06-01")
-    }, 1).await?;
+    let resp = retry_request(
+        client,
+        || {
+            client
+                .get(format!("{base_url}/models"))
+                .header("x-api-key", key)
+                .header("anthropic-version", "2023-06-01")
+        },
+        1,
+    )
+    .await?;
 
     match resp.status().as_u16() {
         200 => {}
@@ -643,11 +653,16 @@ async fn test_gemini_connection(
     key: &str,
     base_url: &str,
 ) -> Result<Vec<String>, ConnectionError> {
-    let resp = retry_request(client, || {
-        client
-            .get(format!("{base_url}/models"))
-            .header("x-goog-api-key", key)
-    }, 1).await?;
+    let resp = retry_request(
+        client,
+        || {
+            client
+                .get(format!("{base_url}/models"))
+                .header("x-goog-api-key", key)
+        },
+        1,
+    )
+    .await?;
 
     match resp.status().as_u16() {
         200 => {}
@@ -691,11 +706,16 @@ async fn test_grok_connection(
     key: &str,
     base_url: &str,
 ) -> Result<Vec<String>, ConnectionError> {
-    let resp = retry_request(client, || {
-        client
-            .get(format!("{base_url}/models"))
-            .header("Authorization", format!("Bearer {key}"))
-    }, 1).await?;
+    let resp = retry_request(
+        client,
+        || {
+            client
+                .get(format!("{base_url}/models"))
+                .header("Authorization", format!("Bearer {key}"))
+        },
+        1,
+    )
+    .await?;
 
     match resp.status().as_u16() {
         200 => {}
@@ -738,11 +758,16 @@ async fn test_ollama_connection(
     client: &reqwest::Client,
     base_url: &str,
 ) -> Result<Vec<String>, ConnectionError> {
-    let resp = retry_request(client, || {
-        client
-            .get(format!("{base_url}/api/tags"))
-            .timeout(Duration::from_secs(5))
-    }, 1).await?;
+    let resp = retry_request(
+        client,
+        || {
+            client
+                .get(format!("{base_url}/api/tags"))
+                .timeout(Duration::from_secs(5))
+        },
+        1,
+    )
+    .await?;
 
     match resp.status().as_u16() {
         200 => {}

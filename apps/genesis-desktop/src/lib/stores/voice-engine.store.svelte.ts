@@ -26,23 +26,23 @@ export type VoiceMode = "idle" | "dictation" | "voice_note" | "meeting" | "agent
 export type VoiceStatus =
   | "inactive"
   | "initializing"
-  | "listening"       // mic open, capturing (Web Speech)
-  | "recording"       // actively recording (Rust cpal)
-  | "paused"          // recording paused
-  | "processing"      // transcribing / classifying
-  | "summarizing"     // AI generating summary
-  | "completed"       // done, showing result
+  | "listening" // mic open, capturing (Web Speech)
+  | "recording" // actively recording (Rust cpal)
+  | "paused" // recording paused
+  | "processing" // transcribing / classifying
+  | "summarizing" // AI generating summary
+  | "completed" // done, showing result
   | "error";
 
 export interface VoiceSession {
   id: string;
   mode: VoiceMode;
   status: VoiceStatus;
-  startTime: number;         // epoch ms
-  elapsedMs: number;          // updated every 200ms
-  audioLevel: number;         // 0.0–1.0 for waveform
-  interimText: string;        // streaming transcript (Web Speech)
-  finalText: string;          // completed transcript (Moonshine)
+  startTime: number; // epoch ms
+  elapsedMs: number; // updated every 200ms
+  audioLevel: number; // 0.0–1.0 for waveform
+  interimText: string; // streaming transcript (Web Speech)
+  finalText: string; // completed transcript (Moonshine)
   recordingId: string | null; // references Rust recording session
   filePath: string | null;
   summary: string | null;
@@ -123,35 +123,31 @@ class VoiceEngineStore {
       "voice:audio-level",
       (event) => {
         this.audioLevel = event.payload.level;
-      }
+      },
     );
     this.#unlisteners.push(unsubLevel);
 
     // Listen for sleep detection
-    const unsubSleep = await listen<{ driftMs: number }>(
-      "voice:sleep-detected",
-      (event) => {
-        if (this.session) {
-          console.warn(`[voice-engine] Sleep detected mid-recording: drift=${event.payload.driftMs}ms`);
-        }
+    const unsubSleep = await listen<{ driftMs: number }>("voice:sleep-detected", (event) => {
+      if (this.session) {
+        console.warn(
+          `[voice-engine] Sleep detected mid-recording: drift=${event.payload.driftMs}ms`,
+        );
       }
-    );
+    });
     this.#unlisteners.push(unsubSleep);
 
     // Listen for errors from Rust
-    const unsubError = await listen<{ code: string; message: string }>(
-      "voice:error",
-      (event) => {
-        if (this.session) {
-          this.session = {
-            ...this.session,
-            status: "error",
-            error: event.payload.message,
-          };
-          this.status = "error";
-        }
+    const unsubError = await listen<{ code: string; message: string }>("voice:error", (event) => {
+      if (this.session) {
+        this.session = {
+          ...this.session,
+          status: "error",
+          error: event.payload.message,
+        };
+        this.status = "error";
       }
-    );
+    });
     this.#unlisteners.push(unsubError);
 
     // Listen for recording session completion
@@ -166,7 +162,7 @@ class VoiceEngineStore {
           this.status = "completed";
           this.#stopElapsedTimer();
         }
-      }
+      },
     );
     this.#unlisteners.push(unsubCompleted);
   }
@@ -318,7 +314,9 @@ class VoiceEngineStore {
           status: "error",
           error: "Microphone not accessible. Try restarting the app to reset the permission cache.",
         };
-        console.info("[voice-engine] WebView2 caches denied mic permissions. If restarting doesn't help, delete the EBWebView folder in %LOCALAPPDATA%\\Bento to fully reset browser permissions.");
+        console.info(
+          "[voice-engine] WebView2 caches denied mic permissions. If restarting doesn't help, delete the EBWebView folder in %LOCALAPPDATA%\\Bento to fully reset browser permissions.",
+        );
       }
       return;
     }
@@ -327,7 +325,11 @@ class VoiceEngineStore {
     if (!recognition) {
       this.status = "error";
       if (this.session) {
-        this.session = { ...this.session, status: "error", error: "Speech recognition not available in this browser" };
+        this.session = {
+          ...this.session,
+          status: "error",
+          error: "Speech recognition not available in this browser",
+        };
       }
       return;
     }
@@ -368,10 +370,13 @@ class VoiceEngineStore {
           this.session = {
             ...this.session,
             status: "error",
-            error: "Microphone not accessible. Try the voice button again — we already reset the browser permission cache.",
+            error:
+              "Microphone not accessible. Try the voice button again — we already reset the browser permission cache.",
           };
         }
-        console.info("[voice-engine] WebView2 caches denied mic permissions. If restarting doesn't help, delete the EBWebView folder in %LOCALAPPDATA%\\Bento to fully reset browser permissions.");
+        console.info(
+          "[voice-engine] WebView2 caches denied mic permissions. If restarting doesn't help, delete the EBWebView folder in %LOCALAPPDATA%\\Bento to fully reset browser permissions.",
+        );
       }
     };
 
@@ -394,7 +399,11 @@ class VoiceEngineStore {
       console.warn("[voice-engine] Web Speech start failed:", err);
       this.status = "error";
       if (this.session) {
-        this.session = { ...this.session, status: "error", error: "Failed to start speech recognition" };
+        this.session = {
+          ...this.session,
+          status: "error",
+          error: "Failed to start speech recognition",
+        };
       }
     }
   }
@@ -522,7 +531,7 @@ class VoiceEngineStore {
     try {
       const result = await invoke<{ success: boolean; text: string; charCount: number }>(
         "voice_paste_dictation",
-        { text: transcript }
+        { text: transcript },
       );
       console.log(`[voice-engine] Pasted ${result.charCount} chars at cursor`);
       this.complete(transcript);
@@ -592,9 +601,12 @@ class VoiceEngineStore {
 
   async #stopRustRecording() {
     try {
-      const result = await invoke<{ id: string; status: string; elapsedMs: number; filePath: string | null }>(
-        "voice_stop"
-      );
+      const result = await invoke<{
+        id: string;
+        status: string;
+        elapsedMs: number;
+        filePath: string | null;
+      }>("voice_stop");
       if (this.session) {
         this.session = {
           ...this.session,

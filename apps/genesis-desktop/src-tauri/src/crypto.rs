@@ -21,12 +21,12 @@ use std::{
 
 use argon2::{Algorithm::Argon2id, Argon2, Params, Version::V0x13};
 use keyring::Entry;
-use rand::{RngCore, rngs::OsRng};
+use rand::{rngs::OsRng, RngCore};
 use secrecy::{ExposeSecret, Secret};
 use serde::{Deserialize, Serialize};
 use sqlx::{
-    SqlitePool,
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
+    SqlitePool,
 };
 use tokio::sync::RwLock;
 
@@ -299,7 +299,10 @@ impl CryptoService {
 
         let (data_dir, is_unlocked) = {
             let inner = self.0.read().await;
-            (inner.data_dir.clone(), inner.status == CryptoStatus::Unlocked)
+            (
+                inner.data_dir.clone(),
+                inner.status == CryptoStatus::Unlocked,
+            )
         };
 
         if is_unlocked {
@@ -313,7 +316,8 @@ impl CryptoService {
                     })?
                     .clone()
             };
-            let pool = open_module_pool(module, &data_dir, &key, pool_size_for_module(module)).await?;
+            let pool =
+                open_module_pool(module, &data_dir, &key, pool_size_for_module(module)).await?;
 
             let mut inner = self.0.write().await;
             if let Some(existing) = inner.pools.get(module).cloned() {
@@ -323,7 +327,8 @@ impl CryptoService {
             Ok(pool)
         } else {
             // Not configured — open a plaintext (unencrypted) pool
-            let pool = open_plaintext_module_pool(module, &data_dir, pool_size_for_module(module)).await?;
+            let pool =
+                open_plaintext_module_pool(module, &data_dir, pool_size_for_module(module)).await?;
 
             let mut inner = self.0.write().await;
             if let Some(existing) = inner.pools.get(module).cloned() {

@@ -364,9 +364,11 @@ pub async fn ensure_scheduler_tables(pool: &sqlx::SqlitePool) -> Result<(), Stri
 
     // Migrate existing tables: add columns that may be missing from older DBs.
     let _ = sqlx::query("ALTER TABLE schedules ADD COLUMN wake_window_minutes INTEGER DEFAULT 0")
-        .execute(pool).await;
+        .execute(pool)
+        .await;
     let _ = sqlx::query("ALTER TABLE schedules ADD COLUMN sound TEXT")
-        .execute(pool).await;
+        .execute(pool)
+        .await;
 
     Ok(())
 }
@@ -408,7 +410,11 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
                 // Guard: skip if already fired within the last 60s (crash recovery guard)
                 if let Some(last) = schedule.last_fired_at {
                     if time::now_ms() - last < 60_000 {
-                        eprintln!("[scheduler] Skip {} — fired {}ms ago", schedule.label, time::now_ms() - last);
+                        eprintln!(
+                            "[scheduler] Skip {} — fired {}ms ago",
+                            schedule.label,
+                            time::now_ms() - last
+                        );
                         continue;
                     }
                 }
@@ -435,9 +441,9 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
                     // 2. Dispatch native OS notification (with sound for sleep alarms)
                     let title = &sched.label;
                     let body = &format!("Your scheduled {} reminder is due.", sched.label);
-                    if let Err(e) = crate::notifications::dispatch_sound_notification(
-                        &app, title, body,
-                    ) {
+                    if let Err(e) =
+                        crate::notifications::dispatch_sound_notification(&app, title, body)
+                    {
                         eprintln!("[scheduler] Notification dispatch failed: {e}");
                     }
                     // Record in history (best-effort)

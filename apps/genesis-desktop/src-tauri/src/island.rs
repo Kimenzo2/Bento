@@ -264,10 +264,10 @@ fn set_macos_window_level(window: &WebviewWindow) -> Result<(), Box<dyn std::err
     unsafe {
         let ns_view = appkit.ns_view.as_ptr() as *mut AnyObject;
         let ns_win: *mut AnyObject = msg_send![ns_view, window];
-        
+
         // Set window level — NSFloatingWindowLevel
         let _: () = msg_send![ns_win, setLevel: MACOS_WINDOW_LEVEL];
-        
+
         // Set collectionBehavior — visible on all Spaces + fullscreen auxiliary
         let _: () = msg_send![ns_win, setCollectionBehavior: MACOS_COLLECTION_BEHAVIOR];
     }
@@ -286,7 +286,10 @@ pub fn position_top_center(window: &WebviewWindow) -> Result<(), Box<dyn std::er
     let physical_screen_w = monitor.size().width as i32;
     let physical_w = window.outer_size()?.width as i32;
     let x = monitor_pos.x + ((physical_screen_w - physical_w) / 2).max(0);
-    window.set_position(tauri::Position::Physical(tauri::PhysicalPosition { x, y: 0 }))?;
+    window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
+        x,
+        y: 0,
+    }))?;
     Ok(())
 }
 
@@ -301,7 +304,10 @@ fn position_top_center_expanded(window: &WebviewWindow) -> Result<(), Box<dyn st
     let physical_screen_w = monitor.size().width as i32;
     let physical_w = (EXPANDED_W * monitor.scale_factor()) as i32;
     let x = monitor_pos.x + ((physical_screen_w - physical_w) / 2).max(0);
-    window.set_position(tauri::Position::Physical(tauri::PhysicalPosition { x, y: 0 }))?;
+    window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
+        x,
+        y: 0,
+    }))?;
     Ok(())
 }
 
@@ -313,10 +319,15 @@ pub fn toggle_island(window: tauri::WebviewWindow) -> Result<(), String> {
         position_top_center(&window).unwrap_or_else(|e| {
             eprintln!("[island] reposition on toggle failed: {e}");
         });
-        window.emit("island:toggle", ()).map_err(|e| e.to_string())?;
+        window
+            .emit("island:toggle", ())
+            .map_err(|e| e.to_string())?;
         eprintln!("[island] toggle_island: emitted island:toggle event");
     } else {
-        eprintln!("[island] toggle_island: wrong window label '{}'", window.label());
+        eprintln!(
+            "[island] toggle_island: wrong window label '{}'",
+            window.label()
+        );
     }
     Ok(())
 }
@@ -332,7 +343,10 @@ pub fn show_island(window: tauri::WebviewWindow) -> Result<(), String> {
         window.emit("island:show", ()).map_err(|e| e.to_string())?;
         eprintln!("[island] show_island: emitted island:show event");
     } else {
-        eprintln!("[island] show_island: wrong window label '{}'", window.label());
+        eprintln!(
+            "[island] show_island: wrong window label '{}'",
+            window.label()
+        );
     }
     Ok(())
 }
@@ -345,7 +359,10 @@ pub fn hide_island(window: tauri::WebviewWindow) -> Result<(), String> {
         window.emit("island:hide", ()).map_err(|e| e.to_string())?;
         eprintln!("[island] hide_island: emitted island:hide event");
     } else {
-        eprintln!("[island] hide_island: wrong window label '{}'", window.label());
+        eprintln!(
+            "[island] hide_island: wrong window label '{}'",
+            window.label()
+        );
     }
     Ok(())
 }
@@ -353,13 +370,21 @@ pub fn hide_island(window: tauri::WebviewWindow) -> Result<(), String> {
 /// Toggle whether the island window accepts cursor events.
 /// Deprecated: the background mouse monitor manages click-through internally.
 #[tauri::command]
-pub fn island_set_ignore_cursor_events(window: tauri::WebviewWindow, ignore: bool) -> Result<(), String> {
+pub fn island_set_ignore_cursor_events(
+    window: tauri::WebviewWindow,
+    ignore: bool,
+) -> Result<(), String> {
     eprintln!("[island] set_ignore_cursor_events({ignore}) called");
     if window.label() == "island" {
-        window.set_ignore_cursor_events(ignore).map_err(|e| e.to_string())?;
+        window
+            .set_ignore_cursor_events(ignore)
+            .map_err(|e| e.to_string())?;
         eprintln!("[island] set_ignore_cursor_events({ignore}) succeeded");
     } else {
-        eprintln!("[island] set_ignore_cursor_events: wrong window label '{}'", window.label());
+        eprintln!(
+            "[island] set_ignore_cursor_events: wrong window label '{}'",
+            window.label()
+        );
     }
     Ok(())
 }
@@ -429,7 +454,10 @@ pub fn island_start_drag(window: tauri::WebviewWindow) -> Result<(), String> {
         window.start_dragging().map_err(|e| e.to_string())?;
         eprintln!("[island] start_drag() succeeded");
     } else {
-        eprintln!("[island] start_drag: wrong window label '{}'", window.label());
+        eprintln!(
+            "[island] start_drag: wrong window label '{}'",
+            window.label()
+        );
     }
     Ok(())
 }
@@ -439,7 +467,9 @@ pub fn focus_main_window(app: AppHandle) -> Result<(), String> {
     eprintln!("[island] focus_main_window() called");
     if let Some(window) = app.get_webview_window("main") {
         window.show().map_err(|e: tauri::Error| e.to_string())?;
-        window.set_focus().map_err(|e: tauri::Error| e.to_string())?;
+        window
+            .set_focus()
+            .map_err(|e: tauri::Error| e.to_string())?;
         eprintln!("[island] focus_main_window: main window focused");
     } else {
         eprintln!("[island] focus_main_window: main window not found");
@@ -463,7 +493,10 @@ pub struct VoiceIslandState {
 }
 
 #[tauri::command]
-pub fn voice_set_island_state(app: AppHandle, state: Option<VoiceIslandState>) -> Result<(), String> {
+pub fn voice_set_island_state(
+    app: AppHandle,
+    state: Option<VoiceIslandState>,
+) -> Result<(), String> {
     let Some(window) = app.get_webview_window("island") else {
         eprintln!("[voice] voice_set_island_state: island window not found");
         return Err("island window not found".into());

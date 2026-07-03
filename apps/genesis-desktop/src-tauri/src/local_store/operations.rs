@@ -904,10 +904,7 @@ pub async fn get_objects(
     }
     query = query.bind(limit_val).bind(offset_val);
 
-    query
-        .fetch_all(db)
-        .await
-        .map_err(OperationError::db_error)
+    query.fetch_all(db).await.map_err(OperationError::db_error)
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -1020,10 +1017,7 @@ pub async fn search_objects(
     }
     query = query.bind(limit_val);
 
-    query
-        .fetch_all(db)
-        .await
-        .map_err(OperationError::db_error)
+    query.fetch_all(db).await.map_err(OperationError::db_error)
 }
 
 /// Gets recently updated objects for a given type, limited to n results.
@@ -1063,10 +1057,7 @@ pub async fn get_favorite_objects(
         query = query.bind(p);
     }
 
-    query
-        .fetch_all(db)
-        .await
-        .map_err(OperationError::db_error)
+    query.fetch_all(db).await.map_err(OperationError::db_error)
 }
 
 /// Toggles the `is_favorite` flag in an object's details.
@@ -1178,10 +1169,7 @@ pub async fn get_objects_by_relation(
         query = query.bind(p);
     }
 
-    query
-        .fetch_all(db)
-        .await
-        .map_err(OperationError::db_error)
+    query.fetch_all(db).await.map_err(OperationError::db_error)
 }
 
 /// Deletes a relation from an object.

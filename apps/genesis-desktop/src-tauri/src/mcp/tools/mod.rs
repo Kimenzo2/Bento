@@ -8,10 +8,9 @@
 //!     mood_checkins, journal_entries, note_objects, blocks
 
 use rmcp::{
-    schemars, tool, tool_router, tool_handler,
     handler::server::wrapper::{Json, Parameters},
-    ServerHandler,
-    model::{ServerInfo, ServerCapabilities},
+    model::{ServerCapabilities, ServerInfo},
+    schemars, tool, tool_handler, tool_router, ServerHandler,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -28,21 +27,33 @@ use crate::util::time;
 pub struct CreateTaskParams {
     #[schemars(description = "Task title (required, leading/trailing whitespace is trimmed)")]
     pub title: String,
-    #[schemars(description = "Optional ISO 8601 due date/time string. Examples: '2025-12-31T23:59:00Z' or '2025-12-31'. Tasks without a due date appear in the 'no date' section.")]
+    #[schemars(
+        description = "Optional ISO 8601 due date/time string. Examples: '2025-12-31T23:59:00Z' or '2025-12-31'. Tasks without a due date appear in the 'no date' section."
+    )]
     pub due_at: Option<String>,
-    #[schemars(description = "Optional priority level. Allowed values: 'low', 'medium', 'high'. Defaults to 'medium' if not provided.")]
+    #[schemars(
+        description = "Optional priority level. Allowed values: 'low', 'medium', 'high'. Defaults to 'medium' if not provided."
+    )]
     pub priority: Option<String>,
-    #[schemars(description = "Optional project/category name to organize the task. If not provided, defaults to 'inbox'.")]
+    #[schemars(
+        description = "Optional project/category name to organize the task. If not provided, defaults to 'inbox'."
+    )]
     pub project: Option<String>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct GetTasksParams {
-    #[schemars(description = "Filter tasks by completion status. Allowed values: 'pending' (default, returns only incomplete tasks), 'completed' (returns only done tasks), 'all' (returns both).")]
+    #[schemars(
+        description = "Filter tasks by completion status. Allowed values: 'pending' (default, returns only incomplete tasks), 'completed' (returns only done tasks), 'all' (returns both)."
+    )]
     pub status: Option<String>,
-    #[schemars(description = "Optional ISO 8601 date/time — only return tasks with a due date before this timestamp. Example: '2025-12-31T23:59:00Z'. Useful for finding overdue tasks.")]
+    #[schemars(
+        description = "Optional ISO 8601 date/time — only return tasks with a due date before this timestamp. Example: '2025-12-31T23:59:00Z'. Useful for finding overdue tasks."
+    )]
     pub due_before: Option<String>,
-    #[schemars(description = "Optional project name to filter by. Only returns tasks belonging to this project (case-sensitive).")]
+    #[schemars(
+        description = "Optional project name to filter by. Only returns tasks belonging to this project (case-sensitive)."
+    )]
     pub project: Option<String>,
     #[schemars(description = "Maximum number of tasks to return. Range: 1-100. Default: 20.")]
     pub limit: Option<i64>,
@@ -50,21 +61,29 @@ pub struct GetTasksParams {
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct CompleteTaskParams {
-    #[schemars(description = "The unique ID of the task to mark as completed. Get task IDs from get_tasks or create_task return values.")]
+    #[schemars(
+        description = "The unique ID of the task to mark as completed. Get task IDs from get_tasks or create_task return values."
+    )]
     pub task_id: String,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct UpdateTaskParams {
-    #[schemars(description = "The unique ID of the task to update. Get from get_tasks or create_task.")]
+    #[schemars(
+        description = "The unique ID of the task to update. Get from get_tasks or create_task."
+    )]
     pub task_id: String,
     #[schemars(description = "New title for the task. If omitted, title stays unchanged.")]
     pub title: Option<String>,
-    #[schemars(description = "New priority level: low, medium, or high. If omitted, stays unchanged.")]
+    #[schemars(
+        description = "New priority level: low, medium, or high. If omitted, stays unchanged."
+    )]
     pub priority: Option<String>,
     #[schemars(description = "New project name. If omitted, stays unchanged.")]
     pub project: Option<String>,
-    #[schemars(description = "ISO 8601 due date string (e.g. '2026-07-15T17:00:00Z'). Pass empty string to clear the due date.")]
+    #[schemars(
+        description = "ISO 8601 due date string (e.g. '2026-07-15T17:00:00Z'). Pass empty string to clear the due date."
+    )]
     pub due_at: Option<String>,
     #[schemars(description = "New notes/description for the task.")]
     pub notes: Option<String>,
@@ -88,9 +107,13 @@ pub struct CreateHabitParams {
     pub name: String,
     #[schemars(description = "Emoji icon for the habit. Default: '⭐'.")]
     pub emoji: Option<String>,
-    #[schemars(description = "Frequency: 'daily', 'weekly', 'weekdays', or 'weekends'. Default: 'daily'.")]
+    #[schemars(
+        description = "Frequency: 'daily', 'weekly', 'weekdays', or 'weekends'. Default: 'daily'."
+    )]
     pub frequency: Option<String>,
-    #[schemars(description = "Habit kind: 'build' (add good habit) or 'quit' (break bad habit). Default: 'build'.")]
+    #[schemars(
+        description = "Habit kind: 'build' (add good habit) or 'quit' (break bad habit). Default: 'build'."
+    )]
     pub kind: Option<String>,
     #[schemars(description = "Why this habit matters. Optional motivation note.")]
     pub why: Option<String>,
@@ -110,13 +133,17 @@ pub struct UpdateHabitParams {
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct DeleteHabitParams {
-    #[schemars(description = "The unique ID of the habit to delete permanently. This also removes all its completion history.")]
+    #[schemars(
+        description = "The unique ID of the habit to delete permanently. This also removes all its completion history."
+    )]
     pub habit_id: String,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct LogSleepParams {
-    #[schemars(description = "Date string in YYYY-MM-DD format for the sleep log entry. Defaults to today.")]
+    #[schemars(
+        description = "Date string in YYYY-MM-DD format for the sleep log entry. Defaults to today."
+    )]
     pub date: Option<String>,
     #[schemars(description = "Hours of sleep (e.g. 7.5 for 7 hours 30 minutes). Required.")]
     pub hours: f64,
@@ -132,9 +159,13 @@ pub struct UpdateNoteParams {
     pub note_id: String,
     #[schemars(description = "New title for the note. If omitted, title stays unchanged.")]
     pub title: Option<String>,
-    #[schemars(description = "New content body (plain text or markdown). If omitted, content stays unchanged.")]
+    #[schemars(
+        description = "New content body (plain text or markdown). If omitted, content stays unchanged."
+    )]
     pub content: Option<String>,
-    #[schemars(description = "New tags array to replace existing tags. If omitted, tags stay unchanged.")]
+    #[schemars(
+        description = "New tags array to replace existing tags. If omitted, tags stay unchanged."
+    )]
     pub tags: Option<Vec<String>>,
 }
 
@@ -148,7 +179,9 @@ pub struct DeleteNoteParams {
 pub struct LogMealParams {
     #[schemars(description = "Name of the meal (e.g. 'Chicken Salad', 'Oatmeal'). Required.")]
     pub name: String,
-    #[schemars(description = "Meal type: 'breakfast', 'lunch', 'dinner', 'snack'. Default: 'meal'.")]
+    #[schemars(
+        description = "Meal type: 'breakfast', 'lunch', 'dinner', 'snack'. Default: 'meal'."
+    )]
     pub meal_type: Option<String>,
     #[schemars(description = "Total calorie count for the meal. Optional.")]
     pub calories: Option<i64>,
@@ -160,51 +193,77 @@ pub struct LogMealParams {
 pub struct SaveNoteParams {
     #[schemars(description = "Note title (required, leading/trailing whitespace is trimmed)")]
     pub title: String,
-    #[schemars(description = "Note body content. Can be plain text or markdown. Required, must not be empty.")]
+    #[schemars(
+        description = "Note body content. Can be plain text or markdown. Required, must not be empty."
+    )]
     pub content: String,
-    #[schemars(description = "Optional array of tag strings to organize the note. Example: ['work', 'project-alpha', 'meeting']")]
+    #[schemars(
+        description = "Optional array of tag strings to organize the note. Example: ['work', 'project-alpha', 'meeting']"
+    )]
     pub tags: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct SearchNotesParams {
-    #[schemars(description = "Search keyword to match against note titles and body content. Performs a LIKE '%keyword%' search. Required, must not be empty.")]
+    #[schemars(
+        description = "Search keyword to match against note titles and body content. Performs a LIKE '%keyword%' search. Required, must not be empty."
+    )]
     pub query: String,
-    #[schemars(description = "Maximum number of search results to return. Range: 1-100. Default: 10.")]
+    #[schemars(
+        description = "Maximum number of search results to return. Range: 1-100. Default: 10."
+    )]
     pub limit: Option<i64>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct LogFocusSessionParams {
-    #[schemars(description = "Duration of the focus session in minutes. Must be between 1 and 1440 (24 hours). Example: 25 for a standard Pomodoro session.")]
+    #[schemars(
+        description = "Duration of the focus session in minutes. Must be between 1 and 1440 (24 hours). Example: 25 for a standard Pomodoro session."
+    )]
     pub duration_minutes: i64,
-    #[schemars(description = "Optional description of what you worked on during the session. Helps with later review.")]
+    #[schemars(
+        description = "Optional description of what you worked on during the session. Helps with later review."
+    )]
     pub task_description: Option<String>,
-    #[schemars(description = "Type of focus session. Allowed values: 'pomodoro' (25 min), 'deep' (longer focused work), 'custom' (any duration). Default: 'custom'.")]
+    #[schemars(
+        description = "Type of focus session. Allowed values: 'pomodoro' (25 min), 'deep' (longer focused work), 'custom' (any duration). Default: 'custom'."
+    )]
     pub session_type: Option<String>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct LogMoodParams {
-    #[schemars(description = "Mood rating on a 1-5 scale: 1='very bad', 2='low', 3='steady', 4='good', 5='bright'. Required.")]
+    #[schemars(
+        description = "Mood rating on a 1-5 scale: 1='very bad', 2='low', 3='steady', 4='good', 5='bright'. Required."
+    )]
     pub mood: i64,
-    #[schemars(description = "Optional note or context about your mood. Helps identify patterns over time.")]
+    #[schemars(
+        description = "Optional note or context about your mood. Helps identify patterns over time."
+    )]
     pub note: Option<String>,
-    #[schemars(description = "Optional array of activity strings you engaged in today. Example: ['exercise', 'reading', 'meditation']. Helps correlate mood with activities.")]
+    #[schemars(
+        description = "Optional array of activity strings you engaged in today. Example: ['exercise', 'reading', 'meditation']. Helps correlate mood with activities."
+    )]
     pub activities: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct CreateJournalEntryParams {
-    #[schemars(description = "Journal entry content (plain text or markdown). Required, must not be empty.")]
+    #[schemars(
+        description = "Journal entry content (plain text or markdown). Required, must not be empty."
+    )]
     pub content: String,
-    #[schemars(description = "Optional mood rating 1-5 to log alongside the journal entry. Same scale as log_mood: 1='very bad', 5='bright'.")]
+    #[schemars(
+        description = "Optional mood rating 1-5 to log alongside the journal entry. Same scale as log_mood: 1='very bad', 5='bright'."
+    )]
     pub mood: Option<i64>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct LogHabitParams {
-    #[schemars(description = "Name of the habit to mark as completed. Case-insensitive match with fuzzy fallback (LIKE %search%). Examples: 'Morning Run', 'Meditate', 'Read'. Get available habit names from the habits module.")]
+    #[schemars(
+        description = "Name of the habit to mark as completed. Case-insensitive match with fuzzy fallback (LIKE %search%). Examples: 'Morning Run', 'Meditate', 'Read'. Get available habit names from the habits module."
+    )]
     pub habit_name: String,
 }
 
@@ -224,7 +283,9 @@ pub struct LifeContextParams {
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct CorrelationParams {
-    #[schemars(description = "First metric to correlate. Options: sleep_hours, mood_score, focus_minutes, calories, spending_amount, tasks_completed, habit_completion_rate, energy_score")]
+    #[schemars(
+        description = "First metric to correlate. Options: sleep_hours, mood_score, focus_minutes, calories, spending_amount, tasks_completed, habit_completion_rate, energy_score"
+    )]
     pub metric_a: String,
     #[schemars(description = "Second metric to correlate. Same options as metric_a.")]
     pub metric_b: String,
@@ -270,7 +331,9 @@ pub struct CreateBondParams {
     pub success_metric: String,
     #[schemars(description = "Consequence if bond is broken, e.g. 'donate €50 to charity'")]
     pub consequence: String,
-    #[schemars(description = "How often (in days) the agent should check in: 1, 3, or 7. Default: 7.")]
+    #[schemars(
+        description = "How often (in days) the agent should check in: 1, 3, or 7. Default: 7."
+    )]
     pub check_in_days: Option<i64>,
 }
 
@@ -320,7 +383,9 @@ pub struct AmbientJournalParams {
 pub struct MealMoodParams {
     #[schemars(description = "Number of days of history to analyze: 7, 30, 90. Default: 30.")]
     pub window_days: Option<i64>,
-    #[schemars(description = "Hours after a meal to look for mood/focus effects: 1, 2, 4. Default: 4.")]
+    #[schemars(
+        description = "Hours after a meal to look for mood/focus effects: 1, 2, 4. Default: 4."
+    )]
     pub lag_hours: Option<i64>,
 }
 
@@ -343,12 +408,13 @@ pub struct SprintPlanParams {
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
-pub struct AutoScheduleParams {
-}
+pub struct AutoScheduleParams {}
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct SkillVelocityParams {
-    #[schemars(description = "Number of days of history to analyze: 30, 90, 180, 365. Default: 90.")]
+    #[schemars(
+        description = "Number of days of history to analyze: 30, 90, 180, 365. Default: 90."
+    )]
     pub window_days: Option<i64>,
 }
 
@@ -409,7 +475,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Create Task",
         description = "Create a new task in Bento with a title (required), optional due date, priority level (low/medium/high, default: medium), and project assignment (default: inbox). Returns the created task ID and a confirmation message.",
-        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = false, open_world_hint = false),
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     pub async fn create_task(
         &self,
@@ -422,9 +493,15 @@ impl BentoMcpServer {
 
         let id = Uuid::new_v4().to_string();
         let now_ms = time::now_ms();
-        let priority = params.priority.as_deref().unwrap_or("medium").to_lowercase();
+        let priority = params
+            .priority
+            .as_deref()
+            .unwrap_or("medium")
+            .to_lowercase();
         let due_at_ms = params.due_at.as_ref().and_then(|iso| {
-            chrono::DateTime::parse_from_rfc3339(iso).ok().map(|dt| dt.timestamp_millis())
+            chrono::DateTime::parse_from_rfc3339(iso)
+                .ok()
+                .map(|dt| dt.timestamp_millis())
         });
         let project = params.project.unwrap_or_default();
 
@@ -455,7 +532,12 @@ impl BentoMcpServer {
     #[tool(
         title = "List Tasks",
         description = "Retrieve tasks from Bento with optional filters. By default returns pending tasks sorted newest first. Can filter by status (pending/completed/all), due date cutoff, and project name. Use this to check what needs to be done.",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn get_tasks(
         &self,
@@ -465,13 +547,14 @@ impl BentoMcpServer {
         let max_results = params.limit.unwrap_or(20).min(100);
         let now_ms = time::now_ms();
         let due_before_ms = params.due_before.as_ref().and_then(|iso| {
-            chrono::DateTime::parse_from_rfc3339(iso).ok().map(|dt| dt.timestamp_millis())
+            chrono::DateTime::parse_from_rfc3339(iso)
+                .ok()
+                .map(|dt| dt.timestamp_millis())
         });
 
         // Build SQL with parameterized bindings — no string interpolation for user data
-        let mut sql = String::from(
-            "SELECT id, title, due_at, priority, done, project FROM tasks WHERE 1=1"
-        );
+        let mut sql =
+            String::from("SELECT id, title, due_at, priority, done, project FROM tasks WHERE 1=1");
 
         match status_filter.as_str() {
             "pending" => {
@@ -496,7 +579,8 @@ impl BentoMcpServer {
         sql.push_str(" ORDER BY created_at DESC LIMIT ?");
 
         // Build the query and conditionally bind each parameter
-        let mut query = sqlx::query_as::<_, (String, String, Option<i64>, String, i64, Option<String>)>(&sql);
+        let mut query =
+            sqlx::query_as::<_, (String, String, Option<i64>, String, i64, Option<String>)>(&sql);
 
         // Bind in the same order as the ? placeholders appear in the SQL
         if status_filter == "pending" {
@@ -517,16 +601,19 @@ impl BentoMcpServer {
             .await
             .map_err(|e| format!("Failed to query tasks: {e}"))?;
 
-        let tasks: Vec<Value> = rows.into_iter().map(|(id, title, due_at, priority, done, project)| {
-            json!({
-                "id": id,
-                "title": title,
-                "dueAt": due_at,
-                "priority": priority,
-                "status": if done == 1 { "completed" } else { "pending" },
-                "project": project,
+        let tasks: Vec<Value> = rows
+            .into_iter()
+            .map(|(id, title, due_at, priority, done, project)| {
+                json!({
+                    "id": id,
+                    "title": title,
+                    "dueAt": due_at,
+                    "priority": priority,
+                    "status": if done == 1 { "completed" } else { "pending" },
+                    "project": project,
+                })
             })
-        }).collect();
+            .collect();
 
         Ok(Json(json!({ "tasks": tasks, "count": tasks.len() })))
     }
@@ -535,7 +622,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Complete Task",
         description = "Mark an existing task as completed in Bento. The task must be currently incomplete — returns an error if already done or not found. Records the completion timestamp.",
-        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn complete_task(
         &self,
@@ -553,7 +645,10 @@ impl BentoMcpServer {
         .map_err(|e| format!("Failed to complete task: {e}"))?;
 
         if result.rows_affected() == 0 {
-            return Err(format!("Task \"{}\" not found or already completed.", params.task_id));
+            return Err(format!(
+                "Task \"{}\" not found or already completed.",
+                params.task_id
+            ));
         }
 
         let title: String = sqlx::query_scalar("SELECT title FROM tasks WHERE id = ?")
@@ -574,7 +669,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Update Task",
         description = "Modify an existing task's title, priority, project, due date, or notes. Any field can be omitted to leave it unchanged. Pass an empty string for due_at to clear the due date. Returns the updated task data.",
-        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn update_task(
         &self,
@@ -582,10 +682,18 @@ impl BentoMcpServer {
     ) -> Result<Json<Value>, String> {
         let now_ms = time::now_ms();
         let mut col_names: Vec<&str> = Vec::new();
-        let cleaned_title = params.title.as_ref().map(|t| {
-            let c = t.trim().to_string();
-            if c.is_empty() { None } else { Some(c) }
-        }).flatten();
+        let cleaned_title = params
+            .title
+            .as_ref()
+            .map(|t| {
+                let c = t.trim().to_string();
+                if c.is_empty() {
+                    None
+                } else {
+                    Some(c)
+                }
+            })
+            .flatten();
         let lowered_priority = params.priority.as_ref().map(|p| p.to_lowercase());
         if let Some(ref p) = lowered_priority {
             if !["low", "medium", "high"].contains(&p.as_str()) {
@@ -593,16 +701,36 @@ impl BentoMcpServer {
             }
         }
         let parsed_due = params.due_at.as_ref().and_then(|d| {
-            if d.is_empty() { None }
-            else { chrono::DateTime::parse_from_rfc3339(d).ok().map(|dt| dt.timestamp_millis()) }
+            if d.is_empty() {
+                None
+            } else {
+                chrono::DateTime::parse_from_rfc3339(d)
+                    .ok()
+                    .map(|dt| dt.timestamp_millis())
+            }
         });
 
         let mut has_update = false;
-        if cleaned_title.is_some() { col_names.push("title = ?"); has_update = true; }
-        if lowered_priority.is_some() { col_names.push("priority = ?"); has_update = true; }
-        if params.project.is_some() { col_names.push("project = ?"); has_update = true; }
-        if params.due_at.is_some() { col_names.push("due_at = ?"); has_update = true; }
-        if params.notes.is_some() { col_names.push("notes = ?"); has_update = true; }
+        if cleaned_title.is_some() {
+            col_names.push("title = ?");
+            has_update = true;
+        }
+        if lowered_priority.is_some() {
+            col_names.push("priority = ?");
+            has_update = true;
+        }
+        if params.project.is_some() {
+            col_names.push("project = ?");
+            has_update = true;
+        }
+        if params.due_at.is_some() {
+            col_names.push("due_at = ?");
+            has_update = true;
+        }
+        if params.notes.is_some() {
+            col_names.push("notes = ?");
+            has_update = true;
+        }
 
         if !has_update {
             return Err("At least one field must be provided to update.".to_string());
@@ -612,13 +740,21 @@ impl BentoMcpServer {
         let sql = format!("UPDATE tasks SET {} WHERE id = ?", col_names.join(", "));
         let mut query = sqlx::query(&sql);
 
-        if let Some(ref t) = cleaned_title { query = query.bind(t); }
-        if let Some(ref p) = lowered_priority { query = query.bind(p); }
+        if let Some(ref t) = cleaned_title {
+            query = query.bind(t);
+        }
+        if let Some(ref p) = lowered_priority {
+            query = query.bind(p);
+        }
         if let Some(ref proj) = params.project {
             query = query.bind(proj);
         }
-        if let Some(ms) = parsed_due { query = query.bind(ms); }
-        if let Some(ref notes) = params.notes { query = query.bind(notes); }
+        if let Some(ms) = parsed_due {
+            query = query.bind(ms);
+        }
+        if let Some(ref notes) = params.notes {
+            query = query.bind(notes);
+        }
 
         query = query.bind(now_ms).bind(&params.task_id);
 
@@ -649,7 +785,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Delete Task",
         description = "Permanently remove a task from Bento by its ID. Also removes subtasks and activity logs. This action cannot be undone. Returns a confirmation message.",
-        annotations(read_only_hint = false, destructive_hint = true, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn delete_task(
         &self,
@@ -657,7 +798,9 @@ impl BentoMcpServer {
     ) -> Result<Json<Value>, String> {
         sqlx::query("DELETE FROM tasks WHERE parent_id = ?")
             .bind(&params.task_id)
-            .execute(&self.pool).await.ok();
+            .execute(&self.pool)
+            .await
+            .ok();
 
         let title: Option<String> = sqlx::query_scalar("SELECT title FROM tasks WHERE id = ?")
             .bind(&params.task_id)
@@ -688,7 +831,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Undo Task Completion",
         description = "Reopens a previously completed task by clearing its completion status. The task returns to the pending list with its original priority, project, and due date intact. Perfect for when a task was marked done prematurely.",
-        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn undo_task(
         &self,
@@ -705,7 +853,10 @@ impl BentoMcpServer {
         .map_err(|e| format!("Failed to undo task: {e}"))?;
 
         if result.rows_affected() == 0 {
-            return Err(format!("Task \"{}\" not found or was not completed.", params.task_id));
+            return Err(format!(
+                "Task \"{}\" not found or was not completed.",
+                params.task_id
+            ));
         }
 
         let title: String = sqlx::query_scalar("SELECT title FROM tasks WHERE id = ?")
@@ -726,7 +877,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Create Habit",
         description = "Create a new habit tracker in Bento. Define the habit name, emoji, frequency (daily/weekly/weekdays/weekends), kind (build/quit), and optionally your motivation. Returns the habit ID for use with log_habit_completion.",
-        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = false, open_world_hint = false),
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     pub async fn create_habit(
         &self,
@@ -745,7 +901,9 @@ impl BentoMcpServer {
         let why = params.why.unwrap_or_default();
 
         if !["daily", "weekly", "weekdays", "weekends"].contains(&frequency.as_str()) {
-            return Err("Frequency must be 'daily', 'weekly', 'weekdays', or 'weekends'.".to_string());
+            return Err(
+                "Frequency must be 'daily', 'weekly', 'weekdays', or 'weekends'.".to_string(),
+            );
         }
         if !["build", "quit"].contains(&kind.as_str()) {
             return Err("Kind must be 'build' or 'quit'.".to_string());
@@ -781,7 +939,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Update Habit",
         description = "Edit an existing habit's name, emoji, or frequency. Only provided fields are changed. The habit ID must be valid. Returns a confirmation message.",
-        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn update_habit(
         &self,
@@ -789,24 +952,43 @@ impl BentoMcpServer {
     ) -> Result<Json<Value>, String> {
         let now_ms = time::now_ms();
         let mut col_names: Vec<&str> = Vec::new();
-        let cleaned_name = params.name.as_ref().map(|n| {
-            let c = n.trim().to_string();
-            if c.is_empty() { None } else { Some(c) }
-        }).flatten();
+        let cleaned_name = params
+            .name
+            .as_ref()
+            .map(|n| {
+                let c = n.trim().to_string();
+                if c.is_empty() {
+                    None
+                } else {
+                    Some(c)
+                }
+            })
+            .flatten();
         if cleaned_name.is_none() && params.name.is_some() {
             return Err("Habit name cannot be empty.".to_string());
         }
         let lowered_freq = params.frequency.as_ref().map(|f| f.to_lowercase());
         if let Some(ref f) = lowered_freq {
             if !["daily", "weekly", "weekdays", "weekends"].contains(&f.as_str()) {
-                return Err("Frequency must be 'daily', 'weekly', 'weekdays', or 'weekends'.".to_string());
+                return Err(
+                    "Frequency must be 'daily', 'weekly', 'weekdays', or 'weekends'.".to_string(),
+                );
             }
         }
 
         let mut has_update = false;
-        if cleaned_name.is_some() { col_names.push("name = ?"); has_update = true; }
-        if params.emoji.is_some() { col_names.push("emoji = ?"); has_update = true; }
-        if lowered_freq.is_some() { col_names.push("frequency = ?"); has_update = true; }
+        if cleaned_name.is_some() {
+            col_names.push("name = ?");
+            has_update = true;
+        }
+        if params.emoji.is_some() {
+            col_names.push("emoji = ?");
+            has_update = true;
+        }
+        if lowered_freq.is_some() {
+            col_names.push("frequency = ?");
+            has_update = true;
+        }
 
         if !has_update {
             return Err("At least one field must be provided to update.".to_string());
@@ -816,9 +998,15 @@ impl BentoMcpServer {
         let sql = format!("UPDATE habits SET {} WHERE id = ?", col_names.join(", "));
         let mut query = sqlx::query(&sql);
 
-        if let Some(ref n) = cleaned_name { query = query.bind(n); }
-        if let Some(ref e) = params.emoji { query = query.bind(e); }
-        if let Some(ref f) = lowered_freq { query = query.bind(f); }
+        if let Some(ref n) = cleaned_name {
+            query = query.bind(n);
+        }
+        if let Some(ref e) = params.emoji {
+            query = query.bind(e);
+        }
+        if let Some(ref f) = lowered_freq {
+            query = query.bind(f);
+        }
 
         query = query.bind(now_ms).bind(&params.habit_id);
 
@@ -849,7 +1037,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Delete Habit",
         description = "Permanently remove a habit and all of its completion records from Bento. This action cannot be undone. Returns a confirmation message.",
-        annotations(read_only_hint = false, destructive_hint = true, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn delete_habit(
         &self,
@@ -857,7 +1050,9 @@ impl BentoMcpServer {
     ) -> Result<Json<Value>, String> {
         sqlx::query("DELETE FROM habit_completions WHERE habit_id = ?")
             .bind(&params.habit_id)
-            .execute(&self.pool).await.ok();
+            .execute(&self.pool)
+            .await
+            .ok();
 
         let name: Option<String> = sqlx::query_scalar("SELECT name FROM habits WHERE id = ?")
             .bind(&params.habit_id)
@@ -888,14 +1083,21 @@ impl BentoMcpServer {
     #[tool(
         title = "Log Sleep",
         description = "Record a sleep entry in Bento's sleep tracker. Accepts a date (defaults to today), hours slept, optional quality score 1-5, and notes. Creates a new entry or updates an existing one for the same date.",
-        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn log_sleep(
         &self,
         Parameters(params): Parameters<LogSleepParams>,
     ) -> Result<Json<Value>, String> {
         let now_ms = time::now_ms();
-        let date_key = params.date.as_ref()
+        let date_key = params
+            .date
+            .as_ref()
             .filter(|d| !d.is_empty())
             .cloned()
             .unwrap_or_else(|| chrono::Local::now().format("%Y-%m-%d").to_string());
@@ -909,13 +1111,12 @@ impl BentoMcpServer {
             }
         }
 
-        let existing: Option<String> = sqlx::query_scalar(
-            "SELECT id FROM sleep_logs WHERE date_key = ?",
-        )
-        .bind(&date_key)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| format!("sleep lookup: {e}"))?;
+        let existing: Option<String> =
+            sqlx::query_scalar("SELECT id FROM sleep_logs WHERE date_key = ?")
+                .bind(&date_key)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| format!("sleep lookup: {e}"))?;
 
         if let Some(eid) = existing {
             sqlx::query("UPDATE sleep_logs SET hours = ?, quality = ?, notes = ?, updated_at = ? WHERE id = ?")
@@ -967,7 +1168,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Update Note",
         description = "Modify an existing note's title, content body, or tags. Any field can be omitted to leave it unchanged. The note ID is required. Returns the updated note ID.",
-        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn update_note(
         &self,
@@ -975,32 +1181,50 @@ impl BentoMcpServer {
     ) -> Result<Json<Value>, String> {
         let now_ms = time::now_ms();
         let cleaned_title = params.title.as_ref().map(|t| t.trim().to_string());
-        let tags_str = params.tags.as_ref().map(|tags| {
-            serde_json::to_string(tags).unwrap_or_else(|_| "[]".to_string())
-        });
+        let tags_str = params
+            .tags
+            .as_ref()
+            .map(|tags| serde_json::to_string(tags).unwrap_or_else(|_| "[]".to_string()));
 
         let mut col_names: Vec<&str> = Vec::new();
         if let Some(ref t) = cleaned_title {
-            if t.is_empty() { return Err("Note title cannot be empty.".to_string()); }
+            if t.is_empty() {
+                return Err("Note title cannot be empty.".to_string());
+            }
             col_names.push("title = ?");
         }
-        if params.content.is_some() { col_names.push("content = ?"); }
-        if tags_str.is_some() { col_names.push("tags = ?"); }
+        if params.content.is_some() {
+            col_names.push("content = ?");
+        }
+        if tags_str.is_some() {
+            col_names.push("tags = ?");
+        }
 
         if col_names.is_empty() {
             return Err("At least one field must be provided to update.".to_string());
         }
 
         col_names.push("updated_at = ?");
-        let sql = format!("UPDATE note_objects SET {} WHERE id = ?", col_names.join(", "));
+        let sql = format!(
+            "UPDATE note_objects SET {} WHERE id = ?",
+            col_names.join(", ")
+        );
         let mut query = sqlx::query(&sql);
 
-        if let Some(ref t) = cleaned_title { query = query.bind(t); }
-        if let Some(ref c) = params.content { query = query.bind(c); }
-        if let Some(ref s) = tags_str { query = query.bind(s); }
+        if let Some(ref t) = cleaned_title {
+            query = query.bind(t);
+        }
+        if let Some(ref c) = params.content {
+            query = query.bind(c);
+        }
+        if let Some(ref s) = tags_str {
+            query = query.bind(s);
+        }
         query = query.bind(now_ms).bind(&params.note_id);
 
-        let result = query.execute(&self.pool).await
+        let result = query
+            .execute(&self.pool)
+            .await
             .map_err(|e| format!("Failed to update note: {e}"))?;
 
         if result.rows_affected() == 0 {
@@ -1036,7 +1260,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Delete Note",
         description = "Permanently remove a note and all its blocks from Bento. This action cannot be undone. Returns a confirmation message.",
-        annotations(read_only_hint = false, destructive_hint = true, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = false,
+            destructive_hint = true,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn delete_note(
         &self,
@@ -1044,13 +1273,16 @@ impl BentoMcpServer {
     ) -> Result<Json<Value>, String> {
         sqlx::query("DELETE FROM blocks WHERE object_id = ?")
             .bind(&params.note_id)
-            .execute(&self.pool).await.ok();
-
-        let title: Option<String> = sqlx::query_scalar("SELECT title FROM note_objects WHERE id = ?")
-            .bind(&params.note_id)
-            .fetch_optional(&self.pool)
+            .execute(&self.pool)
             .await
-            .map_err(|e| format!("Failed to find note: {e}"))?;
+            .ok();
+
+        let title: Option<String> =
+            sqlx::query_scalar("SELECT title FROM note_objects WHERE id = ?")
+                .bind(&params.note_id)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| format!("Failed to find note: {e}"))?;
 
         let title = match title {
             Some(t) => t,
@@ -1075,7 +1307,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Log Meal",
         description = "Record a meal in Bento's nutrition tracker. Accepts meal name, type (breakfast/lunch/dinner/snack), optional calories, and notes. Perfect for food logging. Returns the meal ID.",
-        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = false, open_world_hint = false),
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     pub async fn log_meal(
         &self,
@@ -1091,7 +1328,9 @@ impl BentoMcpServer {
         let meal_type = params.meal_type.unwrap_or_else(|| "meal".to_string());
         let allowed = ["breakfast", "lunch", "dinner", "snack", "meal"];
         if !allowed.contains(&meal_type.as_str()) {
-            return Err("meal_type must be 'breakfast', 'lunch', 'dinner', 'snack', or 'meal'.".to_string());
+            return Err(
+                "meal_type must be 'breakfast', 'lunch', 'dinner', 'snack', or 'meal'.".to_string(),
+            );
         }
 
         sqlx::query(
@@ -1123,7 +1362,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Save Note",
         description = "Save a new note to Bento's Notes app. Accepts a title, content (plain text or markdown), and optional tags. Creates both the note object and an initial text block. Tags enable organization and search.",
-        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = false, open_world_hint = false),
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     pub async fn save_note(
         &self,
@@ -1141,7 +1385,10 @@ impl BentoMcpServer {
         let tags_json = serde_json::to_string(&params.tags.unwrap_or_default())
             .map_err(|e| format!("Failed to serialize tags: {e}"))?;
 
-        let mut tx = self.pool.begin().await
+        let mut tx = self
+            .pool
+            .begin()
+            .await
             .map_err(|e| format!("Transaction error: {e}"))?;
 
         sqlx::query(
@@ -1170,7 +1417,9 @@ impl BentoMcpServer {
         .await
         .map_err(|e| format!("Failed to create note block: {e}"))?;
 
-        tx.commit().await.map_err(|e| format!("Commit error: {e}"))?;
+        tx.commit()
+            .await
+            .map_err(|e| format!("Commit error: {e}"))?;
 
         Ok(Json(json!({
             "id": object_id,
@@ -1184,7 +1433,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Search Notes",
         description = "Search through all saved notes in Bento by keyword. Matches against both note titles and content body. Returns matching notes with a content excerpt, sorted by most recently updated.",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn search_notes(
         &self,
@@ -1215,25 +1469,28 @@ impl BentoMcpServer {
         .await
         .map_err(|e| format!("Failed to search notes: {e}"))?;
 
-        let notes: Vec<Value> = rows.into_iter().map(|row| {
-            let content: String = row.try_get("content").unwrap_or_default();
-            let excerpt = if content.len() > 100 {
-                format!("{}...", &content[..100])
-            } else {
-                content
-            };
-            let excerpt_clean = serde_json::from_str::<Value>(&excerpt)
-                .ok()
-                .and_then(|v| v["text"].as_str().map(String::from))
-                .unwrap_or(excerpt);
+        let notes: Vec<Value> = rows
+            .into_iter()
+            .map(|row| {
+                let content: String = row.try_get("content").unwrap_or_default();
+                let excerpt = if content.len() > 100 {
+                    format!("{}...", &content[..100])
+                } else {
+                    content
+                };
+                let excerpt_clean = serde_json::from_str::<Value>(&excerpt)
+                    .ok()
+                    .and_then(|v| v["text"].as_str().map(String::from))
+                    .unwrap_or(excerpt);
 
-            json!({
-                "id": row.try_get::<String, _>("id").unwrap_or_default(),
-                "title": row.try_get::<String, _>("title").unwrap_or_default(),
-                "excerpt": excerpt_clean,
-                "updatedAt": row.try_get::<i64, _>("updated_at").unwrap_or(0),
+                json!({
+                    "id": row.try_get::<String, _>("id").unwrap_or_default(),
+                    "title": row.try_get::<String, _>("title").unwrap_or_default(),
+                    "excerpt": excerpt_clean,
+                    "updatedAt": row.try_get::<i64, _>("updated_at").unwrap_or(0),
+                })
             })
-        }).collect();
+            .collect();
 
         Ok(Json(json!({ "notes": notes, "count": notes.len() })))
     }
@@ -1242,7 +1499,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Log Focus Session",
         description = "Log a completed focus or productive session in Bento. Records duration (1-1440 minutes), optional description of what was worked on, and session type (pomodoro/deep/custom). Also returns the total focus minutes logged today so far.",
-        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = false, open_world_hint = false),
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     pub async fn log_focus_session(
         &self,
@@ -1260,7 +1522,8 @@ impl BentoMcpServer {
             "label": s_type,
             "note": desc,
             "source": "mcp",
-        }).to_string();
+        })
+        .to_string();
 
         sqlx::query(
             r#"INSERT INTO health_events (module_id, event_type, value, unit, metadata, started_at, ended_at, logged_at)
@@ -1298,7 +1561,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Log Mood",
         description = "Record a mood entry in Bento's mood tracker. Mood is rated 1-5 (1=very bad, 2=low, 3=steady, 4=good, 5=bright). Can include optional notes and a list of activities. Returns the mood level and human-readable label.",
-        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = false, open_world_hint = false),
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = false,
+            open_world_hint = false
+        )
     )]
     pub async fn log_mood(
         &self,
@@ -1351,7 +1619,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Create Journal Entry",
         description = "Write or update a daily journal entry in Bento. Uses the current date as the key — calling this again on the same day overwrites the previous entry (upsert). An optional mood rating (1-5) can be logged alongside. Returns word count and date.",
-        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn create_journal_entry(
         &self,
@@ -1369,7 +1642,10 @@ impl BentoMcpServer {
 
         let blocks = json!([{"text": content}]).to_string();
 
-        let mut tx = self.pool.begin().await
+        let mut tx = self
+            .pool
+            .begin()
+            .await
             .map_err(|e| format!("Transaction error: {e}"))?;
 
         sqlx::query(
@@ -1394,7 +1670,11 @@ impl BentoMcpServer {
             let mood_id = Uuid::new_v4().to_string();
             let date_key = time::date_key(now_ms);
             let mood_names = ["", "very-bad", "low", "steady", "good", "bright"];
-            let mood_name = if mood_val >= 1 && mood_val <= 5 { mood_names[mood_val as usize] } else { "steady" };
+            let mood_name = if mood_val >= 1 && mood_val <= 5 {
+                mood_names[mood_val as usize]
+            } else {
+                "steady"
+            };
             let intensity = (mood_val as f64 / 5.0 * 100.0) as i64;
 
             sqlx::query(
@@ -1412,7 +1692,9 @@ impl BentoMcpServer {
             .map_err(|e| format!("Failed to log mood alongside journal: {e}"))?;
         }
 
-        tx.commit().await.map_err(|e| format!("Commit error: {e}"))?;
+        tx.commit()
+            .await
+            .map_err(|e| format!("Commit error: {e}"))?;
 
         Ok(Json(json!({
             "id": id,
@@ -1427,7 +1709,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Log Habit Completion",
         description = "Mark a habit as completed for today in Bento. Finds the habit by name (case-insensitive, with fuzzy LIKE matching fallback). If already completed today, returns the current streak without duplicating. Returns the habit name and current streak length.",
-        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = false,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn log_habit(
         &self,
@@ -1438,28 +1725,26 @@ impl BentoMcpServer {
             return Err("Habit name is required.".to_string());
         }
 
-        let row = sqlx::query(
-            "SELECT id, name FROM habits WHERE LOWER(name) = ? LIMIT 1",
-        )
-        .bind(&name)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| format!("Failed to find habit: {e}"))?;
+        let row = sqlx::query("SELECT id, name FROM habits WHERE LOWER(name) = ? LIMIT 1")
+            .bind(&name)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| format!("Failed to find habit: {e}"))?;
 
         let (habit_id, habit_name) = match row {
             Some(r) => (
                 r.try_get::<String, _>("id").unwrap_or_default(),
-                r.try_get::<String, _>("name").unwrap_or_else(|_| params.habit_name.clone()),
+                r.try_get::<String, _>("name")
+                    .unwrap_or_else(|_| params.habit_name.clone()),
             ),
             None => {
                 let pattern = format!("%{}%", name);
-                let fuzzy = sqlx::query(
-                    "SELECT id, name FROM habits WHERE LOWER(name) LIKE ? LIMIT 1",
-                )
-                .bind(&pattern)
-                .fetch_optional(&self.pool)
-                .await
-                .map_err(|e| format!("Failed to search habits: {e}"))?;
+                let fuzzy =
+                    sqlx::query("SELECT id, name FROM habits WHERE LOWER(name) LIKE ? LIMIT 1")
+                        .bind(&pattern)
+                        .fetch_optional(&self.pool)
+                        .await
+                        .map_err(|e| format!("Failed to search habits: {e}"))?;
 
                 match fuzzy {
                     Some(r) => (
@@ -1498,14 +1783,12 @@ impl BentoMcpServer {
             })));
         }
 
-        sqlx::query(
-            "INSERT INTO habit_completions (habit_id, completed_at) VALUES (?, ?)",
-        )
-        .bind(&habit_id)
-        .bind(now_ms)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| format!("Failed to log habit completion: {e}"))?;
+        sqlx::query("INSERT INTO habit_completions (habit_id, completed_at) VALUES (?, ?)")
+            .bind(&habit_id)
+            .bind(now_ms)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| format!("Failed to log habit completion: {e}"))?;
 
         let streak = calc_habit_streak(&self.pool, &habit_id, start_of_today_ms).await;
 
@@ -1521,7 +1804,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Get Today's Summary",
         description = "Get a comprehensive daily summary from Bento: tasks due and completed today, focus minutes logged, habits completed and remaining, today's mood (if any), and whether a journal entry was written. Use this as a morning briefing or evening review.",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn get_today_summary(
         &self,
@@ -1540,20 +1828,22 @@ impl BentoMcpServer {
         .await
         .map_err(|e| format!("Failed to query tasks: {e}"))?;
 
-        let tasks_due: Vec<Value> = tasks_due_rows.into_iter().map(|row| {
-            json!({
-                "id": row.try_get::<String, _>("id").unwrap_or_default(),
-                "title": row.try_get::<String, _>("title").unwrap_or_default(),
+        let tasks_due: Vec<Value> = tasks_due_rows
+            .into_iter()
+            .map(|row| {
+                json!({
+                    "id": row.try_get::<String, _>("id").unwrap_or_default(),
+                    "title": row.try_get::<String, _>("title").unwrap_or_default(),
+                })
             })
-        }).collect();
+            .collect();
 
-        let tasks_completed: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM tasks WHERE completed_at >= ?",
-        )
-        .bind(start_of_day)
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|e| format!("Failed to count completed tasks: {e}"))?;
+        let tasks_completed: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM tasks WHERE completed_at >= ?")
+                .bind(start_of_day)
+                .fetch_one(&self.pool)
+                .await
+                .map_err(|e| format!("Failed to count completed tasks: {e}"))?;
 
         let focus_minutes: f64 = sqlx::query_scalar(
             "SELECT COALESCE(SUM(value), 0) FROM health_events WHERE module_id = 'focus' AND event_type = 'focus_session' AND logged_at >= ?",
@@ -1574,7 +1864,8 @@ impl BentoMcpServer {
         .await
         .map_err(|e| format!("Failed to query habits: {e}"))?;
 
-        let habits_completed_names: Vec<String> = habit_rows.into_iter()
+        let habits_completed_names: Vec<String> = habit_rows
+            .into_iter()
             .map(|row| row.try_get::<String, _>("name").unwrap_or_default())
             .collect();
 
@@ -1584,8 +1875,10 @@ impl BentoMcpServer {
             .map_err(|e| format!("Failed to list habits: {e}"))?
             .into_iter()
             .map(|row| {
-                (row.try_get::<String, _>("id").unwrap_or_default(),
-                 row.try_get::<String, _>("name").unwrap_or_default())
+                (
+                    row.try_get::<String, _>("id").unwrap_or_default(),
+                    row.try_get::<String, _>("name").unwrap_or_default(),
+                )
             })
             .collect();
 
@@ -1622,13 +1915,12 @@ impl BentoMcpServer {
             })
         });
 
-        let journal_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM journal_entries WHERE date = ?",
-        )
-        .bind(&today)
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|e| format!("Failed to check journal: {e}"))?;
+        let journal_count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM journal_entries WHERE date = ?")
+                .bind(&today)
+                .fetch_one(&self.pool)
+                .await
+                .map_err(|e| format!("Failed to check journal: {e}"))?;
 
         Ok(Json(json!({
             "tasksDueToday": { "count": tasks_due.len(), "tasks": tasks_due },
@@ -1649,7 +1941,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Get Life Context",
         description = "Returns a unified snapshot of the user RIGHT NOW across all Bento modules: mood, energy, focus, sleep, tasks, habits, nutrition, journal, goals, budget, and cognitive load. Used by external AI tools to personalize instantly. Depth options: minimal (quick pulse), standard (full context), full (everything).",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn get_life_context(
         &self,
@@ -1664,7 +1961,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Get Cross-Module Correlations",
         description = "Runs Pearson correlation analysis across any two Bento module metrics (sleep_hours, mood_score, focus_minutes, calories, spending_amount, tasks_completed, habit_completion_rate, energy_score) over a configurable time window (7-180 days). Returns correlation coefficient, strength, direction, top correlated days, and anomalies where both metrics deviated significantly.",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn get_cross_module_correlations(
         &self,
@@ -1676,7 +1978,8 @@ impl BentoMcpServer {
             &params.metric_b,
             params.window_days.unwrap_or(30),
             params.granularity.as_deref().unwrap_or("day"),
-        ).await?;
+        )
+        .await?;
         Ok(Json(result))
     }
 
@@ -1684,13 +1987,19 @@ impl BentoMcpServer {
     #[tool(
         title = "Get Day Reconstruction",
         description = "Returns a complete portrait of any past date (YYYY-MM-DD): mood, sleep, nutrition, focus sessions, tasks (completed/created/overdue), habits (done/missed), journal entry, budget transactions, notes created, goal events, and an auto-generated narrative summary of the day. Time Archaeology for Bento.",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn get_day_reconstruction(
         &self,
         Parameters(params): Parameters<DayReconstructionParams>,
     ) -> Result<Json<Value>, String> {
-        let result = crate::mcp::intelligence::get_day_reconstruction_impl(&self.pool, &params.date).await?;
+        let result =
+            crate::mcp::intelligence::get_day_reconstruction_impl(&self.pool, &params.date).await?;
         Ok(Json(result))
     }
 
@@ -1698,7 +2007,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Get Life Delta",
         description = "Compares the user across two time periods across every dimension: sleep quality, mood, focus, habit consistency, tasks completed per day, and average spending. Returns deltas, direction (improved/declined/unchanged), significance, biggest improvement, biggest decline, and overall trajectory. The 'who were you vs who are you' tool.",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn get_life_delta(
         &self,
@@ -1710,7 +2024,8 @@ impl BentoMcpServer {
             &params.period_a_end,
             &params.period_b_start,
             &params.period_b_end,
-        ).await?;
+        )
+        .await?;
         Ok(Json(result))
     }
 
@@ -1718,7 +2033,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Get Cognitive Schedule",
         description = "Analyzes historical focus session and mood data to find your actual peak performance windows by day-of-week and hour. Returns top 3 peak windows (schedule deep work here), bottom 3 avoid windows (routine tasks only), best/worst day of the week, and a personalized insight. The Anti-Calendar / Energy Arbitrage tool.",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn get_cognitive_schedule(
         &self,
@@ -1727,14 +2047,15 @@ impl BentoMcpServer {
         let result = crate::mcp::intelligence::get_cognitive_schedule_impl(
             &self.pool,
             params.window_days.unwrap_or(30),
-        ).await?;
+        )
+        .await?;
         Ok(Json(result))
     }
 
     /// Create a structured accountability contract.
     #[tool(
         title = "Create Commitment Bond",
-        description = "Creates a structured accountability contract stored in Bento's database. Links to an optional goal. Contains a deadline, success metric, user-defined consequence, and check-in frequency. The agent can check in periodically and update the bond's status. Returns the bond ID and creation timestamp.",
+        description = "Creates a structured accountability contract stored in Bento's database. Links to an optional goal. Contains a deadline, success metric, user-defined consequence, and check-in frequency. The agent can check in periodically and update the bond's status. Returns the bond ID and creation timestamp."
     )]
     pub async fn create_commitment_bond(
         &self,
@@ -1748,7 +2069,8 @@ impl BentoMcpServer {
             &params.success_metric,
             &params.consequence,
             params.check_in_days.unwrap_or(7),
-        ).await?;
+        )
+        .await?;
         Ok(Json(result))
     }
 
@@ -1756,7 +2078,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Get Commitment Bonds",
         description = "Retrieve commitment bonds from Bento, optionally filtered by status (active/kept/broken/extended). Returns bond details including title, linked goal ID, deadline, success metric, consequence, check-in history, and current status.",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn get_commitment_bonds(
         &self,
@@ -1765,14 +2092,15 @@ impl BentoMcpServer {
         let result = crate::mcp::intelligence::get_commitment_bonds_impl(
             &self.pool,
             params.status.as_deref(),
-        ).await?;
+        )
+        .await?;
         Ok(Json(result))
     }
 
     /// Update a commitment bond's status.
     #[tool(
         title = "Update Bond Status",
-        description = "Update the status of a commitment bond (active/kept/broken/extended). Optionally append a check-in note to the bond's history log. The agent uses this to report on bond progress.",
+        description = "Update the status of a commitment bond (active/kept/broken/extended). Optionally append a check-in note to the bond's history log. The agent uses this to report on bond progress."
     )]
     pub async fn update_bond_status(
         &self,
@@ -1783,7 +2111,8 @@ impl BentoMcpServer {
             &params.bond_id,
             &params.status,
             params.check_in_note.as_deref(),
-        ).await?;
+        )
+        .await?;
         Ok(Json(result))
     }
 
@@ -1791,7 +2120,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Get Failure Patterns",
         description = "Analyzes abandoned goals, broken habit streaks, and chronically overdue tasks to extract the user's personal failure signatures. Returns common patterns with trigger signals, average time to failure, early warning signs, and actionable recommendations. Statistical analysis — no ML required.",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn get_failure_patterns(
         &self,
@@ -1800,7 +2134,8 @@ impl BentoMcpServer {
         let result = crate::mcp::intelligence::get_failure_patterns_impl(
             &self.pool,
             params.min_data_points.unwrap_or(3),
-        ).await?;
+        )
+        .await?;
         Ok(Json(result))
     }
 
@@ -1808,7 +2143,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Generate Weekly Board Report",
         description = "Assembles a formal board-meeting-style weekly review across every Bento module: tasks, habits, focus, budget, mood, sleep, and goals. Returns KPIs with green/yellow/red status (compared to prior week), wins, risks, decisions needed, next-week forecast, and detailed per-module data. The tool that entrepreneurs run every Sunday.",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn generate_weekly_board_report(
         &self,
@@ -1817,7 +2157,8 @@ impl BentoMcpServer {
         let result = crate::mcp::intelligence::generate_weekly_board_report_impl(
             &self.pool,
             params.week_offset.unwrap_or(0),
-        ).await?;
+        )
+        .await?;
         Ok(Json(result))
     }
 
@@ -1825,7 +2166,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Get Compound Self Projection",
         description = "Projects the user's current trajectory forward using linear regression on focus minutes, mood, sleep, savings, and task completion rate over the last 30 days. Returns projected values at N days (90/180/365), inflection points, a headline, and the biggest leverage point. 'If you maintain your current habits, here's who you'll be.'",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn get_compound_self_projection(
         &self,
@@ -1834,26 +2180,27 @@ impl BentoMcpServer {
         let result = crate::mcp::intelligence::get_compound_self_projection_impl(
             &self.pool,
             params.projection_days.unwrap_or(90),
-        ).await?;
+        )
+        .await?;
         Ok(Json(result))
     }
 
     /// Write an auto-generated ambient journal entry.
     #[tool(
         title = "Write Ambient Journal Entry",
-        description = "Silently generates a narrative journal entry from the day's raw Bento data using a deterministic prose template engine (no LLM required). Stores the result in the journal table. Supports terse, narrative, and analytical styles. The ghost biographer — runs automatically at day's end if the user hasn't journaled.",
+        description = "Silently generates a narrative journal entry from the day's raw Bento data using a deterministic prose template engine (no LLM required). Stores the result in the journal table. Supports terse, narrative, and analytical styles. The ghost biographer — runs automatically at day's end if the user hasn't journaled."
     )]
     pub async fn write_ambient_journal_entry(
         &self,
         Parameters(params): Parameters<AmbientJournalParams>,
     ) -> Result<Json<Value>, String> {
-        let date = params.date.unwrap_or_else(|| chrono::Utc::now().format("%Y-%m-%d").to_string());
+        let date = params
+            .date
+            .unwrap_or_else(|| chrono::Utc::now().format("%Y-%m-%d").to_string());
         let style = params.style.as_deref().unwrap_or("narrative");
-        let result = crate::mcp::intelligence::write_ambient_journal_entry_impl(
-            &self.pool,
-            &date,
-            style,
-        ).await?;
+        let result =
+            crate::mcp::intelligence::write_ambient_journal_entry_impl(&self.pool, &date, style)
+                .await?;
         Ok(Json(result))
     }
 
@@ -1861,7 +2208,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Get Meal Mood Correlations",
         description = "Time-lagged correlation analysis: what you eat leads to how you feel and focus. Aligns each meal (by name and type) with mood and focus entries logged within the configurable hours after eating. Returns ranked foods by subsequent wellness impact. The 'breakfast determines your day' statistical validator.",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn get_meal_mood_correlations(
         &self,
@@ -1871,7 +2223,8 @@ impl BentoMcpServer {
             &self.pool,
             params.window_days.unwrap_or(30),
             params.lag_hours.unwrap_or(4),
-        ).await?;
+        )
+        .await?;
         Ok(Json(result))
     }
 
@@ -1879,7 +2232,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Get Integrity Score",
         description = "Scans journal entries for stated values (discipline, health, growth, financial, focus, connection), then cross-references against actual actions: tasks completed, habits done, focus minutes, savings rate. Returns per-domain alignment scores and an overall integrity percentage. The mirror you can't look away from.",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn get_integrity_score(
         &self,
@@ -1888,7 +2246,8 @@ impl BentoMcpServer {
         let result = crate::mcp::intelligence::get_integrity_score_impl(
             &self.pool,
             params.window_days.unwrap_or(30),
-        ).await?;
+        )
+        .await?;
         Ok(Json(result))
     }
 
@@ -1896,7 +2255,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Get Attention Allocation",
         description = "Categorizes every task and focus session into strategic (long-term projects, goals, roadmaps) or reactive (inbox, bugs, fixes, admin, urgent). Returns the % breakdown and a rebalancing recommendation. Treats your attention like a financial portfolio — most people find they're 80% reactive.",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn get_attention_allocation(
         &self,
@@ -1905,7 +2269,8 @@ impl BentoMcpServer {
         let result = crate::mcp::intelligence::get_attention_allocation_impl(
             &self.pool,
             params.window_days.unwrap_or(30),
-        ).await?;
+        )
+        .await?;
         Ok(Json(result))
     }
 
@@ -1913,7 +2278,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Generate Sprint Plan",
         description = "Uses your actual historical task velocity (tasks/day by day-of-week over the last N days), pending backlog size, and priority distribution to generate an evidence-based sprint commitment. Returns recommended capacity, best/worst days for deep work, and a plain-language recommendation. 'Your data says commit to 6, not 11.'",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn generate_sprint_plan(
         &self,
@@ -1922,7 +2292,8 @@ impl BentoMcpServer {
         let result = crate::mcp::intelligence::generate_sprint_plan_impl(
             &self.pool,
             params.sprint_days.unwrap_or(14),
-        ).await?;
+        )
+        .await?;
         Ok(Json(result))
     }
 
@@ -1930,15 +2301,18 @@ impl BentoMcpServer {
     #[tool(
         title = "Auto Schedule Tasks",
         description = "Maps every pending task (sorted by priority) to your historically proven peak energy windows. Hard tasks go to peak windows, easy tasks to avoid windows. Returns a day-by-day, hour-by-hour schedule. Replaces time-blocking apps entirely — your calendar, but calibrated to your actual biology.",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn auto_schedule_tasks(
         &self,
         Parameters(_params): Parameters<AutoScheduleParams>,
     ) -> Result<Json<Value>, String> {
-        let result = crate::mcp::intelligence::auto_schedule_tasks_impl(
-            &self.pool,
-        ).await?;
+        let result = crate::mcp::intelligence::auto_schedule_tasks_impl(&self.pool).await?;
         Ok(Json(result))
     }
 
@@ -1946,7 +2320,12 @@ impl BentoMcpServer {
     #[tool(
         title = "Get Skill Velocity",
         description = "Analyzes every note tagged with learning keywords (learning, study, course, skill, book, tutorial) and measures your knowledge acquisition rate over time. Returns monthly note production, total words written, velocity trend (accelerating/steady/declining), and top skill domains. Knowledge compounding, made visible.",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn get_skill_velocity(
         &self,
@@ -1955,7 +2334,8 @@ impl BentoMcpServer {
         let result = crate::mcp::intelligence::get_skill_velocity_impl(
             &self.pool,
             params.window_days.unwrap_or(90),
-        ).await?;
+        )
+        .await?;
         Ok(Json(result))
     }
 
@@ -1963,22 +2343,25 @@ impl BentoMcpServer {
     #[tool(
         title = "Generate Standup",
         description = "Compiles yesterday's completed tasks, focus sessions (with count), notes, habits, and mood into a formatted daily standup summary. Also shows today's progress and high-priority tasks in progress. Returns human-readable prose plus structured data — perfect for standup automation.",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn generate_standup(
         &self,
         Parameters(_params): Parameters<EmptyParams>,
     ) -> Result<Json<Value>, String> {
-        let result = crate::mcp::intelligence::generate_standup_impl(
-            &self.pool,
-        ).await?;
+        let result = crate::mcp::intelligence::generate_standup_impl(&self.pool).await?;
         Ok(Json(result))
     }
 
     /// Save a developer preference for persistent agent context.
     #[tool(
         title = "Save Agent Context",
-        description = "Stores a key-value developer preference (e.g. 'preferred_language', 'code_review_style', 'project_convention') as persistent agent memory. Future tool calls can retrieve this context via get_agent_context. Data persists across sessions via tagged notes.",
+        description = "Stores a key-value developer preference (e.g. 'preferred_language', 'code_review_style', 'project_convention') as persistent agent memory. Future tool calls can retrieve this context via get_agent_context. Data persists across sessions via tagged notes."
     )]
     pub async fn save_agent_context(
         &self,
@@ -1988,7 +2371,8 @@ impl BentoMcpServer {
             &self.pool,
             &params.key,
             &params.value,
-        ).await?;
+        )
+        .await?;
         Ok(Json(result))
     }
 
@@ -1996,16 +2380,20 @@ impl BentoMcpServer {
     #[tool(
         title = "Get Agent Context",
         description = "Retrieves all stored developer preferences (key-value pairs) previously saved via save_agent_context. Optionally filter by a specific key. Returns persistent agent memory about coding preferences, project context, and workflow conventions.",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn get_agent_context(
         &self,
         Parameters(params): Parameters<GetAgentContextParams>,
     ) -> Result<Json<Value>, String> {
-        let result = crate::mcp::intelligence::get_agent_context_impl(
-            &self.pool,
-            params.key.as_deref(),
-        ).await?;
+        let result =
+            crate::mcp::intelligence::get_agent_context_impl(&self.pool, params.key.as_deref())
+                .await?;
         Ok(Json(result))
     }
 
@@ -2013,15 +2401,18 @@ impl BentoMcpServer {
     #[tool(
         title = "Get Burnout Risk",
         description = "Analyzes your cognitive load trend, sleep debt, mood trajectory, focus consistency, and task accumulation over the last 14 days. Returns a risk level (low/mild/moderate/high), risk score, list of detected signals, and an actionable alert message. Early warning for sustainable pacing.",
-        annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false),
+        annotations(
+            read_only_hint = true,
+            destructive_hint = false,
+            idempotent_hint = true,
+            open_world_hint = false
+        )
     )]
     pub async fn get_burnout_risk(
         &self,
         Parameters(_params): Parameters<EmptyParams>,
     ) -> Result<Json<Value>, String> {
-        let result = crate::mcp::intelligence::get_burnout_risk_impl(
-            &self.pool,
-        ).await?;
+        let result = crate::mcp::intelligence::get_burnout_risk_impl(&self.pool).await?;
         Ok(Json(result))
     }
 }
@@ -2054,15 +2445,11 @@ LIFE INTELLIGENCE → get_day_reconstruction, get_life_delta, get_cross_module_c
 
 CODING AGENT → generate_standup, save_agent_context / get_agent_context, get_burnout_risk.
 
-All timestamps in epoch ms. Empty states return partial data — never error.",
+All timestamps in epoch ms. Empty states return partial data — never error."
 )]
 impl ServerHandler for BentoMcpServer {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(
-            ServerCapabilities::builder()
-                .enable_tools()
-                .build(),
-        )
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
     }
 }
 
@@ -2113,7 +2500,7 @@ async fn calc_habit_streak(pool: &SqlitePool, habit_id: &str, start_of_today: i6
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions, SqliteJournalMode};
+    use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
 
     async fn create_test_pool() -> SqlitePool {
         let opts = SqliteConnectOptions::new()
@@ -2287,7 +2674,10 @@ mod tests {
 
         assert_eq!(result.0["title"], "Buy groceries");
         assert!(result.0["id"].as_str().unwrap().len() > 10);
-        assert!(result.0["message"].as_str().unwrap().contains("Buy groceries"));
+        assert!(result.0["message"]
+            .as_str()
+            .unwrap()
+            .contains("Buy groceries"));
     }
 
     #[tokio::test]
@@ -2335,9 +2725,34 @@ mod tests {
         let server = BentoMcpServer { pool: pool.clone() };
 
         let now = time::now_ms();
-        insert_task(&pool, "t1", "Task 1", false, "high", "work", Some(now + 86400_000), None, now).await;
-        insert_task(&pool, "t2", "Task 2", true, "low", "personal", None, Some(now), now).await;
-        insert_task(&pool, "t3", "Task 3", false, "medium", "inbox", None, None, now).await;
+        insert_task(
+            &pool,
+            "t1",
+            "Task 1",
+            false,
+            "high",
+            "work",
+            Some(now + 86400_000),
+            None,
+            now,
+        )
+        .await;
+        insert_task(
+            &pool,
+            "t2",
+            "Task 2",
+            true,
+            "low",
+            "personal",
+            None,
+            Some(now),
+            now,
+        )
+        .await;
+        insert_task(
+            &pool, "t3", "Task 3", false, "medium", "inbox", None, None, now,
+        )
+        .await;
 
         let result = server
             .get_tasks(Parameters(GetTasksParams {
@@ -2363,8 +2778,22 @@ mod tests {
         let server = BentoMcpServer { pool: pool.clone() };
 
         let now = time::now_ms();
-        insert_task(&pool, "t1", "Task 1", false, "high", "work", None, None, now).await;
-        insert_task(&pool, "t2", "Task 2", true, "low", "inbox", None, Some(now), now).await;
+        insert_task(
+            &pool, "t1", "Task 1", false, "high", "work", None, None, now,
+        )
+        .await;
+        insert_task(
+            &pool,
+            "t2",
+            "Task 2",
+            true,
+            "low",
+            "inbox",
+            None,
+            Some(now),
+            now,
+        )
+        .await;
 
         let result = server
             .get_tasks(Parameters(GetTasksParams {
@@ -2385,8 +2814,30 @@ mod tests {
         let server = BentoMcpServer { pool: pool.clone() };
 
         let now = time::now_ms();
-        insert_task(&pool, "t1", "Done task", true, "medium", "inbox", None, Some(now), now).await;
-        insert_task(&pool, "t2", "Pending task", false, "low", "inbox", None, None, now).await;
+        insert_task(
+            &pool,
+            "t1",
+            "Done task",
+            true,
+            "medium",
+            "inbox",
+            None,
+            Some(now),
+            now,
+        )
+        .await;
+        insert_task(
+            &pool,
+            "t2",
+            "Pending task",
+            false,
+            "low",
+            "inbox",
+            None,
+            None,
+            now,
+        )
+        .await;
 
         let result = server
             .get_tasks(Parameters(GetTasksParams {
@@ -2410,9 +2861,42 @@ mod tests {
         let server = BentoMcpServer { pool: pool.clone() };
 
         let now = time::now_ms();
-        insert_task(&pool, "t1", "Work task", false, "high", "work", None, None, now).await;
-        insert_task(&pool, "t2", "Personal task", false, "low", "personal", None, None, now).await;
-        insert_task(&pool, "t3", "Another work", false, "medium", "work", None, None, now).await;
+        insert_task(
+            &pool,
+            "t1",
+            "Work task",
+            false,
+            "high",
+            "work",
+            None,
+            None,
+            now,
+        )
+        .await;
+        insert_task(
+            &pool,
+            "t2",
+            "Personal task",
+            false,
+            "low",
+            "personal",
+            None,
+            None,
+            now,
+        )
+        .await;
+        insert_task(
+            &pool,
+            "t3",
+            "Another work",
+            false,
+            "medium",
+            "work",
+            None,
+            None,
+            now,
+        )
+        .await;
 
         let result = server
             .get_tasks(Parameters(GetTasksParams {
@@ -2437,9 +2921,34 @@ mod tests {
         let now = time::now_ms();
         let early = now - 86400_000;
         let late = now + 86400_000;
-        insert_task(&pool, "t1", "Early task", false, "medium", "inbox", Some(early), None, now).await;
-        insert_task(&pool, "t2", "Late task", false, "medium", "inbox", Some(late), None, now).await;
-        insert_task(&pool, "t3", "No due", false, "low", "inbox", None, None, now).await;
+        insert_task(
+            &pool,
+            "t1",
+            "Early task",
+            false,
+            "medium",
+            "inbox",
+            Some(early),
+            None,
+            now,
+        )
+        .await;
+        insert_task(
+            &pool,
+            "t2",
+            "Late task",
+            false,
+            "medium",
+            "inbox",
+            Some(late),
+            None,
+            now,
+        )
+        .await;
+        insert_task(
+            &pool, "t3", "No due", false, "low", "inbox", None, None, now,
+        )
+        .await;
 
         let result = server
             .get_tasks(Parameters(GetTasksParams {
@@ -2464,7 +2973,18 @@ mod tests {
         let server = BentoMcpServer { pool: pool.clone() };
 
         let now = time::now_ms();
-        insert_task(&pool, "t1", "Do laundry", false, "medium", "inbox", None, None, now).await;
+        insert_task(
+            &pool,
+            "t1",
+            "Do laundry",
+            false,
+            "medium",
+            "inbox",
+            None,
+            None,
+            now,
+        )
+        .await;
 
         let result = server
             .complete_task(Parameters(CompleteTaskParams {
@@ -2489,7 +3009,18 @@ mod tests {
         let server = BentoMcpServer { pool: pool.clone() };
 
         let now = time::now_ms();
-        insert_task(&pool, "t1", "Done task", true, "low", "inbox", None, Some(now), now).await;
+        insert_task(
+            &pool,
+            "t1",
+            "Done task",
+            true,
+            "low",
+            "inbox",
+            None,
+            Some(now),
+            now,
+        )
+        .await;
 
         let err = server
             .complete_task(Parameters(CompleteTaskParams {
@@ -2969,7 +3500,10 @@ mod tests {
         assert_eq!(result.0["tasksCompletedToday"], 0);
         assert_eq!(result.0["focusMinutesToday"], 0);
         assert_eq!(result.0["tasksDueToday"]["count"].as_i64().unwrap(), 0);
-        assert_eq!(result.0["habitsCompletedToday"]["count"].as_i64().unwrap(), 0);
+        assert_eq!(
+            result.0["habitsCompletedToday"]["count"].as_i64().unwrap(),
+            0
+        );
         assert!(result.0["moodToday"].is_null());
         assert!(!result.0["journalWrittenToday"].as_bool().unwrap());
     }
@@ -3058,18 +3592,18 @@ mod tests {
             .expect("get_today_summary should succeed");
 
         assert_eq!(result.0["tasksDueToday"]["count"].as_i64().unwrap(), 1);
-        assert_eq!(
-            result.0["tasksDueToday"]["tasks"][0]["title"],
-            "Today task"
-        );
+        assert_eq!(result.0["tasksDueToday"]["tasks"][0]["title"], "Today task");
         assert_eq!(result.0["tasksCompletedToday"], 1);
         assert_eq!(result.0["focusMinutesToday"], 30);
-        assert_eq!(result.0["habitsCompletedToday"]["count"].as_i64().unwrap(), 1);
         assert_eq!(
-            result.0["habitsCompletedToday"]["names"][0],
-            "Exercise"
+            result.0["habitsCompletedToday"]["count"].as_i64().unwrap(),
+            1
         );
-        assert_eq!(result.0["habitsRemainingToday"]["count"].as_i64().unwrap(), 1);
+        assert_eq!(result.0["habitsCompletedToday"]["names"][0], "Exercise");
+        assert_eq!(
+            result.0["habitsRemainingToday"]["count"].as_i64().unwrap(),
+            1
+        );
         assert!(result.0["moodToday"].is_object());
         assert_eq!(result.0["moodToday"]["mood"], "bright");
         assert!(result.0["journalWrittenToday"].as_bool().unwrap());

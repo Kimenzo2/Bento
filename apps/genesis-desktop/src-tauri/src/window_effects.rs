@@ -1,7 +1,7 @@
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
-use tauri::{AppHandle, Manager};
-use tauri::window::{Effect, EffectsBuilder};
 use tauri::utils::config::WindowEffectsConfig;
+use tauri::window::{Effect, EffectsBuilder};
+use tauri::{AppHandle, Manager};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Native OS window frame setup
@@ -64,7 +64,10 @@ pub fn configure_native_frame(window: &impl HasWindowHandle) -> Result<(), Strin
         if SetWindowPos(
             hwnd,
             0isize,
-            0, 0, 0, 0,
+            0,
+            0,
+            0,
+            0,
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED,
         ) == 0
         {

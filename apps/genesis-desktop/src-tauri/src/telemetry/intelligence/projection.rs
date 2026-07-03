@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::telemetry::{PredictionRecord, registry::ModuleSlot};
+use crate::telemetry::{registry::ModuleSlot, PredictionRecord};
 
 use super::rate::RateSignal;
 

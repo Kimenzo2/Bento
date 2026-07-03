@@ -15,7 +15,7 @@ use std::{
 use chrono::{TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
-use tauri::{AppHandle, ipc::Channel};
+use tauri::{ipc::Channel, AppHandle};
 use tokio::sync::Mutex as AsyncMutex;
 
 use self::{

@@ -82,9 +82,7 @@ pub fn classify_intent(input: &ClassifierInput) -> VoiceIntent {
 /// Dictation is best suited for clean, single-sentence text under ~200 chars.
 pub fn is_dictation_candidate(transcript: &str) -> bool {
     let t = transcript.trim();
-    !t.is_empty()
-        && t.len() < 500
-        && !t.contains('\n')
+    !t.is_empty() && t.len() < 500 && !t.contains('\n')
 }
 
 /// Generate a title for a voice note from its transcript.
@@ -198,7 +196,9 @@ mod tests {
 
     #[test]
     fn test_generate_note_title_from_first_sentence() {
-        let title = generate_note_title("I think we should redesign the dashboard. The current layout is cluttered.");
+        let title = generate_note_title(
+            "I think we should redesign the dashboard. The current layout is cluttered.",
+        );
         assert_eq!(title, "I think we should redesign the dashboard.");
     }
 

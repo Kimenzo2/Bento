@@ -19,7 +19,7 @@ pub mod provider;
 pub mod stream;
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, ipc::Channel};
+use tauri::{ipc::Channel, AppHandle};
 use tokio::sync::mpsc;
 
 use crate::byok;
@@ -45,10 +45,7 @@ pub struct AiProviderStatus {
 /// retrieves the API key from the OS keyring,
 /// and returns the full response text.
 #[tauri::command]
-pub async fn ai_complete(
-    app: AppHandle,
-    prompt: String,
-) -> Result<String, String> {
+pub async fn ai_complete(app: AppHandle, prompt: String) -> Result<String, String> {
     let settings = settings::current_settings(&app);
 
     let provider_name = settings
@@ -62,9 +59,7 @@ pub async fn ai_complete(
         .byok
         .active_model
         .as_deref()
-        .ok_or_else(|| {
-            "No AI model selected. Go to Settings → AI to choose a model.".to_string()
-        })?
+        .ok_or_else(|| "No AI model selected. Go to Settings → AI to choose a model.".to_string())?
         .to_string();
 
     let overrides = &settings.byok.base_url_overrides;
@@ -82,9 +77,7 @@ pub async fn ai_complete(
         None // Ollama — no key needed
     };
 
-    provider
-        .complete(&model, api_key.as_deref(), &prompt)
-        .await
+    provider.complete(&model, api_key.as_deref(), &prompt).await
 }
 
 /// Stream a completion token-by-token to the frontend.
@@ -163,10 +156,7 @@ pub async fn ai_stream(
 /// For Ollama, this dynamically fetches the list from the local server.
 /// For all others, returns the known model list (or fetches via API if key is set).
 #[tauri::command]
-pub async fn list_ai_models(
-    app: AppHandle,
-    provider_name: String,
-) -> Result<Vec<String>, String> {
+pub async fn list_ai_models(app: AppHandle, provider_name: String) -> Result<Vec<String>, String> {
     let settings = settings::current_settings(&app);
     let overrides = &settings.byok.base_url_overrides;
 

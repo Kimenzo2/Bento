@@ -1,7 +1,7 @@
 use sqlx::{Row, SqlitePool};
 
 use crate::telemetry::{
-    InsightRecord, PredictionRecord, RETENTION_WINDOW_MS, StoredAnomaly, TickRecord, now_ms,
+    now_ms, InsightRecord, PredictionRecord, StoredAnomaly, TickRecord, RETENTION_WINDOW_MS,
 };
 
 #[derive(Clone)]

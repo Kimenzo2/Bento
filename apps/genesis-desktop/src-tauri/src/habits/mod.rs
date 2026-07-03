@@ -25,12 +25,12 @@ pub struct HabitRow {
     pub name: String,
     pub emoji: String,
     pub color: String,
-    pub kind: String,             // 'build' | 'quit'
+    pub kind: String, // 'build' | 'quit'
     pub archived: bool,
-    pub completion_type: String,  // 'binary' | 'count' | 'duration'
+    pub completion_type: String, // 'binary' | 'count' | 'duration'
     pub target_count: i32,
     pub unit: String,
-    pub frequency: String,        // 'daily' | 'weekdays' | 'weekends'
+    pub frequency: String, // 'daily' | 'weekdays' | 'weekends'
     pub why: String,
     pub sort_order: i32,
     pub created_at: i64,
@@ -142,7 +142,9 @@ pub async fn habits_list(
         }
 
         // Determine today's completion status
-        let today_completed = real_completions.iter().any(|ts| **ts >= today_start && **ts < tomorrow_start);
+        let today_completed = real_completions
+            .iter()
+            .any(|ts| **ts >= today_start && **ts < tomorrow_start);
 
         // Compute frequency-aware streak (consecutive trailing true, skipping days the habit doesn't require)
         let freq: String = row.get("frequency");
@@ -150,7 +152,9 @@ pub async fn habits_list(
             let mut s = 0i32;
             for i in (0..=end_idx).rev() {
                 let day_start = today_start - ((89 - i) as i64 * 86_400_000);
-                let dow = Local.timestamp_millis_opt(day_start).single()
+                let dow = Local
+                    .timestamp_millis_opt(day_start)
+                    .single()
                     .map(|dt| dt.weekday().num_days_from_monday())
                     .unwrap_or(0);
                 let required = match freq.as_str() {
@@ -158,8 +162,14 @@ pub async fn habits_list(
                     "weekends" => dow >= 5,
                     _ => true,
                 };
-                if !required { continue; }
-                if history[i] { s += 1; } else { break; }
+                if !required {
+                    continue;
+                }
+                if history[i] {
+                    s += 1;
+                } else {
+                    break;
+                }
             }
             s
         };
@@ -337,10 +347,7 @@ pub async fn habits_save(
 
 /// Delete a habit by id (cascades to completions).
 #[tauri::command]
-pub async fn habits_delete(
-    state: State<'_, BentoAppState>,
-    id: String,
-) -> Result<bool, String> {
+pub async fn habits_delete(state: State<'_, BentoAppState>, id: String) -> Result<bool, String> {
     ensure_habits_tables(&state.db()).await?;
 
     let result = sqlx::query("DELETE FROM habits WHERE id = ?")
@@ -401,12 +408,14 @@ pub async fn habits_toggle_complete(
             .map_err(|e| e.to_string())?;
         // Add completion
         let now = time::now_ms();
-        sqlx::query("INSERT OR IGNORE INTO habit_completions (habit_id, completed_at) VALUES (?, ?)")
-            .bind(&habit_id)
-            .bind(now)
-            .execute(&state.db())
-            .await
-            .map_err(|e| e.to_string())?;
+        sqlx::query(
+            "INSERT OR IGNORE INTO habit_completions (habit_id, completed_at) VALUES (?, ?)",
+        )
+        .bind(&habit_id)
+        .bind(now)
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
         Ok(true)
     }
 }
@@ -445,9 +454,7 @@ pub async fn habits_increment(
 
 /// Get basic stats for the habits dashboard widget.
 #[tauri::command]
-pub async fn habits_get_stats(
-    state: State<'_, BentoAppState>,
-) -> Result<HabitStats, String> {
+pub async fn habits_get_stats(state: State<'_, BentoAppState>) -> Result<HabitStats, String> {
     ensure_habits_tables(&state.db()).await?;
 
     let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM habits")
@@ -503,7 +510,14 @@ pub async fn habits_get_stats(
         let mut longest = 0i32;
         let mut run = 0i32;
         for &done in &history {
-            if done { run += 1; if run > longest { longest = run; } } else { run = 0; }
+            if done {
+                run += 1;
+                if run > longest {
+                    longest = run;
+                }
+            } else {
+                run = 0;
+            }
         }
         if longest > top_streak {
             top_streak = longest;
@@ -538,12 +552,12 @@ pub async fn habits_get_stats(
 
 /// Export habits data as CSV content. Returns the CSV string.
 #[tauri::command]
-pub async fn habits_export_csv(
-    state: State<'_, BentoAppState>,
-) -> Result<String, String> {
+pub async fn habits_export_csv(state: State<'_, BentoAppState>) -> Result<String, String> {
     let habits = habits_list(state).await?;
 
-    let mut csv = String::from("habit_id,name,emoji,frequency,streak,longest_streak,completion_rate_pct,completed_today\n");
+    let mut csv = String::from(
+        "habit_id,name,emoji,frequency,streak,longest_streak,completion_rate_pct,completed_today\n",
+    );
 
     for h in &habits {
         let rate = if h.completion_history.len() > 0 {
@@ -582,9 +596,7 @@ fn csv_escape(s: &str) -> String {
 
 /// Get current freeze token state from settings.
 #[tauri::command]
-pub async fn habits_get_freeze_state(
-    app: AppHandle,
-) -> Result<StreakFreezeState, String> {
+pub async fn habits_get_freeze_state(app: AppHandle) -> Result<StreakFreezeState, String> {
     let s = settings::current_settings(&app);
     Ok(StreakFreezeState {
         freeze_tokens: s.habits.freeze_tokens,

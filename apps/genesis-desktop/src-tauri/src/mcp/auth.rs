@@ -57,15 +57,13 @@ pub fn validate_mcp_token(
     match request_token {
         Some(token) if token == stored => Ok(()),
         Some(_) => Err(McpAuthError {
-            error:
-                "Invalid MCP session token. Check your bento mcp-server.json configuration."
-                    .to_string(),
+            error: "Invalid MCP session token. Check your bento mcp-server.json configuration."
+                .to_string(),
             code: 401,
         }),
         None => Err(McpAuthError {
-            error:
-                "Missing x-bento-token header. All MCP requests require authentication."
-                    .to_string(),
+            error: "Missing x-bento-token header. All MCP requests require authentication."
+                .to_string(),
             code: 401,
         }),
     }

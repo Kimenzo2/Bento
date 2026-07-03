@@ -1,13 +1,13 @@
 use std::{
     collections::HashSet,
     sync::{
-        Mutex,
         atomic::{AtomicBool, AtomicUsize, Ordering},
+        Mutex,
     },
 };
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter, Manager, tray::TrayIcon};
+use tauri::{tray::TrayIcon, AppHandle, Emitter, Manager};
 
 use crate::settings::DesktopSettings;
 

@@ -4,7 +4,7 @@
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, State};
 
-use crate::crypto::{CryptoService, CryptoStatus, create_backup};
+use crate::crypto::{create_backup, CryptoService, CryptoStatus};
 use crate::db::BentoAppState;
 
 // ── Response types ─────────────────────────────────────────────────────────

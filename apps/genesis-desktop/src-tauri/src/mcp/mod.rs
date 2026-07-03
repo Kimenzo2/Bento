@@ -15,32 +15,35 @@ pub mod tools;
 
 use std::sync::Arc;
 
-use auth::{McpAuthToken, validate_mcp_token};
-use tools::BentoMcpServer;
+use auth::{validate_mcp_token, McpAuthToken};
+use axum::{
+    body::Body,
+    http::{Request, StatusCode},
+    response::IntoResponse,
+};
 use serde::Serialize;
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter, Manager};
-use tower::Service;
-use axum::{
-    body::Body,
-    response::IntoResponse,
-    http::{Request, StatusCode},
-};
 use tokio::net::TcpListener as TokioTcpListener;
+use tools::BentoMcpServer;
+use tower::Service;
 
 use rmcp::transport::streamable_http_server::{
-    tower::{StreamableHttpService, StreamableHttpServerConfig},
     session::local::LocalSessionManager,
+    tower::{StreamableHttpServerConfig, StreamableHttpService},
 };
 
 /// Write the MCP server discovery file to the app data directory.
-fn write_discovery_file(app: &AppHandle, port: u16, token: &str) -> Result<std::path::PathBuf, String> {
+fn write_discovery_file(
+    app: &AppHandle,
+    port: u16,
+    token: &str,
+) -> Result<std::path::PathBuf, String> {
     let data_dir = app
         .path()
         .app_data_dir()
         .map_err(|e| format!("Failed to get app data dir: {e}"))?;
-    std::fs::create_dir_all(&data_dir)
-        .map_err(|e| format!("Failed to create data dir: {e}"))?;
+    std::fs::create_dir_all(&data_dir).map_err(|e| format!("Failed to create data dir: {e}"))?;
 
     #[derive(Serialize)]
     struct McpDiscovery {
@@ -60,8 +63,7 @@ fn write_discovery_file(app: &AppHandle, port: u16, token: &str) -> Result<std::
     let path = data_dir.join("mcp-server.json");
     let payload = serde_json::to_string_pretty(&discovery)
         .map_err(|e| format!("Serialization error: {e}"))?;
-    std::fs::write(&path, payload)
-        .map_err(|e| format!("Failed to write discovery file: {e}"))?;
+    std::fs::write(&path, payload).map_err(|e| format!("Failed to write discovery file: {e}"))?;
 
     eprintln!("[mcp] discovery file written to {}", path.display());
     Ok(path)
@@ -131,10 +133,7 @@ pub async fn get_mcp_connection_info(app: AppHandle) -> Result<McpConnectionInfo
 /// Spawn the MCP server as a Tokio task inside the Tauri backend.
 ///
 /// Called from lib.rs setup after the SqlitePool and AppState are initialized.
-pub async fn spawn_mcp_server(
-    app: AppHandle,
-    pool: SqlitePool,
-) -> Result<(u16, String), String> {
+pub async fn spawn_mcp_server(app: AppHandle, pool: SqlitePool) -> Result<(u16, String), String> {
     // ── Generate session token ───────────────────────────────────────
     let token = McpAuthToken::new();
     let token_str = token.as_str().to_string();
@@ -159,8 +158,7 @@ pub async fn spawn_mcp_server(
     let session_manager = Arc::new(LocalSessionManager::default());
 
     // ── HTTP server config ──────────────────────────────────────────
-    let config = StreamableHttpServerConfig::default()
-        .with_stateful_mode(true);
+    let config = StreamableHttpServerConfig::default().with_stateful_mode(true);
 
     // ── Create the StreamableHttpService (tower Service) ────────────
     let http_service = StreamableHttpService::new(service_factory, session_manager, config);
@@ -182,12 +180,12 @@ pub async fn spawn_mcp_server(
                     // service.call() returns Infallible error, so unwrap is safe
                     Ok(resp.unwrap_or_else(|never| match never {}).into_response())
                 }
-                Err(auth_error) => {
-                    Ok((
-                        StatusCode::UNAUTHORIZED,
-                        serde_json::json!({"error": auth_error.error, "code": auth_error.code}).to_string(),
-                    ).into_response())
-                }
+                Err(auth_error) => Ok((
+                    StatusCode::UNAUTHORIZED,
+                    serde_json::json!({"error": auth_error.error, "code": auth_error.code})
+                        .to_string(),
+                )
+                    .into_response()),
             }
         }
     });
@@ -195,8 +193,7 @@ pub async fn spawn_mcp_server(
     // ── Mount in axum at root path ──────────────────────────────────
     use axum::Router;
 
-    let app_router = Router::new()
-        .route_service("/", auth_layer);
+    let app_router = Router::new().route_service("/", auth_layer);
 
     // ── Write discovery file ────────────────────────────────────────
     let _ = write_discovery_file(&app, port, &token_str)?;

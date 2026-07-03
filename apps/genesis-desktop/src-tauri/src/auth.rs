@@ -1,20 +1,20 @@
 use std::{env, path::PathBuf, sync::Arc};
 
-use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use chrono::{DateTime, Utc};
 use keyring::Entry;
-use rand::{RngCore, thread_rng};
+use rand::{thread_rng, RngCore};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::time::Instant;
 use tauri::{AppHandle, Emitter, State, WebviewWindow};
-use tauri_plugin_oauth::{OauthConfig, start_with_config};
+use tauri_plugin_oauth::{start_with_config, OauthConfig};
 use tauri_plugin_opener::OpenerExt;
 use tokio::{
     sync::Mutex,
-    time::{Duration, sleep},
+    time::{sleep, Duration},
 };
 use url::Url;
 
@@ -183,9 +183,7 @@ impl BillingRefreshController {
             }
         });
 
-        Self {
-            force_tx,
-        }
+        Self { force_tx }
     }
 
     /// Enter force-refresh mode. Modeled after Anytype's `Force(duration)`.
@@ -194,8 +192,6 @@ impl BillingRefreshController {
         let d = duration.unwrap_or(BILLING_FORCE_WINDOW);
         let _ = self.force_tx.send(d);
     }
-
-
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -386,7 +382,7 @@ struct AuthInner {
     state: Mutex<AuthRuntimeState>,
     billing_cache: Mutex<BillingCache>, // cached billing profile
     refresh_controller: Mutex<Option<BillingRefreshController>>, // background poller
-    data_dir: PathBuf, // app data directory — used for file-based session fallback
+    data_dir: PathBuf,                  // app data directory — used for file-based session fallback
 }
 
 #[derive(Clone)]
@@ -424,7 +420,7 @@ impl AuthManager {
         }
 
         let loaded_session = self.load_session_from_keyring()?;
-        let next_state =                match loaded_session {
+        let next_state = match loaded_session {
             Some(session) => {
                 if session.expires_at_ms <= unix_ms() {
                     match self.try_refresh_session(&session.refresh_token).await {
@@ -773,7 +769,8 @@ impl AuthManager {
         let session = self
             .current_session()
             .await
-            .ok_or_else(|| "Sign in before continuing.".to_string())?;                if session.expires_at_ms - unix_ms() > 60_000 {
+            .ok_or_else(|| "Sign in before continuing.".to_string())?;
+        if session.expires_at_ms - unix_ms() > 60_000 {
             return Ok(session);
         }
 
@@ -789,7 +786,10 @@ impl AuthManager {
             Ok(None) => {
                 // Network error — return the stale session anyway; the caller
                 // will get a network error downstream rather than a silent log-out.
-                Err("Session refresh delayed: network unavailable. Please check your connection.".to_string())
+                Err(
+                    "Session refresh delayed: network unavailable. Please check your connection."
+                        .to_string(),
+                )
             }
             Err(error) => {
                 self.clear_session().await;
@@ -1275,7 +1275,10 @@ impl AuthManager {
     ///   Caller should keep the existing session and retry later.
     /// - `Err(String)` — permanent auth error (invalid/expired refresh token).
     ///   Caller should clear the session and force re-login.
-    async fn try_refresh_session(&self, refresh_token: &str) -> Result<Option<StoredAuthSession>, String> {
+    async fn try_refresh_session(
+        &self,
+        refresh_token: &str,
+    ) -> Result<Option<StoredAuthSession>, String> {
         let config = self.inner.config.clone();
         let client = Client::builder()
             .timeout(Duration::from_secs(15))
@@ -1622,7 +1625,10 @@ fn subscription_is_access_active(
     subscription_end_date: Option<&str>,
     cancel_at_period_end: Option<bool>,
 ) -> bool {
-    if !matches!(payment_provider.map(str::trim), Some("dodo") | Some("paystack")) {
+    if !matches!(
+        payment_provider.map(str::trim),
+        Some("dodo") | Some("paystack")
+    ) {
         return false;
     }
 
@@ -1876,12 +1882,16 @@ pub async fn check_auth_session(
         }
         Ok(None) => {
             // Network error — keep the current UI state, don't log out.
-            eprintln!("[Auth] check_auth_session: refresh blocked by network, keeping current session.");
+            eprintln!(
+                "[Auth] check_auth_session: refresh blocked by network, keeping current session."
+            );
             Ok(AuthBootstrapState::restored(user.clone()))
         }
         Err(error) => {
             // Permanent auth error — session is invalid.
-            eprintln!("[Auth] check_auth_session: permanent refresh failure, clearing session: {error}");
+            eprintln!(
+                "[Auth] check_auth_session: permanent refresh failure, clearing session: {error}"
+            );
             manager.clear_session().await;
             manager.delete_session_from_keyring();
             manager
@@ -1910,10 +1920,7 @@ pub async fn set_session_from_deep_link(
     let client = reqwest::Client::new();
 
     // Validate the access token by fetching the user from Supabase
-    let url = format!(
-        "{}/auth/v1/user",
-        config.supabase_url.trim_end_matches('/')
-    );
+    let url = format!("{}/auth/v1/user", config.supabase_url.trim_end_matches('/'));
 
     let response = client
         .get(&url)
@@ -1924,7 +1931,9 @@ pub async fn set_session_from_deep_link(
         .map_err(|error| format!("Network error validating session: {error}"))?;
 
     if !response.status().is_success() {
-        return Err("The authentication link is invalid or expired. Please sign in manually.".to_string());
+        return Err(
+            "The authentication link is invalid or expired. Please sign in manually.".to_string(),
+        );
     }
 
     let supabase_user: SupabaseUser = response.json().await.map_err(|error| error.to_string())?;
@@ -1942,14 +1951,14 @@ pub async fn set_session_from_deep_link(
 
     manager.persist_session(&session)?;
     manager.set_session(session.clone()).await;
-    manager.set_bootstrap(AuthBootstrapState::restored(user.clone())).await;
+    manager
+        .set_bootstrap(AuthBootstrapState::restored(user.clone()))
+        .await;
     manager.ensure_refresh_loop(app.clone());
     manager.spawn_profile_sync(session.clone());
 
-    app.emit("auth:success", AuthSuccessPayload {
-        user: user.clone(),
-    })
-    .map_err(|error| error.to_string())?;
+    app.emit("auth:success", AuthSuccessPayload { user: user.clone() })
+        .map_err(|error| error.to_string())?;
 
     Ok(AuthSuccessPayload { user })
 }

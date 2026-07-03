@@ -40,15 +40,15 @@
 
 ### What We Learned from Each Reference
 
-| Project | Key Insight | Bento Adaptation |
-|---------|-------------|-----------------|
-| **June** | RecorderBar + GlobalRecorderPill: recording lives in a compact bar, not a modal | Dock expands inline; Island shows status pill |
-| **June** | Waveform visualization via rAF + CSS variables — performant, minimal | Borrow same technique for live audio feedback |
-| **June** | DictationHistoryView with search, grouping, per-mode settings | Apply to voice notes + meeting history |
-| **Minutes** | "Chat with audio" — meetings become searchable memory | Store transcripts + summaries in Bento notes engine; enable semantic search |
-| **Minutes** | Structured meeting output: transcript → summary → decisions → action items | Auto-create tasks and decisions from meetings |
-| **OpenWhispr** | Privacy-first, local Whisper via BYOK, global hotkeys | Use existing moonshine (local Whisper) + allow cloud provider fallback |
-| **OpenWhispr** | Auto-paste dictation at cursor, global hotkey | Global push-to-talk hotkey, auto-insert into focused text field |
+| Project        | Key Insight                                                                     | Bento Adaptation                                                            |
+| -------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **June**       | RecorderBar + GlobalRecorderPill: recording lives in a compact bar, not a modal | Dock expands inline; Island shows status pill                               |
+| **June**       | Waveform visualization via rAF + CSS variables — performant, minimal            | Borrow same technique for live audio feedback                               |
+| **June**       | DictationHistoryView with search, grouping, per-mode settings                   | Apply to voice notes + meeting history                                      |
+| **Minutes**    | "Chat with audio" — meetings become searchable memory                           | Store transcripts + summaries in Bento notes engine; enable semantic search |
+| **Minutes**    | Structured meeting output: transcript → summary → decisions → action items      | Auto-create tasks and decisions from meetings                               |
+| **OpenWhispr** | Privacy-first, local Whisper via BYOK, global hotkeys                           | Use existing moonshine (local Whisper) + allow cloud provider fallback      |
+| **OpenWhispr** | Auto-paste dictation at cursor, global hotkey                                   | Global push-to-talk hotkey, auto-insert into focused text field             |
 
 ---
 
@@ -106,16 +106,16 @@
 
 ### Key Architectural Decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Recording backend | **Rust (cpal)** — already exists in `audio/mod.rs` | Cross-platform, low-latency, no browser API limitations |
-| Transcription | **Moonshine (local Whisper)** — already exists | Privacy-first, no cloud dependency, works offline |
-| Real-time STT | **Web Speech API** (browser) for dictation mode; **Moonshine** for post-hoc transcription | Web Speech gives streaming interim results; Moonshine gives higher accuracy for long recordings |
-| Voice Activity Detection | **Rust VAD** (separate module) using Silero-VAD or simple energy-based | Needed for meeting mode to split speakers/turns |
-| State | **Svelte $state store** (`voice-engine.store.svelte.ts`) — reactive, no extra libs | Matches existing island.store pattern |
-| IPC | **Tauri invoke + events** — already established pattern | Frontend calls Rust via invoke; Rust emits events for streaming |
-| Audio format | **WAV 16-bit mono 16kHz** — matches Whisper requirements | Already used by existing recording engine |
-| Processing | **Background thread** — non-blocking | Audio capture, transcription, and AI processing run on separate threads |
+| Decision                 | Choice                                                                                    | Rationale                                                                                       |
+| ------------------------ | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Recording backend        | **Rust (cpal)** — already exists in `audio/mod.rs`                                        | Cross-platform, low-latency, no browser API limitations                                         |
+| Transcription            | **Moonshine (local Whisper)** — already exists                                            | Privacy-first, no cloud dependency, works offline                                               |
+| Real-time STT            | **Web Speech API** (browser) for dictation mode; **Moonshine** for post-hoc transcription | Web Speech gives streaming interim results; Moonshine gives higher accuracy for long recordings |
+| Voice Activity Detection | **Rust VAD** (separate module) using Silero-VAD or simple energy-based                    | Needed for meeting mode to split speakers/turns                                                 |
+| State                    | **Svelte $state store** (`voice-engine.store.svelte.ts`) — reactive, no extra libs        | Matches existing island.store pattern                                                           |
+| IPC                      | **Tauri invoke + events** — already established pattern                                   | Frontend calls Rust via invoke; Rust emits events for streaming                                 |
+| Audio format             | **WAV 16-bit mono 16kHz** — matches Whisper requirements                                  | Already used by existing recording engine                                                       |
+| Processing               | **Background thread** — non-blocking                                                      | Audio capture, transcription, and AI processing run on separate threads                         |
 
 ---
 
@@ -171,13 +171,13 @@ Microphone
 
 ### Real-time vs Post-hoc
 
-| Aspect | Real-time (Web Speech) | Post-hoc (Moonshine) |
-|--------|----------------------|---------------------|
-| Latency | ~200ms (streaming) | ~1-5s (after stop) |
-| Accuracy | Moderate | High |
-| Privacy | Browser-processed | Fully local |
-| Use case | Dictation, agent chat | Voice notes, meetings |
-| Interim results | Yes (word-by-word) | No |
+| Aspect          | Real-time (Web Speech) | Post-hoc (Moonshine)  |
+| --------------- | ---------------------- | --------------------- |
+| Latency         | ~200ms (streaming)     | ~1-5s (after stop)    |
+| Accuracy        | Moderate               | High                  |
+| Privacy         | Browser-processed      | Fully local           |
+| Use case        | Dictation, agent chat  | Voice notes, meetings |
+| Interim results | Yes (word-by-word)     | No                    |
 
 **Strategy:** Use **Web Speech API** for streaming dictation and agent conversation (needs immediacy). Use **Moonshine** for voice notes and meetings (needs accuracy). The system auto-selects based on mode, but users can override in settings.
 
@@ -201,30 +201,30 @@ The frontend renders these using a rAF loop updating CSS `--level` variables on 
 ```typescript
 type VoiceMode = "idle" | "dictation" | "voice_note" | "meeting" | "agent_conversation";
 
-type VoiceStatus = 
+type VoiceStatus =
   | "inactive"
   | "initializing"
-  | "listening"      // mic open, capturing
-  | "recording"      // actively recording (notes/meetings)
-  | "paused"         // recording paused
-  | "processing"     // transcribing / classifying
-  | "summarizing"    // AI generating summary
-  | "completed"      // done, showing result
+  | "listening" // mic open, capturing
+  | "recording" // actively recording (notes/meetings)
+  | "paused" // recording paused
+  | "processing" // transcribing / classifying
+  | "summarizing" // AI generating summary
+  | "completed" // done, showing result
   | "error";
 
 interface VoiceSession {
   id: string;
   mode: VoiceMode;
   status: VoiceStatus;
-  startTime: number;       // epoch ms
-  elapsedMs: number;        // updated every 200ms
-  audioLevel: number;       // 0.0–1.0 for waveform
-  interimText: string;      // streaming transcript
-  finalText: string;        // completed transcript
+  startTime: number; // epoch ms
+  elapsedMs: number; // updated every 200ms
+  audioLevel: number; // 0.0–1.0 for waveform
+  interimText: string; // streaming transcript
+  finalText: string; // completed transcript
   recordingId: string | null; // references Rust recording session
   filePath: string | null;
-  summary: string | null;   // for meetings / notes
-  actions: ActionItem[];    // extracted action items
+  summary: string | null; // for meetings / notes
+  actions: ActionItem[]; // extracted action items
   error: string | null;
 }
 
@@ -233,7 +233,7 @@ class VoiceEngineStore {
   mode = $state<VoiceMode>("idle");
   status = $state<VoiceStatus>("inactive");
   session = $state<VoiceSession | null>(null);
-  
+
   // Derived
   isActive = $derived(this.status !== "inactive");
   isRecording = $derived(this.status === "recording" || this.status === "listening");
@@ -265,16 +265,16 @@ idle ──start(agent)──► listening ──stop──► processing ──
 
 ### Events Emitted by Rust Backend
 
-| Event | Payload | When |
-|-------|---------|------|
-| `voice:session-started` | `{ sessionId, mode }` | Recording begins |
-| `voice:audio-level` | `{ level, rms, peak }` | Every 50ms during capture |
-| `voice:interim-transcript` | `{ text, isFinal }` | Web Speech interim results |
-| `voice:transcript-complete` | `{ text, duration }` | Transcription finished |
-| `voice:summary-complete` | `{ summary, actions }` | AI summary generated |
-| `voice:session-completed` | `{ sessionId, result }` | Full session done |
-| `voice:error` | `{ code, message }` | Any error |
-| `voice:sleep-detected` | `{ driftMs }` | Machine slept mid-recording |
+| Event                       | Payload                 | When                        |
+| --------------------------- | ----------------------- | --------------------------- |
+| `voice:session-started`     | `{ sessionId, mode }`   | Recording begins            |
+| `voice:audio-level`         | `{ level, rms, peak }`  | Every 50ms during capture   |
+| `voice:interim-transcript`  | `{ text, isFinal }`     | Web Speech interim results  |
+| `voice:transcript-complete` | `{ text, duration }`    | Transcription finished      |
+| `voice:summary-complete`    | `{ summary, actions }`  | AI summary generated        |
+| `voice:session-completed`   | `{ sessionId, result }` | Full session done           |
+| `voice:error`               | `{ code, message }`     | Any error                   |
+| `voice:sleep-detected`      | `{ driftMs }`           | Machine slept mid-recording |
 
 ---
 
@@ -289,7 +289,16 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
 export type VoiceMode = "idle" | "dictation" | "voice_note" | "meeting" | "agent_conversation";
-export type VoiceStatus = "inactive" | "initializing" | "listening" | "recording" | "paused" | "processing" | "summarizing" | "completed" | "error";
+export type VoiceStatus =
+  | "inactive"
+  | "initializing"
+  | "listening"
+  | "recording"
+  | "paused"
+  | "processing"
+  | "summarizing"
+  | "completed"
+  | "error";
 
 export interface VoiceSession {
   id: string;
@@ -311,10 +320,10 @@ class VoiceEngineStore {
   mode = $state<VoiceMode>("idle");
   status = $state<VoiceStatus>("inactive");
   session = $state<VoiceSession | null>(null);
-  
+
   isActive = $derived(this.status !== "inactive");
   isRecording = $derived(this.status === "recording" || this.status === "listening");
-  
+
   // ... methods, event listeners, derived state
 }
 
@@ -322,6 +331,7 @@ export const voiceEngine = new VoiceEngineStore();
 ```
 
 **Event listeners registered in store constructor:**
+
 - `voice:audio-level` → update `session.audioLevel`
 - `voice:interim-transcript` → update `session.interimText`
 - `voice:transcript-complete` → set `session.finalText`, move to processing
@@ -338,6 +348,7 @@ export const voiceEngine = new VoiceEngineStore();
 ### Current State
 
 The Agent Dock (AgentDock.svelte) already has:
+
 - Voice button with Web Speech API toggle
 - `listening` mode with transcript display
 - Chat messages + streaming AI responses
@@ -373,13 +384,13 @@ The Agent Dock (AgentDock.svelte) already has:
 
 ### Voice Controls (within Dock)
 
-| Control | Action | Behavior |
-|---------|--------|----------|
+| Control       | Action                                | Behavior                                                                        |
+| ------------- | ------------------------------------- | ------------------------------------------------------------------------------- |
 | 🎤 Mic button | Tap to record / Hold for push-to-talk | Starts Web Speech for dictation/agent; starts Rust recording for notes/meetings |
-| ⏸ Pause | Pause recording | Pauses cpal stream, shows paused state in Island |
-| ▶ Resume | Resume recording | Resumes cpal stream |
-| ⏹ Done | Finish + process | Stops capture, triggers transcription → classification → mode handler |
-| ✕ Cancel | Discard recording | Stops capture, deletes temp file, resets state |
+| ⏸ Pause       | Pause recording                       | Pauses cpal stream, shows paused state in Island                                |
+| ▶ Resume      | Resume recording                      | Resumes cpal stream                                                             |
+| ⏹ Done        | Finish + process                      | Stops capture, triggers transcription → classification → mode handler           |
+| ✕ Cancel      | Discard recording                     | Stops capture, deletes temp file, resets state                                  |
 
 ### Auto-detection Logic
 
@@ -395,6 +406,7 @@ enum VoiceIntent {
 ```
 
 Heuristic (fast, no AI call needed):
+
 - **< 30s duration + no pause > 3s** → Dictation
 - **30s–3min + single speaker** → Voice Note
 - **> 3min OR detected multiple turns** → Meeting
@@ -404,13 +416,13 @@ The user can override this classification via buttons in the Dock's result view.
 
 ### Dock Mode Transitions (Updated)
 
-| Event | Current Mode | New Mode | Effect |
-|-------|-------------|----------|--------|
-| Tap mic | idle | listening | Web Speech starts, Dock expands slightly |
-| Hold mic (PTT) | idle | listening | Records while held, releases on release |
-| Release PTT | listening | processing | Transcribe + classify + route |
-| Tap mic (notes) | idle | recording | Rust capture starts, Dock expands fully |
-| Agent responds | working | idle | Stream AI response, then reset |
+| Event           | Current Mode | New Mode   | Effect                                   |
+| --------------- | ------------ | ---------- | ---------------------------------------- |
+| Tap mic         | idle         | listening  | Web Speech starts, Dock expands slightly |
+| Hold mic (PTT)  | idle         | listening  | Records while held, releases on release  |
+| Release PTT     | listening    | processing | Transcribe + classify + route            |
+| Tap mic (notes) | idle         | recording  | Rust capture starts, Dock expands fully  |
+| Agent responds  | working      | idle       | Stream AI response, then reset           |
 
 ---
 
@@ -419,6 +431,7 @@ The user can override this classification via buttons in the Dock's result view.
 ### Current State
 
 The Island (Island.svelte) already supports:
+
 - Compact mode with activeModule display
 - Recording timer with pulsing red dot
 - Expand/collapse animations
@@ -457,9 +470,9 @@ When voice is active, the Island shows a virtual `voice` module:
 islandStore.activateModule({
   id: "voice",
   label: "Voice",
-  icon: "mic",        // from island-icons.ts
+  icon: "mic", // from island-icons.ts
   status: "Listening",
-  activityType: "recording",  // shows timer + pulsing dot
+  activityType: "recording", // shows timer + pulsing dot
 });
 ```
 
@@ -471,7 +484,7 @@ islandStore.activateModule({
   label: "Voice",
   icon: "check",
   status: "Done",
-  activityType: "active",  // brief checkmark, then auto-collapse to default
+  activityType: "active", // brief checkmark, then auto-collapse to default
 });
 ```
 
@@ -524,6 +537,7 @@ Result: Clean text in the original text field
 ```
 
 **Key details:**
+
 - Punctuation is inferred from prosody (Web Speech does this naturally)
 - The transcribed text appears inline, not in a separate window
 - User can edit the result normally — it's just text in their field
@@ -655,13 +669,13 @@ Dock collapses, conversation history preserved
 
 ### Rust Backend (New Modules)
 
-| Module | File | Responsibility |
-|--------|------|---------------|
-| `audio::vad` | `src-tauri/src/audio/vad.rs` | Voice Activity Detection (Silero-VAD or energy-based) |
-| `audio::classifier` | `src-tauri/src/audio/classifier.rs` | Intent classification (heuristic + optional ML) |
-| `audio::turns` | `src-tauri/src/audio/turns.rs` | Speaker turn detection for meetings |
-| `commands::voice` | `src-tauri/src/commands/voice.rs` | Tauri commands for voice operations |
-| `commands::transcription` | `src-tauri/src/commands/transcription.rs` | Tauri commands for transcription + AI processing |
+| Module                    | File                                      | Responsibility                                        |
+| ------------------------- | ----------------------------------------- | ----------------------------------------------------- |
+| `audio::vad`              | `src-tauri/src/audio/vad.rs`              | Voice Activity Detection (Silero-VAD or energy-based) |
+| `audio::classifier`       | `src-tauri/src/audio/classifier.rs`       | Intent classification (heuristic + optional ML)       |
+| `audio::turns`            | `src-tauri/src/audio/turns.rs`            | Speaker turn detection for meetings                   |
+| `commands::voice`         | `src-tauri/src/commands/voice.rs`         | Tauri commands for voice operations                   |
+| `commands::transcription` | `src-tauri/src/commands/transcription.rs` | Tauri commands for transcription + AI processing      |
 
 ### New Tauri Commands
 
@@ -685,13 +699,13 @@ Dock collapses, conversation history preserved
 
 ### Desktop Integrations
 
-| Integration | Purpose | Implementation |
-|-------------|---------|---------------|
-| **Global hotkey** | Push-to-talk from anywhere | Tauri global shortcut plugin (`Ctrl+Shift+M` or user-configurable) |
+| Integration              | Purpose                               | Implementation                                                                               |
+| ------------------------ | ------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Global hotkey**        | Push-to-talk from anywhere            | Tauri global shortcut plugin (`Ctrl+Shift+M` or user-configurable)                           |
 | **System audio capture** | Meeting mode (capture computer audio) | Platform-specific: `system_macos.rs` (already in June), `windows::wasapi`, `linux::pipewire` |
-| **Auto-paste** | Dictation mode | Tauri clipboard + keyboard simulation (or platform-specific paste) |
-| **Menu bar icon** | Quick status indicator | Already partially exists in tray.ts |
-| **Calendar integration** | Meeting detection | Check calendar events for scheduled meetings; prompt to record |
+| **Auto-paste**           | Dictation mode                        | Tauri clipboard + keyboard simulation (or platform-specific paste)                           |
+| **Menu bar icon**        | Quick status indicator                | Already partially exists in tray.ts                                                          |
+| **Calendar integration** | Meeting detection                     | Check calendar events for scheduled meetings; prompt to record                               |
 
 ### Processing Pipeline (AI Flow)
 
@@ -733,12 +747,12 @@ Transcript text
 
 ### Local-First Approach
 
-| Data | Storage | Processing | Default |
-|------|---------|------------|---------|
-| Raw audio | Local filesystem (recordings/) | Local (Moonshine) | **Never leaves device** |
-| Transcripts | Local SQLite | Local or cloud | Local by default |
-| AI summaries | Local SQLite | Bento AI (configurable) | Uses configured provider |
-| Audio levels | In-memory only | N/A | Ephemeral |
+| Data         | Storage                        | Processing              | Default                  |
+| ------------ | ------------------------------ | ----------------------- | ------------------------ |
+| Raw audio    | Local filesystem (recordings/) | Local (Moonshine)       | **Never leaves device**  |
+| Transcripts  | Local SQLite                   | Local or cloud          | Local by default         |
+| AI summaries | Local SQLite                   | Bento AI (configurable) | Uses configured provider |
+| Audio levels | In-memory only                 | N/A                     | Ephemeral                |
 
 ### User Controls
 
@@ -786,19 +800,20 @@ User speaks → Mic → Rust capture → WAV file (local)
 
 ### Platform-Specific Implementation
 
-| Feature | Windows | macOS | Linux |
-|---------|---------|-------|-------|
-| **Mic capture** | cpal (works) | cpal (works) | cpal (works) |
-| **System audio** | WASAPI loopback | CoreAudio aggregate | PipeWire loopback |
-| **VAD** | Silero-VAD (ONNX) | Silero-VAD (ONNX) | Silero-VAD (ONNX) |
-| **Transcription** | Moonshine (same) | Moonshine (same) | Moonshine (same) |
-| **Global hotkey** | `tauri-plugin-global-shortcut` | `tauri-plugin-global-shortcut` | `tauri-plugin-global-shortcut` |
-| **Auto-paste** | `tauri-plugin-clipboard` + `SendInput` | `tauri-plugin-clipboard` + CGEvent | `tauri-plugin-clipboard` + `xdotool` |
-| **Menu bar** | System tray | Menu bar app | System tray (libappindicator) |
+| Feature           | Windows                                | macOS                              | Linux                                |
+| ----------------- | -------------------------------------- | ---------------------------------- | ------------------------------------ |
+| **Mic capture**   | cpal (works)                           | cpal (works)                       | cpal (works)                         |
+| **System audio**  | WASAPI loopback                        | CoreAudio aggregate                | PipeWire loopback                    |
+| **VAD**           | Silero-VAD (ONNX)                      | Silero-VAD (ONNX)                  | Silero-VAD (ONNX)                    |
+| **Transcription** | Moonshine (same)                       | Moonshine (same)                   | Moonshine (same)                     |
+| **Global hotkey** | `tauri-plugin-global-shortcut`         | `tauri-plugin-global-shortcut`     | `tauri-plugin-global-shortcut`       |
+| **Auto-paste**    | `tauri-plugin-clipboard` + `SendInput` | `tauri-plugin-clipboard` + CGEvent | `tauri-plugin-clipboard` + `xdotool` |
+| **Menu bar**      | System tray                            | Menu bar app                       | System tray (libappindicator)        |
 
 ### Behavior Guarantees
 
 All platforms provide identical user experience:
+
 - Same hotkey to toggle recording
 - Same Dock + Island layout
 - Same transcription quality (Moonshine is cross-platform)
@@ -811,31 +826,31 @@ All platforms provide identical user experience:
 
 ### Risk Matrix
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| **Web Speech API not available** | Low (Chrome-based Tauri) | High | Fall back to Moonshine-only; show voice unavailable gracefully |
-| **Microphone permission denied** | Medium | Medium | Clear permission prompt; show settings link; degrade gracefully |
-| **Long recording memory pressure** | Low (large files) | Medium | Stream to disk; warn at 30min; auto-split at 1hr |
-| **Sleep during recording** | Medium | High | Already handled (sleep detection exists); warn user on resume |
-| **Ambient noise / poor accuracy** | Medium | Medium | Show confidence score; offer re-record; allow manual editing |
-| **Multi-speaker confusion** | High (meetings) | Medium | Use VAD for turn detection; label as Speaker A/B/C by default |
-| **Accidental recording** | Medium | Medium | Require explicit start; show prominent indicator; easy cancel |
-| **AI processing cost** | Low (if using local) | Low | Default to local; cloud is opt-in with provider's own cost |
-| **Audio file cleanup** | Medium | Low | Auto-delete raw audio after configurable retention period |
-| **Platform-specific audio routing** | Medium (system audio) | Medium | Implement per platform; fall back to mic-only with clear label |
+| Risk                                | Likelihood               | Impact | Mitigation                                                      |
+| ----------------------------------- | ------------------------ | ------ | --------------------------------------------------------------- |
+| **Web Speech API not available**    | Low (Chrome-based Tauri) | High   | Fall back to Moonshine-only; show voice unavailable gracefully  |
+| **Microphone permission denied**    | Medium                   | Medium | Clear permission prompt; show settings link; degrade gracefully |
+| **Long recording memory pressure**  | Low (large files)        | Medium | Stream to disk; warn at 30min; auto-split at 1hr                |
+| **Sleep during recording**          | Medium                   | High   | Already handled (sleep detection exists); warn user on resume   |
+| **Ambient noise / poor accuracy**   | Medium                   | Medium | Show confidence score; offer re-record; allow manual editing    |
+| **Multi-speaker confusion**         | High (meetings)          | Medium | Use VAD for turn detection; label as Speaker A/B/C by default   |
+| **Accidental recording**            | Medium                   | Medium | Require explicit start; show prominent indicator; easy cancel   |
+| **AI processing cost**              | Low (if using local)     | Low    | Default to local; cloud is opt-in with provider's own cost      |
+| **Audio file cleanup**              | Medium                   | Low    | Auto-delete raw audio after configurable retention period       |
+| **Platform-specific audio routing** | Medium (system audio)    | Medium | Implement per platform; fall back to mic-only with clear label  |
 
 ### Edge Case Handling
 
-| Edge Case | Behavior |
-|-----------|----------|
-| User starts recording, then types in Dock | Voice takes priority; typing disabled during recording (clear hint shown) |
-| User clicks outside Dock during recording | Dock stays expanded but dim; Island shows active recording — click Island to return |
-| Recording longer than 1 hour | Auto-split into 1hr segments; warn user at 45min |
-| Microphone disconnected mid-recording | Detect via cpal error; pause recording; show "Mic disconnected — reconnect or cancel" |
-| Multiple voice sessions | Only one active session; start new = offer to save or discard current |
-| Transcription fails | Return partial transcript if available; show error with retry |
-| AI summary fails | Return raw transcript instead; show "Summary unavailable" gracefully |
-| Application quit during recording | Prompt "Recording in progress — save or discard?" before allowing quit |
+| Edge Case                                 | Behavior                                                                              |
+| ----------------------------------------- | ------------------------------------------------------------------------------------- |
+| User starts recording, then types in Dock | Voice takes priority; typing disabled during recording (clear hint shown)             |
+| User clicks outside Dock during recording | Dock stays expanded but dim; Island shows active recording — click Island to return   |
+| Recording longer than 1 hour              | Auto-split into 1hr segments; warn user at 45min                                      |
+| Microphone disconnected mid-recording     | Detect via cpal error; pause recording; show "Mic disconnected — reconnect or cancel" |
+| Multiple voice sessions                   | Only one active session; start new = offer to save or discard current                 |
+| Transcription fails                       | Return partial transcript if available; show error with retry                         |
+| AI summary fails                          | Return raw transcript instead; show "Summary unavailable" gracefully                  |
+| Application quit during recording         | Prompt "Recording in progress — save or discard?" before allowing quit                |
 
 ---
 
@@ -845,15 +860,15 @@ All platforms provide identical user experience:
 
 **Goal:** Single voice input → transcription → route to Agent (most impactful starting point)
 
-| Task | Files | Dependencies |
-|------|-------|-------------|
-| Create `voice-engine.store.svelte.ts` | `src/lib/stores/` | None |
-| Add `VoiceMode`, `VoiceStatus`, `VoiceSession` types | Store file | None |
-| Register Tauri event listeners for audio events | Store file | Rust events |
-| Create `commands::voice` Rust module with basic start/stop/cancel | `src-tauri/src/commands/voice.rs` | Existing audio engine |
-| Wire Dock voice button to new store (instead of direct Web Speech) | `AgentDock.svelte` | Store |
-| Add interim transcript display from store | `AgentDock.svelte` | Store |
-| Add waveform visualization to Dock | `AgentDock.svelte` | Audio level events |
+| Task                                                               | Files                             | Dependencies          |
+| ------------------------------------------------------------------ | --------------------------------- | --------------------- |
+| Create `voice-engine.store.svelte.ts`                              | `src/lib/stores/`                 | None                  |
+| Add `VoiceMode`, `VoiceStatus`, `VoiceSession` types               | Store file                        | None                  |
+| Register Tauri event listeners for audio events                    | Store file                        | Rust events           |
+| Create `commands::voice` Rust module with basic start/stop/cancel  | `src-tauri/src/commands/voice.rs` | Existing audio engine |
+| Wire Dock voice button to new store (instead of direct Web Speech) | `AgentDock.svelte`                | Store                 |
+| Add interim transcript display from store                          | `AgentDock.svelte`                | Store                 |
+| Add waveform visualization to Dock                                 | `AgentDock.svelte`                | Audio level events    |
 
 **Deliverable:** User can tap mic, speak, see live transcript + waveform, stop, and see result in Dock.
 
@@ -861,13 +876,13 @@ All platforms provide identical user experience:
 
 **Goal:** Transcribed text lands in text fields; notes are created from voice
 
-| Task | Files | Dependencies |
-|------|-------|-------------|
-| Implement intent classifier (heuristic) | `src-tauri/src/audio/classifier.rs` | Phase 1 |
-| Implement dictation mode: auto-paste at cursor | `src-tauri/src/commands/transcription.rs` | Classifier |
-| Implement voice note mode: save as note + AI title | `commands/voice.rs` + store | Notes engine, AI pipeline |
-| Add "Done" result view in Dock with actions | `AgentDock.svelte` | Phase 1 |
-| Add voice settings panel | Settings component | Settings store |
+| Task                                               | Files                                     | Dependencies              |
+| -------------------------------------------------- | ----------------------------------------- | ------------------------- |
+| Implement intent classifier (heuristic)            | `src-tauri/src/audio/classifier.rs`       | Phase 1                   |
+| Implement dictation mode: auto-paste at cursor     | `src-tauri/src/commands/transcription.rs` | Classifier                |
+| Implement voice note mode: save as note + AI title | `commands/voice.rs` + store               | Notes engine, AI pipeline |
+| Add "Done" result view in Dock with actions        | `AgentDock.svelte`                        | Phase 1                   |
+| Add voice settings panel                           | Settings component                        | Settings store            |
 
 **Deliverable:** Voice dictation inserts text into any field. Voice notes create searchable notes with AI titles.
 
@@ -875,14 +890,14 @@ All platforms provide identical user experience:
 
 **Goal:** Full meeting recording → transcription → summary → task creation
 
-| Task | Files | Dependencies |
-|------|-------|-------------|
-| Add VAD module (Silero-VAD or simple energy) | `src-tauri/src/audio/vad.rs` | Phase 1 |
-| Implement turn detection for multi-speaker | `src-tauri/src/audio/turns.rs` | VAD |
-| Implement meeting processing: summary + decisions + actions | `commands/voice.rs` + AI pipeline | Phase 2 |
-| Add system audio capture (platform-specific) | `audio/system_macos.rs`, `windows.rs`, `linux.rs` | Phase 1 |
-| Integrate with task creation | `commands/tasks.rs` | Phase 2 |
-| Add meeting result view in Dock | `AgentDock.svelte` | Phase 2 |
+| Task                                                        | Files                                             | Dependencies |
+| ----------------------------------------------------------- | ------------------------------------------------- | ------------ |
+| Add VAD module (Silero-VAD or simple energy)                | `src-tauri/src/audio/vad.rs`                      | Phase 1      |
+| Implement turn detection for multi-speaker                  | `src-tauri/src/audio/turns.rs`                    | VAD          |
+| Implement meeting processing: summary + decisions + actions | `commands/voice.rs` + AI pipeline                 | Phase 2      |
+| Add system audio capture (platform-specific)                | `audio/system_macos.rs`, `windows.rs`, `linux.rs` | Phase 1      |
+| Integrate with task creation                                | `commands/tasks.rs`                               | Phase 2      |
+| Add meeting result view in Dock                             | `AgentDock.svelte`                                | Phase 2      |
 
 **Deliverable:** Meetings produce structured output with transcripts, summaries, decisions, and auto-created tasks.
 
@@ -890,13 +905,13 @@ All platforms provide identical user experience:
 
 **Goal:** Continuous spoken conversation with Bento AI via Dock
 
-| Task | Files | Dependencies |
-|------|-------|-------------|
-| Support continuous conversation flow in store | `voice-engine.store.svelte.ts` | Phase 2 |
-| Route agent-classified voice to existing AI stream | `AgentDock.svelte` | Phase 2, existing streamAiResponse |
-| Add "conversation mode" visual state in Dock | `AgentDock.svelte` | Phase 1 |
-| Support voice follow-ups in existing conversation | `AgentDock.svelte` | Phase 2 |
-| Add push-to-talk global hotkey | `src-tauri/src/` | Tauri plugin |
+| Task                                               | Files                          | Dependencies                       |
+| -------------------------------------------------- | ------------------------------ | ---------------------------------- |
+| Support continuous conversation flow in store      | `voice-engine.store.svelte.ts` | Phase 2                            |
+| Route agent-classified voice to existing AI stream | `AgentDock.svelte`             | Phase 2, existing streamAiResponse |
+| Add "conversation mode" visual state in Dock       | `AgentDock.svelte`             | Phase 1                            |
+| Support voice follow-ups in existing conversation  | `AgentDock.svelte`             | Phase 2                            |
+| Add push-to-talk global hotkey                     | `src-tauri/src/`               | Tauri plugin                       |
 
 **Deliverable:** User can hold a natural spoken conversation with Bento's AI, seeing responses stream in the Dock.
 
@@ -904,15 +919,15 @@ All platforms provide identical user experience:
 
 **Goal:** Voice feels like a first-class part of Bento
 
-| Task | Files | Dependencies |
-|------|-------|-------------|
-| Finalize Island voice state integration | `Island.svelte`, `IslandLayout.svelte` | Phase 1-4 |
-| Add "Done" auto-dismiss animation in Island | `Island.svelte` | Phase 1 |
-| Add voice section to settings (provider, hotkey, retention) | Settings components | Phase 2 |
-| Implement audio retention / cleanup policies | `audio/mod.rs` | Phase 1 |
-| Add meeting history view (searchable, Minutes-inspired) | Meeting UI component | Phase 3 |
-| Cross-platform testing + edge case hardening | All | Phase 1-4 |
-| Performance profiling + optimization | All | Phase 1-4 |
+| Task                                                        | Files                                  | Dependencies |
+| ----------------------------------------------------------- | -------------------------------------- | ------------ |
+| Finalize Island voice state integration                     | `Island.svelte`, `IslandLayout.svelte` | Phase 1-4    |
+| Add "Done" auto-dismiss animation in Island                 | `Island.svelte`                        | Phase 1      |
+| Add voice section to settings (provider, hotkey, retention) | Settings components                    | Phase 2      |
+| Implement audio retention / cleanup policies                | `audio/mod.rs`                         | Phase 1      |
+| Add meeting history view (searchable, Minutes-inspired)     | Meeting UI component                   | Phase 3      |
+| Cross-platform testing + edge case hardening                | All                                    | Phase 1-4    |
+| Performance profiling + optimization                        | All                                    | Phase 1-4    |
 
 **Deliverable:** Voice is fully integrated. All four modes work. Island shows ambient state. Settings are configurable. Edge cases are handled.
 
@@ -964,15 +979,15 @@ src/lib/desktop/settings.ts                    # Add voice settings schema
 
 ## Appendix B: Key Design Decisions Summary
 
-| Decision | Choice | Alternative Considered | Why |
-|----------|--------|----------------------|-----|
-| Where voice UI lives | Agent Dock | Separate voice window | No competing windows; reuse existing workspace |
-| Recording engine | Rust (cpal) — existing | Web API (MediaRecorder) | Cross-platform, lower latency, already built |
-| Real-time STT | Web Speech API | Cloud streaming API | Works offline, no cost, good enough for short input |
-| Post-hoc STT | Moonshine (local Whisper) | Cloud transcription | Privacy-first, already integrated |
-| Waveform rendering | rAF + CSS variables (like June) | Canvas/SVG | Better performance, simpler code |
-| State management | Svelte $state store | Zustand, Pinia | Matches existing pattern, no new dependency |
-| Intent classification | Heuristic first, AI optional | AI-only | Low latency, works offline, no cost |
-| Meeting memory | Bento Notes engine (semantic search) | Separate meeting store | Reuse existing search, no new storage |
-| AI summarization | Bento's existing AI pipeline | Separate model | No new infrastructure, consistent quality |
-| Push-to-talk | Tauri global shortcut | OS-level hook | Cross-platform plugin, already available |
+| Decision              | Choice                               | Alternative Considered  | Why                                                 |
+| --------------------- | ------------------------------------ | ----------------------- | --------------------------------------------------- |
+| Where voice UI lives  | Agent Dock                           | Separate voice window   | No competing windows; reuse existing workspace      |
+| Recording engine      | Rust (cpal) — existing               | Web API (MediaRecorder) | Cross-platform, lower latency, already built        |
+| Real-time STT         | Web Speech API                       | Cloud streaming API     | Works offline, no cost, good enough for short input |
+| Post-hoc STT          | Moonshine (local Whisper)            | Cloud transcription     | Privacy-first, already integrated                   |
+| Waveform rendering    | rAF + CSS variables (like June)      | Canvas/SVG              | Better performance, simpler code                    |
+| State management      | Svelte $state store                  | Zustand, Pinia          | Matches existing pattern, no new dependency         |
+| Intent classification | Heuristic first, AI optional         | AI-only                 | Low latency, works offline, no cost                 |
+| Meeting memory        | Bento Notes engine (semantic search) | Separate meeting store  | Reuse existing search, no new storage               |
+| AI summarization      | Bento's existing AI pipeline         | Separate model          | No new infrastructure, consistent quality           |
+| Push-to-talk          | Tauri global shortcut                | OS-level hook           | Cross-platform plugin, already available            |

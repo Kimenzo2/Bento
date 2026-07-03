@@ -49,7 +49,10 @@ where
                 if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
                     // Check for error in the response
                     if let Some(err) = json.get("error") {
-                        let msg = err.get("message").and_then(|m| m.as_str()).unwrap_or("unknown error");
+                        let msg = err
+                            .get("message")
+                            .and_then(|m| m.as_str())
+                            .unwrap_or("unknown error");
                         let _ = tx.send(format!("__ERROR__:{msg}"));
                         return Err(msg.to_string());
                     }
@@ -142,7 +145,10 @@ pub async fn parse_gemini_stream(
                 if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
                     // Check for error
                     if let Some(err) = json.get("error") {
-                        let msg = err.get("message").and_then(|m| m.as_str()).unwrap_or("unknown error");
+                        let msg = err
+                            .get("message")
+                            .and_then(|m| m.as_str())
+                            .unwrap_or("unknown error");
                         let _ = tx.send(format!("__ERROR__:{msg}"));
                         return Err(msg.to_string());
                     }

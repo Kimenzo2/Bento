@@ -1,4 +1,4 @@
-﻿use std::sync::Mutex;
+use std::sync::Mutex;
 use std::time::Instant;
 
 use chrono::Timelike;
@@ -8,8 +8,8 @@ use tauri::Manager;
 
 use crate::auth::{AuthBootstrapState, AuthManager};
 use crate::commands::sync::sync_user_data;
-use crate::db::BentoAppState;
 use crate::db::read_runtime_state;
+use crate::db::BentoAppState;
 use crate::runtime::DesktopRuntime;
 use crate::util::time;
 
@@ -247,22 +247,25 @@ async fn query_featured_module(
         LIMIT 6
         "#,
     )
-    .bind(today_start)   // tasks created today
-    .bind(today_start)   // due-today window start
-    .bind(today_end)     // due-today window end
+    .bind(today_start) // tasks created today
+    .bind(today_start) // due-today window start
+    .bind(today_end) // due-today window end
     .fetch_all(db)
     .await
     .map_err(|e| e.to_string())?;
 
-    let pending_count = rows.iter().filter(|r| r.try_get::<i64, _>("done").unwrap_or(0) == 0).count() as i32;
-    let total_count   = rows.len() as i32;
+    let pending_count = rows
+        .iter()
+        .filter(|r| r.try_get::<i64, _>("done").unwrap_or(0) == 0)
+        .count() as i32;
+    let total_count = rows.len() as i32;
 
     if total_count > 0 {
         let items: Vec<DashboardItem> = rows
             .iter()
             .map(|row| {
-                let title: String    = row.try_get("title").unwrap_or_default();
-                let done: i64        = row.try_get("done").unwrap_or(0);
+                let title: String = row.try_get("title").unwrap_or_default();
+                let done: i64 = row.try_get("done").unwrap_or(0);
                 let due_at: Option<i64> = row.try_get("due_at").ok().flatten();
 
                 let secondary = due_at.map(|ts| {
@@ -281,7 +284,7 @@ async fn query_featured_module(
                 });
 
                 DashboardItem {
-                    text:      title,
+                    text: title,
                     secondary,
                     completed: done == 1,
                 }
@@ -294,12 +297,16 @@ async fn query_featured_module(
         );
 
         return Ok(FeaturedModule {
-            id:               "tasks".to_string(),
-            name:             "Tasks".to_string(),
-            icon:             "layout-grid".to_string(),
-            accent_hex:       "#52b788".to_string(),
-            primary_count:    pending_count,
-            primary_label:    if pending_count == 1 { "task remaining".to_string() } else { "tasks remaining".to_string() },
+            id: "tasks".to_string(),
+            name: "Tasks".to_string(),
+            icon: "layout-grid".to_string(),
+            accent_hex: "#52b788".to_string(),
+            primary_count: pending_count,
+            primary_label: if pending_count == 1 {
+                "task remaining".to_string()
+            } else {
+                "tasks remaining".to_string()
+            },
             descriptor_label: "Open Tasks →".to_string(),
             items,
         });
@@ -324,29 +331,39 @@ async fn query_featured_module(
         let items: Vec<DashboardItem> = rows
             .into_iter()
             .map(|row| {
-                let title: String       = row.try_get("title").unwrap_or_default();
+                let title: String = row.try_get("title").unwrap_or_default();
                 let due_at: Option<i64> = row.try_get("due_at").ok().flatten();
                 let secondary = due_at.map(|ts| {
                     let diff = ts - now_ms();
-                    if ts < today_start_ms() { "Overdue".to_string() }
-                    else if diff < 86_400_000 { "Today".to_string() }
-                    else {
+                    if ts < today_start_ms() {
+                        "Overdue".to_string()
+                    } else if diff < 86_400_000 {
+                        "Today".to_string()
+                    } else {
                         chrono::DateTime::from_timestamp_millis(ts)
                             .map(|d| d.format("%b %d").to_string())
                             .unwrap_or_default()
                     }
                 });
-                DashboardItem { text: title, secondary, completed: false }
+                DashboardItem {
+                    text: title,
+                    secondary,
+                    completed: false,
+                }
             })
             .collect();
 
         return Ok(FeaturedModule {
-            id:               "tasks".to_string(),
-            name:             "Tasks".to_string(),
-            icon:             "layout-grid".to_string(),
-            accent_hex:       "#52b788".to_string(),
-            primary_count:    pending_count,
-            primary_label:    if pending_count == 1 { "pending task".to_string() } else { "pending tasks".to_string() },
+            id: "tasks".to_string(),
+            name: "Tasks".to_string(),
+            icon: "layout-grid".to_string(),
+            accent_hex: "#52b788".to_string(),
+            primary_count: pending_count,
+            primary_label: if pending_count == 1 {
+                "pending task".to_string()
+            } else {
+                "pending tasks".to_string()
+            },
             descriptor_label: "Open Tasks →".to_string(),
             items,
         });
@@ -355,15 +372,15 @@ async fn query_featured_module(
     // ── Empty state ──────────────────────────────────────────────────────────
     *insight = "No tasks yet — add your first one".to_string();
     Ok(FeaturedModule {
-        id:               "tasks".to_string(),
-        name:             "Tasks".to_string(),
-        icon:             "layout-grid".to_string(),
-        accent_hex:       "#52b788".to_string(),
-        primary_count:    0,
-        primary_label:    "tasks".to_string(),
+        id: "tasks".to_string(),
+        name: "Tasks".to_string(),
+        icon: "layout-grid".to_string(),
+        accent_hex: "#52b788".to_string(),
+        primary_count: 0,
+        primary_label: "tasks".to_string(),
         descriptor_label: "Create your first task →".to_string(),
         items: vec![DashboardItem {
-            text:      "Add a task to get started".to_string(),
+            text: "Add a task to get started".to_string(),
             secondary: None,
             completed: false,
         }],

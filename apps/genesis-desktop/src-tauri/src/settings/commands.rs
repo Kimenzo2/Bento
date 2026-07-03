@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
-use tauri::{AppHandle, Emitter, State, ipc::Channel};
+use tauri::{ipc::Channel, AppHandle, Emitter, State};
 
 use crate::auth::AuthManager;
 use crate::byok::{self, ByokProvider, ConnectionTestResult};
@@ -765,7 +765,10 @@ pub async fn get_api_key_status(provider: String) -> Result<ApiKeyStatus, String
 }
 
 #[tauri::command]
-pub async fn test_ai_connection(app: AppHandle, provider: String) -> Result<ConnectionTestResult, String> {
+pub async fn test_ai_connection(
+    app: AppHandle,
+    provider: String,
+) -> Result<ConnectionTestResult, String> {
     ByokProvider::from_str(&provider).map_err(|_| format!("Unknown provider: {provider}"))?;
     let settings = crate::settings::current_settings(&app);
     let base_url_overrides = settings.byok.base_url_overrides.clone();

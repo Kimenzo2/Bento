@@ -755,6 +755,14 @@ async function readStoreSettings(): Promise<DesktopSettings> {
     dynamicIslandEnabled:
       (await store.get<boolean>(storeKeys.dynamicIslandEnabled)) ??
       defaultDesktopSettings.dynamicIslandEnabled,
+    voice: {
+      inputDeviceId: defaultDesktopSettings.voice.inputDeviceId,
+      pushToTalkShortcut: defaultDesktopSettings.voice.pushToTalkShortcut,
+      transcriptionProvider: defaultDesktopSettings.voice.transcriptionProvider,
+      autoPasteDictation: defaultDesktopSettings.voice.autoPasteDictation,
+      keepAudioRecordings: defaultDesktopSettings.voice.keepAudioRecordings,
+      wakeWordEnabled: defaultDesktopSettings.voice.wakeWordEnabled,
+    },
   };
 
   return normalizeSettings(settings);

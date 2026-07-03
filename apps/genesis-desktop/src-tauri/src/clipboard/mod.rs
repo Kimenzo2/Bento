@@ -24,7 +24,7 @@ use std::sync::LazyLock;
 use std::time::Instant;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::io::AsyncWriteExt;
-use tokio::sync::{Mutex, mpsc};
+use tokio::sync::{mpsc, Mutex};
 
 use crate::db::BentoAppState;
 use crate::search::{SearchDocument, SearchService};
@@ -130,9 +130,7 @@ fn content_store_root(data_dir: &std::path::Path) -> PathBuf {
 /// Uses two-level sharding: first 2 chars / full hash.
 fn content_path(data_dir: &std::path::Path, hash: &str) -> PathBuf {
     let prefix = if hash.len() >= 2 { &hash[..2] } else { "__" };
-    content_store_root(data_dir)
-        .join(prefix)
-        .join(hash)
+    content_store_root(data_dir).join(prefix).join(hash)
 }
 
 /// Full path for an image file (with .png extension).
@@ -285,7 +283,10 @@ impl ClipEntry {
     fn from_row(row: sqlx::sqlite::SqliteRow) -> Self {
         let kind_str: String = row.try_get("kind").unwrap_or_default();
         let content: String = row.try_get("content").unwrap_or_default();
-        let preview: Option<String> = row.try_get("preview").ok().filter(|s: &String| !s.is_empty());
+        let preview: Option<String> = row
+            .try_get("preview")
+            .ok()
+            .filter(|s: &String| !s.is_empty());
 
         Self {
             id: row.try_get("id").unwrap_or_default(),
@@ -293,7 +294,10 @@ impl ClipEntry {
             content,
             content_hash: row.try_get("content_hash").unwrap_or_default(),
             preview,
-            source: row.try_get("source").ok().filter(|s: &String| !s.is_empty()),
+            source: row
+                .try_get("source")
+                .ok()
+                .filter(|s: &String| !s.is_empty()),
             byte_size: row.try_get("byte_size").unwrap_or(0),
             pinned: row.try_get::<i64, _>("pinned").unwrap_or(0) == 1,
             favorite: row.try_get::<i64, _>("favorite").unwrap_or(0) == 1,
@@ -382,12 +386,18 @@ fn detect_kind(content: &str) -> ClipKind {
     }
 
     // Check for image data URIs
-    if content.starts_with("data:image/") || content.starts_with("iVBOR") || content.starts_with("/9j/") {
+    if content.starts_with("data:image/")
+        || content.starts_with("iVBOR")
+        || content.starts_with("/9j/")
+    {
         return ClipKind::Image;
     }
 
     // Check for URLs
-    if content.starts_with("http://") || content.starts_with("https://") || content.starts_with("ftp://") {
+    if content.starts_with("http://")
+        || content.starts_with("https://")
+        || content.starts_with("ftp://")
+    {
         return ClipKind::Link;
     }
 
@@ -412,17 +422,44 @@ fn looks_like_code(content: &str) -> bool {
     if trimmed.contains('\n') {
         let lines: Vec<&str> = trimmed.lines().collect();
         if lines.len() > 2 {
-            let indented = lines.iter().filter(|l| l.starts_with(char::is_whitespace)).count();
+            let indented = lines
+                .iter()
+                .filter(|l| l.starts_with(char::is_whitespace))
+                .count();
             let code_keywords = [
-                "fn ", "const ", "let ", "var ", "if ", "else ", "for ", "while ",
-                "return ", "import ", "export ", "class ", "def ", "function ",
-                "SELECT ", "FROM ", "WHERE ", "INSERT ", "CREATE ",
-                "#include", "package ", "using ", "namespace ",
-                "<html", "<?php", "```",
+                "fn ",
+                "const ",
+                "let ",
+                "var ",
+                "if ",
+                "else ",
+                "for ",
+                "while ",
+                "return ",
+                "import ",
+                "export ",
+                "class ",
+                "def ",
+                "function ",
+                "SELECT ",
+                "FROM ",
+                "WHERE ",
+                "INSERT ",
+                "CREATE ",
+                "#include",
+                "package ",
+                "using ",
+                "namespace ",
+                "<html",
+                "<?php",
+                "```",
             ];
             let has_keyword = code_keywords.iter().any(|kw| content.contains(kw));
             let has_syntax = ["{", "}", "(", ")", ";", "=>", "->", "::"]
-                .iter().filter(|ch| content.contains(*ch)).count() >= 3;
+                .iter()
+                .filter(|ch| content.contains(*ch))
+                .count()
+                >= 3;
 
             (indented > 0 || has_keyword) && has_syntax
         } else {
@@ -454,14 +491,12 @@ fn looks_like_html(content: &str) -> bool {
 
     // Count HTML-like tags: <word> patterns
     let html_tags = [
-        "<div", "<span", "<p>", "<p ", "<a ", "<a>", "<b>", "<i>", "<u>",
-        "<h1", "<h2", "<h3", "<h4", "<h5", "<h6",
-        "<ul", "<ol", "<li", "<table", "<tr", "<td", "<th",
-        "<br", "<hr", "<img", "<input", "<button", "<select",
-        "<form", "<header", "<footer", "<section", "<article", "<nav",
-        "<main", "<aside", "<style", "<script", "<meta", "<link",
-        "</div>", "</span>", "</p>", "</a>", "</h", "</ul>",
-        "</ol>", "</li>", "</table>", "</form>", "</body>", "</html>",
+        "<div", "<span", "<p>", "<p ", "<a ", "<a>", "<b>", "<i>", "<u>", "<h1", "<h2", "<h3",
+        "<h4", "<h5", "<h6", "<ul", "<ol", "<li", "<table", "<tr", "<td", "<th", "<br", "<hr",
+        "<img", "<input", "<button", "<select", "<form", "<header", "<footer", "<section",
+        "<article", "<nav", "<main", "<aside", "<style", "<script", "<meta", "<link", "</div>",
+        "</span>", "</p>", "</a>", "</h", "</ul>", "</ol>", "</li>", "</table>", "</form>",
+        "</body>", "</html>",
     ];
     let tag_count = html_tags
         .iter()
@@ -498,11 +533,12 @@ fn make_preview(content: &str, kind: &ClipKind) -> String {
                 truncate_utf8_safe(&compressed, PREVIEW_MAX_LEN)
             }
         }
-        ClipKind::Sensitive => {
-            truncate_utf8_safe(content, PREVIEW_MAX_LEN)
-        }
+        ClipKind::Sensitive => truncate_utf8_safe(content, PREVIEW_MAX_LEN),
         _ => {
-            let cleaned = content.replace('\r', "").replace('\n', " ").replace('\t', " ");
+            let cleaned = content
+                .replace('\r', "")
+                .replace('\n', " ")
+                .replace('\t', " ");
             let compressed: String = cleaned.split_whitespace().collect::<Vec<_>>().join(" ");
             truncate_utf8_safe(&compressed, PREVIEW_MAX_LEN)
         }
@@ -591,7 +627,9 @@ async fn index_clip_entry(app: &AppHandle, entry: &ClipEntry) {
 /// Remove a clipboard entry from the Tantivy index.
 async fn unindex_clip_entry(app: &AppHandle, id: &str) {
     if let Some(search) = app.try_state::<SearchService>() {
-        let _ = search.delete_from_index("clipboard".to_string(), id.to_string()).await;
+        let _ = search
+            .delete_from_index("clipboard".to_string(), id.to_string())
+            .await;
     }
 }
 
@@ -641,8 +679,16 @@ pub async fn clipboard_list(
         .map_err(|e| e.to_string())?;
 
     let entries: Vec<ClipEntry> = rows.into_iter().map(ClipEntry::from_row).collect();
-    let total_bytes: usize = entries.iter().map(|e| e.content.len() + e.content_hash.len() + e.preview.as_ref().map_or(0, |s| s.len())).sum();
-    log_timing("Clipboard", "list", _start, format_args!("{} rows, ~{}KB payload", entries.len(), total_bytes / 1024));
+    let total_bytes: usize = entries
+        .iter()
+        .map(|e| e.content.len() + e.content_hash.len() + e.preview.as_ref().map_or(0, |s| s.len()))
+        .sum();
+    log_timing(
+        "Clipboard",
+        "list",
+        _start,
+        format_args!("{} rows, ~{}KB payload", entries.len(), total_bytes / 1024),
+    );
     Ok(entries)
 }
 
@@ -670,18 +716,9 @@ pub async fn clipboard_get(
 
     // Load external content if the inline field is empty
     if entry.content.is_empty() && !entry.content_hash.is_empty() {
-        let data_dir = app
-            .path()
-            .app_data_dir()
-            .map_err(|e| e.to_string())?;
+        let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
         let path = entry.content_hash.clone();
-        entry.content = read_content(
-            &data_dir,
-            "",
-            Some(&path),
-            &entry.content_hash,
-        )
-        .await?;
+        entry.content = read_content(&data_dir, "", Some(&path), &entry.content_hash).await?;
         entry.external_content = Some(true);
     }
 
@@ -702,25 +739,22 @@ pub async fn clipboard_save(
     let now = time::now_ms();
 
     // O(1) dedup: try to find by hash first
-    let existing_id: Option<String> = sqlx::query_scalar(
-        "SELECT id FROM clipboard_items WHERE content_hash = ?"
-    )
-    .bind(&hash)
-    .fetch_optional(&pool)
-    .await
-    .map_err(|e| e.to_string())?;
+    let existing_id: Option<String> =
+        sqlx::query_scalar("SELECT id FROM clipboard_items WHERE content_hash = ?")
+            .bind(&hash)
+            .fetch_optional(&pool)
+            .await
+            .map_err(|e| e.to_string())?;
 
     if let Some(existing_id) = existing_id {
         // Update timestamp and return existing
-        sqlx::query(
-            "UPDATE clipboard_items SET created_at = ?, updated_at = ? WHERE id = ?"
-        )
-        .bind(now)
-        .bind(now)
-        .bind(&existing_id)
-        .execute(&pool)
-        .await
-        .map_err(|e| e.to_string())?;
+        sqlx::query("UPDATE clipboard_items SET created_at = ?, updated_at = ? WHERE id = ?")
+            .bind(now)
+            .bind(now)
+            .bind(&existing_id)
+            .execute(&pool)
+            .await
+            .map_err(|e| e.to_string())?;
 
         // Fetch full entry
         let row = sqlx::query(
@@ -742,7 +776,11 @@ pub async fn clipboard_save(
     } else {
         String::new()
     };
-    let is_sensitive = if kind == ClipKind::Sensitive { 1i64 } else { 0i64 };
+    let is_sensitive = if kind == ClipKind::Sensitive {
+        1i64
+    } else {
+        0i64
+    };
     let byte_size = content.len() as i64;
 
     // Store content — externalize large blobs
@@ -775,7 +813,11 @@ pub async fn clipboard_save(
         kind,
         content,
         content_hash: hash,
-        preview: if preview.is_empty() { None } else { Some(preview) },
+        preview: if preview.is_empty() {
+            None
+        } else {
+            Some(preview)
+        },
         source,
         byte_size,
         pinned: false,
@@ -834,13 +876,12 @@ pub async fn clipboard_toggle_pin(
     id: String,
 ) -> Result<bool, String> {
     let pool = state.db();
-    let current: Option<i64> = sqlx::query_scalar(
-        "SELECT pinned FROM clipboard_items WHERE id = ?"
-    )
-    .bind(&id)
-    .fetch_optional(&pool)
-    .await
-    .map_err(|e| e.to_string())?;
+    let current: Option<i64> =
+        sqlx::query_scalar("SELECT pinned FROM clipboard_items WHERE id = ?")
+            .bind(&id)
+            .fetch_optional(&pool)
+            .await
+            .map_err(|e| e.to_string())?;
 
     match current {
         Some(pinned) => {
@@ -910,13 +951,12 @@ pub async fn clipboard_toggle_favorite(
     id: String,
 ) -> Result<bool, String> {
     let pool = state.db();
-    let current: Option<i64> = sqlx::query_scalar(
-        "SELECT favorite FROM clipboard_items WHERE id = ?"
-    )
-    .bind(&id)
-    .fetch_optional(&pool)
-    .await
-    .map_err(|e| e.to_string())?;
+    let current: Option<i64> =
+        sqlx::query_scalar("SELECT favorite FROM clipboard_items WHERE id = ?")
+            .bind(&id)
+            .fetch_optional(&pool)
+            .await
+            .map_err(|e| e.to_string())?;
 
     match current {
         Some(fav) => {
@@ -956,13 +996,12 @@ pub async fn clipboard_delete(
     let pool = state.db();
 
     // Get hash before deleting to clean up external content
-    let hash: Option<String> = sqlx::query_scalar(
-        "SELECT content_hash FROM clipboard_items WHERE id = ?"
-    )
-    .bind(&id)
-    .fetch_optional(&pool)
-    .await
-    .map_err(|e| e.to_string())?;
+    let hash: Option<String> =
+        sqlx::query_scalar("SELECT content_hash FROM clipboard_items WHERE id = ?")
+            .bind(&id)
+            .fetch_optional(&pool)
+            .await
+            .map_err(|e| e.to_string())?;
 
     sqlx::query("DELETE FROM clipboard_items WHERE id = ?")
         .bind(&id)
@@ -996,13 +1035,12 @@ pub async fn clipboard_delete_batch(
     let mut deleted = 0i64;
 
     for id in &ids {
-        let hash: Option<String> = sqlx::query_scalar(
-            "SELECT content_hash FROM clipboard_items WHERE id = ?"
-        )
-        .bind(id)
-        .fetch_optional(&pool)
-        .await
-        .map_err(|e| e.to_string())?;
+        let hash: Option<String> =
+            sqlx::query_scalar("SELECT content_hash FROM clipboard_items WHERE id = ?")
+                .bind(id)
+                .fetch_optional(&pool)
+                .await
+                .map_err(|e| e.to_string())?;
 
         let result = sqlx::query("DELETE FROM clipboard_items WHERE id = ?")
             .bind(id)
@@ -1034,20 +1072,17 @@ pub async fn clipboard_clear_unpinned(
     let pool = state.db();
 
     // Get all unpinned hashes for content cleanup
-    let hashes: Vec<String> = sqlx::query_scalar(
-        "SELECT content_hash FROM clipboard_items WHERE pinned = 0"
-    )
-    .fetch_all(&pool)
-    .await
-    .map_err(|e| e.to_string())?;
+    let hashes: Vec<String> =
+        sqlx::query_scalar("SELECT content_hash FROM clipboard_items WHERE pinned = 0")
+            .fetch_all(&pool)
+            .await
+            .map_err(|e| e.to_string())?;
 
     // Get IDs for Tantivy cleanup
-    let ids: Vec<String> = sqlx::query_scalar(
-        "SELECT id FROM clipboard_items WHERE pinned = 0"
-    )
-    .fetch_all(&pool)
-    .await
-    .map_err(|e| e.to_string())?;
+    let ids: Vec<String> = sqlx::query_scalar("SELECT id FROM clipboard_items WHERE pinned = 0")
+        .fetch_all(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
     let result = sqlx::query("DELETE FROM clipboard_items WHERE pinned = 0")
         .execute(&pool)
@@ -1081,19 +1116,15 @@ pub async fn clipboard_clear_all(
     let pool = state.db();
 
     // Get all hashes for content cleanup
-    let hashes: Vec<String> = sqlx::query_scalar(
-        "SELECT content_hash FROM clipboard_items"
-    )
-    .fetch_all(&pool)
-    .await
-    .map_err(|e| e.to_string())?;
+    let hashes: Vec<String> = sqlx::query_scalar("SELECT content_hash FROM clipboard_items")
+        .fetch_all(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
-    let ids: Vec<String> = sqlx::query_scalar(
-        "SELECT id FROM clipboard_items"
-    )
-    .fetch_all(&pool)
-    .await
-    .map_err(|e| e.to_string())?;
+    let ids: Vec<String> = sqlx::query_scalar("SELECT id FROM clipboard_items")
+        .fetch_all(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
     let result = sqlx::query("DELETE FROM clipboard_items")
         .execute(&pool)
@@ -1146,7 +1177,10 @@ pub async fn clipboard_search(
             updated_before: None,
         };
 
-        match search.search_in_module("clipboard".to_string(), search_query).await {
+        match search
+            .search_in_module("clipboard".to_string(), search_query)
+            .await
+        {
             Ok(hits) => {
                 if !hits.is_empty() {
                     let pool = state.db();
@@ -1200,9 +1234,7 @@ pub async fn clipboard_search(
 
 /// Get the total count of clipboard items.
 #[tauri::command]
-pub async fn clipboard_count(
-    state: State<'_, BentoAppState>,
-) -> Result<i64, String> {
+pub async fn clipboard_count(state: State<'_, BentoAppState>) -> Result<i64, String> {
     let pool = state.db();
     let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM clipboard_items")
         .fetch_one(&pool)
@@ -1213,7 +1245,11 @@ pub async fn clipboard_count(
 
 /// Save a clipboard image entry from the monitoring system.
 /// Stores the PNG bytes in the content-addressable store and creates a ClipEntry.
-async fn save_clipboard_image_entry(app: &AppHandle, state: &BentoAppState, image_bytes: &[u8]) -> Result<(), String> {
+async fn save_clipboard_image_entry(
+    app: &AppHandle,
+    state: &BentoAppState,
+    image_bytes: &[u8],
+) -> Result<(), String> {
     let _start = Instant::now();
     let bytes_len = image_bytes.len();
     if image_bytes.len() < 16 {
@@ -1225,18 +1261,17 @@ async fn save_clipboard_image_entry(app: &AppHandle, state: &BentoAppState, imag
     let now = time::now_ms();
 
     // O(1) dedup via hash
-    let exists: bool = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*) FROM clipboard_items WHERE content_hash = ?"
-    )
-    .bind(&hash)
-    .fetch_one(&pool)
-    .await
-    .map_err(|e| e.to_string())?
-        > 0;
+    let exists: bool =
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM clipboard_items WHERE content_hash = ?")
+            .bind(&hash)
+            .fetch_one(&pool)
+            .await
+            .map_err(|e| e.to_string())?
+            > 0;
 
     if exists {
         sqlx::query(
-            "UPDATE clipboard_items SET created_at = ?, updated_at = ? WHERE content_hash = ?"
+            "UPDATE clipboard_items SET created_at = ?, updated_at = ? WHERE content_hash = ?",
         )
         .bind(now)
         .bind(now)
@@ -1244,11 +1279,21 @@ async fn save_clipboard_image_entry(app: &AppHandle, state: &BentoAppState, imag
         .execute(&pool)
         .await
         .map_err(|e| e.to_string())?;
-        log_timing("Clipboard::ImageSave", "dedup-hit", _start, format_args!("{} bytes", bytes_len));
+        log_timing(
+            "Clipboard::ImageSave",
+            "dedup-hit",
+            _start,
+            format_args!("{} bytes", bytes_len),
+        );
         return Ok(());
     }
 
-    log_timing("Clipboard::ImageSave", "dedup-miss", _start, format_args!("{} bytes → storing", bytes_len));
+    log_timing(
+        "Clipboard::ImageSave",
+        "dedup-miss",
+        _start,
+        format_args!("{} bytes → storing", bytes_len),
+    );
 
     let id = uuid::Uuid::new_v4().to_string();
     let byte_size = image_bytes.len() as i64;
@@ -1314,7 +1359,12 @@ async fn save_clipboard_image_entry(app: &AppHandle, state: &BentoAppState, imag
     // Notify frontend
     let _ = app.emit("clipboard://new-entry", entry);
 
-    log_timing("Clipboard::ImageSave", "complete", _start, format_args!("{} bytes, hash={:.12}", bytes_len, hash_str));
+    log_timing(
+        "Clipboard::ImageSave",
+        "complete",
+        _start,
+        format_args!("{} bytes, hash={:.12}", bytes_len, hash_str),
+    );
     Ok(())
 }
 
@@ -1344,7 +1394,12 @@ pub async fn clipboard_copy(
     };
 
     let entry = ClipEntry::from_row(row);
-    log_timing("Clipboard::Copy", "db-lookup", _start, format_args!("id={:.12}, kind={:?}", id, entry.kind));
+    log_timing(
+        "Clipboard::Copy",
+        "db-lookup",
+        _start,
+        format_args!("id={:.12}, kind={:?}", id, entry.kind),
+    );
     match entry.kind {
         ClipKind::Image => {
             let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
@@ -1352,7 +1407,11 @@ pub async fn clipboard_copy(
             // Try PNG path first, then legacy extensionless path
             let png_path = image_content_path(&data_dir, &entry.content_hash);
             let ext_path = content_path(&data_dir, &entry.content_hash);
-            let image_path = if png_path.exists() { png_path } else { ext_path };
+            let image_path = if png_path.exists() {
+                png_path
+            } else {
+                ext_path
+            };
 
             if !image_path.exists() {
                 return Err("Image file not found on disk.".to_string());
@@ -1364,7 +1423,12 @@ pub async fn clipboard_copy(
 
             // Write image back to system clipboard using RGBA
             let image_size = image_bytes.len();
-            log_timing("Clipboard::Copy", "fs-read", _start, format_args!("{} KB image", image_size / 1024));
+            log_timing(
+                "Clipboard::Copy",
+                "fs-read",
+                _start,
+                format_args!("{} KB image", image_size / 1024),
+            );
             let app_clone = app.clone();
             tokio::task::spawn_blocking(move || -> Result<(), String> {
                 #[cfg(desktop)]
@@ -1401,7 +1465,13 @@ pub async fn clipboard_copy(
             // Text/HTML: write the content string
             let content = if entry.content.is_empty() && !entry.content_hash.is_empty() {
                 let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-                read_content(&data_dir, "", Some(&entry.content_hash), &entry.content_hash).await?
+                read_content(
+                    &data_dir,
+                    "",
+                    Some(&entry.content_hash),
+                    &entry.content_hash,
+                )
+                .await?
             } else {
                 entry.content.clone()
             };
@@ -1411,7 +1481,8 @@ pub async fn clipboard_copy(
                 #[cfg(desktop)]
                 {
                     use tauri_plugin_clipboard_manager::ClipboardExt;
-                    app_clone.clipboard()
+                    app_clone
+                        .clipboard()
                         .write_text(content)
                         .map_err(|e| format!("Failed to write text to clipboard: {e}"))
                 }
@@ -1447,27 +1518,36 @@ pub async fn clipboard_get_image_path(
     // Try PNG extension path first (new storage format)
     let png_path = image_content_path(&data_dir, &hash);
     if png_path.exists() {
-        log_timing("Clipboard::ImagePath", "lookup", _start, format_args!("hash={:.12} fs-hit", hash));
+        log_timing(
+            "Clipboard::ImagePath",
+            "lookup",
+            _start,
+            format_args!("hash={:.12} fs-hit", hash),
+        );
         return Ok(Some(png_path.to_string_lossy().to_string()));
     }
 
     // Fallback: try extensionless path (legacy storage format)
     let store_path = content_path(&data_dir, &hash);
     if store_path.exists() {
-        log_timing("Clipboard::ImagePath", "lookup", _start, format_args!("hash={:.12} legacy-fs-hit", hash));
+        log_timing(
+            "Clipboard::ImagePath",
+            "lookup",
+            _start,
+            format_args!("hash={:.12} legacy-fs-hit", hash),
+        );
         return Ok(Some(store_path.to_string_lossy().to_string()));
     }
 
     // Last resort: look up by hash in the DB to get the content_path
     let pool = state.db();
-    let content_path_str: Option<String> = sqlx::query_scalar(
-        "SELECT content_path FROM clipboard_items WHERE content_hash = ?"
-    )
-    .bind(&hash)
-    .fetch_optional(&pool)
-    .await
-    .map_err(|e| e.to_string())?
-    .flatten();
+    let content_path_str: Option<String> =
+        sqlx::query_scalar("SELECT content_path FROM clipboard_items WHERE content_hash = ?")
+            .bind(&hash)
+            .fetch_optional(&pool)
+            .await
+            .map_err(|e| e.to_string())?
+            .flatten();
 
     match content_path_str {
         Some(path) => {
@@ -1476,21 +1556,41 @@ pub async fn clipboard_get_image_path(
             } else {
                 let png = image_content_path(&data_dir, &hash);
                 if png.exists() {
-                    log_timing("Clipboard::ImagePath", "lookup", _start, format_args!("hash={:.12} db-fallback-fs-hit", hash));
+                    log_timing(
+                        "Clipboard::ImagePath",
+                        "lookup",
+                        _start,
+                        format_args!("hash={:.12} db-fallback-fs-hit", hash),
+                    );
                     return Ok(Some(png.to_string_lossy().to_string()));
                 }
                 content_path(&data_dir, &hash)
             };
             if full_path.exists() {
-                log_timing("Clipboard::ImagePath", "lookup", _start, format_args!("hash={:.12} db-hit", hash));
+                log_timing(
+                    "Clipboard::ImagePath",
+                    "lookup",
+                    _start,
+                    format_args!("hash={:.12} db-hit", hash),
+                );
                 Ok(Some(full_path.to_string_lossy().to_string()))
             } else {
-                log_timing("Clipboard::ImagePath", "lookup", _start, format_args!("hash={:.12} db-path-not-found", hash));
+                log_timing(
+                    "Clipboard::ImagePath",
+                    "lookup",
+                    _start,
+                    format_args!("hash={:.12} db-path-not-found", hash),
+                );
                 Ok(None)
             }
         }
         None => {
-            log_timing("Clipboard::ImagePath", "lookup", _start, format_args!("hash={:.12} db-miss", hash));
+            log_timing(
+                "Clipboard::ImagePath",
+                "lookup",
+                _start,
+                format_args!("hash={:.12} db-miss", hash),
+            );
             Ok(None)
         }
     }
@@ -1531,7 +1631,12 @@ pub async fn clipboard_get_image_paths(
         results.insert(hash, None);
     }
 
-    log_timing("Clipboard::ImagePath", "batch-lookup", _start, format_args!("{} hashes", results.len()));
+    log_timing(
+        "Clipboard::ImagePath",
+        "batch-lookup",
+        _start,
+        format_args!("{} hashes", results.len()),
+    );
     Ok(results)
 }
 
@@ -1552,7 +1657,11 @@ pub async fn clipboard_get_image_data(
     // Try PNG extension path first, then extensionless
     let png_path = image_content_path(&data_dir, &hash);
     let store_path = content_path(&data_dir, &hash);
-    let read_path = if png_path.exists() { png_path } else { store_path };
+    let read_path = if png_path.exists() {
+        png_path
+    } else {
+        store_path
+    };
 
     if read_path.exists() {
         let bytes = tokio::fs::read(&read_path)
@@ -1563,14 +1672,13 @@ pub async fn clipboard_get_image_data(
     }
 
     let pool = state.db();
-    let content_path_str: Option<String> = sqlx::query_scalar(
-        "SELECT content_path FROM clipboard_items WHERE content_hash = ?"
-    )
-    .bind(&hash)
-    .fetch_optional(&pool)
-    .await
-    .map_err(|e| e.to_string())?
-    .flatten();
+    let content_path_str: Option<String> =
+        sqlx::query_scalar("SELECT content_path FROM clipboard_items WHERE content_hash = ?")
+            .bind(&hash)
+            .fetch_optional(&pool)
+            .await
+            .map_err(|e| e.to_string())?
+            .flatten();
 
     match content_path_str {
         Some(path) => {
@@ -1578,7 +1686,11 @@ pub async fn clipboard_get_image_data(
                 std::path::PathBuf::from(&path)
             } else {
                 let png = image_content_path(&data_dir, &hash);
-                if png.exists() { png } else { content_path(&data_dir, &hash) }
+                if png.exists() {
+                    png
+                } else {
+                    content_path(&data_dir, &hash)
+                }
             };
             if full_path.exists() {
                 let bytes = tokio::fs::read(&full_path)
@@ -1613,7 +1725,7 @@ pub async fn clipboard_expire_sensitive(
     .map_err(|e| e.to_string())?;
 
     let ids: Vec<String> = sqlx::query_scalar(
-        "SELECT id FROM clipboard_items WHERE is_sensitive = 1 AND created_at < ? AND pinned = 0"
+        "SELECT id FROM clipboard_items WHERE is_sensitive = 1 AND created_at < ? AND pinned = 0",
     )
     .bind(cutoff)
     .fetch_all(&pool)
@@ -1621,7 +1733,7 @@ pub async fn clipboard_expire_sensitive(
     .map_err(|e| e.to_string())?;
 
     let result = sqlx::query(
-        "DELETE FROM clipboard_items WHERE is_sensitive = 1 AND created_at < ? AND pinned = 0"
+        "DELETE FROM clipboard_items WHERE is_sensitive = 1 AND created_at < ? AND pinned = 0",
     )
     .bind(cutoff)
     .execute(&pool)
@@ -1646,10 +1758,7 @@ pub async fn clipboard_expire_sensitive(
 /// Garbage collect orphaned content files.
 /// Removes blobs that don't correspond to any row in clipboard_items.
 #[tauri::command]
-pub async fn clipboard_gc(
-    app: AppHandle,
-    state: State<'_, BentoAppState>,
-) -> Result<i64, String> {
+pub async fn clipboard_gc(app: AppHandle, state: State<'_, BentoAppState>) -> Result<i64, String> {
     let data_dir = match app.path().app_data_dir() {
         Ok(d) => d,
         Err(_) => return Ok(0),
@@ -1685,7 +1794,7 @@ pub async fn clipboard_gc(
 
             // Check if this hash exists in the DB
             let exists: bool = sqlx::query_scalar::<_, i64>(
-                "SELECT COUNT(*) FROM clipboard_items WHERE content_hash = ?"
+                "SELECT COUNT(*) FROM clipboard_items WHERE content_hash = ?",
             )
             .bind(&hash)
             .fetch_one(&pool)
@@ -1700,8 +1809,15 @@ pub async fn clipboard_gc(
         }
 
         // Remove empty prefix dirs
-        let mut remaining = tokio::fs::read_dir(&prefix_dir).await.map_err(|e| e.to_string())?;
-        if remaining.next_entry().await.map_err(|e| e.to_string())?.is_none() {
+        let mut remaining = tokio::fs::read_dir(&prefix_dir)
+            .await
+            .map_err(|e| e.to_string())?;
+        if remaining
+            .next_entry()
+            .await
+            .map_err(|e| e.to_string())?
+            .is_none()
+        {
             let _ = tokio::fs::remove_dir(&prefix_dir).await;
         }
     }
@@ -1808,7 +1924,9 @@ async fn clipboard_poller_task(app: AppHandle) {
                     None => {
                         consecutive_empty += 1;
                         if consecutive_empty > 10 {
-                            interval = tokio::time::interval(tokio::time::Duration::from_millis(POLL_INTERVAL_MS));
+                            interval = tokio::time::interval(tokio::time::Duration::from_millis(
+                                POLL_INTERVAL_MS,
+                            ));
                         }
                         continue;
                     }
@@ -1825,8 +1943,18 @@ async fn clipboard_poller_task(app: AppHandle) {
                 *last = current.clone();
                 drop(last);
 
-                if monitor.save_tx().try_send(ClipboardChange { content: current, image_data: None, html_data: None }).is_ok() {
-                    interval = tokio::time::interval(tokio::time::Duration::from_millis(POLL_INTERVAL_FOCUSED_MS));
+                if monitor
+                    .save_tx()
+                    .try_send(ClipboardChange {
+                        content: current,
+                        image_data: None,
+                        html_data: None,
+                    })
+                    .is_ok()
+                {
+                    interval = tokio::time::interval(tokio::time::Duration::from_millis(
+                        POLL_INTERVAL_FOCUSED_MS,
+                    ));
                 }
             }
             1 => {
@@ -1865,8 +1993,18 @@ async fn clipboard_poller_task(app: AppHandle) {
                 *last_img = image_hash;
                 drop(last_img);
 
-                if monitor.save_tx().try_send(ClipboardChange { content: String::new(), image_data: Some(image_bytes), html_data: None }).is_ok() {
-                    interval = tokio::time::interval(tokio::time::Duration::from_millis(POLL_INTERVAL_FOCUSED_MS));
+                if monitor
+                    .save_tx()
+                    .try_send(ClipboardChange {
+                        content: String::new(),
+                        image_data: Some(image_bytes),
+                        html_data: None,
+                    })
+                    .is_ok()
+                {
+                    interval = tokio::time::interval(tokio::time::Duration::from_millis(
+                        POLL_INTERVAL_FOCUSED_MS,
+                    ));
                 }
             }
             2 => {
@@ -1889,9 +2027,15 @@ async fn clipboard_poller_task(app: AppHandle) {
                 *last_html = html_hash.clone();
                 drop(last_html);
 
-                match monitor.save_tx().try_send(ClipboardChange { content: String::new(), image_data: None, html_data: Some(html_content) }) {
+                match monitor.save_tx().try_send(ClipboardChange {
+                    content: String::new(),
+                    image_data: None,
+                    html_data: Some(html_content),
+                }) {
                     Ok(_) => {
-                        interval = tokio::time::interval(tokio::time::Duration::from_millis(POLL_INTERVAL_FOCUSED_MS));
+                        interval = tokio::time::interval(tokio::time::Duration::from_millis(
+                            POLL_INTERVAL_FOCUSED_MS,
+                        ));
                     }
                     Err(mpsc::error::TrySendError::Full(_)) => {
                         eprintln!("[clipboard] channel full, skipping HTML change (backpressure)");
@@ -1985,7 +2129,12 @@ async fn read_system_clipboard_image(app: &AppHandle) -> Option<Vec<u8>> {
                     let rgba = img.rgba();
                     let width = img.width();
                     let height = img.height();
-                    if rgba.is_empty() || width == 0 || height == 0 || width > 16384 || height > 16384 {
+                    if rgba.is_empty()
+                        || width == 0
+                        || height == 0
+                        || width > 16384
+                        || height > 16384
+                    {
                         return None;
                     }
                     // Encode RGBA pixels to PNG bytes
@@ -2009,7 +2158,9 @@ async fn read_system_clipboard_image(app: &AppHandle) -> Option<Vec<u8>> {
                         }
                     }
                     // Validate that the encoded output is a valid PNG
-                    if png_bytes.len() < 8 || &png_bytes[..8] != &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A] {
+                    if png_bytes.len() < 8
+                        || &png_bytes[..8] != &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+                    {
                         return None;
                     }
                     Some(png_bytes)
@@ -2175,7 +2326,10 @@ fn parse_cf_html(raw: &str) -> Option<String> {
     }
 
     // Prefer the fragment (the exact user selection)
-    if let (Some(start), Some(end)) = (parse_offset(&lines, "StartFragment:"), parse_offset(&lines, "EndFragment:")) {
+    if let (Some(start), Some(end)) = (
+        parse_offset(&lines, "StartFragment:"),
+        parse_offset(&lines, "EndFragment:"),
+    ) {
         if start < end && end <= raw.len() {
             let fragment = raw[start..end].to_string();
             if !fragment.is_empty() {
@@ -2185,7 +2339,10 @@ fn parse_cf_html(raw: &str) -> Option<String> {
     }
 
     // Fallback to the full HTML document
-    if let (Some(start), Some(end)) = (parse_offset(&lines, "StartHTML:"), parse_offset(&lines, "EndHTML:")) {
+    if let (Some(start), Some(end)) = (
+        parse_offset(&lines, "StartHTML:"),
+        parse_offset(&lines, "EndHTML:"),
+    ) {
         if start < end && end <= raw.len() {
             let html = raw[start..end].to_string();
             if !html.is_empty() {
@@ -2230,7 +2387,11 @@ async fn read_system_clipboard(app: &AppHandle) -> Option<String> {
 }
 
 /// Save a clipboard entry from the monitoring system.
-async fn save_clipboard_entry(app: &AppHandle, state: &BentoAppState, content: &str) -> Result<(), String> {
+async fn save_clipboard_entry(
+    app: &AppHandle,
+    state: &BentoAppState,
+    content: &str,
+) -> Result<(), String> {
     if content.trim().is_empty() {
         return Ok(());
     }
@@ -2240,19 +2401,18 @@ async fn save_clipboard_entry(app: &AppHandle, state: &BentoAppState, content: &
     let now = time::now_ms();
 
     // O(1) dedup via hash
-    let exists: bool = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*) FROM clipboard_items WHERE content_hash = ?"
-    )
-    .bind(&hash)
-    .fetch_one(&pool)
-    .await
-    .map_err(|e| e.to_string())?
-        > 0;
+    let exists: bool =
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM clipboard_items WHERE content_hash = ?")
+            .bind(&hash)
+            .fetch_one(&pool)
+            .await
+            .map_err(|e| e.to_string())?
+            > 0;
 
     if exists {
         // Update timestamp
         sqlx::query(
-            "UPDATE clipboard_items SET created_at = ?, updated_at = ? WHERE content_hash = ?"
+            "UPDATE clipboard_items SET created_at = ?, updated_at = ? WHERE content_hash = ?",
         )
         .bind(now)
         .bind(now)
@@ -2270,7 +2430,11 @@ async fn save_clipboard_entry(app: &AppHandle, state: &BentoAppState, content: &
     } else {
         String::new()
     };
-    let is_sensitive = if kind == ClipKind::Sensitive { 1i64 } else { 0i64 };
+    let is_sensitive = if kind == ClipKind::Sensitive {
+        1i64
+    } else {
+        0i64
+    };
     let byte_size = content.len() as i64;
 
     // Store content — externalize large blobs
@@ -2303,7 +2467,11 @@ async fn save_clipboard_entry(app: &AppHandle, state: &BentoAppState, content: &
         kind,
         content: content.to_string(),
         content_hash: hash,
-        preview: if preview.is_empty() { None } else { Some(preview) },
+        preview: if preview.is_empty() {
+            None
+        } else {
+            Some(preview)
+        },
         source: None,
         byte_size,
         pinned: false,
@@ -2532,8 +2700,12 @@ mod tests {
 
     #[test]
     fn test_is_sensitive_content() {
-        assert!(is_sensitive_content("sk_live_AbC123XyZ_SECRET_KEY_REDACTED"));
-        assert!(is_sensitive_content("ghp_AbC123XyZ_SECRET_KEY_REDACTED1234"));
+        assert!(is_sensitive_content(
+            "sk_live_AbC123XyZ_SECRET_KEY_REDACTED"
+        ));
+        assert!(is_sensitive_content(
+            "ghp_AbC123XyZ_SECRET_KEY_REDACTED1234"
+        ));
         assert!(is_sensitive_content("-----BEGIN RSA PRIVATE KEY-----"));
         assert!(!is_sensitive_content("Hello, world!"));
         assert!(!is_sensitive_content("The quick brown fox"));
@@ -2560,8 +2732,12 @@ mod tests {
     #[test]
     fn test_looks_like_code() {
         assert!(looks_like_code("fn test() {\n    return 1;\n}"));
-        assert!(looks_like_code("const x = (a: number) => {\n  return a * 2;\n}"));
-        assert!(!looks_like_code("The quick brown fox jumps over the lazy dog."));
+        assert!(looks_like_code(
+            "const x = (a: number) => {\n  return a * 2;\n}"
+        ));
+        assert!(!looks_like_code(
+            "The quick brown fox jumps over the lazy dog."
+        ));
     }
 
     #[test]

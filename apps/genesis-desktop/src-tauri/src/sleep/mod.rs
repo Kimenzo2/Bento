@@ -27,24 +27,24 @@ use crate::util::time;
 #[serde(rename_all = "camelCase")]
 pub struct SleepSession {
     pub id: String,
-    pub date: String,               // YYYY-MM-DD (evening date)
+    pub date: String,                // YYYY-MM-DD (evening date)
     pub sleep_onset_ts: i64,         // unix ms: when sleep started
     pub wake_ts: i64,                // unix ms: when woke up
     pub last_active_ts: Option<i64>, // unix ms: last input before sleep
     pub duration_min: i32,           // computed minutes
     pub quality_score: Option<f64>,  // 0-100 computed
     pub notes: Option<String>,
-    pub source: String,              // 'auto' | 'manual'
-    pub confirmation_pending: bool,  // needs morning confirmation?
+    pub source: String,             // 'auto' | 'manual'
+    pub confirmation_pending: bool, // needs morning confirmation?
     pub created_at: i64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ManualSessionInput {
-    pub date: String,           // YYYY-MM-DD
-    pub sleep_time: String,     // HH:MM (local)
-    pub wake_time: String,      // HH:MM (local)
+    pub date: String,       // YYYY-MM-DD
+    pub sleep_time: String, // HH:MM (local)
+    pub wake_time: String,  // HH:MM (local)
     pub notes: Option<String>,
 }
 
@@ -204,9 +204,7 @@ pub async fn get_last_night(
 
 /// Get the current sleep goal (returns default if none exists — never fails).
 #[tauri::command]
-pub async fn get_sleep_goal(
-    state: State<'_, BentoAppState>,
-) -> Result<SleepGoal, String> {
+pub async fn get_sleep_goal(state: State<'_, BentoAppState>) -> Result<SleepGoal, String> {
     ensure_sleep_tables(&state.db()).await?;
     Ok(get_sleep_goal_inner(&state.db()).await)
 }
@@ -459,8 +457,16 @@ pub async fn get_sleep_stats(
         }
     }
 
-    let wday_avg = if wday_n > 0 { wday_sum / wday_n as f64 } else { 0.0 };
-    let wend_avg = if wend_n > 0 { wend_sum / wend_n as f64 } else { 0.0 };
+    let wday_avg = if wday_n > 0 {
+        wday_sum / wday_n as f64
+    } else {
+        0.0
+    };
+    let wend_avg = if wend_n > 0 {
+        wend_sum / wend_n as f64
+    } else {
+        0.0
+    };
     let jetlag = (wday_avg - wend_avg).abs();
 
     Ok(SleepStats {
@@ -560,7 +566,11 @@ async fn record_auto_session(app: &AppHandle, onset_ms: i64, wake_ms: i64) {
     let id = Uuid::new_v4().to_string();
     let now = time::now_ms();
     let last_active = LAST_ACTIVE_TS.load(Ordering::Relaxed) as i64;
-    let last_active_opt: Option<i64> = if last_active > 0 { Some(last_active) } else { None };
+    let last_active_opt: Option<i64> = if last_active > 0 {
+        Some(last_active)
+    } else {
+        None
+    };
 
     let _ = sqlx::query(
         "INSERT INTO sleep_sessions (id, date, sleep_onset_ts, wake_ts, last_active_ts, duration_min, quality_score, source, confirmation_pending, created_at)
@@ -586,14 +596,21 @@ async fn record_auto_session(app: &AppHandle, onset_ms: i64, wake_ms: i64) {
 ///   base   = ratio × 60      (duration component, 0-60 pts)
 ///   offset = 40 - penalty    (fixed offset minus bedtime drift)
 ///   score  = clamp(base + offset, 0, 100)
-async fn compute_quality_for_session(duration_min: i32, sleep_onset_ms: i64, pool: &sqlx::SqlitePool) -> f64 {
+async fn compute_quality_for_session(
+    duration_min: i32,
+    sleep_onset_ms: i64,
+    pool: &sqlx::SqlitePool,
+) -> f64 {
     let goal = get_sleep_goal_inner(pool).await;
     let target = goal.target_duration_min as f64;
     let ratio = (duration_min as f64 / target).clamp(0.0, 1.0);
     let base = ratio * 60.0;
 
     // Bedtime consistency penalty: 5 pts per hour deviation from goal
-    let goal_hour = goal.target_bedtime.split(':').next()
+    let goal_hour = goal
+        .target_bedtime
+        .split(':')
+        .next()
         .and_then(|h| h.parse::<f64>().ok())
         .unwrap_or(23.0);
     let actual_hour = ts_to_local_hour(sleep_onset_ms);
@@ -616,12 +633,20 @@ fn ts_to_local_hour(ts_ms: i64) -> f64 {
 fn compute_legacy_score(entry: &SleepLogEntry) -> i32 {
     let mut score = 50i32;
     let hours = entry.hours;
-    if hours >= 7.0 && hours <= 9.0 { score += 30; }
-    else if hours >= 6.0 && hours < 7.0 { score += 20; }
-    else if hours >= 9.0 && hours <= 10.0 { score += 20; }
-    else if hours >= 5.0 && hours < 6.0 { score += 10; }
-    else if hours > 10.0 { score += 10; }
-    if let Some(q) = entry.quality { score += (q - 1) * 5; }
+    if hours >= 7.0 && hours <= 9.0 {
+        score += 30;
+    } else if hours >= 6.0 && hours < 7.0 {
+        score += 20;
+    } else if hours >= 9.0 && hours <= 10.0 {
+        score += 20;
+    } else if hours >= 5.0 && hours < 6.0 {
+        score += 10;
+    } else if hours > 10.0 {
+        score += 10;
+    }
+    if let Some(q) = entry.quality {
+        score += (q - 1) * 5;
+    }
     score.clamp(0, 100)
 }
 
@@ -746,7 +771,11 @@ async fn inner_sleep_log_save(
     let id = Uuid::new_v4().to_string();
     let now = time::now_ms();
     let score = compute_legacy_score(&entry);
-    let stages_json = entry.stages.as_ref().map(|s| serde_json::to_string(s).unwrap_or_default()).unwrap_or_default();
+    let stages_json = entry
+        .stages
+        .as_ref()
+        .map(|s| serde_json::to_string(s).unwrap_or_default())
+        .unwrap_or_default();
 
     sqlx::query(
         r#"INSERT INTO sleep_logs (id, date_key, bedtime, wake_time, hours, score, quality, notes, stages, created_at, updated_at)
@@ -762,20 +791,33 @@ async fn inner_sleep_log_save(
     .execute(&state.db()).await.map_err(|e| e.to_string())?;
 
     Ok(SleepLogRow {
-        id, date_key: date.to_string(), bedtime: entry.bedtime, wake_time: entry.wake_time,
-        hours: entry.hours, score, quality: entry.quality, notes: entry.notes,
-        stages: entry.stages, created_at: now, updated_at: now,
+        id,
+        date_key: date.to_string(),
+        bedtime: entry.bedtime,
+        wake_time: entry.wake_time,
+        hours: entry.hours,
+        score,
+        quality: entry.quality,
+        notes: entry.notes,
+        stages: entry.stages,
+        created_at: now,
+        updated_at: now,
     })
 }
 
 #[tauri::command]
-pub async fn sleep_log_today(state: State<'_, BentoAppState>) -> Result<Option<SleepLogRow>, String> {
+pub async fn sleep_log_today(
+    state: State<'_, BentoAppState>,
+) -> Result<Option<SleepLogRow>, String> {
     ensure_sleep_tables(&state.db()).await?;
     legacy_row_from_date(&state.db(), &today_key()).await
 }
 
 #[tauri::command]
-pub async fn sleep_log_get(state: State<'_, BentoAppState>, date_key: String) -> Result<Option<SleepLogRow>, String> {
+pub async fn sleep_log_get(
+    state: State<'_, BentoAppState>,
+    date_key: String,
+) -> Result<Option<SleepLogRow>, String> {
     ensure_sleep_tables(&state.db()).await?;
     legacy_row_from_date(&state.db(), &date_key).await
 }
@@ -787,7 +829,10 @@ pub async fn sleep_logs_week(state: State<'_, BentoAppState>) -> Result<Vec<Slee
 }
 
 #[tauri::command]
-pub async fn sleep_logs_recent(state: State<'_, BentoAppState>, days: Option<i32>) -> Result<Vec<SleepLogRow>, String> {
+pub async fn sleep_logs_recent(
+    state: State<'_, BentoAppState>,
+    days: Option<i32>,
+) -> Result<Vec<SleepLogRow>, String> {
     ensure_sleep_tables(&state.db()).await?;
     let n = days.unwrap_or(5).max(1).min(365);
     legacy_logs_since(&state.db(), n).await
@@ -796,76 +841,150 @@ pub async fn sleep_logs_recent(state: State<'_, BentoAppState>, days: Option<i32
 #[tauri::command]
 pub async fn sleep_log_delete(state: State<'_, BentoAppState>, id: String) -> Result<(), String> {
     ensure_sleep_tables(&state.db()).await?;
-    sqlx::query("DELETE FROM sleep_logs WHERE id = ?").bind(&id).execute(&state.db()).await.map_err(|e| e.to_string())?;
+    sqlx::query("DELETE FROM sleep_logs WHERE id = ?")
+        .bind(&id)
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub async fn sleep_routine_list(state: State<'_, BentoAppState>) -> Result<Vec<SleepRoutine>, String> {
+pub async fn sleep_routine_list(
+    state: State<'_, BentoAppState>,
+) -> Result<Vec<SleepRoutine>, String> {
     ensure_sleep_tables(&state.db()).await?;
-    let rows = sqlx::query("SELECT id, title, sort_order, created_at FROM sleep_routines ORDER BY sort_order ASC")
-        .fetch_all(&state.db()).await.map_err(|e| e.to_string())?;
-    Ok(rows.into_iter().map(|r| SleepRoutine {
-        id: r.get("id"), title: r.get("title"),
-        sort_order: r.get::<i64, _>("sort_order") as i32, created_at: r.get("created_at"),
-    }).collect())
+    let rows = sqlx::query(
+        "SELECT id, title, sort_order, created_at FROM sleep_routines ORDER BY sort_order ASC",
+    )
+    .fetch_all(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(rows
+        .into_iter()
+        .map(|r| SleepRoutine {
+            id: r.get("id"),
+            title: r.get("title"),
+            sort_order: r.get::<i64, _>("sort_order") as i32,
+            created_at: r.get("created_at"),
+        })
+        .collect())
 }
 
 #[tauri::command]
-pub async fn sleep_routine_save(state: State<'_, BentoAppState>, input: SleepRoutineInput) -> Result<SleepRoutine, String> {
+pub async fn sleep_routine_save(
+    state: State<'_, BentoAppState>,
+    input: SleepRoutineInput,
+) -> Result<SleepRoutine, String> {
     ensure_sleep_tables(&state.db()).await?;
-    if input.title.trim().is_empty() { return Err("Routine title is required.".into()); }
+    if input.title.trim().is_empty() {
+        return Err("Routine title is required.".into());
+    }
     let id = Uuid::new_v4().to_string();
     let now = time::now_ms();
-    let max_order: i64 = sqlx::query_scalar("SELECT COALESCE(MAX(sort_order), -1) FROM sleep_routines")
-        .fetch_one(&state.db()).await.map_err(|e| e.to_string())?;
-    sqlx::query("INSERT INTO sleep_routines (id, title, sort_order, created_at) VALUES (?, ?, ?, ?)")
-        .bind(&id).bind(input.title.trim()).bind(max_order + 1).bind(now)
-        .execute(&state.db()).await.map_err(|e| e.to_string())?;
-    Ok(SleepRoutine { id, title: input.title, sort_order: (max_order + 1) as i32, created_at: now })
+    let max_order: i64 =
+        sqlx::query_scalar("SELECT COALESCE(MAX(sort_order), -1) FROM sleep_routines")
+            .fetch_one(&state.db())
+            .await
+            .map_err(|e| e.to_string())?;
+    sqlx::query(
+        "INSERT INTO sleep_routines (id, title, sort_order, created_at) VALUES (?, ?, ?, ?)",
+    )
+    .bind(&id)
+    .bind(input.title.trim())
+    .bind(max_order + 1)
+    .bind(now)
+    .execute(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(SleepRoutine {
+        id,
+        title: input.title,
+        sort_order: (max_order + 1) as i32,
+        created_at: now,
+    })
 }
 
 #[tauri::command]
-pub async fn sleep_routine_delete(state: State<'_, BentoAppState>, ids: Vec<String>) -> Result<(), String> {
+pub async fn sleep_routine_delete(
+    state: State<'_, BentoAppState>,
+    ids: Vec<String>,
+) -> Result<(), String> {
     ensure_sleep_tables(&state.db()).await?;
     for id in &ids {
-        sqlx::query("DELETE FROM sleep_routines WHERE id = ?").bind(id).execute(&state.db()).await.map_err(|e| e.to_string())?;
+        sqlx::query("DELETE FROM sleep_routines WHERE id = ?")
+            .bind(id)
+            .execute(&state.db())
+            .await
+            .map_err(|e| e.to_string())?;
     }
     Ok(())
 }
 
 #[tauri::command]
-pub async fn sleep_routine_reorder(state: State<'_, BentoAppState>, ids: Vec<String>) -> Result<(), String> {
+pub async fn sleep_routine_reorder(
+    state: State<'_, BentoAppState>,
+    ids: Vec<String>,
+) -> Result<(), String> {
     ensure_sleep_tables(&state.db()).await?;
     for (i, id) in ids.iter().enumerate() {
-        sqlx::query("UPDATE sleep_routines SET sort_order = ? WHERE id = ?").bind(i as i64).bind(id)
-            .execute(&state.db()).await.map_err(|e| e.to_string())?;
+        sqlx::query("UPDATE sleep_routines SET sort_order = ? WHERE id = ?")
+            .bind(i as i64)
+            .bind(id)
+            .execute(&state.db())
+            .await
+            .map_err(|e| e.to_string())?;
     }
     Ok(())
 }
 
 #[tauri::command]
-pub async fn sleep_routine_status(state: State<'_, BentoAppState>, date_key: Option<String>) -> Result<Vec<RoutineTracking>, String> {
+pub async fn sleep_routine_status(
+    state: State<'_, BentoAppState>,
+    date_key: Option<String>,
+) -> Result<Vec<RoutineTracking>, String> {
     ensure_sleep_tables(&state.db()).await?;
     let date = date_key.unwrap_or_else(today_key);
-    let rows = sqlx::query("SELECT routine_id, date_key, completed FROM sleep_routine_tracking WHERE date_key = ?")
-        .bind(&date).fetch_all(&state.db()).await.map_err(|e| e.to_string())?;
-    Ok(rows.into_iter().map(|r| RoutineTracking {
-        routine_id: r.get("routine_id"), date_key: r.get("date_key"),
-        completed: r.get::<i64, _>("completed") == 1,
-    }).collect())
+    let rows = sqlx::query(
+        "SELECT routine_id, date_key, completed FROM sleep_routine_tracking WHERE date_key = ?",
+    )
+    .bind(&date)
+    .fetch_all(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(rows
+        .into_iter()
+        .map(|r| RoutineTracking {
+            routine_id: r.get("routine_id"),
+            date_key: r.get("date_key"),
+            completed: r.get::<i64, _>("completed") == 1,
+        })
+        .collect())
 }
 
 #[tauri::command]
-pub async fn sleep_routine_toggle(state: State<'_, BentoAppState>, routine_id: String, date_key: Option<String>) -> Result<bool, String> {
+pub async fn sleep_routine_toggle(
+    state: State<'_, BentoAppState>,
+    routine_id: String,
+    date_key: Option<String>,
+) -> Result<bool, String> {
     ensure_sleep_tables(&state.db()).await?;
     let date = date_key.unwrap_or_else(today_key);
     let now = time::now_ms();
-    let existing = sqlx::query("SELECT id FROM sleep_routine_tracking WHERE routine_id = ? AND date_key = ?")
-        .bind(&routine_id).bind(&date).fetch_optional(&state.db()).await.map_err(|e| e.to_string())?;
+    let existing =
+        sqlx::query("SELECT id FROM sleep_routine_tracking WHERE routine_id = ? AND date_key = ?")
+            .bind(&routine_id)
+            .bind(&date)
+            .fetch_optional(&state.db())
+            .await
+            .map_err(|e| e.to_string())?;
     if existing.is_some() {
         sqlx::query("DELETE FROM sleep_routine_tracking WHERE routine_id = ? AND date_key = ?")
-            .bind(&routine_id).bind(&date).execute(&state.db()).await.map_err(|e| e.to_string())?;
+            .bind(&routine_id)
+            .bind(&date)
+            .execute(&state.db())
+            .await
+            .map_err(|e| e.to_string())?;
         Ok(false)
     } else {
         let track_id = Uuid::new_v4().to_string();
@@ -881,20 +1000,35 @@ pub async fn sleep_alarm_list(state: State<'_, BentoAppState>) -> Result<Vec<Sle
     ensure_sleep_tables(&state.db()).await?;
     let rows = sqlx::query("SELECT id, label, time, wake_window, mode, sound, active, created_at FROM sleep_alarms ORDER BY time ASC")
         .fetch_all(&state.db()).await.map_err(|e| e.to_string())?;
-    Ok(rows.into_iter().map(|r| SleepAlarm {
-        id: r.get("id"), label: r.get("label"), time: r.get("time"),
-        wake_window: r.get("wake_window"), mode: r.get("mode"), sound: r.get("sound"),
-        active: r.get::<i64, _>("active") == 1, created_at: r.get("created_at"),
-    }).collect())
+    Ok(rows
+        .into_iter()
+        .map(|r| SleepAlarm {
+            id: r.get("id"),
+            label: r.get("label"),
+            time: r.get("time"),
+            wake_window: r.get("wake_window"),
+            mode: r.get("mode"),
+            sound: r.get("sound"),
+            active: r.get::<i64, _>("active") == 1,
+            created_at: r.get("created_at"),
+        })
+        .collect())
 }
 
 #[tauri::command]
-pub async fn sleep_alarm_save(state: State<'_, BentoAppState>, alarm: SleepAlarmInput) -> Result<SleepAlarm, String> {
+pub async fn sleep_alarm_save(
+    state: State<'_, BentoAppState>,
+    alarm: SleepAlarmInput,
+) -> Result<SleepAlarm, String> {
     ensure_sleep_tables(&state.db()).await?;
     // Ensure the scheduler table exists too (we write to it below)
     crate::scheduler::ensure_scheduler_tables(&state.db()).await?;
-    if alarm.label.trim().is_empty() { return Err("Alarm label is required.".into()); }
-    if alarm.time.trim().is_empty() { return Err("Alarm time is required.".into()); }
+    if alarm.label.trim().is_empty() {
+        return Err("Alarm label is required.".into());
+    }
+    if alarm.time.trim().is_empty() {
+        return Err("Alarm time is required.".into());
+    }
     let id = Uuid::new_v4().to_string();
     let now = time::now_ms();
     let window = alarm.wake_window.unwrap_or_else(|| "20 min".to_string());
@@ -907,17 +1041,34 @@ pub async fn sleep_alarm_save(state: State<'_, BentoAppState>, alarm: SleepAlarm
     // Create a daily scheduler entry so the central scheduler fires a notification
     let today_start = time::start_of_today_ms();
     let parts: Vec<&str> = alarm.time.split(':').collect();
-    let hours: i64 = parts.first().and_then(|s| s.parse().ok()).ok_or_else(|| format!("Invalid alarm time '{}': expected HH:MM format", alarm.time))?;
-    let minutes: i64 = parts.get(1).and_then(|s| s.parse().ok()).ok_or_else(|| format!("Invalid alarm time '{}': expected HH:MM format", alarm.time))?;
+    let hours: i64 = parts
+        .first()
+        .and_then(|s| s.parse().ok())
+        .ok_or_else(|| format!("Invalid alarm time '{}': expected HH:MM format", alarm.time))?;
+    let minutes: i64 = parts
+        .get(1)
+        .and_then(|s| s.parse().ok())
+        .ok_or_else(|| format!("Invalid alarm time '{}': expected HH:MM format", alarm.time))?;
     if !(0..=23).contains(&hours) || !(0..=59).contains(&minutes) {
-        return Err(format!("Invalid alarm time '{}': hours must be 0-23, minutes 0-59", alarm.time));
+        return Err(format!(
+            "Invalid alarm time '{}': hours must be 0-23, minutes 0-59",
+            alarm.time
+        ));
     }
     let fire_at = today_start + hours * 3_600_000 + minutes * 60_000;
     let wake_window_minutes = parse_wake_window_minutes(&window);
     // Apply wake window offset: fire earlier by the window amount
     let offset = wake_window_minutes.map(|w| w * 60_000).unwrap_or(0);
-    let adjusted_fire = if offset > 0 && fire_at - offset > 0 { fire_at - offset } else { fire_at };
-    let next_fire_at = if adjusted_fire <= now { adjusted_fire + 86_400_000 } else { adjusted_fire };
+    let adjusted_fire = if offset > 0 && fire_at - offset > 0 {
+        fire_at - offset
+    } else {
+        fire_at
+    };
+    let next_fire_at = if adjusted_fire <= now {
+        adjusted_fire + 86_400_000
+    } else {
+        adjusted_fire
+    };
 
     sqlx::query(
         "INSERT OR REPLACE INTO schedules (id, module_id, label, schedule_type, interval_seconds, start_at, end_at, last_fired_at, next_fire_at, wake_window_minutes, sound, enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
@@ -927,27 +1078,61 @@ pub async fn sleep_alarm_save(state: State<'_, BentoAppState>, alarm: SleepAlarm
     .bind(wake_window_minutes).bind(&sound).bind(now).bind(now)
     .execute(&state.db()).await.map_err(|e| e.to_string())?;
 
-    Ok(SleepAlarm { id, label: alarm.label, time: alarm.time, wake_window: window, mode, sound, active: true, created_at: now })
+    Ok(SleepAlarm {
+        id,
+        label: alarm.label,
+        time: alarm.time,
+        wake_window: window,
+        mode,
+        sound,
+        active: true,
+        created_at: now,
+    })
 }
 
 #[tauri::command]
-pub async fn sleep_alarm_delete(state: State<'_, BentoAppState>, alarm_id: String) -> Result<(), String> {
+pub async fn sleep_alarm_delete(
+    state: State<'_, BentoAppState>,
+    alarm_id: String,
+) -> Result<(), String> {
     ensure_sleep_tables(&state.db()).await?;
-    sqlx::query("DELETE FROM sleep_alarms WHERE id = ?").bind(&alarm_id).execute(&state.db()).await.map_err(|e| e.to_string())?;
-    sqlx::query("DELETE FROM schedules WHERE id = ?").bind(&alarm_id).execute(&state.db()).await.map_err(|e| e.to_string())?;
+    sqlx::query("DELETE FROM sleep_alarms WHERE id = ?")
+        .bind(&alarm_id)
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
+    sqlx::query("DELETE FROM schedules WHERE id = ?")
+        .bind(&alarm_id)
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
-pub async fn sleep_alarm_toggle(state: State<'_, BentoAppState>, alarm_id: String) -> Result<bool, String> {
+pub async fn sleep_alarm_toggle(
+    state: State<'_, BentoAppState>,
+    alarm_id: String,
+) -> Result<bool, String> {
     ensure_sleep_tables(&state.db()).await?;
-    let current: i64 = sqlx::query_scalar("SELECT active FROM sleep_alarms WHERE id = ?").bind(&alarm_id)
-        .fetch_one(&state.db()).await.map_err(|e| e.to_string())?;
+    let current: i64 = sqlx::query_scalar("SELECT active FROM sleep_alarms WHERE id = ?")
+        .bind(&alarm_id)
+        .fetch_one(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
     let new = if current == 1 { 0 } else { 1 };
-    sqlx::query("UPDATE sleep_alarms SET active = ? WHERE id = ?").bind(new).bind(&alarm_id)
-        .execute(&state.db()).await.map_err(|e| e.to_string())?;
-    sqlx::query("UPDATE schedules SET enabled = ? WHERE id = ?").bind(new).bind(&alarm_id)
-        .execute(&state.db()).await.map_err(|e| e.to_string())?;
+    sqlx::query("UPDATE sleep_alarms SET active = ? WHERE id = ?")
+        .bind(new)
+        .bind(&alarm_id)
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
+    sqlx::query("UPDATE schedules SET enabled = ? WHERE id = ?")
+        .bind(new)
+        .bind(&alarm_id)
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
     Ok(new == 1)
 }
 
@@ -955,7 +1140,10 @@ pub async fn sleep_alarm_toggle(state: State<'_, BentoAppState>, alarm_id: Strin
 // LEGACY INTERNAL HELPERS
 // ═════════════════════════════════════════════════════════════════════════════
 
-async fn legacy_row_from_date(pool: &sqlx::SqlitePool, date: &str) -> Result<Option<SleepLogRow>, String> {
+async fn legacy_row_from_date(
+    pool: &sqlx::SqlitePool,
+    date: &str,
+) -> Result<Option<SleepLogRow>, String> {
     let row = sqlx::query("SELECT id, date_key, bedtime, wake_time, hours, score, quality, notes, stages, created_at, updated_at FROM sleep_logs WHERE date_key = ?")
         .bind(date).fetch_optional(pool).await.map_err(|e| e.to_string())?;
     Ok(row.map(legacy_map_row))
@@ -969,13 +1157,23 @@ async fn legacy_logs_since(pool: &sqlx::SqlitePool, days: i32) -> Result<Vec<Sle
 
 fn legacy_map_row(row: sqlx::sqlite::SqliteRow) -> SleepLogRow {
     let stages_raw: String = row.get("stages");
-    let stages = if stages_raw.is_empty() { None } else { serde_json::from_str(&stages_raw).ok() };
+    let stages = if stages_raw.is_empty() {
+        None
+    } else {
+        serde_json::from_str(&stages_raw).ok()
+    };
     SleepLogRow {
-        id: row.get("id"), date_key: row.get("date_key"), bedtime: row.get("bedtime"),
-        wake_time: row.get("wake_time"), hours: row.get("hours"),
-        score: row.get::<i64, _>("score") as i32, quality: row.get("quality"),
-        notes: row.get("notes"), stages,
-        created_at: row.get("created_at"), updated_at: row.get("updated_at"),
+        id: row.get("id"),
+        date_key: row.get("date_key"),
+        bedtime: row.get("bedtime"),
+        wake_time: row.get("wake_time"),
+        hours: row.get("hours"),
+        score: row.get::<i64, _>("score") as i32,
+        quality: row.get("quality"),
+        notes: row.get("notes"),
+        stages,
+        created_at: row.get("created_at"),
+        updated_at: row.get("updated_at"),
     }
 }
 
@@ -1028,16 +1226,24 @@ pub async fn ensure_sleep_tables(pool: &sqlx::SqlitePool) -> Result<(), String> 
     ];
 
     for sql in migrations {
-        sqlx::query(sql).execute(pool).await.map_err(|e| e.to_string())?;
+        sqlx::query(sql)
+            .execute(pool)
+            .await
+            .map_err(|e| e.to_string())?;
     }
 
     // Migrate existing tables: add columns that may be missing from older DBs.
     let _ = sqlx::query("ALTER TABLE sleep_alarms ADD COLUMN sound TEXT NOT NULL DEFAULT 'alarm'")
-        .execute(pool).await;
-    let _ = sqlx::query("ALTER TABLE sleep_alarms ADD COLUMN wake_window TEXT NOT NULL DEFAULT '20 min'")
-        .execute(pool).await;
+        .execute(pool)
+        .await;
+    let _ = sqlx::query(
+        "ALTER TABLE sleep_alarms ADD COLUMN wake_window TEXT NOT NULL DEFAULT '20 min'",
+    )
+    .execute(pool)
+    .await;
     let _ = sqlx::query("ALTER TABLE sleep_alarms ADD COLUMN mode TEXT NOT NULL DEFAULT 'Smart'")
-        .execute(pool).await;
+        .execute(pool)
+        .await;
 
     Ok(())
 }

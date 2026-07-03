@@ -249,7 +249,9 @@ pub struct HabitSettings {
     pub used_freeze_tokens: i32,
 }
 
-fn default_freeze_tokens() -> i32 { 3 }
+fn default_freeze_tokens() -> i32 {
+    3
+}
 
 // ── AI Features Prefs ────────────────────────────────────────────────────────
 
@@ -271,12 +273,15 @@ pub struct AiFeaturesPrefs {
     pub system_prompt: String,
 }
 
-fn default_ai_enabled() -> bool { true }
+fn default_ai_enabled() -> bool {
+    true
+}
 
 fn default_ai_system_prompt() -> String {
     "You are Bento, a helpful AI assistant integrated into a personal productivity app. \
 Be concise, practical, and warm. Use the user's data context when available to provide \
-personalized suggestions.".to_string()
+personalized suggestions."
+        .to_string()
 }
 
 /// Populate the AI features map with defaults if it's empty.
@@ -298,7 +303,6 @@ pub struct AiFeaturesPrefsPatch {
     pub features: Option<HashMap<String, bool>>,
     pub system_prompt: Option<String>,
 }
-
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -937,8 +941,8 @@ pub fn parse_reopen_shortcut_combo(combo: &str) -> Option<ReopenShortcutId> {
 #[cfg(test)]
 mod tests {
     use super::{
-        DesktopSettings, ReopenShortcutId, default_settings, format_reopen_shortcut,
-        normalize_settings, parse_reopen_shortcut_combo,
+        default_settings, format_reopen_shortcut, normalize_settings, parse_reopen_shortcut_combo,
+        DesktopSettings, ReopenShortcutId,
     };
     use serde_json::json;
 
