@@ -5,12 +5,9 @@
   },
   "bundle": {
     "macOS": {
-      "signingIdentity": "__APPLE_SIGNING_IDENTITY__",
-      "providerShortName": "__APPLE_PROVIDER_SHORT_NAME__",
+      "signingIdentity": "-",
       "minimumSystemVersion": "12.0",
-      "infoPlist": {
-        "NSMicrophoneUsageDescription": "Bento needs microphone access for voice dictation, voice notes, and AI conversation."
-      }
+      "infoPlist": "Info.macos.plist"
     }
   }
 }

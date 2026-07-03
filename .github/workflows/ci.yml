@@ -69,6 +69,7 @@ jobs:
             libxdo-dev \
             libssl-dev \
             libasound2-dev \
+            libpipewire-0.3-dev \
             libsqlcipher-dev \
             pkg-config
       - name: Install Rust toolchain
