@@ -80,7 +80,8 @@ jobs:
             libxdo-dev \
             libssl-dev \
             libasound2-dev \
-            libpipewire-0.3-dev
+            libpipewire-0.3-dev \
+            libgbm-dev
 
       - name: Install Rust toolchain
         run: |
