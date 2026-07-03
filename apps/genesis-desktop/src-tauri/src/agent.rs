@@ -6,6 +6,15 @@ use std::time::Duration;
 use tauri::{AppHandle, Manager, WebviewWindow};
 use tauri::tray::{TrayIconBuilder, TrayIconEvent, MouseButton, MouseButtonState};
 
+/// macOS window level for the agent dock — NSFloatingWindowLevel (5).
+/// Above normal windows but below the menu bar, so the dock is always reachable.
+#[cfg(target_os = "macos")]
+const AGENT_MACOS_WINDOW_LEVEL: i64 = 5;
+
+/// macOS collection behavior: visible on all Spaces + fullscreen auxiliary.
+#[cfg(target_os = "macos")]
+const AGENT_MACOS_COLLECTION_BEHAVIOR: i64 = 0 | (1 << 1) | (1 << 8);
+
 // ── Screen capture via xcap (no browser permission dialog) ────────────────
 
 /// Capture the primary monitor as a base64-encoded JPEG data URI.
@@ -158,6 +167,15 @@ pub fn setup_agent_window(app: &tauri::App) -> Result<(), Box<dyn std::error::Er
         let _ = window.eval("document.body.style.background='transparent'");
     }
 
+    // macOS: Set window level and collection behavior so the dock:
+    // - floats above normal windows (NSFloatingWindowLevel)
+    // - appears on all Spaces (canJoinAllSpaces)
+    // - works alongside fullscreen apps (fullScreenAuxiliary)
+    #[cfg(target_os = "macos")]
+    if let Err(e) = set_agent_macos_window_level(&window) {
+        eprintln!("[agent] macOS window level setup failed: {e}");
+    }
+
     // Position at bottom-right.
     position_bottom_right(&window, false).unwrap_or_else(|e| {
         eprintln!("[agent] initial positioning failed: {e}");
@@ -289,6 +307,29 @@ fn start_mouse_monitor(app: AppHandle) {
 
 #[cfg(not(target_os = "windows"))]
 fn start_mouse_monitor(_app: AppHandle) {}
+
+/// Set the macOS window level and collection behavior for the agent dock.
+/// Using objc2 msg_send! on the NSWindow obtained from the webview's view.
+#[cfg(target_os = "macos")]
+fn set_agent_macos_window_level(window: &WebviewWindow) -> Result<(), Box<dyn std::error::Error>> {
+    use objc2::runtime::AnyObject;
+    use objc2::*;
+    use raw_window_handle::HasWindowHandle;
+
+    let handle = window.window_handle()?;
+    let raw_window_handle::RawWindowHandle::AppKit(appkit) = handle.as_raw() else {
+        return Err("unexpected non-AppKit raw window handle".into());
+    };
+
+    unsafe {
+        let ns_view = appkit.ns_view.as_ptr() as *mut AnyObject;
+        let ns_win: *mut AnyObject = msg_send![ns_view, window];
+        let _: () = msg_send![ns_win, setLevel: AGENT_MACOS_WINDOW_LEVEL];
+        let _: () = msg_send![ns_win, setCollectionBehavior: AGENT_MACOS_COLLECTION_BEHAVIOR];
+    }
+
+    Ok(())
+}
 
 /// Get current time in milliseconds since process start.
 fn now_millis() -> u64 {

@@ -3,6 +3,14 @@ import { createClient } from '../../../lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
+function validateRedirectPath(path: string): string {
+  const sanitized = path.split('?')[0].split('#')[0];
+  if (sanitized.startsWith('/') && !sanitized.includes('@') && !sanitized.includes('//') && !sanitized.includes('\\')) {
+    return sanitized;
+  }
+  return '/pricing';
+}
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
@@ -14,14 +22,12 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && desktop) {
-      // User came from desktop OAuth flow — redirect to the post-auth page
-      // which will deep-link back to the desktop app
       const origin = requestUrl.origin;
       return NextResponse.redirect(`${origin}/auth/desktop-success`);
     }
   }
 
-  // Standard web flow: redirect to pricing or next destination
   const origin = requestUrl.origin;
-  return NextResponse.redirect(`${origin}${next}`);
+  const safePath = validateRedirectPath(next);
+  return NextResponse.redirect(`${origin}${safePath}`);
 }

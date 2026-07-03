@@ -43,6 +43,7 @@ use serde::Serialize;
 use std::{env, fs, panic::PanicHookInfo, sync::Arc, thread, time::Duration};
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
+
 #[cfg(not(debug_assertions))]
 use tauri_plugin_deep_link::DeepLinkExt;
 #[cfg(not(debug_assertions))]
@@ -61,7 +62,7 @@ use crate::commands::{
     get_focus_dashboard, get_lifecycle_state, get_my_feedback, load_desktop_settings,
     pick_export_directory, pick_import_file, pick_transcription_model, quit_app,
     record_focus_session, export_focus_sessions, restore_desktop_settings_backup, restore_window, save_desktop_settings,
-    save_export_manifest, submit_feedback, write_debug_log,
+    clear_webview_browsing_data, save_export_manifest, submit_feedback, write_debug_log,
 };
 use crate::crypto::CryptoService;
 use crate::db::{
@@ -335,6 +336,29 @@ pub fn run() {
             }
         }
 
+        // ── Database ──────────────────────────────────────────────────
+        let db = match tauri::async_runtime::block_on(db::init_db(app.handle())) {
+            Ok(db) => db,
+            Err(error) => {
+                return Err(std::io::Error::other(error).into());
+            }
+        };
+        app.manage(BentoAppState::new(db));
+
+        // ── Encryption service ────────────────────────────────────────
+        let crypto = CryptoService::new(data_dir.clone());
+        app.manage(crypto.clone());
+
+        // ── Voice Engine audio state ────────────────────────────────
+        {
+            let audio_state = crate::audio::AudioState::new(
+                data_dir.clone(),
+                app.state::<BentoAppState>().inner().db(),
+                Some(app.handle().clone()),
+            );
+            app.manage(audio_state);
+        }
+
         // ── Media player audio state ────────────────────────────────
         crate::media_player::init_audio_state();
         crate::media_player::setup_audio_monitoring(app.handle().clone());
@@ -352,18 +376,6 @@ pub fn run() {
                 Err(e) => eprintln!("[shortcut] failed to register island shortcut: {e}"),
             }
         }
-
-        // ── Encryption service ────────────────────────────────────────
-        let crypto = CryptoService::new(data_dir.clone());
-        app.manage(crypto.clone());
-
-        let db = match tauri::async_runtime::block_on(db::init_db(app.handle())) {
-            Ok(db) => db,
-            Err(error) => {
-                return Err(std::io::Error::other(error).into());
-            }
-        };
-        app.manage(BentoAppState::new(db));
 
         let search_base_dir = app
             .path()
@@ -471,6 +483,7 @@ pub fn run() {
             finish_background_task,
             restore_window,
             quit_app,
+            clear_webview_browsing_data,
             get_dashboard_data,
             get_focus_dashboard,
             get_module_context,
@@ -903,6 +916,16 @@ pub fn run() {
             crate::agent::agent_set_composer_open,
             crate::agent::focus_main_from_agent,
             crate::agent::capture_screen,
+            // Voice Engine
+            crate::commands::voice::voice_start,
+            crate::commands::voice::voice_stop,
+            crate::commands::voice::voice_pause,
+            crate::commands::voice::voice_resume,
+            crate::commands::voice::voice_cancel,
+            // Voice Engine — Transcription & Dictation
+            crate::commands::transcription::voice_paste_dictation,
+            crate::commands::transcription::voice_save_note,
+            crate::commands::transcription::voice_get_note,
             // Dynamic Island
             crate::island::toggle_island,
             crate::island::show_island,
@@ -913,6 +936,7 @@ pub fn run() {
             crate::island::island_set_ignore_cursor_events,
             crate::island::set_island_enabled,
             crate::island::focus_main_window,
+            crate::island::voice_set_island_state,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|error| {

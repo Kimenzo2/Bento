@@ -54,6 +54,51 @@ pub struct DesktopSettings {
     pub ai: AiFeaturesPrefs,
     #[serde(default = "default_dynamic_island_enabled")]
     pub dynamic_island_enabled: bool,
+    #[serde(default)]
+    pub voice: VoiceSettings,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct VoiceSettings {
+    /// Microphone device ID (empty = system default).
+    #[serde(default)]
+    pub input_device_id: String,
+    /// Push-to-talk global shortcut key.
+    #[serde(default = "default_ptt_shortcut")]
+    pub push_to_talk_shortcut: String,
+    /// Whether to use local Whisper (Moonshine) or cloud transcription.
+    #[serde(default = "default_transcription_provider")]
+    pub transcription_provider: String,
+    /// Automatically paste dictation result at cursor.
+    #[serde(default = "default_auto_paste")]
+    pub auto_paste_dictation: bool,
+    /// Keep audio recordings after transcription.
+    #[serde(default = "default_keep_audio")]
+    pub keep_audio_recordings: bool,
+    /// Enable wake word detection ("Hey Bento").
+    #[serde(default = "default_wake_word")]
+    pub wake_word_enabled: bool,
+}
+
+fn default_ptt_shortcut() -> String {
+    "Ctrl+Shift+M".to_string()
+}
+
+fn default_transcription_provider() -> String {
+    "local".to_string()
+}
+
+fn default_auto_paste() -> bool {
+    true
+}
+
+fn default_keep_audio() -> bool {
+    false
+}
+
+fn default_wake_word() -> bool {
+    false
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -528,7 +573,7 @@ fn default_background_alerts() -> bool {
 }
 
 fn default_dynamic_island_enabled() -> bool {
-    true
+    false
 }
 
 pub fn settings_file_path(app: &AppHandle) -> PathBuf {
@@ -602,6 +647,7 @@ pub fn default_settings() -> DesktopSettings {
             system_prompt: default_ai_system_prompt(),
         },
         dynamic_island_enabled: default_dynamic_island_enabled(),
+        voice: VoiceSettings::default(),
     }
 }
 

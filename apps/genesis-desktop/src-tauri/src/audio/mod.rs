@@ -13,14 +13,43 @@ use sqlx::{Row, SqlitePool};
 use std::path::PathBuf;
 use std::sync::{
     Arc, Mutex,
-    atomic::{AtomicBool, Ordering},
+    atomic::{AtomicBool, AtomicU32, Ordering},
     mpsc,
 };
 use std::thread;
+use tauri::Emitter;
 
+pub mod classifier;
 pub mod moonshine;
 
+// ─── Audio Level Payload (emitted to frontend via events) ────────────
+
+/// Typed payload for voice:audio-level events — avoids serde_json::json! allocation per callback.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AudioLevelPayload {
+    level: f32,
+    rms: f32,
+    peak: f32,
+}
+
+/// Typed payload for voice:session-completed events.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SessionCompletedPayload {
+    session_id: String,
+    status: String,
+}
+
 // ─── Recording State ──────────────────────────────────────────────────
+
+/// Numeric encoding of RecordingStatus for lock-free atomic access in audio callbacks.
+/// Using Mutex inside a cpal audio callback is a real-time safety violation.
+mod status_code {
+    pub const IDLE: u32 = 0;
+    pub const RECORDING: u32 = 1;
+    pub const PAUSED: u32 = 2;
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -28,6 +57,24 @@ pub enum RecordingStatus {
     Idle,
     Recording,
     Paused,
+}
+
+impl RecordingStatus {
+    fn to_u32(&self) -> u32 {
+        match self {
+            Self::Idle => status_code::IDLE,
+            Self::Recording => status_code::RECORDING,
+            Self::Paused => status_code::PAUSED,
+        }
+    }
+
+    fn from_u32(code: u32) -> Self {
+        match code {
+            status_code::RECORDING => Self::Recording,
+            status_code::PAUSED => Self::Paused,
+            _ => Self::Idle,
+        }
+    }
 }
 
 impl std::fmt::Display for RecordingStatus {
@@ -90,15 +137,17 @@ pub struct RecordingMeta {
 // ─── Recording Engine ─────────────────────────────────────────────────
 
 pub struct RecordingEngine {
-    status: Arc<Mutex<RecordingStatus>>,
+    /// Lock-free atomic status — never locked inside audio callback.
+    status_atomic: Arc<AtomicU32>,
+    /// Mutex-guarded session state (InnerSession).
+    /// The audio callback holds this lock only for the duration of sample copying.
     session: Arc<Mutex<Option<InnerSession>>>,
     app_dir: PathBuf,
     db: SqlitePool,
     /// Signalled by the background thread after WAV finalization + SQLite write.
     finalized: Arc<AtomicBool>,
-    /// Set to true while the sleep-detection watchdog is running.
-    /// Set to false to signal the watchdog to exit (e.g. on manual stop).
-    watchdog_active: Arc<AtomicBool>,
+    /// AppHandle for emitting audio level events to the frontend.
+    app_handle: Option<tauri::AppHandle>,
 }
 
 struct InnerSession {
@@ -122,20 +171,30 @@ struct InnerSession {
 impl RecordingEngine {
     pub fn new(app_dir: PathBuf, db: SqlitePool) -> Self {
         Self {
-            status: Arc::new(Mutex::new(RecordingStatus::Idle)),
+            status_atomic: Arc::new(AtomicU32::new(status_code::IDLE)),
             session: Arc::new(Mutex::new(None)),
             app_dir,
             db,
             finalized: Arc::new(AtomicBool::new(false)),
-            watchdog_active: Arc::new(AtomicBool::new(false)),
+            app_handle: None,
         }
     }
 
+    /// Set the AppHandle for emitting events to the frontend.
+    pub fn set_app_handle(&mut self, app_handle: tauri::AppHandle) {
+        self.app_handle = Some(app_handle);
+    }
+
     pub fn get_status(&self) -> RecordingStatus {
-        self.status
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone()
+        RecordingStatus::from_u32(self.status_atomic.load(Ordering::Relaxed))
+    }
+
+    /// Set the recording status atomically (lock-free).
+    fn set_status(&self, status: RecordingStatus) {
+        self.status_atomic.store(status.to_u32(), match status {
+            RecordingStatus::Idle => Ordering::Release,
+            _ => Ordering::Relaxed,
+        });
     }
 
     /// Enumerate available input audio devices.
@@ -192,12 +251,18 @@ impl RecordingEngine {
         module_id: &str,
         device_name: Option<&str>,
     ) -> Result<RecordingSession, String> {
-        let mut status = self.status.lock().map_err(|e| e.to_string())?;
-        if *status != RecordingStatus::Idle {
-            return Err("Recording is already in progress.".to_string());
-        }
-        *status = RecordingStatus::Recording;
-        drop(status);
+        // Lock-free atomic check-and-set — prevents TOCTOU race between load and store
+        self.status_atomic
+            .compare_exchange(
+                status_code::IDLE,
+                status_code::RECORDING,
+                Ordering::Acquire,
+                Ordering::Relaxed,
+            )
+            .map_err(|current| {
+                let status = RecordingStatus::from_u32(current);
+                format!("Recording is already in progress ({status}).")
+            })?;
 
         let host = cpal::default_host();
         let device = match device_name {
@@ -244,13 +309,17 @@ impl RecordingEngine {
 
         // Spawn the recording stream on a background thread
         let finalized_arc = self.finalized.clone();
-        let status_arc = self.status.clone();
         let session_arc = self.session.clone();
-        let status_arc_for_callback = Arc::clone(&status_arc);
+        let status_atomic = Arc::clone(&self.status_atomic);
+        let status_atomic_for_callback = Arc::clone(&status_atomic);
+        let status_atomic_for_error = Arc::clone(&status_atomic);
         let session_arc_for_callback = Arc::clone(&session_arc);
         let session_id_clone = session_id.clone();
         let db_clone = self.db.clone();
         let device_name_clone = device_name.clone();
+        // AppHandle for emitting audio level events — clone before first move closure
+        let app_handle_for_levels = self.app_handle.clone();
+        let app_handle_for_completed = self.app_handle.clone();
 
         let now_ms = time::now_ms();
         let session = InnerSession {
@@ -270,54 +339,32 @@ impl RecordingEngine {
 
         *self.session.lock().map_err(|e| e.to_string())? = Some(session);
 
-        // ── Sleep-detection watchdog ──────────────────────────────────────
-        // Compares monotonic elapsed time vs wall-clock elapsed time every 2s.
-        // If wall-clock elapsed exceeds monotonic elapsed by > 30s, the machine
-        // likely slept mid-recording — flag it so the frontend can alert the user.
-        const SLEEP_THRESHOLD_MS: i64 = 30_000;
-        let watchdog_session = Arc::clone(&self.session);
-        let watchdog_active = Arc::clone(&self.watchdog_active);
-        self.watchdog_active.store(true, Ordering::Release);
-        std::thread::spawn(move || {
-            while watchdog_active.load(Ordering::Acquire) {
-                std::thread::sleep(std::time::Duration::from_secs(2));
-                if !watchdog_active.load(Ordering::Acquire) {
-                    break;
-                }
-                let mut guard = match watchdog_session.lock() {
-                    Ok(g) => g,
-                    Err(_) => continue,
-                };
-                if let Some(ref mut inner) = *guard {
-                    let monotonic_elapsed = inner.start_time.elapsed().as_millis() as i64;
-                    let wall_clock_elapsed = time::now_ms() - inner.start_time_ms;
-                    let drift = wall_clock_elapsed - monotonic_elapsed;
-                    if drift > SLEEP_THRESHOLD_MS && !inner.sleep_detected {
-                        inner.sleep_detected = true;
-                        eprintln!(
-                            "[audio] Sleep detected mid-recording: drift={}ms (threshold={}ms)",
-                            drift, SLEEP_THRESHOLD_MS
-                        );
-                    }
-                }
-                drop(guard);
-            }
-        });
-
-        // Spawn audio capture thread
+        // ── Watchdog and recording are merged into a single thread ────────
+        // Sleep detection (monotonic vs wall-clock, every ~2s) runs within the
+        // 500ms polling loop. This eliminates the separate watchdog thread.
+        let session_id_for_thread = session_id.clone();
         std::thread::spawn(move || {
             let input_stream = match device.build_input_stream(
                 &config.into(),
                 move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                    // Check if we should still be recording
-                    let s = status_arc_for_callback
-                        .lock()
-                        .unwrap_or_else(|e| e.into_inner());
-                    let s_clone = s.clone();
-                    drop(s);
-
-                    if s_clone == RecordingStatus::Idle || s_clone == RecordingStatus::Paused {
+                    // Lock-free atomic check — never acquire a Mutex in audio callback
+                    let s = status_atomic_for_callback.load(Ordering::Relaxed);
+                    if s == status_code::IDLE || s == status_code::PAUSED {
                         return;
+                    }
+
+                    // ── Compute RMS audio level ──────────────────────────
+                    if let Some(ref app_handle) = app_handle_for_levels {
+                        let rms: f32 = if data.is_empty() {
+                            0.0
+                        } else {
+                            let sum: f32 = data.iter().map(|s| s * s).sum();
+                            (sum / data.len() as f32).sqrt()
+                        };
+                        // Scale RMS to 0.0–1.0 range and emit event
+                        let level = (rms * 3.0).min(1.0);
+                        let peak = data.iter().map(|s| s.abs()).fold(0.0f32, f32::max);
+                        let _ = app_handle.emit("voice:audio-level", AudioLevelPayload { level, rms, peak });
                     }
 
                     // Write samples to WAV
@@ -334,8 +381,14 @@ impl RecordingEngine {
                         }
                     }
                 },
-                |err| {
+                move |err| {
                     eprintln!("[audio] Stream error: {err}");
+                    // Device was unplugged or lost — signal the monitoring loop to finalize.
+                    // On macOS, cpal triggers DeviceNotAvailable when a USB mic is unplugged
+                    // or an AirPod switches away. On Windows, this can happen with device removal.
+                    // By setting status to IDLE, the background loop will finalize the WAV file
+                    // and persist what was recorded before the stream died.
+                    status_atomic_for_error.store(status_code::IDLE, Ordering::Release);
                 },
                 None,
             ) {
@@ -346,13 +399,37 @@ impl RecordingEngine {
                 }
             };
 
+            // ── Sleep-detection: merged into the recording loop ────────────
+            // Every ~2s (every 4th iteration of the 500ms loop), compare monotonic
+            // elapsed time vs wall-clock elapsed time. If wall-clock elapsed exceeds
+            // monotonic elapsed by > 30s, the machine likely slept mid-recording.
+            const SLEEP_THRESHOLD_MS: i64 = 30_000;
+            let mut sleep_check_count: u32 = 0;
+
             // Keep stream alive until recording stops
             loop {
                 std::thread::sleep(std::time::Duration::from_millis(500));
-                let s = status_arc.lock().unwrap_or_else(|e| e.into_inner());
-                if *s == RecordingStatus::Idle {
-                    drop(s);
-                    // Close the writer
+
+                // Sleep detection check (every ~2 seconds)
+                sleep_check_count += 1;
+                if sleep_check_count % 4 == 0 {
+                    let mut guard = session_arc.lock().unwrap_or_else(|e| e.into_inner());
+                    if let Some(ref mut inner) = *guard {
+                        let monotonic_elapsed = inner.start_time.elapsed().as_millis() as i64;
+                        let wall_clock_elapsed = time::now_ms() - inner.start_time_ms;
+                        let drift = wall_clock_elapsed - monotonic_elapsed;
+                        if drift > SLEEP_THRESHOLD_MS && !inner.sleep_detected {
+                            inner.sleep_detected = true;
+                            eprintln!(
+                                "[audio] Sleep detected mid-recording: drift={}ms (threshold={}ms)",
+                                drift, SLEEP_THRESHOLD_MS
+                            );
+                        }
+                    }
+                    drop(guard);
+                }
+                if status_atomic.load(Ordering::Relaxed) == status_code::IDLE {
+                    // Close the writer — take the session
                     let mut guard = session_arc.lock().unwrap_or_else(|e| e.into_inner());
                     if let Some(inner) = guard.take() {
                         let _ = inner.file.finalize();
@@ -370,6 +447,14 @@ impl RecordingEngine {
                         let ch = inner.channels as i64;
                         let db = db_clone.clone();
                         let dev = device_name_clone.clone();
+
+                        // Emit voice:session-completed event to frontend
+                        if let Some(ref app_handle) = app_handle_for_completed {
+                            let _ = app_handle.emit("voice:session-completed", SessionCompletedPayload {
+                                session_id: session_id_for_thread.clone(),
+                                status: "completed".to_string(),
+                            });
+                        }
 
                         // Persist metadata to SQLite synchronously on this background thread
                         if let Err(e) = rt_handle.block_on(async {
@@ -399,7 +484,6 @@ impl RecordingEngine {
                     finalized_arc.store(true, Ordering::Release);
                     break;
                 }
-                drop(s);
             }
 
             drop(input_stream);
@@ -421,15 +505,10 @@ impl RecordingEngine {
     /// Stop the current recording and finalize the WAV file.
     /// Waits for the background thread to confirm SQLite persistence before returning.
     pub fn stop_recording(&self) -> Result<RecordingSession, String> {
-        let mut status = self.status.lock().map_err(|e| e.to_string())?;
-        if *status == RecordingStatus::Idle {
+        if self.status_atomic.load(Ordering::Relaxed) == status_code::IDLE {
             return Err("No recording in progress.".to_string());
         }
-        *status = RecordingStatus::Idle;
-        drop(status);
-
-        // Stop the sleep-detection watchdog
-        self.watchdog_active.store(false, Ordering::Release);
+        self.set_status(RecordingStatus::Idle);
 
         // Wait for background thread to finalize + persist (up to 3 seconds)
         for _ in 0..30 {
@@ -440,7 +519,7 @@ impl RecordingEngine {
         }
         self.finalized.store(false, Ordering::Release);
 
-        // Extract session data before clearing
+        // Extract session data
         let mut guard = self.session.lock().map_err(|e| e.to_string())?;
         let sleep_detected = guard.as_ref().map(|s| s.sleep_detected).unwrap_or(false);
         let session_data = guard.take();
@@ -488,11 +567,10 @@ impl RecordingEngine {
 
     /// Pause the current recording.
     pub fn pause_recording(&self) -> Result<RecordingSession, String> {
-        let mut status = self.status.lock().map_err(|e| e.to_string())?;
-        if *status != RecordingStatus::Recording {
+        if self.status_atomic.load(Ordering::Relaxed) != status_code::RECORDING {
             return Err("Recording is not active.".to_string());
         }
-        *status = RecordingStatus::Paused;
+        self.set_status(RecordingStatus::Paused);
 
         let mut guard = self.session.lock().map_err(|e| e.to_string())?;
         if let Some(ref mut inner) = *guard {
@@ -532,11 +610,10 @@ impl RecordingEngine {
 
     /// Resume a paused recording.
     pub fn resume_recording(&self) -> Result<RecordingSession, String> {
-        let mut status = self.status.lock().map_err(|e| e.to_string())?;
-        if *status != RecordingStatus::Paused {
+        if self.status_atomic.load(Ordering::Relaxed) != status_code::PAUSED {
             return Err("Recording is not paused.".to_string());
         }
-        *status = RecordingStatus::Recording;
+        self.set_status(RecordingStatus::Recording);
 
         let mut guard = self.session.lock().map_err(|e| e.to_string())?;
         if let Some(ref mut inner) = *guard {
@@ -590,11 +667,7 @@ impl RecordingEngine {
 
             RecordingSession {
                 id: inner.id.clone(),
-                status: self
-                    .status
-                    .lock()
-                    .map(|s| s.to_string())
-                    .unwrap_or_default(),
+                status: RecordingStatus::from_u32(self.status_atomic.load(Ordering::Relaxed)).to_string(),
                 start_time: time::now_ms() - inner.start_time.elapsed().as_millis() as i64,
                 elapsed_ms: actual.as_millis() as i64,
                 paused_duration_ms: inner.paused_duration.as_millis() as i64,
@@ -820,15 +893,10 @@ impl RecordingEngine {
 
     /// Cancel the current recording — stop and delete the file without persisting.
     pub fn cancel_recording(&self) -> Result<(), String> {
-        let mut status = self.status.lock().map_err(|e| e.to_string())?;
-        if *status == RecordingStatus::Idle {
+        if self.status_atomic.load(Ordering::Relaxed) == status_code::IDLE {
             return Err("No recording in progress.".to_string());
         }
-        *status = RecordingStatus::Idle;
-        drop(status);
-
-        // Stop the sleep-detection watchdog
-        self.watchdog_active.store(false, Ordering::Release);
+        self.set_status(RecordingStatus::Idle);
 
         // Wait for background thread to finalize
         for _ in 0..30 {
@@ -865,9 +933,8 @@ impl RecordingEngine {
         module_id: &str,
         device_name: Option<&str>,
     ) -> Result<RecordingSession, String> {
-        // Cancel current recording if any
-        let status = self.status.lock().map_err(|e| e.to_string())?.clone();
-        if status != RecordingStatus::Idle {
+        // Cancel current recording if any (lock-free check)
+        if self.status_atomic.load(Ordering::Relaxed) != status_code::IDLE {
             self.cancel_recording()?;
         }
         // Start fresh
@@ -1086,13 +1153,20 @@ impl PlaybackEngine {
 pub struct AudioState {
     pub engine: RecordingEngine,
     pub playback: PlaybackEngine,
+    /// AppHandle for emitting voice events to frontend.
+    pub app_handle: Option<tauri::AppHandle>,
 }
 
 impl AudioState {
-    pub fn new(app_dir: PathBuf, db: SqlitePool) -> Self {
+    pub fn new(app_dir: PathBuf, db: SqlitePool, app_handle: Option<tauri::AppHandle>) -> Self {
+        let mut engine = RecordingEngine::new(app_dir, db);
+        if let Some(ref handle) = app_handle {
+            engine.set_app_handle(handle.clone());
+        }
         Self {
-            engine: RecordingEngine::new(app_dir, db),
+            engine,
             playback: PlaybackEngine::new(),
+            app_handle,
         }
     }
 }

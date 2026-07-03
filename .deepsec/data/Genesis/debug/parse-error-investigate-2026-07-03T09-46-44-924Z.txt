@@ -1,0 +1,11 @@
+# deepsec parse-failure debug dump
+# phase: investigate
+# agentType: codex
+# timestamp: 2026-07-03T09:46:44.924Z
+# error: Error: Agent produced output that wasn't a parseable JSON findings array: Unexpected token 'T', "The render"... is not valid JSON. Tolerant jsonrepair failed: Unexpected character "`" at position 49. First 400 chars: The renderer escapes plain text before assigning `innerHTML`, which mitigates the obvious stored-XSS path from note text. I did spot one area worth checking further: link marks build an `<a href="...">` tag from `m.param`, so I’m checking whether link parameters are constrained before they reach storage/rendering.
+# batch (3 files):
+  - apps/genesis-desktop/src/lib/i18n/index.ts
+  - apps/genesis-desktop/src/lib/local-store/editor-state.svelte.ts
+  - apps/genesis-desktop/src/lib/stores/crypto.store.ts
+# --- raw agent output begins on next line ---
+The renderer escapes plain text before assigning `innerHTML`, which mitigates the obvious stored-XSS path from note text. I did spot one area worth checking further: link marks build an `<a href="...">` tag from `m.param`, so I’m checking whether link parameters are constrained before they reach storage/rendering.

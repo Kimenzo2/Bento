@@ -200,7 +200,25 @@ const desktopSettingsSchema = z
       })
       .passthrough(),
     migration: migrationSchema,
-    dynamicIslandEnabled: z.boolean().default(true),
+    dynamicIslandEnabled: z.boolean().default(false),
+    voice: z
+      .object({
+        inputDeviceId: z.string().default(""),
+        pushToTalkShortcut: z.string().default("Ctrl+Shift+M"),
+        transcriptionProvider: z.string().default("local"),
+        autoPasteDictation: z.boolean().default(true),
+        keepAudioRecordings: z.boolean().default(false),
+        wakeWordEnabled: z.boolean().default(false),
+      })
+      .passthrough()
+      .default({
+        inputDeviceId: "",
+        pushToTalkShortcut: "Ctrl+Shift+M",
+        transcriptionProvider: "local",
+        autoPasteDictation: true,
+        keepAudioRecordings: false,
+        wakeWordEnabled: false,
+      }),
   })
   .passthrough();
 
@@ -269,7 +287,15 @@ export const defaultDesktopSettings: DesktopSettings = {
     legacyBrowserStorageMigrated: false,
     storeSettingsMigrated: false,
   },
-  dynamicIslandEnabled: true,
+  dynamicIslandEnabled: false,
+  voice: {
+    inputDeviceId: "",
+    pushToTalkShortcut: "Ctrl+Shift+M",
+    transcriptionProvider: "local",
+    autoPasteDictation: true,
+    keepAudioRecordings: false,
+    wakeWordEnabled: false,
+  },
 };
 
 export const desktopSettings = writable<DesktopSettings>(defaultDesktopSettings);

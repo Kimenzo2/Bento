@@ -7,6 +7,8 @@ pub mod nutrition;
 pub mod passwords;
 pub mod sync;
 pub mod tasks;
+pub mod transcription;
+pub mod voice;
 pub use dashboard::{DashboardCache, get_dashboard_data};
 pub use feedback::{
     get_feedback_by_id, get_feedback_realtime_config, get_my_feedback, submit_feedback,
@@ -379,6 +381,29 @@ pub async fn restore_window(app: AppHandle) -> Result<LifecycleState, String> {
     let state = runtime.lifecycle_state();
     emit_lifecycle(&app, state.clone());
     Ok(state)
+}
+
+/// Clear all WebView2 browsing data (cache, cookies, permissions, etc.).
+///
+/// This is the primary fix for the "mic permission denied" issue in Tauri.
+/// WebView2 caches permission decisions — once a user denies getUserMedia,
+/// it won't prompt again even if the OS-level permission is granted.
+/// Clearing browsing data resets this cache so the next getUserMedia call
+/// will show the browser permission prompt.
+#[tauri::command]
+pub fn clear_webview_browsing_data(app: AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("agent") {
+        window
+            .clear_all_browsing_data()
+            .map_err(|e| format!("Failed to clear browsing data: {e}"))?;
+    }
+    if let Some(window) = app.get_webview_window("main") {
+        window
+            .clear_all_browsing_data()
+            .map_err(|e| format!("Failed to clear browsing data: {e}"))?;
+    }
+    
+    Ok(())
 }
 
 #[tauri::command]

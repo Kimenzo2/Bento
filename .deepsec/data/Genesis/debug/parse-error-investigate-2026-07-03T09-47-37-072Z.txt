@@ -1,0 +1,13 @@
+# deepsec parse-failure debug dump
+# phase: investigate
+# agentType: codex
+# timestamp: 2026-07-03T09:47:37.072Z
+# error: Error: Agent produced output that wasn't a parseable JSON findings array: Unexpected token 'T', "The settin"... is not valid JSON. Tolerant jsonrepair failed: Unexpected character "’" at position 19. First 400 chars: The settings schema’s `.passthrough()` does preserve unknown frontend fields, but the durable Tauri store writes explicit known keys and Rust deserialization ignores unknown fields. I’m checking telemetry and AI native handlers now to make sure the `Channel` payloads do not expose browser-origin message surfaces or untrusted data sinks.
+# batch (5 files):
+  - apps/genesis-desktop/src/lib/desktop/module-loader.ts
+  - apps/genesis-desktop/src/lib/desktop/telemetry.ts
+  - apps/genesis-desktop/src/lib/desktop/ai.ts
+  - apps/genesis-desktop/src/lib/desktop/settings.ts
+  - apps/genesis-desktop/tmp-clicky/worker/src/index.ts
+# --- raw agent output begins on next line ---
+The settings schema’s `.passthrough()` does preserve unknown frontend fields, but the durable Tauri store writes explicit known keys and Rust deserialization ignores unknown fields. I’m checking telemetry and AI native handlers now to make sure the `Channel` payloads do not expose browser-origin message surfaces or untrusted data sinks.

@@ -1,0 +1,13 @@
+# deepsec parse-failure debug dump
+# phase: investigate
+# agentType: codex
+# timestamp: 2026-07-03T09:46:52.714Z
+# error: Error: Agent produced output that wasn't a parseable JSON findings array: Unexpected token 'T', "The workfl"... is not valid JSON. Tolerant jsonrepair failed: Unexpected character "/" at position 82. First 400 chars: The workflow risk is supply-chain oriented: mutable action tags in jobs that build/sign/publish artifacts. I’m also checking line numbers for the adjacent routes that consume the helpers, because they affect whether any helper-level issue is genuinely exploitable.
+# batch (5 files):
+  - .github/workflows/ci.yml
+  - .github/workflows/desktop-release.yml
+  - .github/workflows/release.yml
+  - apps/landing/lib/supabase/server.ts
+  - apps/landing/lib/supabase/client.ts
+# --- raw agent output begins on next line ---
+The workflow risk is supply-chain oriented: mutable action tags in jobs that build/sign/publish artifacts. I’m also checking line numbers for the adjacent routes that consume the helpers, because they affect whether any helper-level issue is genuinely exploitable.

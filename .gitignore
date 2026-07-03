@@ -139,6 +139,7 @@ package-lock.json
 !apps/landing/public/images/hero-app-screenshot.png
 *.jpg
 *.jpeg
+!apps/genesis-desktop/static/assets/characters/demo-agent-avatar.jpeg
 *.gif
 *.webp
 *.bmp

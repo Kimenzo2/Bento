@@ -1,6 +1,7 @@
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
 
 const COMPACT_W: f64 = 260.0;
@@ -40,9 +41,17 @@ const ENTER_MARGIN: f64 = 10.0;
 /// Larger than ENTER_MARGIN to prevent flickering at the boundary.
 const EXIT_MARGIN: f64 = 30.0;
 
-/// macOS window level above the menu bar (NSStatusWindowLevel).
+/// macOS window level — NSFloatingWindowLevel (5), above normal windows but below
+/// the menu bar (NSStatusWindowLevel = 21+). Using 5 ensures the island is visible
+/// above all user windows but doesn't overlap with system UI components.
 #[cfg(target_os = "macos")]
-const MACOS_WINDOW_LEVEL: i64 = 25;
+const MACOS_WINDOW_LEVEL: i64 = 5;
+
+/// macOS window collection behavior flags to join all Spaces.
+/// NSNormalWindowLevel (0) | NSWindowCollectionBehaviorCanJoinAllSpaces (1 << 1)
+/// | NSWindowCollectionBehaviorFullScreenAuxiliary (1 << 8)
+#[cfg(target_os = "macos")]
+const MACOS_COLLECTION_BEHAVIOR: i64 = 0 | (1 << 1) | (1 << 8);
 
 /// Remove the CS_DROPSHADOW class style from the window class.
 /// This prevents DWM from drawing drop shadows on this window class.
@@ -236,7 +245,11 @@ pub fn setup_island_window(app: &tauri::App) -> Result<(), Box<dyn std::error::E
     Ok(())
 }
 
-/// Set the macOS window level above the menu bar (NSStatusWindowLevel).
+/// Set the macOS window level and collection behavior for the island window.
+///
+/// - Sets window level to NSFloatingWindowLevel (above normal windows, below menu bar)
+/// - Sets collectionBehavior to canJoinAllSpaces + fullScreenAuxiliary so the island
+///   remains visible when switching Spaces or entering fullscreen apps
 #[cfg(target_os = "macos")]
 fn set_macos_window_level(window: &WebviewWindow) -> Result<(), Box<dyn std::error::Error>> {
     use objc2::runtime::AnyObject;
@@ -251,7 +264,12 @@ fn set_macos_window_level(window: &WebviewWindow) -> Result<(), Box<dyn std::err
     unsafe {
         let ns_view = appkit.ns_view.as_ptr() as *mut AnyObject;
         let ns_win: *mut AnyObject = msg_send![ns_view, window];
+        
+        // Set window level — NSFloatingWindowLevel
         let _: () = msg_send![ns_win, setLevel: MACOS_WINDOW_LEVEL];
+        
+        // Set collectionBehavior — visible on all Spaces + fullscreen auxiliary
+        let _: () = msg_send![ns_win, setCollectionBehavior: MACOS_COLLECTION_BEHAVIOR];
     }
 
     Ok(())
@@ -426,6 +444,38 @@ pub fn focus_main_window(app: AppHandle) -> Result<(), String> {
     } else {
         eprintln!("[island] focus_main_window: main window not found");
     }
+    Ok(())
+}
+
+/// Set the voice engine state on the Dynamic Island.
+/// This is called from the main window's VoiceEngine store to update the island window's
+/// active module state (recording timer, status, etc.).
+/// Pass `null` (None) to clear the voice module from the island.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VoiceIslandState {
+    pub id: String,
+    pub label: String,
+    pub icon: String,
+    pub status: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub activity_type: Option<String>,
+}
+
+#[tauri::command]
+pub fn voice_set_island_state(app: AppHandle, state: Option<VoiceIslandState>) -> Result<(), String> {
+    let Some(window) = app.get_webview_window("island") else {
+        eprintln!("[voice] voice_set_island_state: island window not found");
+        return Err("island window not found".into());
+    };
+    let is_active = state.is_some();
+    window
+        .emit("voice:island-state-changed", &state)
+        .map_err(|e| format!("failed to emit island state: {e}"))?;
+    eprintln!(
+        "[voice] voice_set_island_state: emitted state={}",
+        if is_active { "active" } else { "null" }
+    );
     Ok(())
 }
 

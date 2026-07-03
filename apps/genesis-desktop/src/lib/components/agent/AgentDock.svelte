@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
   import { onMount, tick } from "svelte";
   import { toast } from "svelte-sonner";
   import { fly } from "svelte/transition";
@@ -10,23 +10,15 @@
   import MonitorIcon from "@lucide/svelte/icons/monitor";
   import SendIcon from "@lucide/svelte/icons/send";
   import XIcon from "@lucide/svelte/icons/x";
+  import PauseIcon from "@lucide/svelte/icons/pause";
+  import PlayIcon from "@lucide/svelte/icons/play";
+  import SquareIcon from "@lucide/svelte/icons/square";
   import DockButton from "./DockButton.svelte";
   import StreamingMarkdown from "$lib/components/StreamingMarkdown.svelte";
   import { streamAiResponse } from "$lib/desktop/ai";
+  import { voiceEngine, type VoiceMode } from "$lib/stores/voice-engine.store.svelte";
 
-  interface SpeechRecognitionHandle {
-    start: () => void;
-    stop: () => void;
-    abort: () => void;
-    continuous: boolean;
-    interimResults: boolean;
-    lang: string;
-    onresult: ((event: any) => void) | null;
-    onerror: ((event: any) => void) | null;
-    onend: (() => void) | null;
-  }
-
-  type AgentDockMode = "idle" | "composing" | "listening" | "working";
+  type AgentDockMode = "idle" | "composing" | "recording" | "working";
 
   type AgentContext = {
     screenCapture?: string;
@@ -85,10 +77,22 @@
   let userNearBottom = $state(true);
   let lastSentMessage = $state("");
 
-  let speech = $state({
-    isListening: false,
-    recognitionRef: null as SpeechRecognitionHandle | null,
-    transcript: "",
+  // ── Voice Engine Integration ───────────────────────────────────
+  // Derive dock mode from voice engine state
+  $effect(() => {
+    if (voiceEngine.isRecording) {
+      mode = voiceEngine.mode === "dictation" || voiceEngine.mode === "agent_conversation"
+        ? "listening"
+        : "recording";
+    } else if (voiceEngine.status === "processing" || voiceEngine.status === "summarizing") {
+      mode = "working";
+    } else if (voiceEngine.status === "completed") {
+      // Keep showing results for a moment, then go idle (handled by store timeout)
+    } else if (voiceEngine.status === "inactive" || voiceEngine.status === "error") {
+      if (mode !== "composing") {
+        mode = "idle";
+      }
+    }
   });
 
   function checkScrollPosition() {
@@ -108,16 +112,22 @@
     (!!((window as any).SpeechRecognition) || !!((window as any).webkitSpeechRecognition))
   );
 
-  // ── S11: Timeout utility for all async operations ─────────────────────────
+  // ── Safe timeout utility — cleans up the timer on completion ──────────────
   const ASYNC_TIMEOUT_MS = 30_000;
 
   function withTimeout<T>(promise: Promise<T>, ms: number = ASYNC_TIMEOUT_MS): Promise<T> {
-    return Promise.race([
+    let timerId: ReturnType<typeof setTimeout> | null = null;
+    const result = Promise.race([
       promise,
-      new Promise<T>((_, reject) =>
-        setTimeout(() => reject(new Error(`[agent-dock] timed out after ${ms}ms`)), ms)
-      ),
+      new Promise<T>((_, reject) => {
+        timerId = setTimeout(() => reject(new Error(`[agent-dock] timed out after ${ms}ms`)), ms);
+      }),
     ]);
+    // Clean up timer when promise settles
+    result.finally(() => {
+      if (timerId !== null) clearTimeout(timerId);
+    }).catch(() => {});
+    return result;
   }
 
   const statusFly = $derived(
@@ -126,18 +136,61 @@
       : { y: 0, duration: 0 }
   );
 
-  const statusText = $derived(
-    mode === "listening"
-      ? speech.transcript || listeningStatus
-      : mode === "working"
-        ? workingStatus
-        : idleStatus
-  );
+  function getStatusText(): string {
+    if (voiceEngine.isActive) {
+      if (voiceEngine.status === "listening") return voiceEngine.session?.interimText || listeningStatus;
+      if (voiceEngine.status === "recording") return voiceEngine.elapsedFormatted || "Recording...";
+      if (voiceEngine.status === "paused") return "Paused";
+      if (voiceEngine.status === "processing") return "Processing...";
+      if (voiceEngine.status === "summarizing") return "Summarizing...";
+      if (voiceEngine.status === "completed") return "Done";
+      if (voiceEngine.status === "error") return voiceEngine.session?.error || "Error";
+      return idleStatus;
+    }
+    if (mode === "working") return workingStatus;
+    return idleStatus;
+  }
 
-  const isExpanded = $derived(mode !== "idle");
+  const statusText = $derived(getStatusText());
+
+  const isExpanded = $derived(mode !== "idle" || voiceEngine.isActive);
 
   $effect(() => {
     onComposerStateChange?.(isExpanded);
+  });
+
+  // ── Waveform visualization (rAF + CSS variables like June) ─────
+  let waveformRef = $state<HTMLDivElement | null>(null);
+  const WAVEFORM_BARS = 32;
+  let waveformLevels = $state<number[]>(new Array(WAVEFORM_BARS).fill(0.02));
+
+  // ── Waveform visualization — uses fine-grained audioLevel from store ──
+  $effect(() => {
+    if (!voiceEngine.isRecording) {
+      waveformLevels = new Array(WAVEFORM_BARS).fill(0.02);
+      return;
+    }
+    // Animate waveform while recording
+    let frameId: number;
+    let prevLevel = 0.02;
+
+    function animate() {
+      // Use fine-grained field instead of voiceEngine.session?.audioLevel
+      const targetLevel = voiceEngine.audioLevel;
+      // Smooth interpolation
+      prevLevel = prevLevel + (targetLevel - prevLevel) * 0.3;
+      // Generate bar heights with variance — reuse array to avoid allocation
+      for (let i = 0; i < WAVEFORM_BARS; i++) {
+        const variance = Math.sin(performance.now() * 0.005 + i * 0.5) * 0.3 + 0.7;
+        const centerPeak = Math.sin((i / WAVEFORM_BARS) * Math.PI) * 0.5 + 0.5;
+        waveformLevels[i] = Math.max(0.02, prevLevel * variance * centerPeak);
+      }
+      // Trigger reactivity by reassigning the same array
+      waveformLevels = waveformLevels;
+      frameId = requestAnimationFrame(animate);
+    }
+    frameId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frameId);
   });
 
   // ── Smart auto-scroll: only scroll when user is near bottom ───────────────
@@ -233,7 +286,7 @@
     if (submitBusy) return;
 
     const nextMessage = message.trim();
-    const transcriptText = speech.transcript.trim();
+    const transcriptText = voiceEngine.session?.interimText?.trim() || "";
 
     if (!nextMessage && !transcriptText) {
       openComposer();
@@ -250,7 +303,6 @@
     messages = [...messages, { role: "user", content: finalMessage }];
 
     message = "";
-    speech = { ...speech, transcript: "" };
     screenCapture = null;
     streamingError = null;
     streamingText = "";
@@ -282,108 +334,55 @@
     openComposer();
   }
 
-  // ── S5: Guard against double-start of speech recognition ──────────────────
-  function toggleListening() {
-    if (mode === "listening") {
-      stopListening();
-    } else if ((mode === "idle" || mode === "composing") && !speech.isListening) {
-      startListening();
-    }
-  }
+  // ── Voice Engine Controls ──────────────────────────────────────
 
-  function startListening() {
-    if (!hasSpeech) {
-      console.warn("[agent-dock] SpeechRecognition not available");
-      return;
-    }
-
-    if (speech.isListening || speech.recognitionRef) {
-      console.warn("[agent-dock] already listening, ignoring start");
-      return;
-    }
-
-    const Ctor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new Ctor();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = navigator.language || "en-US";
-
-    let disposed = false;
-
-    recognition.onresult = (event: any) => {
-      if (disposed) return;
-      let finalText = "";
-      let interimText = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          finalText += result[0].transcript;
-        } else {
-          interimText += result[0].transcript;
-        }
+  /** Toggle voice recording (tap mic button). */
+  async function toggleVoice() {
+    console.log("[agent-dock] toggleVoice called, isActive:", voiceEngine.isActive, "hasSpeech:", hasSpeech);
+    console.log("[agent-dock] navigator.mediaDevices:", !!navigator.mediaDevices, "getUserMedia:", !!navigator.mediaDevices?.getUserMedia);
+    if (voiceEngine.isActive) {
+      await voiceEngine.stop();
+      onVoiceStop?.();
+    } else if (hasSpeech) {
+      await voiceEngine.start("dictation");
+      console.log("[agent-dock] voiceEngine.start completed, status:", voiceEngine.status);
+      if (voiceEngine.status === "error") {
+        console.error("[agent-dock] voiceEngine error:", voiceEngine.session?.error);
       }
-      speech = { ...speech, transcript: finalText || interimText };
-    };
-
-    recognition.onerror = (event: any) => {
-      if (disposed) return;
-      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        console.debug("[agent-dock] speech not allowed (expected if permission denied):", event.error);
-      } else {
-        console.warn("[agent-dock] speech error:", event.error);
-      }
-      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        mode = "idle";
-        speech = { ...speech, isListening: false, recognitionRef: null };
-      }
-    };
-
-    recognition.onend = () => {
-      if (disposed) return;
-      speech = { ...speech, isListening: false, recognitionRef: null };
-      if (speech.transcript.trim().length >= 3) {
-        submitMessage().catch((err) => {
-          console.warn("[agent-dock] submitMessage from onend failed:", err);
-          mode = "idle";
-        });
-      } else if (mode === "listening") {
-        speech = { ...speech, transcript: "" };
-        mode = "idle";
-      }
-    };
-
-    speech = { ...speech, recognitionRef: recognition, isListening: true, transcript: "" };
-    mode = "listening";
-    try {
-      recognition.start();
       onVoiceStart?.();
-    } catch (err) {
-      console.warn("[agent-dock] recognition.start() failed:", err);
-      speech = { ...speech, isListening: false, recognitionRef: null };
-      mode = "idle";
+    } else {
+      toast.error("Voice not available", {
+        description: "Speech recognition is not available in this browser.",
+        duration: 5000,
+      });
     }
   }
 
-  function stopListening() {
-    if (!speech.recognitionRef) {
-      speech = { ...speech, isListening: false };
-      return;
-    }
-    try {
-      speech.recognitionRef.stop();
-    } catch {
-      // Ignore — may already be stopped
-    }
-    speech = { ...speech, recognitionRef: null, isListening: false };
+  /** Pause current recording. */
+  async function pauseRecording() {
+    await voiceEngine.pause();
+  }
+
+  /** Resume paused recording. */
+  async function resumeRecording() {
+    await voiceEngine.resume();
+  }
+
+  /** Cancel current recording — discard. */
+  async function cancelRecording() {
+    await voiceEngine.cancel();
     onVoiceStop?.();
-    if (speech.transcript.trim().length >= 3) {
-      submitMessage().catch((err) => {
-        console.warn("[agent-dock] submitMessage from stopListening failed:", err);
-        mode = "idle";
-      });
-    } else {
-      speech = { ...speech, transcript: "" };
-      mode = "idle";
+  }
+
+  /** Finish recording and process. */
+  async function finishRecording() {
+    await voiceEngine.stop();
+    onVoiceStop?.();
+    // If we have final/interim text from dictation, submit it as a message
+    const text = voiceEngine.finalText || voiceEngine.interimText;
+    if (text && voiceEngine.mode === "dictation") {
+      message = text;
+      await submitMessage();
     }
   }
 
@@ -471,8 +470,8 @@
       if (mode === "composing") {
         mode = "idle";
         e.stopPropagation();
-      } else if (mode === "listening") {
-        stopListening();
+      } else if (voiceEngine.isRecording || voiceEngine.isActive) {
+        cancelRecording();
         e.stopPropagation();
       } else if (mode === "idle" && isAgentWindow) {
         onEscapeWhenIdle?.();
@@ -492,11 +491,8 @@
     return () => {
       mq.removeEventListener("change", updateMotion);
       window.removeEventListener("keydown", handleKeydown);
-      // Scroll handler is wired via Svelte's onscroll attribute — cleanup not needed here
-      if (speech.recognitionRef) {
-        try { speech.recognitionRef.abort(); } catch { /* ignore */ }
-      }
-      speech = { ...speech, recognitionRef: null, isListening: false };
+      // Note: voiceEngine is a singleton — do NOT call destroy() here.
+      // Event listeners persist for the app lifetime.
     };
   });
 
@@ -515,11 +511,13 @@
       />
 
       <div class="dock-info">
-        {#key mode}
+        {#key mode || voiceEngine.status}
           <p
             class="dock-status"
-            class:dock-status--listening={mode === "listening"}
-            class:dock-status--working={mode === "working"}
+            class:dock-status--listening={voiceEngine.isRecording || mode === "listening"}
+            class:dock-status--working={mode === "working" || voiceEngine.status === "processing" || voiceEngine.status === "summarizing"}
+            class:dock-status--recording={voiceEngine.status === "recording"}
+            class:dock-status--error={voiceEngine.status === "error"}
             in:fly={statusFly}
             out:fly={{ y: -6, duration: 160 }}
           >
@@ -534,18 +532,29 @@
           label="Capture"
           onclick={captureScreen}
           class={screenCapture ? "dock-btn--active" : ""}
+          disabled={voiceEngine.isRecording}
         />
-        <DockButton
-          icon={mode === "listening" ? MicOffIcon : MicIcon}
-          label={!hasSpeech ? "Voice" : mode === "listening" ? "Stop" : "Voice"}
-          class={mode === "listening" ? "dock-btn--listening" : ""}
-          onclick={hasSpeech ? toggleListening : undefined}
-        />
+        {#if voiceEngine.isRecording || voiceEngine.status === "paused"}
+          <DockButton
+            icon={voiceEngine.status === "paused" ? MicIcon : MicOffIcon}
+            label={voiceEngine.status === "paused" ? "Resume" : "Stop"}
+            class={voiceEngine.status === "recording" ? "dock-btn--listening" : ""}
+            onclick={voiceEngine.status === "paused" ? resumeRecording : finishRecording}
+          />
+        {:else}
+          <DockButton
+            icon={voiceEngine.isActive ? MicOffIcon : MicIcon}
+            label={voiceEngine.isActive ? "Stop" : "Voice"}
+            class={voiceEngine.isActive ? "dock-btn--listening" : ""}
+            onclick={hasSpeech || isTauri() ? toggleVoice : undefined}
+          />
+        {/if}
         <DockButton
           icon={mode === "composing" ? SendIcon : ChatIcon}
           label={mode === "composing" ? "Send" : "Chat"}
           class={mode === "composing" ? "dock-btn--send" : ""}
           type="submit"
+          disabled={voiceEngine.isRecording}
         />
       </div>
     </div>
@@ -564,9 +573,103 @@
       </div>
     {/if}
 
-    {#if mode === "listening" && speech.transcript}
+    {#if voiceEngine.isRecording}
+      <!-- ── Waveform visualization ── -->
+      <div class="dock-waveform" bind:this={waveformRef} aria-hidden="true">
+        {#each waveformLevels as level, i}
+          <span
+            class="dock-waveform-bar"
+            style="--level: {level}"
+          ></span>
+        {/each}
+      </div>
+    {/if}
+
+    {#if voiceEngine.isRecording && voiceEngine.session?.interimText}
       <div class="dock-transcript">
-        <p class="dock-transcript-text">{speech.transcript}</p>
+        <p class="dock-transcript-text">{voiceEngine.session.interimText}</p>
+      </div>
+    {/if}
+
+    {#if voiceEngine.isRecording || voiceEngine.status === "paused"}
+      <!-- ── Recording controls ── -->
+      <div class="dock-recording-controls">
+        <span class="dock-recording-timer">
+          {voiceEngine.elapsedFormatted}
+        </span>
+        <div class="dock-recording-actions">
+          {#if voiceEngine.mode === "voice_note" || voiceEngine.mode === "meeting"}
+            {#if voiceEngine.status === "recording"}
+              <button
+                type="button"
+                class="dock-rec-btn"
+                onclick={pauseRecording}
+                aria-label="Pause recording"
+              >
+                <PauseIcon size={14} />
+                <span>Pause</span>
+              </button>
+            {:else if voiceEngine.status === "paused"}
+              <button
+                type="button"
+                class="dock-rec-btn"
+                onclick={resumeRecording}
+                aria-label="Resume recording"
+              >
+                <PlayIcon size={14} />
+                <span>Resume</span>
+              </button>
+            {/if}
+          {/if}
+          <button
+            type="button"
+            class="dock-rec-btn dock-rec-btn--done"
+            onclick={finishRecording}
+            aria-label="Finish recording"
+          >
+            <SquareIcon size={14} />
+            <span>Done</span>
+          </button>
+          <button
+            type="button"
+            class="dock-rec-btn dock-rec-btn--cancel"
+            onclick={cancelRecording}
+            aria-label="Cancel recording"
+          >
+            <XIcon size={14} />
+            <span>Cancel</span>
+          </button>
+        </div>
+      </div>
+    {/if}
+
+    {#if voiceEngine.status === "completed" && voiceEngine.session?.finalText && !voiceEngine.session?.error}
+      <!-- ── Completed transcript result ── -->
+      <div class="dock-transcript dock-transcript--completed">
+        <p class="dock-transcript-text">{voiceEngine.session.finalText}</p>
+        {#if voiceEngine.session.summary}
+          <div class="dock-summary">
+            <p class="dock-summary-label">Summary</p>
+            <p class="dock-summary-text">{voiceEngine.session.summary}</p>
+          </div>
+        {/if}
+        {#if voiceEngine.session.actions.length > 0}
+          <div class="dock-actions-result">
+            <p class="dock-summary-label">Actions</p>
+            {#each voiceEngine.session.actions as action}
+              <label class="dock-action-item">
+                <input type="checkbox" checked={action.done} disabled />
+                <span>{action.text}</span>
+              </label>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    {/if}
+
+    {#if voiceEngine.status === "error" && voiceEngine.session?.error}
+      <div class="dock-transcript dock-transcript--error">
+        <p class="dock-transcript-text">{voiceEngine.session.error}</p>
       </div>
     {/if}
 
@@ -707,6 +810,14 @@
     color: #3b82f6;
   }
 
+  .dock-status--recording {
+    color: #ef4444;
+  }
+
+  .dock-status--error {
+    color: #ef4444;
+  }
+
   .dock-actions {
     display: flex;
     align-items: center;
@@ -778,12 +889,52 @@
     outline-offset: 2px;
   }
 
+  /* ── Waveform visualization ── */
+  .dock-waveform {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin: 6px 0 2px;
+    padding: 4px 8px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.04);
+    border: 1px solid rgba(239, 68, 68, 0.08);
+  }
+
+  .dock-waveform-bar {
+    flex: 1;
+    height: calc(var(--level, 0.02) * 24px);
+    min-height: 2px;
+    border-radius: 2px;
+    background: #ef4444;
+    opacity: calc(0.3 + var(--level, 0.02) * 0.7);
+    transition: height 0.05s ease, opacity 0.05s ease;
+    transform-origin: bottom;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dock-waveform-bar {
+      transition: none;
+    }
+  }
+
   .dock-transcript {
     margin: 6px 0 2px;
     padding: 8px 10px;
     border-radius: 8px;
     background: rgba(239, 68, 68, 0.08);
     border: 1px solid rgba(239, 68, 68, 0.15);
+  }
+
+  .dock-transcript--completed {
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.15);
+  }
+
+  .dock-transcript--error {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.2);
   }
 
   .dock-transcript-text {
@@ -794,6 +945,120 @@
     max-height: 60px;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .dock-summary {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .dock-summary-label {
+    margin: 0 0 4px;
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .dock-summary-text {
+    margin: 0;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.4;
+  }
+
+  .dock-actions-result {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .dock-action-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 2px 0;
+    cursor: default;
+  }
+
+  .dock-action-item input[type="checkbox"] {
+    accent-color: #3b82f6;
+  }
+
+  /* ── Recording controls ── */
+  .dock-recording-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 6px 0 2px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.04);
+    border: 1px solid rgba(239, 68, 68, 0.1);
+  }
+
+  .dock-recording-timer {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+
+  .dock-recording-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .dock-rec-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.06);
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .dock-rec-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+
+  .dock-rec-btn:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.3);
+    outline-offset: 2px;
+  }
+
+  .dock-rec-btn--done {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+  }
+
+  .dock-rec-btn--done:hover {
+    background: rgba(59, 130, 246, 0.25);
+    color: #93bbfd;
+  }
+
+  .dock-rec-btn--cancel {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+  }
+
+  .dock-rec-btn--cancel:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
   }
 
   .dock-composer {
