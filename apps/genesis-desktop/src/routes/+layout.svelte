@@ -3,6 +3,7 @@
   import { browser } from "$app/environment";
   import { onMount } from "svelte";
   import { get } from "svelte/store";
+  import { page } from "$app/stores";
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
   import { isTauri } from "@tauri-apps/api/core";
@@ -52,18 +53,12 @@
 
   let { children } = $props();
   let shellTransitioned = false;
-  let currentPath = $state(browser ? window.location.pathname : "/");
-
-  function syncCurrentPath() {
-    currentPath = window.location.pathname;
-  }
 
   onMount(() => {
     if (!browser) return;
 
     // Enterprise polish — native-feel behaviors (context menu, zoom, etc.)
     initEnterprisePolish();
-    syncCurrentPath();
 
     // Bootstrap auth state from Rust backend
     (async () => {
@@ -146,9 +141,6 @@
         }
       }
     })();
-
-    const historyEvents = ["popstate", "pushState", "replaceState", "hashchange"] as const;
-    historyEvents.forEach((eventName) => window.addEventListener(eventName, syncCurrentPath));
 
     // Listen for auth events — Tauri events only (guarded for browser mode)
     let unlistenSuccess: Promise<() => void> | undefined;
@@ -244,7 +236,6 @@
     window.addEventListener("focus", onFocus);
 
     return () => {
-      historyEvents.forEach((eventName) => window.removeEventListener(eventName, syncCurrentPath));
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("focus", onFocus);
       if (checkAuthTimer) clearTimeout(checkAuthTimer);
@@ -274,7 +265,7 @@
     {@render children?.()}
     <AuthSessionOverlay />
   </DatabaseUnlockGate>
-{:else if currentPath === "/auth"}
+{:else if $page.url.pathname === "/auth"}
   <AuthPage />
 {:else}
   <LoginPage />

@@ -1,5 +1,8 @@
 import { WidgetRegistry } from "$lib/components/island/widgets/widget-registry.svelte";
-import type { WidgetManifest, WidgetEnabledState } from "$lib/components/island/widgets/widget-types.svelte";
+import type {
+  WidgetManifest,
+  WidgetEnabledState,
+} from "$lib/components/island/widgets/widget-types.svelte";
 
 function loadJSON<T>(key: string, fallback: T): T {
   try {

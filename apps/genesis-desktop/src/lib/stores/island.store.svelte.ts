@@ -38,10 +38,14 @@ class IslandStore {
   healthCheck(): string[] {
     const warnings: string[] = [];
     if (this.mode === "expanded" && this.msSinceModeChange > 30_000) {
-      warnings.push(`[island-diag] EXPANDED for ${(this.msSinceModeChange / 1000).toFixed(1)}s without collapse`);
+      warnings.push(
+        `[island-diag] EXPANDED for ${(this.msSinceModeChange / 1000).toFixed(1)}s without collapse`,
+      );
     }
     if (this.mode === "compact" && this.msSinceModeChange > 300_000) {
-      warnings.push(`[island-diag] COMPACT for ${(this.msSinceModeChange / 1000).toFixed(1)}s (possible leak)`);
+      warnings.push(
+        `[island-diag] COMPACT for ${(this.msSinceModeChange / 1000).toFixed(1)}s (possible leak)`,
+      );
     }
     return warnings;
   }
@@ -67,7 +71,9 @@ class IslandStore {
     invoke("island_expand").catch((e) => {
       console.error("[island] expand invoke failed:", e);
       // DESYNC WARNING: store says expanded, but Rust ISLAND_EXPANDED may still be false
-      console.warn(`[island-store] DESYNC: mode=expanded but island_expand invoke failed — Rust flag may be out of sync`);
+      console.warn(
+        `[island-store] DESYNC: mode=expanded but island_expand invoke failed — Rust flag may be out of sync`,
+      );
     });
   }
 
@@ -87,7 +93,9 @@ class IslandStore {
     invoke("island_compact").catch((e) => {
       console.error("[island] collapse invoke failed:", e);
       // DESYNC WARNING: store says compact, but Rust ISLAND_EXPANDED may still be true
-      console.warn(`[island-store] DESYNC: mode=compact but island_compact invoke failed — Rust flag may be out of sync`);
+      console.warn(
+        `[island-store] DESYNC: mode=compact but island_compact invoke failed — Rust flag may be out of sync`,
+      );
     });
   }
 

@@ -6,7 +6,16 @@ export type IslandAction = {
   action: string;
 };
 
-export type WidgetLayout = "stat" | "progress" | "timer" | "score" | "mood" | "action" | "list" | "system" | "countdown";
+export type WidgetLayout =
+  | "stat"
+  | "progress"
+  | "timer"
+  | "score"
+  | "mood"
+  | "action"
+  | "list"
+  | "system"
+  | "countdown";
 
 export type WidgetContent = {
   layout: WidgetLayout;
@@ -78,27 +87,103 @@ const QUICK_ACTIONS: Record<string, IslandAction[]> = {
 };
 
 const WIDGETS: Record<string, WidgetContent> = {
-  tasks: { layout: "progress", primary: "3", secondary: "of 8 done", unit: "/8", progress: 38, width: "md" },
+  tasks: {
+    layout: "progress",
+    primary: "3",
+    secondary: "of 8 done",
+    unit: "/8",
+    progress: 38,
+    width: "md",
+  },
   habits: { layout: "stat", primary: "12", secondary: "day streak", unit: "days", width: "sm" },
   focus: { layout: "timer", primary: "25:00", secondary: "Ready to start", width: "md" },
-  journal: { layout: "list", primary: "Today's entry", secondary: "Edited 2m ago", items: ["Felt productive today...", "Morning pages complete"], width: "md" },
-  budget: { layout: "progress", primary: "$842", secondary: "left this month", unit: "of $2,400", progress: 65, width: "md" },
-  health: { layout: "stat", primary: "6,432", secondary: "steps today", unit: "steps", width: "sm" },
+  journal: {
+    layout: "list",
+    primary: "Today's entry",
+    secondary: "Edited 2m ago",
+    items: ["Felt productive today...", "Morning pages complete"],
+    width: "md",
+  },
+  budget: {
+    layout: "progress",
+    primary: "$842",
+    secondary: "left this month",
+    unit: "of $2,400",
+    progress: 65,
+    width: "md",
+  },
+  health: {
+    layout: "stat",
+    primary: "6,432",
+    secondary: "steps today",
+    unit: "steps",
+    width: "sm",
+  },
   sleep: { layout: "score", primary: "85", secondary: "last night", unit: "score", width: "sm" },
-  nutrition: { layout: "progress", primary: "4", secondary: "glasses of water", unit: "/8", progress: 50, width: "md" },
+  nutrition: {
+    layout: "progress",
+    primary: "4",
+    secondary: "glasses of water",
+    unit: "/8",
+    progress: 50,
+    width: "md",
+  },
   mood: { layout: "mood", primary: "Great", secondary: "Logged 2h ago", width: "sm" },
-  goals: { layout: "progress", primary: "2", secondary: "of 3 goals met", unit: "/3", progress: 67, width: "md" },
-  passwords: { layout: "stat", primary: "42", secondary: "vault items", unit: "items", width: "sm" },
-  "voice-memos": { layout: "action", primary: "Tap to Record", secondary: "Last: Meeting notes", width: "md" },
+  goals: {
+    layout: "progress",
+    primary: "2",
+    secondary: "of 3 goals met",
+    unit: "/3",
+    progress: 67,
+    width: "md",
+  },
+  passwords: {
+    layout: "stat",
+    primary: "42",
+    secondary: "vault items",
+    unit: "items",
+    width: "sm",
+  },
+  "voice-memos": {
+    layout: "action",
+    primary: "Tap to Record",
+    secondary: "Last: Meeting notes",
+    width: "md",
+  },
   countdown: { layout: "countdown", primary: "12d 4h", secondary: "until launch", width: "sm" },
-  recipes: { layout: "stat", primary: "12", secondary: "saved recipes", unit: "recipes", width: "sm" },
+  recipes: {
+    layout: "stat",
+    primary: "12",
+    secondary: "saved recipes",
+    unit: "recipes",
+    width: "sm",
+  },
   time: { layout: "timer", primary: "00:42", secondary: "Project Alpha", width: "md" },
-  clipboard: { layout: "list", primary: "Recent copy", secondary: "email draft", items: ["Welcome to the team!", "Meeting at 3pm"], width: "md" },
+  clipboard: {
+    layout: "list",
+    primary: "Recent copy",
+    secondary: "email draft",
+    items: ["Welcome to the team!", "Meeting at 3pm"],
+    width: "md",
+  },
   breathing: { layout: "action", primary: "Start 5 min", secondary: "Calm session", width: "sm" },
-  notes: { layout: "list", primary: "Last edited", secondary: "Today at 2:15 PM", items: ["Shopping list", "Project ideas"], width: "md" },
+  notes: {
+    layout: "list",
+    primary: "Last edited",
+    secondary: "Today at 2:15 PM",
+    items: ["Shopping list", "Project ideas"],
+    width: "md",
+  },
 };
 
-const ISLAND_EXCLUDED_IDS = new Set(["settings", "dashboard", "flashcards", "telemetry", "ai", "grocery"]);
+const ISLAND_EXCLUDED_IDS = new Set([
+  "settings",
+  "dashboard",
+  "flashcards",
+  "telemetry",
+  "ai",
+  "grocery",
+]);
 
 export const islandItems: IslandItem[] = moduleCatalog
   .filter((m) => !ISLAND_EXCLUDED_IDS.has(m.id))
@@ -110,7 +195,12 @@ export const islandItems: IslandItem[] = moduleCatalog
     accentColor: m.launch.accentColor,
     launchBg: m.launch.launchBg,
     quickActions: QUICK_ACTIONS[m.id] ?? [],
-    widget: WIDGETS[m.id] ?? { layout: "stat", primary: m.launch.name, secondary: m.launch.tagline, width: "md" },
+    widget: WIDGETS[m.id] ?? {
+      layout: "stat",
+      primary: m.launch.name,
+      secondary: m.launch.tagline,
+      width: "md",
+    },
   }));
 
 export function getIslandItem(id: string): IslandItem | undefined {

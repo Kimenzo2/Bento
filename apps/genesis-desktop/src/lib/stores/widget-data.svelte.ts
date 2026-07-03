@@ -43,7 +43,9 @@ async function loadTasksWidget() {
 }
 
 async function loadHabitsWidget() {
-  const stats = await tryInvoke<{ topStreak: number; completedToday: number; totalHabits: number }>("habits_get_stats");
+  const stats = await tryInvoke<{ topStreak: number; completedToday: number; totalHabits: number }>(
+    "habits_get_stats",
+  );
   if (!stats) return;
   const streak = stats.topStreak;
   const done = stats.completedToday;
@@ -103,12 +105,15 @@ async function loadJournalWidget() {
 }
 
 async function loadBudgetWidget() {
-  const overview = await tryInvoke<{ totalExpenses: number; totalIncome: number }>("budget_monthly_overview");
+  const overview = await tryInvoke<{ totalExpenses: number; totalIncome: number }>(
+    "budget_monthly_overview",
+  );
   if (!overview) return;
   const remaining = overview.totalIncome - overview.totalExpenses;
-  const pct = overview.totalIncome > 0
-    ? Math.round((overview.totalExpenses / overview.totalIncome) * 100)
-    : 0;
+  const pct =
+    overview.totalIncome > 0
+      ? Math.round((overview.totalExpenses / overview.totalIncome) * 100)
+      : 0;
   liveWidgets["budget"] = {
     layout: "progress",
     primary: `$${remaining.toFixed(0)}`,
@@ -133,7 +138,9 @@ async function loadHealthWidget() {
 }
 
 async function loadSleepWidget() {
-  const last = await tryInvoke<{ qualityScore: number | null; durationMin: number }>("get_last_night");
+  const last = await tryInvoke<{ qualityScore: number | null; durationMin: number }>(
+    "get_last_night",
+  );
   if (!last) return;
   const score = last.qualityScore ?? Math.round((last.durationMin / 480) * 100);
   liveWidgets["sleep"] = {
@@ -147,7 +154,9 @@ async function loadSleepWidget() {
 }
 
 async function loadNutritionWidget() {
-  const water = await tryInvoke<{ totalMl: number; goalMl: number; percentage: number }>("nutrition_get_today_water");
+  const water = await tryInvoke<{ totalMl: number; goalMl: number; percentage: number }>(
+    "nutrition_get_today_water",
+  );
   if (!water) return;
   const glasses = Math.round(water.totalMl / 250);
   const pct = water.percentage;
@@ -167,7 +176,12 @@ async function loadMoodWidget() {
   if (!today || today.length === 0) return;
   const latest = today[today.length - 1];
   const minsAgo = Math.floor((Date.now() - latest.loggedAt) / 60000);
-  const ago = minsAgo < 1 ? "just now" : minsAgo < 60 ? `${minsAgo}m ago` : `${Math.floor(minsAgo / 60)}h ago`;
+  const ago =
+    minsAgo < 1
+      ? "just now"
+      : minsAgo < 60
+        ? `${minsAgo}m ago`
+        : `${Math.floor(minsAgo / 60)}h ago`;
   liveWidgets["mood"] = {
     layout: "mood",
     primary: latest.mood.charAt(0).toUpperCase() + latest.mood.slice(1),
@@ -298,7 +312,9 @@ async function loadCountdownWidget() {
 }
 
 async function loadNotesWidget() {
-  const notes = await tryInvoke<{ id: string; title: string; updatedAt: number }[]>("notes_list", { limit: 5 });
+  const notes = await tryInvoke<{ id: string; title: string; updatedAt: number }[]>("notes_list", {
+    limit: 5,
+  });
   if (!notes || notes.length === 0) return;
   const titles = notes.map((n) => n.title || "Untitled").filter(Boolean);
   const latest = notes[0];
@@ -348,7 +364,9 @@ export function initWidgetData(): void {
   if (initialized) return;
   initialized = true;
   for (const [, loader] of Object.entries(ALL_LOADERS)) {
-    loader().catch(() => { /* silent — falls back to hardcoded data */ });
+    loader().catch(() => {
+      /* silent — falls back to hardcoded data */
+    });
   }
 }
 

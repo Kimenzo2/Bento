@@ -14,6 +14,18 @@
   import StreamingMarkdown from "$lib/components/StreamingMarkdown.svelte";
   import { streamAiResponse } from "$lib/desktop/ai";
 
+  interface SpeechRecognitionHandle {
+    start: () => void;
+    stop: () => void;
+    abort: () => void;
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    onresult: ((event: any) => void) | null;
+    onerror: ((event: any) => void) | null;
+    onend: (() => void) | null;
+  }
+
   type AgentDockMode = "idle" | "composing" | "listening" | "working";
 
   type AgentContext = {
@@ -63,9 +75,8 @@
   let textareaRef = $state<HTMLTextAreaElement | null>(null);
   let shouldReduceMotion = $state(false);
   let mounted = $state(false);
-  let transcript = $state("");
-  let screenCapture = $state<string | null>(null);
-  let messages = $state<ChatMessage[]>([]);
+  let screenCapture = $state.raw<string | null>(null);
+  let messages = $state.raw<ChatMessage[]>([]);
   let streamingText = $state("");
   let streamingError = $state<string | null>(null);
   let messagesContainer = $state<HTMLDivElement | null>(null);
@@ -73,7 +84,12 @@
   let submitBusy = $state(false);
   let userNearBottom = $state(true);
   let lastSentMessage = $state("");
-  let recognitionRef = $state<any>(null);
+
+  let speech = $state({
+    isListening: false,
+    recognitionRef: null as SpeechRecognitionHandle | null,
+    transcript: "",
+  });
 
   function checkScrollPosition() {
     if (!messagesContainer) return;
@@ -87,7 +103,6 @@
     userNearBottom = true;
     messagesContainer.scrollTo({ top: messagesContainer.scrollHeight, behavior: "smooth" });
   }
-  let isListening = $state(false);
   const hasSpeech = $derived(
     typeof window !== "undefined" &&
     (!!((window as any).SpeechRecognition) || !!((window as any).webkitSpeechRecognition))
@@ -113,7 +128,7 @@
 
   const statusText = $derived(
     mode === "listening"
-      ? transcript || listeningStatus
+      ? speech.transcript || listeningStatus
       : mode === "working"
         ? workingStatus
         : idleStatus
@@ -218,23 +233,24 @@
     if (submitBusy) return;
 
     const nextMessage = message.trim();
-    if (!nextMessage && !transcript.trim()) {
+    const transcriptText = speech.transcript.trim();
+
+    if (!nextMessage && !transcriptText) {
       openComposer();
       return;
     }
 
-    const finalMessage = nextMessage || transcript.trim();
-    if (!finalMessage) return;
+    const finalMessage = nextMessage || transcriptText;
 
     const context: AgentContext = {};
-    if (transcript.trim()) context.transcript = transcript.trim();
+    if (transcriptText) context.transcript = transcriptText;
     if (screenCapture) context.screenCapture = screenCapture;
 
     // Push user message — reassign for reactivity
     messages = [...messages, { role: "user", content: finalMessage }];
 
     message = "";
-    transcript = "";
+    speech = { ...speech, transcript: "" };
     screenCapture = null;
     streamingError = null;
     streamingText = "";
@@ -270,7 +286,7 @@
   function toggleListening() {
     if (mode === "listening") {
       stopListening();
-    } else if ((mode === "idle" || mode === "composing") && !isListening) {
+    } else if ((mode === "idle" || mode === "composing") && !speech.isListening) {
       startListening();
     }
   }
@@ -281,8 +297,7 @@
       return;
     }
 
-    // S5: Prevent double-start
-    if (isListening || recognitionRef) {
+    if (speech.isListening || speech.recognitionRef) {
       console.warn("[agent-dock] already listening, ignoring start");
       return;
     }
@@ -307,70 +322,67 @@
           interimText += result[0].transcript;
         }
       }
-      transcript = finalText || interimText;
+      speech = { ...speech, transcript: finalText || interimText };
     };
 
     recognition.onerror = (event: any) => {
       if (disposed) return;
-      console.warn("[agent-dock] speech error:", event.error);
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        console.debug("[agent-dock] speech not allowed (expected if permission denied):", event.error);
+      } else {
+        console.warn("[agent-dock] speech error:", event.error);
+      }
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
         mode = "idle";
-        isListening = false;
-        recognitionRef = null;
+        speech = { ...speech, isListening: false, recognitionRef: null };
       }
     };
 
-    // S8: Error boundary around submitMessage in onend
     recognition.onend = () => {
       if (disposed) return;
-      isListening = false;
-      recognitionRef = null;
-      if (transcript.trim().length >= 3) {
+      speech = { ...speech, isListening: false, recognitionRef: null };
+      if (speech.transcript.trim().length >= 3) {
         submitMessage().catch((err) => {
           console.warn("[agent-dock] submitMessage from onend failed:", err);
           mode = "idle";
         });
       } else if (mode === "listening") {
-        transcript = "";
+        speech = { ...speech, transcript: "" };
         mode = "idle";
       }
     };
 
-    recognitionRef = recognition;
-    isListening = true;
+    speech = { ...speech, recognitionRef: recognition, isListening: true, transcript: "" };
     mode = "listening";
-    transcript = "";
     try {
       recognition.start();
       onVoiceStart?.();
     } catch (err) {
       console.warn("[agent-dock] recognition.start() failed:", err);
-      isListening = false;
-      recognitionRef = null;
+      speech = { ...speech, isListening: false, recognitionRef: null };
       mode = "idle";
     }
   }
 
   function stopListening() {
-    if (!recognitionRef) {
-      isListening = false;
+    if (!speech.recognitionRef) {
+      speech = { ...speech, isListening: false };
       return;
     }
     try {
-      recognitionRef.stop();
+      speech.recognitionRef.stop();
     } catch {
       // Ignore — may already be stopped
     }
-    recognitionRef = null;
-    isListening = false;
+    speech = { ...speech, recognitionRef: null, isListening: false };
     onVoiceStop?.();
-    if (transcript.trim().length >= 3) {
+    if (speech.transcript.trim().length >= 3) {
       submitMessage().catch((err) => {
         console.warn("[agent-dock] submitMessage from stopListening failed:", err);
         mode = "idle";
       });
     } else {
-      transcript = "";
+      speech = { ...speech, transcript: "" };
       mode = "idle";
     }
   }
@@ -455,7 +467,7 @@
 
   // ── S6: Consolidated Escape handler ───────────────────────────────────────
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === "Escape") {
+      if (e.key === "Escape") {
       if (mode === "composing") {
         mode = "idle";
         e.stopPropagation();
@@ -481,11 +493,10 @@
       mq.removeEventListener("change", updateMotion);
       window.removeEventListener("keydown", handleKeydown);
       // Scroll handler is wired via Svelte's onscroll attribute — cleanup not needed here
-      if (recognitionRef) {
-        try { recognitionRef.abort(); } catch { /* ignore */ }
-        recognitionRef = null;
+      if (speech.recognitionRef) {
+        try { speech.recognitionRef.abort(); } catch { /* ignore */ }
       }
-      isListening = false;
+      speech = { ...speech, recognitionRef: null, isListening: false };
     };
   });
 
@@ -504,7 +515,6 @@
       />
 
       <div class="dock-info">
-        <p class="dock-name">{agentName}</p>
         {#key mode}
           <p
             class="dock-status"
@@ -521,19 +531,20 @@
       <div class="dock-actions">
         <DockButton
           icon={MonitorIcon}
-          label="Capture screen"
+          label="Capture"
           onclick={captureScreen}
           class={screenCapture ? "dock-btn--active" : ""}
         />
         <DockButton
           icon={mode === "listening" ? MicOffIcon : MicIcon}
-          label={!hasSpeech ? "Voice unavailable" : mode === "listening" ? "Stop listening" : "Voice"}
+          label={!hasSpeech ? "Voice" : mode === "listening" ? "Stop" : "Voice"}
           class={mode === "listening" ? "dock-btn--listening" : ""}
           onclick={hasSpeech ? toggleListening : undefined}
         />
         <DockButton
           icon={mode === "composing" ? SendIcon : ChatIcon}
           label={mode === "composing" ? "Send" : "Chat"}
+          class={mode === "composing" ? "dock-btn--send" : ""}
           type="submit"
         />
       </div>
@@ -553,9 +564,9 @@
       </div>
     {/if}
 
-    {#if mode === "listening" && transcript}
+    {#if mode === "listening" && speech.transcript}
       <div class="dock-transcript">
-        <p class="dock-transcript-text">{transcript}</p>
+        <p class="dock-transcript-text">{speech.transcript}</p>
       </div>
     {/if}
 
@@ -590,7 +601,7 @@
       </div>
       {#if !userNearBottom && (messages.length > 0 || streamingText)}
         <button class="dock-jump-bottom" onclick={scrollToBottom}>
-          ↓ Jump to latest
+          Latest ↓
         </button>
       {/if}
     {/if}
@@ -598,8 +609,8 @@
     <div
       class="dock-composer"
       class:dock-composer--open={mode === "composing"}
-      aria-hidden={mode !== "composing"}
       inert={mode !== "composing"}
+      aria-expanded={mode === "composing"}
       style={shouldReduceMotion ? "transition-duration:0ms" : ""}
     >
       <div class="dock-composer-inner">
@@ -607,7 +618,7 @@
           type="button"
           class="dock-composer-close"
           aria-label="Close composer"
-          onclick={() => { mode = "idle"; }}
+          onclick={(e) => { (e.currentTarget as HTMLElement).blur(); mode = "idle"; }}
         >
           <XIcon size={14} />
         </button>
@@ -618,7 +629,7 @@
           placeholder="Type something here..."
           aria-label="Message agent"
           bind:this={textareaRef}
-          maxlength={2000}
+
         ></textarea>
       </div>
     </div>
@@ -628,19 +639,35 @@
 <style>
   .dock-root {
     display: flex;
-    width: 100%;
-    max-width: 380px;
+    width: 300px;
     flex-direction: column-reverse;
     overflow: hidden;
     border-radius: 16px;
-    background: #0a0a0a;
+    background: #141414;
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
     padding: 8px;
+    box-sizing: border-box;
     color: #fff;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    transition:
+      width 0.55s cubic-bezier(0.34, 1.3, 0.64, 1);
+  }
+
+  @supports (animation-timing-function: linear(0, 1)) {
+    .dock-root {
+      transition:
+        width 0.55s linear(0, 0.09 10%, 0.26 20%, 0.5 33%, 0.74 46%, 0.9 58%, 1.02 76%, 1 88%, 1);
+    }
   }
 
   .dock-root--expanded {
-    max-width: 420px;
+    width: 460px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dock-root {
+      transition: none;
+    }
   }
 
   .dock-bar {
@@ -662,18 +689,8 @@
     flex: 1;
   }
 
-  .dock-name {
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 1;
-    margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
   .dock-status {
-    margin: 4px 0 0;
+    margin: 0;
     font-size: 12px;
     color: #a3a3a3;
     white-space: nowrap;
@@ -706,6 +723,10 @@
     color: #3b82f6 !important;
   }
 
+  :global(.dock-btn--send) {
+    color: #3b82f6 !important;
+  }
+
   @keyframes dock-pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
@@ -726,7 +747,7 @@
   .dock-capture-img {
     display: block;
     width: 100%;
-    height: 80px;
+    height: 120px;
     object-fit: cover;
   }
 
@@ -781,12 +802,20 @@
     opacity: 0;
     will-change: height, opacity;
     transition:
-      height 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      height 0.55s cubic-bezier(0.34, 1.3, 0.64, 1),
       opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
+  @supports (animation-timing-function: linear(0, 1)) {
+    .dock-composer {
+      transition:
+        height 0.55s linear(0, 0.09 10%, 0.26 20%, 0.5 33%, 0.74 46%, 0.9 58%, 1.02 76%, 1 88%, 1),
+        opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+  }
+
   .dock-composer--open {
-    height: 120px;
+    height: 150px;
     opacity: 1;
   }
 
@@ -829,7 +858,7 @@
   .dock-textarea {
     display: block;
     width: 100%;
-    height: 112px;
+    height: 142px;
     padding: 8px 36px 8px 8px;
     border: none;
     background: transparent;
@@ -840,6 +869,8 @@
     resize: none;
     outline: none;
     box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
   }
 
   .dock-textarea::placeholder {
@@ -858,6 +889,11 @@
     gap: 8px;
     scrollbar-width: thin;
     scrollbar-color: rgba(255,255,255,0.15) transparent;
+    transition: max-height 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .dock-root--expanded .dock-messages {
+    max-height: 360px;
   }
 
   .dock-messages::-webkit-scrollbar {
