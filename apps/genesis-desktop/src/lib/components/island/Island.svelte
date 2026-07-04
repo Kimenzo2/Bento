@@ -12,8 +12,8 @@
   import { getLiveWidget, initWidgetData } from "$lib/stores/widget-data.svelte";
   import ModuleActive from "./ModuleActive.svelte";
 
-  // ── Diagnostics ──
-  const DIAG = true;
+  // ── Diagnostics (DEV only — tree-shaken in production) ──
+  const DIAG = import.meta.env.DEV;
   let diagModeChanges = 0;
   let diagEscapeCount = 0;
   let diagClickListenerCount = 0;
@@ -63,7 +63,7 @@
     if (mode !== diagPrevMode) {
       diagModeChanges++;
       diagLastModeChange = Date.now();
-      console.log(`[island-diag] mode change #${diagModeChanges}: ${diagPrevMode} -> ${mode} (${new Date().toISOString()})`);
+      if (DIAG) console.log(`[island-diag] mode change #${diagModeChanges}: ${diagPrevMode} -> ${mode} (${new Date().toISOString()})`);
       diagPrevMode = mode;
     }
   });
@@ -110,7 +110,7 @@
   }
 
   function onLaunch(item: IslandItem) {
-    console.log(`[island-diag] onLaunch(${item.id})`);
+    if (DIAG) console.log(`[island-diag] onLaunch(${item.id})`);
     closeSearch();
     islandStore.pushRecent(item.id);
     handleLaunch(item);
@@ -118,7 +118,7 @@
   }
 
   function onQuickAction(action: string, item: IslandItem) {
-    console.log(`[island-diag] onQuickAction(${action}, ${item.id})`);
+    if (DIAG) console.log(`[island-diag] onQuickAction(${action}, ${item.id})`);
     closeSearch();
     islandStore.pushRecent(item.id);
     handleQuickAction(action, item);
@@ -133,18 +133,18 @@
 
     if (e.key === "Escape") {
       diagEscapeCount++;
-      console.log(`[island-diag] Escape pressed (#${diagEscapeCount}), mode=${islandStore.mode}, searchActive=${searchActive}, inWidget=${!!inWidget}`);
+      if (DIAG) console.log(`[island-diag] Escape pressed (#${diagEscapeCount}), mode=${islandStore.mode}, searchActive=${searchActive}, inWidget=${!!inWidget}`);
       if (inWidget) {
-        console.log("[island-diag] Escape ignored — inside widget");
+        if (DIAG) console.log("[island-diag] Escape ignored — inside widget");
         return;
       }
       if (searchActive) {
-        console.log("[island-diag] Escape closes search");
+        if (DIAG) console.log("[island-diag] Escape closes search");
         searchActive = false;
         islandStore.searchQuery = "";
         return;
       }
-      console.log("[island-diag] Escape collapses island");
+      if (DIAG) console.log("[island-diag] Escape collapses island");
       islandStore.collapse();
     }
   }
@@ -165,7 +165,7 @@
     const insideIsland = target.closest(".island");
     if (islandStore.mode === "expanded") {
       if (!insideIsland) {
-        console.log(`[island-diag] click outside island — collapsing (click #${diagClickListenerCount})`);
+        if (DIAG) console.log(`[island-diag] click outside island — collapsing (click #${diagClickListenerCount})`);
         islandStore.collapse();
       }
     }
@@ -177,7 +177,7 @@
       const timer = setTimeout(() => {
         diagInvokeTimedOut = true;
         const err = new Error(`[island-diag] INVOKE TIMEOUT: ${cmd} > ${timeoutMs}ms`);
-        console.error(err.message);
+        if (DIAG) console.error(err.message);
         reject(err);
       }, timeoutMs);
       invoke<T>(cmd, args)
@@ -197,7 +197,7 @@
     diagTransitionCount++;
     const elapsed = diagTransitionStartTime ? Date.now() - diagTransitionStartTime : 0;
     const prop = e.propertyName;
-    console.log(`[island-diag] transitionend #${diagTransitionCount}: property=${prop}, elapsed=${elapsed}ms, mode=${islandStore.mode}`);
+    if (DIAG) console.log(`[island-diag] transitionend #${diagTransitionCount}: property=${prop}, elapsed=${elapsed}ms, mode=${islandStore.mode}`);
     diagLastTransitionProperty = prop;
     diagTransitionStartTime = 0;
   }
@@ -207,7 +207,7 @@
     // If a transition starts while another is in progress, it's an interruption
     if (diagTransitionStartTime > 0) {
       diagTransitionInterruptions++;
-      console.warn(`[island-diag] TRANSITION INTERRUPTION #${diagTransitionInterruptions}: ${diagLastTransitionProperty} interrupted by ${e.propertyName}`);
+      if (DIAG) console.warn(`[island-diag] TRANSITION INTERRUPTION #${diagTransitionInterruptions}: ${diagLastTransitionProperty} interrupted by ${e.propertyName}`);
     }
     diagTransitionStartTime = Date.now();
     diagLastTransitionProperty = e.propertyName;
@@ -268,44 +268,46 @@
     const onVisibilityChange = () => {
       if (document.hidden) {
         diagVisibilityHiddenCount++;
-        console.log(`[island-diag] page hidden #${diagVisibilityHiddenCount} (mode=${islandStore.mode})`);
+        if (DIAG) console.log(`[island-diag] page hidden #${diagVisibilityHiddenCount} (mode=${islandStore.mode})`);
       } else {
-        console.log(`[island-diag] page visible (mode=${islandStore.mode}, was hidden ${diagVisibilityHiddenCount} times)`);
+        if (DIAG) console.log(`[island-diag] page visible (mode=${islandStore.mode}, was hidden ${diagVisibilityHiddenCount} times)`);
       }
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
 
     // Initial listener leak baseline
     diagListenerLeakCheck = true;
-    console.log(`[island-diag] onMount complete — listeners registered, islandEl=${!!islandEl}`);
+    if (DIAG) console.log(`[island-diag] onMount complete — listeners registered, islandEl=${!!islandEl}`);
 
-    // ── Watchdog: periodic health check every 10s ──
-    diagWatchdogInterval = setInterval(() => {
-      const warnings = islandStore.healthCheck();
+    // ── Watchdog: periodic health check every 10s (DEV only) ──
+    if (DIAG) {
+      diagWatchdogInterval = setInterval(() => {
+        const warnings = islandStore.healthCheck();
 
-      // Check for stuck transitions
-      if (diagTransitionStartTime > 0 && Date.now() - diagTransitionStartTime > 6000) {
-        const stuck = `[island-diag] TRANSITION STUCK for ${((Date.now() - diagTransitionStartTime) / 1000).toFixed(1)}s on ${diagLastTransitionProperty}`;
-        console.warn(stuck);
-        warnings.push(stuck);
-        // Reset to avoid repeated warnings
-        diagTransitionStartTime = 0;
-      }
+        // Check for stuck transitions
+        if (diagTransitionStartTime > 0 && Date.now() - diagTransitionStartTime > 6000) {
+          const stuck = `[island-diag] TRANSITION STUCK for ${((Date.now() - diagTransitionStartTime) / 1000).toFixed(1)}s on ${diagLastTransitionProperty}`;
+          console.warn(stuck);
+          warnings.push(stuck);
+          // Reset to avoid repeated warnings
+          diagTransitionStartTime = 0;
+        }
 
-      // Check invoke timeout
-      if (diagInvokeTimedOut) {
-        warnings.push("[island-diag] Invoke timeout detected — Rust command may be stuck");
-      }
+        // Check invoke timeout
+        if (diagInvokeTimedOut) {
+          warnings.push("[island-diag] Invoke timeout detected — Rust command may be stuck");
+        }
 
-      if (warnings.length > 0) {
-        console.warn(`[island-diag] Watchdog health check FAILED:`);
-        warnings.forEach((w) => console.warn(`  ${w}`));
-      }
-    }, 10_000);
+        if (warnings.length > 0) {
+          console.warn(`[island-diag] Watchdog health check FAILED:`);
+          warnings.forEach((w) => console.warn(`  ${w}`));
+        }
+      }, 10_000);
+    }
 
     return () => {
       const uptime = Date.now() - diagMountTime;
-      console.log(`[island-diag] onDestroy: cleaning up (mounted ${uptime}ms, modeChanges=${diagModeChanges})`);
+      if (DIAG) console.log(`[island-diag] onDestroy: cleaning up (mounted ${uptime}ms, modeChanges=${diagModeChanges})`);
       document.removeEventListener("keydown", onKeydown);
       document.removeEventListener("mousedown", onClickOutside);
       document.removeEventListener("visibilitychange", onVisibilityChange);
@@ -317,12 +319,12 @@
         clearInterval(diagWatchdogInterval);
         diagWatchdogInterval = null;
       }
-      console.log(`[island-diag] cleanup complete — keydown=${diagKeydownCount}, escape=${diagEscapeCount}, clickOutside=${diagClickListenerCount}, transitions=${diagTransitionCount}, interruptions=${diagTransitionInterruptions}`);
+      if (DIAG) console.log(`[island-diag] cleanup complete — keydown=${diagKeydownCount}, escape=${diagEscapeCount}, clickOutside=${diagClickListenerCount}, transitions=${diagTransitionCount}, interruptions=${diagTransitionInterruptions}`);
     };
   });
 
-  // ── Diagnostics: global stress test harness ──
-  if (typeof window !== "undefined") {
+  // ── Diagnostics: global stress test harness (DEV only) ──
+  if (DIAG && typeof window !== "undefined") {
     (window as any).__islandDiagnostics = {
       store: islandStore,
       expand: () => islandStore.expand(),
@@ -446,7 +448,7 @@
         out:fade={{ duration: 120 }}
         onclick={(e: MouseEvent) => {
           e.stopPropagation();
-          console.log(`[island-diag] compact-body click — expanding, activeModule=${!!islandStore.activeModule}`);
+          if (DIAG) console.log(`[island-diag] compact-body click — expanding, activeModule=${!!islandStore.activeModule}`);
           islandStore.expand();
         }}
         role="button"
@@ -455,7 +457,7 @@
         onkeydown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            console.log(`[island-diag] compact-body keydown(${e.key}) — expanding`);
+            if (DIAG) console.log(`[island-diag] compact-body keydown(${e.key}) — expanding`);
             islandStore.expand();
           }
         }}
@@ -496,7 +498,8 @@
                 aria-controls="bento-panel-apps"
                 aria-label="Apps"
               >
-                <layoutGridIcon size={13} strokeWidth={1.8}></layoutGridIcon>
+                <layoutGridIcon size={12} strokeWidth={1.8}></layoutGridIcon>
+                <span class="tab-label">Apps</span>
               </button>
               <button
                 class="tab-btn"
@@ -507,7 +510,8 @@
                 aria-controls="bento-panel-recent"
                 aria-label="Recent"
               >
-                <clockIcon size={13} strokeWidth={1.8}></clockIcon>
+                <clockIcon size={12} strokeWidth={1.8}></clockIcon>
+                <span class="tab-label">Recent</span>
               </button>
               <button
                 class="tab-btn"
@@ -518,7 +522,8 @@
                 aria-controls="bento-panel-widgets"
                 aria-label="Widgets"
               >
-                <layoutDashboardIcon size={13} strokeWidth={1.8}></layoutDashboardIcon>
+                <layoutDashboardIcon size={12} strokeWidth={1.8}></layoutDashboardIcon>
+                <span class="tab-label">Widgets</span>
               </button>
             </div>
           </div>
@@ -534,7 +539,7 @@
             <button
               class="close-btn"
               onclick={() => {
-                console.log(`[island-diag] close button clicked — collapsing`);
+                if (DIAG) console.log(`[island-diag] close button clicked — collapsing`);
                 islandStore.collapse();
               }}
               aria-label="Close"
@@ -649,8 +654,9 @@
   </div>
 </div>
 
-<!-- ── Diagnostics: expose state for stress testing ── -->
+<!-- ── Diagnostics: stress-test dump (listener always present, handler gated) ── -->
 <svelte:window on:keydown={(e) => {
+  if (!DIAG) return;
   if (e.key === "F12" && e.shiftKey && e.ctrlKey) {
     console.log("[island-diag] Ctrl+Shift+F12: dumping diagnostics");
     console.log({
@@ -901,17 +907,17 @@
     background: rgba(255, 255, 255, 0.05);
     border: 0.5px solid rgba(255, 255, 255, 0.06);
     border-radius: 18px;
-    padding: 2px;
-    height: 28px;
-    width: 90px;
+    padding: 4px 2px 2px;
+    height: 38px;
+    width: 96px;
   }
 
   .tab-indicator {
     position: absolute;
-    top: 2px;
+    top: 4px;
     left: 2px;
     width: calc(33.33% - 3px);
-    height: calc(100% - 4px);
+    height: calc(100% - 6px);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     background: #2b2b2b;
     border-radius: 16px;
@@ -920,8 +926,10 @@
   .tab-btn {
     flex: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 1px;
     z-index: 1;
     cursor: pointer;
     border: none;
@@ -932,6 +940,19 @@
 
   .tab-btn--active {
     color: #fff;
+  }
+
+  .tab-label {
+    font-size: 6.5px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    line-height: 1;
+    opacity: 0.55;
+  }
+
+  .tab-btn--active .tab-label {
+    opacity: 0.9;
   }
 
   .header-actions {

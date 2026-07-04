@@ -54,6 +54,8 @@ pub struct DesktopSettings {
     pub ai: AiFeaturesPrefs,
     #[serde(default = "default_dynamic_island_enabled")]
     pub dynamic_island_enabled: bool,
+    #[serde(default = "default_agent_dock_enabled")]
+    pub agent_dock_enabled: bool,
     #[serde(default)]
     pub voice: VoiceSettings,
 }
@@ -580,6 +582,10 @@ fn default_dynamic_island_enabled() -> bool {
     false
 }
 
+fn default_agent_dock_enabled() -> bool {
+    false
+}
+
 pub fn settings_file_path(app: &AppHandle) -> PathBuf {
     app.path()
         .app_data_dir()
@@ -651,6 +657,7 @@ pub fn default_settings() -> DesktopSettings {
             system_prompt: default_ai_system_prompt(),
         },
         dynamic_island_enabled: default_dynamic_island_enabled(),
+        agent_dock_enabled: default_agent_dock_enabled(),
         voice: VoiceSettings::default(),
     }
 }

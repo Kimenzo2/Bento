@@ -229,7 +229,7 @@ fn expand_contractions(text: &str) -> String {
     for token in text.split_inclusive(|c: char| c.is_whitespace()) {
         let raw_word = token.trim();
         // Separate trailing punctuation from the word for matching
-        let (word, suffix): (&str, &str) = {
+        let (word, _suffix): (&str, &str) = {
             let trimmed = raw_word.trim_end_matches(|c: char| matches!(c, '.' | ',' | '!' | '?' | ':' | ';'));
             if trimmed.is_empty() {
                 (raw_word, "")
@@ -593,7 +593,7 @@ mod tests {
     }
 
     #[test]
-    fn test_empty_text() {
+    fn test_detect_empty_text() {
         let result = detect_agent_trigger("");
         assert!(!result.detected);
     }

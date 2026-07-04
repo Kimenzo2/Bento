@@ -1,12 +1,18 @@
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::time::{Duration, Instant};
-
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
 
-const COMPACT_W: f64 = 260.0;
-const COMPACT_H: f64 = 40.0;
+#[cfg(target_os = "windows")]
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+#[cfg(target_os = "windows")]
+use std::time::{Duration, Instant};
+
 const EXPANDED_W: f64 = 560.0;
+
+/// Compact island dimensions — used by the Windows mouse monitor.
+#[cfg(target_os = "windows")]
+const COMPACT_W: f64 = 260.0;
+#[cfg(target_os = "windows")]
+const COMPACT_H: f64 = 40.0;
 
 /// Tracks whether the frontend island is currently expanded.
 /// Used by the mouse monitor to compute the correct hit bounds
@@ -32,13 +38,16 @@ fn seconds_since_last_toggle() -> f64 {
 }
 
 /// Cursor polling interval in milliseconds (~30 fps).
+#[cfg(target_os = "windows")]
 const POLL_MS: u64 = 33;
 
 /// Hysteresis margin (px) used when the cursor is entering the island bounds.
+#[cfg(target_os = "windows")]
 const ENTER_MARGIN: f64 = 10.0;
 
 /// Hysteresis margin (px) used when the cursor is leaving the island bounds.
 /// Larger than ENTER_MARGIN to prevent flickering at the boundary.
+#[cfg(target_os = "windows")]
 const EXIT_MARGIN: f64 = 30.0;
 
 /// macOS window level — NSFloatingWindowLevel (5), above normal windows but below

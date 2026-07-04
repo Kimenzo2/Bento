@@ -54,6 +54,7 @@ export type AuthUiState = {
   user: AuthUser | null;
   message: string | null;
   loginLoading: boolean;
+  loginUrl: string | null;
 };
 
 export const authStore = writable<AuthUiState>({
@@ -61,6 +62,7 @@ export const authStore = writable<AuthUiState>({
   user: null,
   message: null,
   loginLoading: false,
+  loginUrl: null,
 });
 
 export function setAuthBootstrap(state: AuthBootstrapState) {
@@ -72,12 +74,14 @@ export function setAuthBootstrap(state: AuthBootstrapState) {
           user: state.user,
           message: null,
           loginLoading: false,
+          loginUrl: null,
         }
       : {
           status: "loginRequired",
           user: null,
           message: null,
           loginLoading: false,
+          loginUrl: null,
         },
   );
 }
@@ -89,6 +93,7 @@ export function setAuthRestored(user: AuthUser) {
     user,
     message: null,
     loginLoading: false,
+    loginUrl: null,
   });
 }
 
@@ -99,6 +104,7 @@ export function setAuthLoginRequired() {
     user: null,
     message: null,
     loginLoading: false,
+    loginUrl: null,
   });
 }
 
@@ -109,6 +115,13 @@ export function setAuthSessionExpired(message: string) {
     status: "sessionExpired",
     message,
     loginLoading: false,
+  }));
+}
+
+export function setLoginUrl(url: string | null) {
+  authStore.update((state) => ({
+    ...state,
+    loginUrl: url,
   }));
 }
 

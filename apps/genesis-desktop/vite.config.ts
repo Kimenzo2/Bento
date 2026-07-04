@@ -30,7 +30,11 @@ const config = {
         }
       : undefined,
     watch: {
-      ignored: ["**/src-tauri/**"],
+      ignored: [
+        "**/src-tauri/**",
+        "**/.git/**",
+        "**/node_modules/**",
+      ],
     },
   },
   build: {

@@ -1,7 +1,11 @@
-use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+use raw_window_handle::HasWindowHandle;
 use tauri::utils::config::WindowEffectsConfig;
-use tauri::window::{Effect, EffectsBuilder};
 use tauri::{AppHandle, Manager};
+
+#[cfg(target_os = "windows")]
+use raw_window_handle::RawWindowHandle; 
+#[cfg(target_os = "windows")]
+use tauri::window::{Effect, EffectsBuilder};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Native OS window frame setup

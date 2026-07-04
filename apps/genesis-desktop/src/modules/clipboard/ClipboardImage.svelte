@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { convertFileSrc } from "@tauri-apps/api/core";
+  import { convertFileSrc, invoke } from "@tauri-apps/api/core";
   import ImageIcon from "@lucide/svelte/icons/image";
 
   let {
@@ -18,6 +18,7 @@
   let inView = $state(false);
   let imageSrc = $state<string | null>(null);
   let error = $state(false);
+  let loading = $state(true);
   let observerTarget = $state<HTMLDivElement | null>(null);
 
   $effect(() => {
@@ -40,22 +41,46 @@
     return () => observer.disconnect();
   });
 
+  let loadingPath = $state(false);
+
   $effect(() => {
     if (!inView || !hash) return;
-    error = false;
+    if (imageSrc) return;
+
     if (imagePath) {
+      loading = false;
       try {
         imageSrc = convertFileSrc(imagePath);
       } catch {
         error = true;
       }
-    } else {
-      error = true;
+      return;
     }
+
+    // Lazy-load image path from backend if not cached
+    if (loadingPath) return;
+    loadingPath = true;
+    invoke<string | null>("clipboard_get_image_path", { hash })
+      .then((path) => {
+        loading = false;
+        if (path) {
+          try {
+            imageSrc = convertFileSrc(path);
+          } catch {
+            error = true;
+          }
+        } else {
+          error = true;
+        }
+      })
+      .catch(() => {
+        loading = false;
+        error = true;
+      });
   });
 </script>
 
-{#if !inView}
+{#if !inView || loading}
   <div bind:this={observerTarget} class="cb-image-skeleton" {...restProps}></div>
 {:else if imageSrc}
   <img src={imageSrc} alt={alt} decoding="async" onerror={() => { error = true; }} {...restProps} />
@@ -63,8 +88,6 @@
   <div class="cb-image-fallback" {...restProps}>
     <ImageIcon size={24} />
   </div>
-{:else}
-  <div bind:this={observerTarget} class="cb-image-skeleton" {...restProps}></div>
 {/if}
 
 <style>

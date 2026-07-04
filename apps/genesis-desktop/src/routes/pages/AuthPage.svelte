@@ -5,6 +5,7 @@
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "$lib/components/ui/card/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import { Label } from "$lib/components/ui/label/index.js";
+  import { authStore } from "$lib/stores/auth.store";
   import { activeBundle, createTranslator } from "$lib/i18n";
 
   let _t = $derived.by(() => createTranslator($activeBundle));
@@ -28,6 +29,11 @@
       </div>
     </CardHeader>
     <CardContent class="grid gap-5">
+      {#if $authStore.message}
+        <div class="desktop-gate__error" role="status" aria-live="polite">
+          {$authStore.message}
+        </div>
+      {/if}
       <div class="grid gap-2">
         <Label for="email">{_t('commonEmail')}</Label>
         <Input id="email" placeholder="team@bento.local" />
@@ -80,5 +86,16 @@
     width: 2.75rem;
     height: 2.75rem;
     flex-shrink: 0;
+  }
+
+  .desktop-gate__error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #ef4444;
+    text-align: center;
   }
 </style>

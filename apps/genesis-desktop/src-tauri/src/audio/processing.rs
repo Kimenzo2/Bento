@@ -318,7 +318,7 @@ async fn transcribe_turn_chunk(
 pub async fn process_saved_audio_fallback(
     sources: &[ProcessingSource],
     app_dir: &std::path::Path,
-    recording_id: &str,
+    _recording_id: &str,
 ) -> ProcessingResult {
     // NOTE: The per-recording lock is acquired by the caller
     // (process_saved_source_audio) which holds it across the entire

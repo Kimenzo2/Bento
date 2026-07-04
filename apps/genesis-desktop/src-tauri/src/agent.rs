@@ -4,7 +4,7 @@ use std::thread;
 use std::time::Duration;
 
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, WebviewWindow};
+use tauri::{AppHandle, Manager, WebviewWindow, WebviewWindowBuilder};
 
 /// macOS window level for the agent dock — NSFloatingWindowLevel (5).
 /// Above normal windows but below the menu bar, so the dock is always reachable.
@@ -93,6 +93,32 @@ pub fn capture_screen() -> Result<String, String> {
     Ok(result)
 }
 
+/// Get the agent window if it exists, or create it programmatically.
+/// This avoids spawning a hidden WebView2 process for users who have the
+/// agent dock disabled (the default).
+///
+/// When creating a new window, `init_agent_window` is called automatically
+/// so the window is fully initialized regardless of which code path triggers
+/// its first creation.
+fn get_or_create_agent_window(app: &AppHandle) -> Result<WebviewWindow, String> {
+    if let Some(window) = app.get_webview_window("agent") {
+        return Ok(window);
+    }
+    let window = WebviewWindowBuilder::new(app, "agent", tauri::WebviewUrl::App("/agent".into()))
+        .title("Bento Agent")
+        .inner_size(AGENT_W, AGENT_H)
+        .decorations(false)
+        .transparent(true)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .resizable(false)
+        .visible(false)
+        .build()
+        .map_err(|e| e.to_string())?;
+    init_agent_window(&window);
+    Ok(window)
+}
+
 /// Compact dimensions when idle — only the dock bar is visible.
 const AGENT_W: f64 = 340.0;
 const AGENT_H: f64 = 60.0;
@@ -100,14 +126,18 @@ const AGENT_H: f64 = 60.0;
 const AGENT_H_EXPANDED: f64 = 200.0;
 
 /// Cursor polling interval in milliseconds (~30 fps like island).
+#[cfg(target_os = "windows")]
 const POLL_MS: u64 = 33;
 /// Margin (px) for entering the dock hit area.
+#[cfg(target_os = "windows")]
 const ENTER_MARGIN: f64 = 10.0;
 /// Larger margin for exiting — prevents flickering at the boundary.
+#[cfg(target_os = "windows")]
 const EXIT_MARGIN: f64 = 30.0;
 /// Cooldown after showing the window before the mouse monitor starts toggling.
 /// Prevents the race where show() forces click-through OFF then the monitor
 /// immediately forces it back ON because the cursor hasn't moved yet.
+#[cfg(target_os = "windows")]
 const SHOW_COOLDOWN_MS: u64 = 300;
 
 static INITIAL_POSITION_SET: AtomicBool = AtomicBool::new(false);
@@ -144,6 +174,34 @@ fn remove_class_shadow(window: &WebviewWindow) -> Result<(), Box<dyn std::error:
     Ok(())
 }
 
+/// Apply visual properties and positioning to the agent window.
+/// Shared between first-time setup and runtime re-enable.
+fn init_agent_window(window: &tauri::WebviewWindow) {
+    #[cfg(target_os = "windows")]
+    remove_class_shadow(window).unwrap_or_else(|e| {
+        eprintln!("[agent] remove_class_shadow failed: {e}");
+    });
+
+    if let Err(e) = window.set_background_color(Some(tauri::webview::Color(0, 0, 0, 0))) {
+        eprintln!("[agent] set_background_color failed: {e}");
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let _ = window.eval("document.body.style.background='transparent'");
+    }
+
+    #[cfg(target_os = "macos")]
+    if let Err(e) = set_agent_macos_window_level(window) {
+        eprintln!("[agent] macOS window level setup failed: {e}");
+    }
+
+    position_bottom_right(window, false).unwrap_or_else(|e| {
+        eprintln!("[agent] initial positioning failed: {e}");
+    });
+    INITIAL_POSITION_SET.store(true, Ordering::SeqCst);
+}
+
 /// Setup the agent dock window — transparency, shadow removal, positioning.
 pub fn setup_agent_window(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // Ensure any previous monitor is stopped (defensive — should not happen at setup).
@@ -151,43 +209,9 @@ pub fn setup_agent_window(app: &tauri::App) -> Result<(), Box<dyn std::error::Er
     thread::sleep(Duration::from_millis(POLL_MS * 2));
     MONITOR_STOP.store(false, Ordering::SeqCst);
 
-    let Some(window) = app.get_webview_window("agent") else {
-        eprintln!("[agent] window not found in config");
-        return Ok(());
-    };
+    let window = get_or_create_agent_window(app.handle())?;
 
-    // Strip the DWM drop-shadow — required for transparent windows on Windows.
-    #[cfg(target_os = "windows")]
-    remove_class_shadow(&window).unwrap_or_else(|e| {
-        eprintln!("[agent] remove_class_shadow failed: {e}");
-    });
-
-    // Transparent webview background — prevents white flash.
-    // MUST happen before show() on Windows.
-    if let Err(e) = window.set_background_color(Some(tauri::webview::Color(0, 0, 0, 0))) {
-        eprintln!("[agent] set_background_color failed: {e}");
-    }
-
-    // Pre-warm the webview compositor so the first frame is transparent.
-    #[cfg(target_os = "windows")]
-    {
-        let _ = window.eval("document.body.style.background='transparent'");
-    }
-
-    // macOS: Set window level and collection behavior so the dock:
-    // - floats above normal windows (NSFloatingWindowLevel)
-    // - appears on all Spaces (canJoinAllSpaces)
-    // - works alongside fullscreen apps (fullScreenAuxiliary)
-    #[cfg(target_os = "macos")]
-    if let Err(e) = set_agent_macos_window_level(&window) {
-        eprintln!("[agent] macOS window level setup failed: {e}");
-    }
-
-    // Position at bottom-right.
-    position_bottom_right(&window, false).unwrap_or_else(|e| {
-        eprintln!("[agent] initial positioning failed: {e}");
-    });
-    INITIAL_POSITION_SET.store(true, Ordering::SeqCst);
+    init_agent_window(&window);
 
     // Start the mouse monitor — toggles click-through based on cursor position.
     start_mouse_monitor(app.handle().clone());
@@ -383,11 +407,9 @@ fn position_bottom_right(
 }
 
 /// Shared logic for showing the agent window: position, click-through, show, focus.
-/// Returns the window handle on success.
+/// Creates the window if it doesn't exist yet (lazy init).
 fn show_agent_window_impl(app: &AppHandle) -> Result<(), String> {
-    let Some(window) = app.get_webview_window("agent") else {
-        return Err("agent window not found".into());
-    };
+    let window = get_or_create_agent_window(app)?;
 
     if !INITIAL_POSITION_SET.swap(true, Ordering::SeqCst) {
         position_bottom_right(&window, false).unwrap_or_else(|e| {
@@ -415,9 +437,7 @@ fn show_agent_window_impl(app: &AppHandle) -> Result<(), String> {
 /// Toggle the agent window visibility.
 #[tauri::command]
 pub fn toggle_agent(app: AppHandle) -> Result<(), String> {
-    let Some(window) = app.get_webview_window("agent") else {
-        return Err("agent window not found".into());
-    };
+    let window = get_or_create_agent_window(&app)?;
 
     if window.is_visible().unwrap_or(false) {
         window.hide().map_err(|e| e.to_string())?;
@@ -438,9 +458,7 @@ pub fn show_agent(app: AppHandle) -> Result<(), String> {
 /// Hide the agent window.
 #[tauri::command]
 pub fn hide_agent(app: AppHandle) -> Result<(), String> {
-    let Some(window) = app.get_webview_window("agent") else {
-        return Err("agent window not found".into());
-    };
+    let window = get_or_create_agent_window(&app)?;
     COMPOSER_OPEN.store(false, Ordering::SeqCst);
     window.hide().map_err(|e| e.to_string())?;
     Ok(())
@@ -518,6 +536,35 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         .build(app)?;
 
     eprintln!("[agent] tray icon created");
+    Ok(())
+}
+
+/// Enable or disable the Agent Dock at runtime.
+/// When disabled, the agent window is hidden and the mouse monitor is stopped.
+/// When re-enabled, the window is fully initialized (position, transparency, platform setup).
+#[tauri::command]
+pub fn set_agent_dock_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let window = get_or_create_agent_window(&app)?;
+
+    eprintln!("[agent] set_agent_dock_enabled({enabled}) called");
+
+    if enabled {
+        init_agent_window(&window);
+
+        #[cfg(target_os = "windows")]
+        {
+            let _ = window.set_ignore_cursor_events(false);
+            start_mouse_monitor(app.clone());
+        }
+
+        window.show().map_err(|e| e.to_string())?;
+        eprintln!("[agent] set_agent_dock_enabled(true): complete");
+    } else {
+        stop_mouse_monitor();
+        window.hide().map_err(|e| e.to_string())?;
+        eprintln!("[agent] set_agent_dock_enabled(false): window hidden, monitor stopped");
+    }
+
     Ok(())
 }
 

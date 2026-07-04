@@ -162,9 +162,9 @@
     onComposerStateChange?.(isExpanded);
   });
 
-  // ── Waveform visualization (rAF + CSS variables like June) ─────
+  // ── Waveform visualization (rAF + CSS variables like os-june) ─────
   let waveformRef = $state<HTMLDivElement | null>(null);
-  const WAVEFORM_BARS = 32;
+  const WAVEFORM_BARS = 8; // Match os-june's Waveform component exactly
   let waveformLevels = $state<number[]>(new Array(WAVEFORM_BARS).fill(0.02));
 
   // ── Waveform visualization — uses fine-grained audioLevel from store ──
@@ -183,10 +183,11 @@
       // Smooth interpolation
       prevLevel = prevLevel + (targetLevel - prevLevel) * 0.3;
       // Generate bar heights with variance — reuse array to avoid allocation
+      // Match os-june's pattern: 7 bars with staggered animation
       for (let i = 0; i < WAVEFORM_BARS; i++) {
-        const variance = Math.sin(performance.now() * 0.005 + i * 0.5) * 0.3 + 0.7;
-        const centerPeak = Math.sin((i / WAVEFORM_BARS) * Math.PI) * 0.5 + 0.5;
-        waveformLevels[i] = Math.max(0.02, prevLevel * variance * centerPeak);
+        const variance = Math.sin(performance.now() * 0.004 + i * 0.7) * 0.35 + 0.65;
+        const centerPeak = Math.sin((i / WAVEFORM_BARS) * Math.PI) * 0.6 + 0.4;
+        waveformLevels[i] = Math.max(0.03, prevLevel * variance * centerPeak);
       }
       // Trigger reactivity by reassigning the same array
       waveformLevels = waveformLevels;
@@ -494,93 +495,103 @@
     return () => {
       mq.removeEventListener("change", updateMotion);
       window.removeEventListener("keydown", handleKeydown);
-      // Note: voiceEngine is a singleton — do NOT call destroy() here.
-      // Event listeners persist for the app lifetime.
     };
   });
 
 </script>
 
 <form class={className} onsubmit={handleSubmit} novalidate>
-  <div class="dock-root" class:dock-root--expanded={isExpanded} class:dock-root--pill={isPill}>
-    <div class="dock-bar">
-      <img
-        class="dock-avatar"
-        class:dock-avatar--pill={isPill}
-        src={avatarSrc}
-        alt=""
-        aria-hidden="true"
-        width={36}
-        height={36}
-      />
-
-      <div class="dock-info">
-        {#key isPill}
-          {#if isPill}
-            <!-- Pill mode: show elapsed timer instead of status -->
-            <p class="dock-status dock-status--timer">
-              {voiceEngine.elapsedFormatted}
-            </p>
+  <div
+    class="dock-root"
+    class:dock-root--expanded={isExpanded}
+    class:dock-root--pill={isPill}
+  >
+    {#if isPill}
+      <!-- ── Pill mode: os-june RecorderBar ── -->
+      <div class="pill-bar">
+        <button
+          type="button"
+          class="pill-btn pill-btn--pause"
+          aria-label={voiceEngine.status === "paused" ? "Resume dictation" : "Pause dictation"}
+          onclick={voiceEngine.status === "paused" ? resumeRecording : pauseRecording}
+        >
+          {#if voiceEngine.status === "paused"}
+            <PlayIcon size={12} />
           {:else}
-            <p
-              class="dock-status"
-              class:dock-status--listening={voiceEngine.isRecording || mode === "listening"}
-              class:dock-status--working={mode === "working" || voiceEngine.status === "processing" || voiceEngine.status === "summarizing"}
-              class:dock-status--recording={voiceEngine.status === "recording"}
-              class:dock-status--error={voiceEngine.status === "error"}
-              in:fly={statusFly}
-              out:fly={{ y: -6, duration: 160 }}
-            >
-              {statusText}
-            </p>
+            <PauseIcon size={12} />
           {/if}
-        {/key}
-      </div>
+        </button>
 
-      {#if isPill}
-        <!-- Inline waveform inside the bar during pill mode -->
-        <div class="dock-waveform-inline" aria-hidden="true">
-          {#each waveformLevels as level}
+        <span class="pill-timer">{voiceEngine.elapsedFormatted}</span>
+
+        <div class="pill-waveform" aria-hidden="true">
+          {#each waveformLevels as level, i}
             <span
-              class="dock-waveform-bar-inline"
-              style="--level: {level}"
+              class="pill-waveform-bar"
+              style="--cap: {Math.round(level * 100)}%; --d: {0.62 + i * 0.137}s; --delay: {i * 0.091}s"
             ></span>
           {/each}
         </div>
-      {/if}
 
-      <div class="dock-actions">
-        <DockButton
-          icon={MonitorIcon}
-          label="Capture"
-          onclick={captureScreen}
-          class={screenCapture ? "dock-btn--active" : ""}
-          disabled={voiceEngine.isRecording}
+        <button
+          type="button"
+          class="pill-btn pill-btn--stop"
+          aria-label="Stop dictation"
+          onclick={finishRecording}
+        >
+          <span class="pill-stop-icon"></span>
+        </button>
+      </div>
+    {:else}
+      <!-- ── Full mode: standard dock ── -->
+      <div class="dock-bar">
+        <img
+          class="dock-avatar"
+          src={avatarSrc}
+          alt=""
+          aria-hidden="true"
+          width={36}
+          height={36}
         />
-        {#if voiceEngine.isRecording || voiceEngine.status === "paused"}
+
+        <div class="dock-info">
+          <p
+            class="dock-status"
+            class:dock-status--listening={voiceEngine.isRecording || mode === "listening"}
+            class:dock-status--working={mode === "working" || voiceEngine.status === "processing" || voiceEngine.status === "summarizing"}
+            class:dock-status--recording={voiceEngine.status === "recording"}
+            class:dock-status--error={voiceEngine.status === "error"}
+            in:fly={statusFly}
+            out:fly={{ y: -6, duration: 160 }}
+          >
+            {statusText}
+          </p>
+        </div>
+
+        <div class="dock-actions">
           <DockButton
-            icon={voiceEngine.status === "paused" ? MicIcon : MicOffIcon}
-            label={voiceEngine.status === "paused" ? "Resume" : "Stop"}
-            class={voiceEngine.status === "recording" ? "dock-btn--listening" : ""}
-            onclick={voiceEngine.status === "paused" ? resumeRecording : finishRecording}
+            icon={MonitorIcon}
+            label="Capture"
+            onclick={captureScreen}
+            class={screenCapture ? "dock-btn--active" : ""}
+            disabled={voiceEngine.isRecording}
           />
-        {:else}
           <DockButton
             icon={voiceEngine.isActive ? MicOffIcon : MicIcon}
             label={voiceEngine.isActive ? "Stop" : "Voice"}
             class={voiceEngine.isActive ? "dock-btn--listening" : ""}
             onclick={hasSpeech || isTauri() ? toggleVoice : undefined}
           />
-        {/if}
-        <DockButton
-          icon={mode === "composing" ? SendIcon : ChatIcon}
-          label={mode === "composing" ? "Send" : "Chat"}
-          class={mode === "composing" ? "dock-btn--send" : ""}
-          type="submit"
-          disabled={voiceEngine.isRecording}
-        />
+          <DockButton
+            icon={mode === "composing" ? SendIcon : ChatIcon}
+            label={mode === "composing" ? "Send" : "Chat"}
+            class={mode === "composing" ? "dock-btn--send" : ""}
+            type="submit"
+            disabled={voiceEngine.isRecording}
+          />
+        </div>
       </div>
-    </div>
+    {/if}
 
     {#if screenCapture}
       <div class="dock-capture">
@@ -596,54 +607,50 @@
       </div>
     {/if}
 
-    {#if voiceEngine.isRecording}
-      <!-- ── Waveform visualization ── -->
-      <div class="dock-waveform" bind:this={waveformRef} aria-hidden="true">
-        {#each waveformLevels as level, i}
-          <span
-            class="dock-waveform-bar"
-            style="--level: {level}"
-          ></span>
-        {/each}
-      </div>
+    {#if !isPill && (voiceEngine.isRecording || voiceEngine.status === "paused")}
+      <!-- Full mode: waveform + transcript + controls -->
+      {#if voiceEngine.isRecording}
+        <div class="dock-waveform" bind:this={waveformRef} aria-hidden="true">
+          {#each waveformLevels as level}
+            <span
+              class="dock-waveform-bar"
+              style="--level: {level}"
+            ></span>
+          {/each}
+        </div>
+      {/if}
 
-    {/if}
+      {#if voiceEngine.isRecording && voiceEngine.session?.interimText}
+        <div class="dock-transcript">
+          <p class="dock-transcript-text">{voiceEngine.session.interimText}</p>
+        </div>
+      {/if}
 
-    {#if voiceEngine.isRecording && voiceEngine.session?.interimText}
-      <div class="dock-transcript">
-        <p class="dock-transcript-text">{voiceEngine.session.interimText}</p>
-      </div>
-    {/if}
-
-    {#if voiceEngine.isRecording || voiceEngine.status === "paused"}
-      <!-- ── Recording controls ── -->
       <div class="dock-recording-controls">
         <span class="dock-recording-timer">
           {voiceEngine.elapsedFormatted}
         </span>
         <div class="dock-recording-actions">
-          {#if voiceEngine.mode === "voice_note" || voiceEngine.mode === "meeting"}
-            {#if voiceEngine.status === "recording"}
-              <button
-                type="button"
-                class="dock-rec-btn"
-                onclick={pauseRecording}
-                aria-label="Pause recording"
-              >
-                <PauseIcon size={14} />
-                <span>Pause</span>
-              </button>
-            {:else if voiceEngine.status === "paused"}
-              <button
-                type="button"
-                class="dock-rec-btn"
-                onclick={resumeRecording}
-                aria-label="Resume recording"
-              >
-                <PlayIcon size={14} />
-                <span>Resume</span>
-              </button>
-            {/if}
+          {#if voiceEngine.status === "recording"}
+            <button
+              type="button"
+              class="dock-rec-btn"
+              onclick={pauseRecording}
+              aria-label="Pause recording"
+            >
+              <PauseIcon size={14} />
+              <span>Pause</span>
+            </button>
+          {:else if voiceEngine.status === "paused"}
+            <button
+              type="button"
+              class="dock-rec-btn"
+              onclick={resumeRecording}
+              aria-label="Resume recording"
+            >
+              <PlayIcon size={14} />
+              <span>Resume</span>
+            </button>
           {/if}
           <button
             type="button"
@@ -791,14 +798,19 @@
     width: 460px;
   }
 
-  /* ── Pill mode: compact recording pill ─────────────────────────── */
+  /* ── Pill mode: os-june RecorderBar ────────────────────────────── */
   .dock-root--pill {
-    width: 280px;
-    border-radius: 100px;
-    padding: 6px 8px;
+    width: auto;
+    padding: 3px;
+    border-radius: 10px;
+    background: oklch(0.2 0.004 60 / 0.92);
+    border: 1px solid oklch(1 0 0 / 0.12);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.55);
+    color-scheme: dark;
     transition:
       width 0.4s cubic-bezier(0.34, 1.3, 0.64, 1),
-      border-radius 0.3s cubic-bezier(0.22, 1, 0.36, 1),
       padding 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
@@ -806,23 +818,104 @@
     .dock-root--pill {
       transition:
         width 0.4s linear(0, 0.09 10%, 0.26 20%, 0.5 33%, 0.74 46%, 0.9 58%, 1.02 76%, 1 88%, 1),
-        border-radius 0.3s cubic-bezier(0.22, 1, 0.36, 1),
         padding 0.3s cubic-bezier(0.22, 1, 0.36, 1);
     }
   }
 
-  .dock-avatar--pill {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
+  .pill-bar {
+    display: flex;
+    height: 32px;
+    align-items: center;
+    gap: 4px;
   }
 
-  .dock-status--timer {
+  .pill-btn {
+    display: grid;
+    width: 24px;
+    height: 24px;
+    place-items: center;
+    flex-shrink: 0;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: oklch(0.985 0 0 / 0.55);
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+
+  .pill-btn:hover {
+    color: oklch(0.985 0 0 / 0.85);
+    background: oklch(1 0 0 / 0.08);
+  }
+
+  .pill-btn:focus-visible {
+    outline: 2px solid oklch(1 0 0 / 0.3);
+    outline-offset: 2px;
+  }
+
+  .pill-btn:active {
+    transform: scale(0.92);
+  }
+
+  .pill-btn--pause {
+    cursor: grab;
+  }
+
+  .pill-btn--pause:active {
+    cursor: grabbing;
+  }
+
+  .pill-timer {
     font-variant-numeric: tabular-nums;
     font-size: 13px;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.7);
+    color: oklch(0.985 0 0 / 0.85);
     letter-spacing: 0.02em;
+    white-space: nowrap;
+    min-width: 36px;
+    text-align: center;
+  }
+
+  .pill-waveform {
+    display: flex;
+    align-items: center;
+    gap: 2.25px;
+    height: 16px;
+    width: 54px;
+  }
+
+  .pill-waveform-bar {
+    width: 2px;
+    height: var(--cap, 50%);
+    border-radius: 1px;
+    background: oklch(0.985 0 0);
+    animation: pill-waveform-bounce var(--d, 0.7s) ease-in-out var(--delay, 0s) infinite alternate;
+  }
+
+  @keyframes pill-waveform-bounce {
+    0% { height: calc(var(--cap, 50%) * 0.4); }
+    100% { height: var(--cap, 50%); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pill-waveform-bar { animation: none; }
+  }
+
+  .pill-btn--stop {
+    background: oklch(0.985 0 0);
+    color: oklch(0.2 0.004 60);
+    border-radius: 6px;
+  }
+
+  .pill-btn--stop:hover {
+    background: oklch(0.985 0 0 / 0.9);
+  }
+
+  .pill-stop-icon {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: oklch(0.2 0.004 60);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -947,26 +1040,26 @@
     outline-offset: 2px;
   }
 
-  /* ── Waveform visualization ── */
+  /* ── Waveform visualization (os-june style: white bars) ── */
   .dock-waveform {
     display: flex;
     align-items: center;
     gap: 2px;
     margin: 6px 0 2px;
     padding: 4px 8px;
-    height: 32px;
-    border-radius: 8px;
-    background: rgba(239, 68, 68, 0.04);
-    border: 1px solid rgba(239, 68, 68, 0.08);
+    height: 24px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .dock-waveform-bar {
     flex: 1;
-    height: calc(var(--level, 0.02) * 24px);
+    height: calc(var(--level, 0.03) * 18px);
     min-height: 2px;
-    border-radius: 2px;
-    background: #ef4444;
-    opacity: calc(0.3 + var(--level, 0.02) * 0.7);
+    border-radius: 1px;
+    background: rgba(255, 255, 255, 0.85);
+    opacity: calc(0.4 + var(--level, 0.03) * 0.6);
     transition: height 0.05s ease, opacity 0.05s ease;
     transform-origin: bottom;
   }
@@ -981,8 +1074,8 @@
     margin: 6px 0 2px;
     padding: 8px 10px;
     border-radius: 8px;
-    background: rgba(239, 68, 68, 0.08);
-    border: 1px solid rgba(239, 68, 68, 0.15);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .dock-transcript--completed {
@@ -1047,32 +1140,9 @@
     accent-color: #3b82f6;
   }
 
-  /* ── Inline waveform (inside bar during pill mode) ── */
-  .dock-waveform-inline {
-    display: flex;
-    align-items: center;
-    gap: 1.5px;
-    height: 20px;
-    flex: 0 1 60px;
-    min-width: 36px;
-  }
+  /* ── Inline waveform styles removed (using pill-waveform instead) ── */
 
-  .dock-waveform-bar-inline {
-    flex: 1;
-    height: calc(var(--level, 0.02) * 16px);
-    min-height: 2px;
-    border-radius: 2px;
-    background: #ef4444;
-    opacity: calc(0.3 + var(--level, 0.02) * 0.7);
-    transition: height 0.05s ease, opacity 0.05s ease;
-    transform-origin: bottom;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .dock-waveform-bar-inline { transition: none; }
-  }
-
-  /* ── Recording controls ── */
+  /* ── Recording controls (os-june neutral style) ── */
   .dock-recording-controls {
     display: flex;
     align-items: center;
@@ -1080,8 +1150,8 @@
     margin: 6px 0 2px;
     padding: 6px 10px;
     border-radius: 8px;
-    background: rgba(239, 68, 68, 0.04);
-    border: 1px solid rgba(239, 68, 68, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .dock-recording-timer {

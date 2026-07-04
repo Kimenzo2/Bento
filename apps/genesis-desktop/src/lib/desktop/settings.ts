@@ -70,6 +70,7 @@ const storeKeys = {
   legacyBrowserStorageMigrated: "migration.legacyBrowserStorageMigrated",
   storeSettingsMigrated: "migration.storeSettingsMigrated",
   dynamicIslandEnabled: "dynamicIslandEnabled",
+  agentDockEnabled: "agentDockEnabled",
 } as const;
 
 const themeModeSchema = z.enum(["light", "dark"]);
@@ -201,6 +202,7 @@ const desktopSettingsSchema = z
       .passthrough(),
     migration: migrationSchema,
     dynamicIslandEnabled: z.boolean().default(false),
+    agentDockEnabled: z.boolean().default(false),
     voice: z
       .object({
         inputDeviceId: z.string().default(""),
@@ -288,6 +290,7 @@ export const defaultDesktopSettings: DesktopSettings = {
     storeSettingsMigrated: false,
   },
   dynamicIslandEnabled: false,
+  agentDockEnabled: false,
   voice: {
     inputDeviceId: "",
     pushToTalkShortcut: "Ctrl+Shift+M",
@@ -387,6 +390,7 @@ function storeDefaults() {
       defaultDesktopSettings.migration.legacyBrowserStorageMigrated,
     [storeKeys.storeSettingsMigrated]: defaultDesktopSettings.migration.storeSettingsMigrated,
     [storeKeys.dynamicIslandEnabled]: defaultDesktopSettings.dynamicIslandEnabled,
+    [storeKeys.agentDockEnabled]: defaultDesktopSettings.agentDockEnabled,
   };
 }
 
@@ -755,6 +759,9 @@ async function readStoreSettings(): Promise<DesktopSettings> {
     dynamicIslandEnabled:
       (await store.get<boolean>(storeKeys.dynamicIslandEnabled)) ??
       defaultDesktopSettings.dynamicIslandEnabled,
+    agentDockEnabled:
+      (await store.get<boolean>(storeKeys.agentDockEnabled)) ??
+      defaultDesktopSettings.agentDockEnabled,
     voice: {
       inputDeviceId: defaultDesktopSettings.voice.inputDeviceId,
       pushToTalkShortcut: defaultDesktopSettings.voice.pushToTalkShortcut,
@@ -813,6 +820,7 @@ async function persistStoreSettings(settings: DesktopSettings) {
   );
   await store.set(storeKeys.storeSettingsMigrated, settings.migration.storeSettingsMigrated);
   await store.set(storeKeys.dynamicIslandEnabled, settings.dynamicIslandEnabled);
+  await store.set(storeKeys.agentDockEnabled, settings.agentDockEnabled);
   await store.save();
 }
 
@@ -900,11 +908,28 @@ async function applyIslandEffect(settings: DesktopSettings) {
   }
 }
 
+let prevAgentDockEnabled: boolean | undefined;
+
+async function applyAgentDockEffect(settings: DesktopSettings) {
+  if (!isTauri()) return;
+  const enabled = !!settings?.agentDockEnabled;
+  if (enabled === prevAgentDockEnabled) return;
+  prevAgentDockEnabled = enabled;
+  try {
+    await invoke("set_agent_dock_enabled", { enabled });
+  } catch (error) {
+    console.warn("Agent Dock toggle failed, reverting.", error);
+    prevAgentDockEnabled = undefined;
+    desktopSettings.update((s) => ({ ...s, agentDockEnabled: !enabled }));
+  }
+}
+
 function applySettingsSideEffects(settings: DesktopSettings) {
   writeThemeSnapshot(settings);
   void applyNativeTheme(settings);
   void applyGlassEffect(settings);
   void applyIslandEffect(settings);
+  void applyAgentDockEffect(settings);
 }
 
 export function getDesktopSettingsSnapshot(): DesktopSettings {

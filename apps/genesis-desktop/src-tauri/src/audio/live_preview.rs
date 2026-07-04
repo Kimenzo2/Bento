@@ -36,12 +36,6 @@ const PREVIEW_MAX_BACKLOG_BATCHES: usize = 4;
 /// Number of previous transcript turns to include as context.
 const PREVIEW_CONTEXT_TURNS: usize = 3;
 
-/// Maximum characters of preview context.
-const PREVIEW_MAX_CONTEXT_CHARS: usize = 800;
-
-/// RMS floor for preview chunk silence detection.
-const PREVIEW_SILENCE_RMS_FLOOR: f32 = 0.001;
-
 // ─── Types ───────────────────────────────────────────────────────────
 
 /// A batch of audio samples for preview processing.

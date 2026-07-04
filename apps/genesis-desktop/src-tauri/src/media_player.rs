@@ -43,6 +43,7 @@ pub fn get_audio_levels() -> Vec<f64> {
     get_audio_levels_internal()
 }
 
+#[cfg(target_os = "windows")]
 fn save_last_played(data: &NowPlayingData) {
     if let Some(m) = LAST_PLAYED.get() {
         *m.lock().unwrap() = Some(data.clone());
@@ -100,8 +101,11 @@ fn send_media_key(key: u16) {
     }
 }
 
+#[cfg(target_os = "windows")]
 const VK_MEDIA_PLAY_PAUSE: u16 = 0xB3;
+#[cfg(target_os = "windows")]
 const VK_MEDIA_NEXT_TRACK: u16 = 0xB0;
+#[cfg(target_os = "windows")]
 const VK_MEDIA_PREV_TRACK: u16 = 0xB1;
 
 #[cfg(target_os = "windows")]

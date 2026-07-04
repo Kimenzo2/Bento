@@ -697,49 +697,44 @@ impl RecordingEngine {
     }
 
     /// List all persisted recordings from the database.
-    pub fn list_recordings(
+    pub async fn list_recordings(
         &self,
         module_id: Option<&str>,
         limit: i64,
     ) -> Result<Vec<RecordingMeta>, String> {
-        let rt = tokio::runtime::Handle::try_current()
-            .map_err(|_| "No Tokio runtime available.".to_string())?;
-
         let db = self.db.clone();
         let module_id_owned = module_id.map(|s| s.to_string());
 
-        let rows = rt.block_on(async {
-            match module_id_owned.as_deref() {
-                Some(mid) => sqlx::query(
-                    r#"
-                        SELECT m.*, t.transcript AS transcript
-                        FROM recording_metadata m
-                        LEFT JOIN recording_transcripts t ON t.recording_id = m.id
-                        WHERE m.module_id = ?
-                        ORDER BY m.created_at DESC
-                        LIMIT ?
-                        "#,
-                )
-                .bind(mid)
-                .bind(limit)
-                .fetch_all(&db)
-                .await
-                .map_err(|e| e.to_string()),
-                None => sqlx::query(
-                    r#"
-                        SELECT m.*, t.transcript AS transcript
-                        FROM recording_metadata m
-                        LEFT JOIN recording_transcripts t ON t.recording_id = m.id
-                        ORDER BY m.created_at DESC
-                        LIMIT ?
-                        "#,
-                )
-                .bind(limit)
-                .fetch_all(&db)
-                .await
-                .map_err(|e| e.to_string()),
-            }
-        })?;
+        let rows = match module_id_owned.as_deref() {
+            Some(mid) => sqlx::query(
+                r#"
+                    SELECT m.*, t.transcript AS transcript
+                    FROM recording_metadata m
+                    LEFT JOIN recording_transcripts t ON t.recording_id = m.id
+                    WHERE m.module_id = ?
+                    ORDER BY m.created_at DESC
+                    LIMIT ?
+                    "#,
+            )
+            .bind(mid)
+            .bind(limit)
+            .fetch_all(&db)
+            .await
+            .map_err(|e| e.to_string())?,
+            None => sqlx::query(
+                r#"
+                    SELECT m.*, t.transcript AS transcript
+                    FROM recording_metadata m
+                    LEFT JOIN recording_transcripts t ON t.recording_id = m.id
+                    ORDER BY m.created_at DESC
+                    LIMIT ?
+                    "#,
+            )
+            .bind(limit)
+            .fetch_all(&db)
+            .await
+            .map_err(|e| e.to_string())?,
+        };
 
         Ok(rows
             .into_iter()
@@ -840,21 +835,16 @@ impl RecordingEngine {
     }
 
     /// Delete a recording by ID (removes file + metadata).
-    pub fn delete_recording(&self, id: &str) -> Result<(), String> {
-        let rt = tokio::runtime::Handle::try_current()
-            .map_err(|_| "No Tokio runtime available.".to_string())?;
-
+    pub async fn delete_recording(&self, id: &str) -> Result<(), String> {
         let db = self.db.clone();
         let id_owned = id.to_string();
 
         // Get file path before deleting metadata
-        let row = rt.block_on(async {
-            sqlx::query("SELECT file_path FROM recording_metadata WHERE id = ?")
-                .bind(&id_owned)
-                .fetch_optional(&db)
-                .await
-                .map_err(|e| e.to_string())
-        })?;
+        let row = sqlx::query("SELECT file_path FROM recording_metadata WHERE id = ?")
+            .bind(&id_owned)
+            .fetch_optional(&db)
+            .await
+            .map_err(|e| e.to_string())?;
 
         if let Some(r) = row {
             if let Ok(path) = r.try_get::<String, _>("file_path") {
@@ -862,18 +852,16 @@ impl RecordingEngine {
             }
         }
 
-        rt.block_on(async {
-            sqlx::query("DELETE FROM recording_transcripts WHERE recording_id = ?")
-                .bind(&id_owned)
-                .execute(&db)
-                .await
-                .map_err(|e| e.to_string())?;
-            sqlx::query("DELETE FROM recording_metadata WHERE id = ?")
-                .bind(&id_owned)
-                .execute(&db)
-                .await
-                .map_err(|e| e.to_string())
-        })?;
+        sqlx::query("DELETE FROM recording_transcripts WHERE recording_id = ?")
+            .bind(&id_owned)
+            .execute(&db)
+            .await
+            .map_err(|e| e.to_string())?;
+        sqlx::query("DELETE FROM recording_metadata WHERE id = ?")
+            .bind(&id_owned)
+            .execute(&db)
+            .await
+            .map_err(|e| e.to_string())?;
 
         Ok(())
     }
@@ -888,28 +876,23 @@ impl RecordingEngine {
     }
 
     /// Update a recording's title metadata.
-    pub fn update_recording_title(&self, id: &str, title: &str) -> Result<(), String> {
-        let rt = tokio::runtime::Handle::try_current()
-            .map_err(|_| "No Tokio runtime available.".to_string())?;
-
+    pub async fn update_recording_title(&self, id: &str, title: &str) -> Result<(), String> {
         let db = self.db.clone();
         let id_owned = id.to_string();
         let title_owned = title.to_string();
 
-        rt.block_on(async {
-            sqlx::query("UPDATE recording_metadata SET title = ? WHERE id = ?")
-                .bind(&title_owned)
-                .bind(&id_owned)
-                .execute(&db)
-                .await
-                .map_err(|e| e.to_string())
-        })?;
+        sqlx::query("UPDATE recording_metadata SET title = ? WHERE id = ?")
+            .bind(&title_owned)
+            .bind(&id_owned)
+            .execute(&db)
+            .await
+            .map_err(|e| e.to_string())?;
 
         Ok(())
     }
 
     /// Cancel the current recording — stop and delete the file without persisting.
-    pub fn cancel_recording(&self) -> Result<(), String> {
+    pub async fn cancel_recording(&self) -> Result<(), String> {
         if self.status_atomic.load(Ordering::Relaxed) == status_code::IDLE {
             return Err("No recording in progress.".to_string());
         }
@@ -920,7 +903,7 @@ impl RecordingEngine {
             if self.finalized.load(Ordering::Acquire) {
                 break;
             }
-            std::thread::sleep(std::time::Duration::from_millis(100));
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         }
         self.finalized.store(false, Ordering::Release);
 
@@ -938,21 +921,21 @@ impl RecordingEngine {
         // Remove metadata by the specific recording ID (the background thread may
         // have already written it before finalized signal was set)
         if let Some(id) = recording_id {
-            let _ = self.delete_recording(&id);
+            let _ = self.delete_recording(&id).await;
         }
 
         Ok(())
     }
 
     /// Retry recording — cancel current and start a new one.
-    pub fn retry_recording(
+    pub async fn retry_recording(
         &self,
         module_id: &str,
         device_name: Option<&str>,
     ) -> Result<RecordingSession, String> {
         // Cancel current recording if any (lock-free check)
         if self.status_atomic.load(Ordering::Relaxed) != status_code::IDLE {
-            self.cancel_recording()?;
+            self.cancel_recording().await?;
         }
         // Start fresh
         self.start_recording(module_id, device_name)
@@ -1248,6 +1231,7 @@ pub async fn list_recordings(
     state
         .engine
         .list_recordings(module_id.as_deref(), limit.unwrap_or(50))
+        .await
 }
 
 #[tauri::command]
@@ -1255,7 +1239,7 @@ pub async fn delete_recording(
     state: tauri::State<'_, AudioState>,
     id: String,
 ) -> Result<(), String> {
-    state.engine.delete_recording(&id)
+    state.engine.delete_recording(&id).await
 }
 
 #[tauri::command]
@@ -1264,7 +1248,7 @@ pub async fn update_recording_title(
     id: String,
     title: String,
 ) -> Result<(), String> {
-    state.engine.update_recording_title(&id, &title)
+    state.engine.update_recording_title(&id, &title).await
 }
 
 #[tauri::command]
@@ -1297,7 +1281,7 @@ pub async fn playback_is_playing(state: tauri::State<'_, AudioState>) -> Result<
 
 #[tauri::command]
 pub async fn cancel_recording(state: tauri::State<'_, AudioState>) -> Result<(), String> {
-    state.engine.cancel_recording()
+    state.engine.cancel_recording().await
 }
 
 #[tauri::command]
@@ -1309,6 +1293,7 @@ pub async fn retry_recording(
     state
         .engine
         .retry_recording(&module_id, device_name.as_deref())
+        .await
 }
 
 #[tauri::command]

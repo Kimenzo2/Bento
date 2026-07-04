@@ -65,8 +65,10 @@ pub struct SourceValidationDto {
 #[derive(Clone, Debug)]
 struct WavLayout {
     /// Offset to the RIFF chunk size field.
+    #[allow(dead_code)]
     riff_size_offset: u64,
     /// Offset to the "fmt " chunk data.
+    #[allow(dead_code)]
     fmt_offset: u64,
     /// Offset to the "data" chunk size field.
     data_size_offset: u64,

@@ -89,7 +89,7 @@ pub async fn voice_resume(state: tauri::State<'_, AudioState>) -> Result<VoiceSe
 /// Cancel the current voice recording — discards without saving.
 #[tauri::command]
 pub async fn voice_cancel(state: tauri::State<'_, AudioState>) -> Result<(), String> {
-    state.engine.cancel_recording()
+    state.engine.cancel_recording().await
 }
 
 // ═══════════════════════════════════════════════════════════════════════

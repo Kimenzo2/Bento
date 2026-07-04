@@ -2502,6 +2502,12 @@ mod tests {
     use super::*;
     use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
 
+    /// Extract a human-readable error message.
+    /// Works for both `String` and `Json<Value>` (which lacks `Debug`).
+    fn to_display(err: impl std::fmt::Display) -> String {
+        err.to_string()
+    }
+
     async fn create_test_pool() -> SqlitePool {
         let opts = SqliteConnectOptions::new()
             .filename(":memory:")
@@ -2712,8 +2718,8 @@ mod tests {
                 project: None,
             }))
             .await
-            .expect_err("empty title should fail");
-
+            .err().expect("empty title should fail");
+        let err = to_display(err);
         assert!(err.contains("Task title is required"));
     }
 
@@ -3027,8 +3033,8 @@ mod tests {
                 task_id: "t1".to_string(),
             }))
             .await
-            .expect_err("already completed should fail");
-
+            .err().expect("already completed should fail");
+        let err = to_display(err);
         assert!(err.contains("not found or already completed"));
     }
 
@@ -3042,8 +3048,8 @@ mod tests {
                 task_id: "nonexistent".to_string(),
             }))
             .await
-            .expect_err("not found should fail");
-
+            .err().expect("not found should fail");
+        let err = to_display(err);
         assert!(err.contains("not found or already completed"));
     }
 
@@ -3113,8 +3119,8 @@ mod tests {
                 tags: None,
             }))
             .await
-            .expect_err("empty content should fail");
-
+            .err().expect("empty content should fail");
+        let err = to_display(err);
         assert!(err.contains("Both title and content"));
     }
 
@@ -3183,8 +3189,8 @@ mod tests {
                 limit: None,
             }))
             .await
-            .expect_err("empty query should fail");
-
+            .err().expect("empty query should fail");
+        let err = to_display(err);
         assert!(err.contains("Search query is required"));
     }
 
@@ -3238,8 +3244,8 @@ mod tests {
                 session_type: None,
             }))
             .await
-            .expect_err("zero duration should fail");
-
+            .err().expect("zero duration should fail");
+        let err = to_display(err);
         assert!(err.contains("Duration must be between"));
 
         let err2 = server
@@ -3249,8 +3255,8 @@ mod tests {
                 session_type: None,
             }))
             .await
-            .expect_err("too-large duration should fail");
-
+            .err().expect("too-large duration should fail");
+        let err2 = to_display(err2);
         assert!(err2.contains("Duration must be between"));
     }
 
@@ -3304,8 +3310,8 @@ mod tests {
                 activities: None,
             }))
             .await
-            .expect_err("mood 0 should fail");
-
+            .err().expect("mood 0 should fail");
+        let err = to_display(err);
         assert!(err.contains("Mood must be between"));
 
         let err2 = server
@@ -3315,8 +3321,8 @@ mod tests {
                 activities: None,
             }))
             .await
-            .expect_err("mood 6 should fail");
-
+            .err().expect("mood 6 should fail");
+        let err2 = to_display(err2);
         assert!(err2.contains("Mood must be between"));
     }
 
@@ -3378,8 +3384,8 @@ mod tests {
                 mood: None,
             }))
             .await
-            .expect_err("empty content should fail");
-
+            .err().expect("empty content should fail");
+        let err = to_display(err);
         assert!(err.contains("Journal content is required"));
     }
 
@@ -3454,8 +3460,8 @@ mod tests {
                 habit_name: "Nonexistent habit".to_string(),
             }))
             .await
-            .expect_err("nonexistent habit should fail");
-
+            .err().expect("nonexistent habit should fail");
+        let err = to_display(err);
         assert!(err.contains("not found"));
     }
 
@@ -3471,8 +3477,8 @@ mod tests {
                 habit_name: "Typing".to_string(),
             }))
             .await
-            .expect_err("non-matching name should fail");
-
+            .err().expect("non-matching name should fail");
+        let err = to_display(err);
         assert!(err.contains("not found"));
 
         let result = server

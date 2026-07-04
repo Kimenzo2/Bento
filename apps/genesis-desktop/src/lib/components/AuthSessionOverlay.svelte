@@ -2,6 +2,7 @@
   import LoaderCircleIcon from "@lucide/svelte/icons/loader-circle";
   import { invoke } from "@tauri-apps/api/core";
   import { authStore, setAuthLoginLoading } from "$lib/stores/auth.store";
+  import { openExternal } from "$lib/desktop/open-external";
   import { activeBundle, createTranslator } from "$lib/i18n";
 
   let _t = $derived.by(() => createTranslator($activeBundle));
@@ -9,7 +10,8 @@
   async function signIn() {
     setAuthLoginLoading(true);
     try {
-      await invoke("begin_google_auth");
+      const authUrl = await invoke<string>("begin_google_auth");
+      await openExternal(authUrl);
     } catch (error) {
       setAuthLoginLoading(false);
       console.error("Session re-authentication failed.", error);

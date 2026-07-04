@@ -40,7 +40,7 @@ pub mod window_effects;
 
 use chrono::Utc;
 use serde::Serialize;
-use std::{env, fs, panic::PanicHookInfo, sync::Arc, thread, time::Duration};
+use std::{env, fs, panic::PanicHookInfo, sync::Arc, thread, time::{Duration, Instant}};
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 
@@ -276,10 +276,11 @@ pub fn run() {
     }
 
     builder = builder.setup(|app| {
-        eprintln!("[init] phase=0 install_runtime_panic_hook");
+        let mut t0 = Instant::now();
         install_runtime_panic_hook(app.handle().clone());
+        eprintln!("[init] phase=0 install_runtime_panic_hook  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
 
-        eprintln!("[init] phase=1 app_data_dir");
+        t0 = Instant::now();
         let data_dir = match app.path().app_data_dir() {
             Ok(d) => d,
             Err(e) => {
@@ -287,25 +288,28 @@ pub fn run() {
                 return Err(std::io::Error::other(e).into());
             }
         };
+        eprintln!("[init] phase=1 app_data_dir  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
 
         // ── Pending restore: run on background thread so it never blocks startup ──
-        eprintln!("[init] phase=2 spawn_apply_pending_restore");
+        t0 = Instant::now();
         let restore_handle = app.handle().clone();
         std::thread::spawn(move || {
             if let Err(error) = apply_pending_restore(&restore_handle) {
                 eprintln!("[cloud-backup] pending restore skipped: {error}");
             }
         });
+        eprintln!("[init] phase=2 spawn_apply_pending_restore  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
 
-        eprintln!("[init] phase=3 load_desktop_settings");
+        t0 = Instant::now();
         let settings = settings::load_desktop_settings(app.handle());
         app.manage(DesktopRuntime::new(settings.clone()));
         if let Err(e) = settings::apply_configured_shortcuts(app.handle(), &settings) {
             eprintln!("[init] apply_configured_shortcuts failed: {e}");
         }
+        eprintln!("[init] phase=3 load_desktop_settings  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
 
         // ── Native window frame (border + shadow, custom titlebar) ──────
-        eprintln!("[init] phase=4 native_window_frame");
+        t0 = Instant::now();
         if let Some(ww) = app.get_webview_window("main") {
             #[cfg(target_os = "windows")]
             if let Err(e) = crate::window_effects::configure_native_frame(&ww) {
@@ -317,28 +321,55 @@ pub fn run() {
                 eprintln!("[window] macOS titlebar setup failed: {e}");
             });
         }
+        eprintln!("[init] phase=4 native_window_frame  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+
+        // ── Show main window early for perceived launch speed ─────────
+        // Before DB init (phase 9) which may take seconds, show the window
+        // so the user sees the app launching. Respect start_hidden setting.
+        if let Some(window) = app.get_webview_window("main") {
+            if !settings.window.start_hidden {
+                if let Err(e) = window.set_background_color(Some(tauri::webview::Color(23, 23, 23, 255))) {
+                    eprintln!("[window] set_background_color failed: {e}");
+                }
+                let _ = window.show();
+                eprintln!("[init] main window shown early (start_hidden=false)");
+            } else {
+                eprintln!("[init] start_hidden=true, deferring main window show");
+            }
+        }
 
         // ── Dynamic Island overlay window ────────────────────────────
-        eprintln!("[init] phase=5 setup_island_window");
+        t0 = Instant::now();
         if let Err(e) = crate::island::setup_island_window(app) {
             eprintln!("[island] failed to setup island window (non-fatal): {e}");
         }
+        eprintln!("[init] phase=5 setup_island_window  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
 
-        // ── Agent dock window ────────────────────────────────────────
-        eprintln!("[init] phase=6 setup_agent_window");
-        if let Err(e) = crate::agent::setup_agent_window(app) {
-            eprintln!("[agent] failed to setup agent window (non-fatal): {e}");
+        // ── Agent dock window (respects setting) ────────────────────
+        t0 = Instant::now();
+        if settings.agent_dock_enabled {
+            if let Err(e) = crate::agent::setup_agent_window(app) {
+                eprintln!("[agent] failed to setup agent window (non-fatal): {e}");
+            }
+        } else {
+            eprintln!("[agent] disabled via settings, skipping");
         }
+        eprintln!("[init] phase=6 setup_agent_window  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
 
-        // ── System tray icon (persistent background operation) ───────
-        eprintln!("[init] phase=7 setup_tray");
-        if let Err(e) = crate::agent::setup_tray(app) {
-            eprintln!("[agent] failed to setup tray icon (non-fatal): {e}");
+        // ── System tray icon ─────────────────────────────────────────
+        t0 = Instant::now();
+        if settings.agent_dock_enabled {
+            if let Err(e) = crate::agent::setup_tray(app) {
+                eprintln!("[agent] failed to setup tray icon (non-fatal): {e}");
+            }
+        } else {
+            eprintln!("[agent] tray disabled via settings, skipping");
         }
+        eprintln!("[init] phase=7 setup_tray  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
 
         // ── Global shortcut: Ctrl+Shift+A → toggle agent ──
-        eprintln!("[init] phase=8 register_shortcut_agent_toggle");
-        {
+        t0 = Instant::now();
+        if settings.agent_dock_enabled {
             let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyA);
             match app.global_shortcut().on_shortcut(
                 shortcut,
@@ -354,29 +385,33 @@ pub fn run() {
                 Ok(_) => eprintln!("[shortcut] registered Ctrl+Shift+A for agent toggle"),
                 Err(e) => eprintln!("[shortcut] failed to register agent shortcut: {e}"),
             }
+        } else {
+            eprintln!("[shortcut] agent dock disabled, skipping Ctrl+Shift+A registration");
         }
+        eprintln!("[init] phase=8 register_shortcut_agent_toggle  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
 
         // ── Database ──────────────────────────────────────────────────
-        eprintln!("[init] phase=9 init_db");
+        t0 = Instant::now();
         let db = match tauri::async_runtime::block_on(db::init_db(app.handle())) {
             Ok(db) => {
-                eprintln!("[init] phase=9 db_init_ok");
+                eprintln!("[init] phase=9 init_db  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
                 db
             }
             Err(error) => {
-                eprintln!("[init] phase=9 db_init_failed: {error}");
+                eprintln!("[init] phase=9 db_init_failed after {:.2}ms: {error}", t0.elapsed().as_secs_f64() * 1000.0);
                 return Err(std::io::Error::other(error).into());
             }
         };
         app.manage(BentoAppState::new(db));
 
         // ── Encryption service ────────────────────────────────────────
-        eprintln!("[init] phase=10 crypto_service");
+        t0 = Instant::now();
         let crypto = CryptoService::new(data_dir.clone());
         app.manage(crypto.clone());
+        eprintln!("[init] phase=10 crypto_service  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
 
         // ── Voice Engine audio state ────────────────────────────────
-        eprintln!("[init] phase=11 audio_state");
+        t0 = Instant::now();
         {
             let audio_state = crate::audio::AudioState::new(
                 data_dir.clone(),
@@ -385,14 +420,16 @@ pub fn run() {
             );
             app.manage(audio_state);
         }
+        eprintln!("[init] phase=11 audio_state  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
 
         // ── Media player audio state ────────────────────────────────
-        eprintln!("[init] phase=12 media_player");
+        t0 = Instant::now();
         crate::media_player::init_audio_state();
         crate::media_player::setup_audio_monitoring(app.handle().clone());
+        eprintln!("[init] phase=12 media_player  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
 
         // ── Global shortcut: Ctrl+Shift+I → toggle island ──
-        eprintln!("[init] phase=13 register_shortcut_island_toggle");
+        t0 = Instant::now();
         {
             let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyI);
             match app
@@ -407,8 +444,9 @@ pub fn run() {
                 Err(e) => eprintln!("[shortcut] failed to register island shortcut: {e}"),
             }
         }
+        eprintln!("[init] phase=13 register_shortcut_island_toggle  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
 
-        eprintln!("[init] phase=14 search_service");
+        t0 = Instant::now();
         let search_base_dir = match app.path().app_data_dir() {
             Ok(d) => d,
             Err(e) => {
@@ -419,8 +457,9 @@ pub fn run() {
         let search_service =
             SearchService::new(search_base_dir).map_err(|error| std::io::Error::other(error))?;
         app.manage(search_service);
+        eprintln!("[init] phase=14 search_service  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
 
-        eprintln!("[init] phase=15 auth_manager");
+        t0 = Instant::now();
         let auth_manager = match AuthManager::new(data_dir.clone()) {
             Ok(am) => am,
             Err(e) => {
@@ -429,8 +468,9 @@ pub fn run() {
             }
         };
         app.manage(auth_manager);
+        eprintln!("[init] phase=15 auth_manager  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
 
-        eprintln!("[init] phase=16 production_deep_link_setup");
+        t0 = Instant::now();
         #[cfg(not(debug_assertions))]
         {
             #[cfg(any(windows, target_os = "linux"))]
@@ -458,8 +498,9 @@ pub fn run() {
                 queue_deep_link(app.handle(), &pending, url);
             }
         }
+        eprintln!("[init] phase=16 production_deep_link_setup  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
 
-        eprintln!("[init] phase=17 background_workers");
+        t0 = Instant::now();
         crate::scheduler::spawn_scheduler_worker(
             app.state::<BentoAppState>().inner().clone(),
             app.handle().clone(),
@@ -495,6 +536,7 @@ pub fn run() {
                 }
             });
         }
+        eprintln!("[init] phase=17 background_workers  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
 
         eprintln!("[init] phase=18 setup_complete");
         Ok(())
@@ -978,6 +1020,7 @@ pub fn run() {
             crate::island::island_start_drag,
             crate::island::island_set_ignore_cursor_events,
             crate::island::set_island_enabled,
+            crate::agent::set_agent_dock_enabled,
             crate::island::focus_main_window,
             crate::island::voice_set_island_state,
         ])

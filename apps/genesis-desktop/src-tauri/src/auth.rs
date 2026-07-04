@@ -11,19 +11,36 @@ use sha2::{Digest, Sha256};
 use std::time::Instant;
 use tauri::{AppHandle, Emitter, State, WebviewWindow};
 use tauri_plugin_oauth::{start_with_config, OauthConfig};
-use tauri_plugin_opener::OpenerExt;
 use tokio::{
     sync::Mutex,
     time::{sleep, Duration},
 };
 use url::Url;
 
+/// Open a URL using OS-specific system commands to bypass flaky JS opener handoff.
+fn open_url_in_browser(_app: &AppHandle, url: &str) -> Result<(), String> {
+    eprintln!("[auth] open_url_in_browser: {url}");
+    let result = if cfg!(target_os = "windows") {
+        std::process::Command::new("rundll32")
+            .args(["url.dll,FileProtocolHandler", url])
+            .spawn()
+    } else if cfg!(target_os = "macos") {
+        std::process::Command::new("open").arg(url).spawn()
+    } else {
+        std::process::Command::new("xdg-open").arg(url).spawn()
+    };
+    match result {
+        Ok(_) => { eprintln!("[auth] browser opened via system command"); Ok(()) }
+        Err(e) => { eprintln!("[auth] system command failed: {e}"); Err(format!("Failed to open browser: {e}")) }
+    }
+}
+
 // window_bounds::transition_to_shell is imported locally in prepare_shell_window
 
 const AUTH_KEYRING_SERVICE: &str = "Bento Desktop";
 const AUTH_KEYRING_ACCOUNT: &str = "supabase-session";
 const AUTH_SESSION_FILENAME: &str = "session.json";
-const SUPABASE_REDIRECT_STATE_TTL_MS: i64 = 5 * 60 * 1000;
+const SUPABASE_REDIRECT_STATE_TTL_MS: i64 = 2 * 60 * 1000;
 const SUPABASE_REFRESH_CHECK_INTERVAL_MS: u64 = 5 * 60 * 1000;
 const SUPABASE_REFRESH_WINDOW_MS: i64 = 10 * 60 * 1000;
 const SUPABASE_OAUTH_PORT: u16 = 47831;
@@ -383,6 +400,7 @@ struct AuthInner {
     billing_cache: Mutex<BillingCache>, // cached billing profile
     refresh_controller: Mutex<Option<BillingRefreshController>>, // background poller
     data_dir: PathBuf,                  // app data directory — used for file-based session fallback
+    app_handle: Mutex<Option<AppHandle>>,
 }
 
 #[derive(Clone)]
@@ -400,11 +418,13 @@ impl AuthManager {
                 billing_cache: Mutex::new(BillingCache::new()),
                 refresh_controller: Mutex::new(None),
                 data_dir,
+                app_handle: Mutex::new(None),
             }),
         })
     }
 
     pub async fn bootstrap(&self, app: AppHandle) -> Result<AuthBootstrapState, String> {
+        *self.inner.app_handle.lock().await = Some(app.clone());
         let cached_bootstrap = {
             let state = self.inner.state.lock().await;
             match state.bootstrap {
@@ -471,36 +491,70 @@ impl AuthManager {
         }
     }
 
-    pub async fn start_google_login(&self, app: AppHandle) -> Result<(), String> {
+    pub async fn start_google_login(&self, app: AppHandle) -> Result<String, String> {
+        eprintln!("[auth] start_google_login: BEGIN");
         let config = self.inner.config.clone();
+
+        eprintln!("[auth] start_google_login: creating OAuth flow");
         let flow = self.new_flow();
+        eprintln!("[auth] start_google_login: flow created, started_at_ms={}", flow.started_at_ms);
+
+        let stale_port = {
+            let mut state = self.inner.state.lock().await;
+            if let Some(active_flow) = state.active_flow.as_ref() {
+                let age_ms = unix_ms().saturating_sub(active_flow.started_at_ms);
+                if age_ms < SUPABASE_REDIRECT_STATE_TTL_MS {
+                    eprintln!("[auth] start_google_login: ERROR — active flow already exists");
+                    return Err("An auth flow is already active.".to_string());
+                }
+
+                eprintln!("[auth] start_google_login: clearing stale active flow");
+                let stale_port = active_flow.port;
+                state.active_flow = None;
+                Some(stale_port)
+            } else {
+                None
+            }
+        };
+
+        if let Some(stale_port) = stale_port.filter(|port| *port != 0) {
+            let _ = tauri_plugin_oauth::cancel(stale_port);
+        }
 
         {
             let mut state = self.inner.state.lock().await;
-            if state.active_flow.is_some() {
-                return Err("An auth flow is already active.".to_string());
-            }
             state.active_flow = Some(flow.clone());
+            eprintln!("[auth] start_google_login: active flow set");
         }
 
+        eprintln!("[auth] start_google_login: starting OAuth server on port {}", SUPABASE_OAUTH_PORT);
         let manager = self.clone();
         let app_for_callback = app.clone();
-        let port = start_with_config(
+        let port = match start_with_config(
             OauthConfig {
                 ports: Some(vec![SUPABASE_OAUTH_PORT]),
                 response: None,
             },
             move |redirect_url| {
+                eprintln!("[auth] OAuth server received redirect: {redirect_url}");
                 let manager = manager.clone();
                 let app = app_for_callback.clone();
                 tauri::async_runtime::spawn(async move {
                     if let Err(error) = manager.handle_redirect(app.clone(), redirect_url).await {
+                        eprintln!("[auth] handle_redirect failed: {error}");
                         manager.emit_error(&app, error).await;
                     }
                 });
             },
-        )
-        .map_err(|error| error.to_string())?;
+        ) {
+            Ok(port) => port,
+            Err(error) => {
+                eprintln!("[auth] start_with_config FAILED: {error}");
+                self.clear_flow().await;
+                return Err(error.to_string());
+            }
+        };
+        eprintln!("[auth] OAuth server started on port {port}");
 
         {
             let mut state = self.inner.state.lock().await;
@@ -509,13 +563,15 @@ impl AuthManager {
             }
         }
 
+        eprintln!("[auth] start_google_login: building authorize URL");
         let auth_url = self.build_authorize_url(&flow, &config)?;
-        app.opener()
-            .open_url(auth_url.as_str(), None::<&str>)
-            .map_err(|error| error.to_string())?;
+        eprintln!("[auth] start_google_login: auth_url={auth_url}");
 
-        self.spawn_timeout_watchdog(app, port, flow.started_at_ms);
-        Ok(())
+        eprintln!("[auth] start_google_login: spawning timeout watchdog");
+        self.spawn_timeout_watchdog(app.clone(), port, flow.started_at_ms);
+
+        eprintln!("[auth] start_google_login: returning auth_url to frontend");
+        Ok(auth_url.to_string())
     }
 
     pub async fn prepare_login_window(window: WebviewWindow) -> Result<(), String> {
@@ -960,7 +1016,7 @@ impl AuthManager {
             let _ = tauri_plugin_oauth::cancel(port);
             manager.clear_flow().await;
             manager
-                .emit_error(&app, "OAuth login timed out after 5 minutes.".to_string())
+                .emit_error(&app, "OAuth login timed out after 2 minutes.".to_string())
                 .await;
         });
     }
@@ -1075,6 +1131,11 @@ impl AuthManager {
         tauri::async_runtime::spawn(async move {
             if let Err(error) = manager.sync_profile_to_supabase(&session).await {
                 eprintln!("[Auth] Failed to sync profile to Supabase: {error}");
+                if let Some(ref handle) = *manager.inner.app_handle.lock().await {
+                    let _ = handle.emit("auth:error", serde_json::json!({
+                        "message": format!("Profile sync failed: {error}")
+                    }));
+                }
             }
         });
     }
@@ -1797,7 +1858,7 @@ pub async fn get_auth_bootstrap_state(
 pub async fn begin_google_auth(
     app: AppHandle,
     manager: State<'_, AuthManager>,
-) -> Result<(), String> {
+) -> Result<String, String> {
     manager.start_google_login(app).await
 }
 
@@ -1824,9 +1885,7 @@ pub async fn open_external_url(app: AppHandle, url: String) -> Result<(), String
         return Err("Only http(s) URLs can be opened externally.".to_string());
     }
 
-    app.opener()
-        .open_url(parsed.as_str(), None::<&str>)
-        .map_err(|error| error.to_string())
+    open_url_in_browser(&app, parsed.as_str())
 }
 
 #[tauri::command]

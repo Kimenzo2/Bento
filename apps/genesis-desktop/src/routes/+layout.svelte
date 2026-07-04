@@ -188,9 +188,6 @@
       unlistenError = listen<{ message: string }>(
         "auth:error",
         (event) => {
-          if (get(authStore).status === "restored") {
-            return;
-          }
           setAuthError(event.payload.message);
           setAuthLoginLoading(false);
         }

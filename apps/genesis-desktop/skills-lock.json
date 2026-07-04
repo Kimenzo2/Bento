@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "gabrielobholz-corner-smoothing": {
+      "source": "gabrielobholz/corner-smoothing-skill",
+      "sourceType": "github",
+      "skillPath": "skills/gabrielobholz-corner-smoothing/SKILL.md",
+      "computedHash": "fc0d6a8ac0ad7977127093796e34920396cfc91d97bc935bec6b3bc1d613bd1c"
+    }
+  }
+}

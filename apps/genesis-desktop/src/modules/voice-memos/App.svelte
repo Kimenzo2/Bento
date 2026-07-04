@@ -87,6 +87,7 @@
       duration: r.duration,
       created: r.created,
       blobUrl: URL.createObjectURL(r.audio),
+      ext: r.ext,
     }));
   }
 
@@ -236,7 +237,14 @@
 
   function playMemo(id: string) {
     const memo = memos.find((m) => m.id === id);
-    if (!memo?.blobUrl) return;
+    if (!memo) {
+      console.warn("[voice-memos] playMemo: memo not found", id);
+      return;
+    }
+    if (!memo.blobUrl) {
+      console.warn("[voice-memos] playMemo: memo has no blobUrl", id, memo);
+      return;
+    }
     if (playingId === id) {
       currentAudio?.pause();
       currentAudio = null;
@@ -247,6 +255,7 @@
     currentAudio?.pause();
     clearInterval(progressInterval);
     playingId = id;
+    console.log("[voice-memos] playMemo: starting playback", id, memo.blobUrl);
     const audio = new Audio(memo.blobUrl);
     currentAudio = audio;
     playProgress = 0;
@@ -254,8 +263,13 @@
     audio.addEventListener("loadedmetadata", () => {
       if (currentAudio === audio && audio.duration && isFinite(audio.duration)) {
         playDuration = Math.floor(audio.duration);
+        console.log("[voice-memos] loadedmetadata: duration", playDuration);
       }
     });
+    audio.addEventListener("error", (e) => {
+      const mediaError = audio.error;
+      console.error("[voice-memos] audio error:", mediaError?.code, mediaError?.message, e);
+    }, { once: true });
     progressInterval = setInterval(() => {
       if (currentAudio && !currentAudio.paused) {
         playProgress = currentAudio.currentTime;
@@ -263,6 +277,7 @@
     }, 200);
     audio.onended = () => {
       if (currentAudio === audio) {
+        console.log("[voice-memos] playback ended");
         currentAudio = null;
         playingId = null;
         playProgress = playDuration;
@@ -270,9 +285,17 @@
       }
     };
     audio.onerror = () => {
-      if (currentAudio === audio) { currentAudio = null; playingId = null; clearInterval(progressInterval); }
+      if (currentAudio === audio) {
+        console.error("[voice-memos] playback error (onerror)");
+        currentAudio = null;
+        playingId = null;
+        clearInterval(progressInterval);
+      }
     };
-    audio.play().catch(() => {
+    audio.play().then(() => {
+      console.log("[voice-memos] playback started successfully");
+    }).catch((err) => {
+      console.error("[voice-memos] audio.play() rejected:", err);
       if (currentAudio === audio) { currentAudio = null; playingId = null; clearInterval(progressInterval); }
     });
   }

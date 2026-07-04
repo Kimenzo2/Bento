@@ -44,7 +44,7 @@ fn log_timing(category: &str, op: &str, start: Instant, detail: impl std::fmt::D
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 /// Maximum number of items returned by list/search.
-const DEFAULT_PAGE_SIZE: u32 = 200;
+const DEFAULT_PAGE_SIZE: u32 = 500;
 /// Max preview length (characters) stored in the DB.
 const PREVIEW_MAX_LEN: usize = 200;
 /// Clipboard polling interval (milliseconds).
@@ -647,7 +647,7 @@ pub async fn clipboard_list(
 ) -> Result<Vec<ClipEntry>, String> {
     let _start = Instant::now();
     let pool = state.db();
-    let limit = limit.unwrap_or(DEFAULT_PAGE_SIZE).min(1000) as i64;
+    let limit = limit.unwrap_or(DEFAULT_PAGE_SIZE) as i64;
     let offset = offset.unwrap_or(0) as i64;
 
     let mut qb = sqlx::query_builder::QueryBuilder::new(
@@ -737,38 +737,6 @@ pub async fn clipboard_save(
     let pool = state.db();
     let hash = content_hash(content.as_bytes());
     let now = time::now_ms();
-
-    // O(1) dedup: try to find by hash first
-    let existing_id: Option<String> =
-        sqlx::query_scalar("SELECT id FROM clipboard_items WHERE content_hash = ?")
-            .bind(&hash)
-            .fetch_optional(&pool)
-            .await
-            .map_err(|e| e.to_string())?;
-
-    if let Some(existing_id) = existing_id {
-        // Update timestamp and return existing
-        sqlx::query("UPDATE clipboard_items SET created_at = ?, updated_at = ? WHERE id = ?")
-            .bind(now)
-            .bind(now)
-            .bind(&existing_id)
-            .execute(&pool)
-            .await
-            .map_err(|e| e.to_string())?;
-
-        // Fetch full entry
-        let row = sqlx::query(
-            "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
-             FROM clipboard_items WHERE id = ?"
-        )
-        .bind(&existing_id)
-        .fetch_one(&pool)
-        .await
-        .map_err(|e| e.to_string())?;
-
-        return Ok(ClipEntry::from_row(row));
-    }
-
     let id = uuid::Uuid::new_v4().to_string();
     let kind = detect_kind(&content);
     let preview = if kind != ClipKind::Image {
@@ -787,9 +755,11 @@ pub async fn clipboard_save(
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     let (content_path_opt, stored_content) = store_content(&data_dir, &hash, &content).await?;
 
-    sqlx::query(
+    // Atomic dedup via INSERT OR IGNORE + UNIQUE INDEX on content_hash.
+    // Avoids check-then-insert race conditions between concurrent saves.
+    let result = sqlx::query(
         r#"
-        INSERT INTO clipboard_items (id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, updated_at)
+        INSERT OR IGNORE INTO clipboard_items (id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)
         "#
     )
@@ -807,6 +777,28 @@ pub async fn clipboard_save(
     .execute(&pool)
     .await
     .map_err(|e| e.to_string())?;
+
+    if result.rows_affected() == 0 {
+        // Duplicate — update timestamp and return existing
+        sqlx::query("UPDATE clipboard_items SET created_at = ?, updated_at = ? WHERE content_hash = ?")
+            .bind(now)
+            .bind(now)
+            .bind(&hash)
+            .execute(&pool)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let row = sqlx::query(
+            "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+             FROM clipboard_items WHERE content_hash = ?"
+        )
+        .bind(&hash)
+        .fetch_one(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        return Ok(ClipEntry::from_row(row));
+    }
 
     let entry = ClipEntry {
         id,
@@ -1159,7 +1151,7 @@ pub async fn clipboard_search(
         return clipboard_list(state, limit, None, None, None, None).await;
     }
 
-    let limit = limit.unwrap_or(DEFAULT_PAGE_SIZE).min(1000) as usize;
+    let limit = limit.unwrap_or(DEFAULT_PAGE_SIZE) as usize;
 
     // Try Tantivy search first
     if let Some(search) = app.try_state::<SearchService>() {
@@ -1259,42 +1251,6 @@ async fn save_clipboard_image_entry(
     let pool = state.db();
     let hash = content_hash(image_bytes);
     let now = time::now_ms();
-
-    // O(1) dedup via hash
-    let exists: bool =
-        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM clipboard_items WHERE content_hash = ?")
-            .bind(&hash)
-            .fetch_one(&pool)
-            .await
-            .map_err(|e| e.to_string())?
-            > 0;
-
-    if exists {
-        sqlx::query(
-            "UPDATE clipboard_items SET created_at = ?, updated_at = ? WHERE content_hash = ?",
-        )
-        .bind(now)
-        .bind(now)
-        .bind(&hash)
-        .execute(&pool)
-        .await
-        .map_err(|e| e.to_string())?;
-        log_timing(
-            "Clipboard::ImageSave",
-            "dedup-hit",
-            _start,
-            format_args!("{} bytes", bytes_len),
-        );
-        return Ok(());
-    }
-
-    log_timing(
-        "Clipboard::ImageSave",
-        "dedup-miss",
-        _start,
-        format_args!("{} bytes → storing", bytes_len),
-    );
-
     let id = uuid::Uuid::new_v4().to_string();
     let byte_size = image_bytes.len() as i64;
 
@@ -1317,9 +1273,10 @@ async fn save_clipboard_image_entry(
     let content_path_str = Some(path.to_string_lossy().to_string());
     let preview = format!("[Image] {:.7}…", &hash[..7]);
 
-    sqlx::query(
+    // Atomic dedup via INSERT OR IGNORE + UNIQUE INDEX on content_hash.
+    let result = sqlx::query(
         r#"
-        INSERT INTO clipboard_items (id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, updated_at)
+        INSERT OR IGNORE INTO clipboard_items (id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?)
         "#
     )
@@ -1337,34 +1294,55 @@ async fn save_clipboard_image_entry(
     .await
     .map_err(|e| e.to_string())?;
 
-    let hash_str = hash.clone();
-    let entry = ClipEntry {
-        id,
-        kind: ClipKind::Image,
-        content: String::new(),
-        content_hash: hash,
-        preview: Some(preview),
-        source: None,
-        byte_size,
-        pinned: false,
-        favorite: false,
-        is_sensitive: false,
-        timestamp: now,
-        external_content: Some(true),
-    };
+    if result.rows_affected() > 0 {
+        let hash_log = hash.clone();
+        let entry = ClipEntry {
+            id,
+            kind: ClipKind::Image,
+            content: String::new(),
+            content_hash: hash,
+            preview: Some(preview),
+            source: None,
+            byte_size,
+            pinned: false,
+            favorite: false,
+            is_sensitive: false,
+            timestamp: now,
+            external_content: Some(true),
+        };
 
-    // Index in Tantivy
-    index_clip_entry(app, &entry).await;
+        // Index in Tantivy
+        index_clip_entry(app, &entry).await;
 
-    // Notify frontend
-    let _ = app.emit("clipboard://new-entry", entry);
+        // Notify frontend
+        let _ = app.emit("clipboard://new-entry", entry);
 
-    log_timing(
-        "Clipboard::ImageSave",
-        "complete",
-        _start,
-        format_args!("{} bytes, hash={:.12}", bytes_len, hash_str),
-    );
+        log_timing(
+            "Clipboard::ImageSave",
+            "complete",
+            _start,
+            format_args!("{} bytes, hash={:.12}", bytes_len, hash_log),
+        );
+    } else {
+        // Duplicate — update timestamp only
+        sqlx::query(
+            "UPDATE clipboard_items SET created_at = ?, updated_at = ? WHERE content_hash = ?",
+        )
+        .bind(now)
+        .bind(now)
+        .bind(&hash)
+        .execute(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        log_timing(
+            "Clipboard::ImageSave",
+            "dedup-hit",
+            _start,
+            format_args!("{} bytes", bytes_len),
+        );
+    }
+
     Ok(())
 }
 
@@ -2052,52 +2030,44 @@ async fn clipboard_poller_task(app: AppHandle) {
 }
 
 /// Writer task: receives clipboard changes and saves them to the DB.
+/// Every change is saved individually — no batch-drain merging that could
+/// silently discard items. Rapid copies (including mixed text/image/html)
+/// are all persisted; dedup by content_hash prevents redundant DB writes.
 async fn clipboard_writer_task(app: AppHandle, mut save_rx: mpsc::Receiver<ClipboardChange>) {
     let mut total_processed = 0u64;
     let mut total_save_time = std::time::Duration::ZERO;
 
     while let Some(change) = save_rx.recv().await {
         let _batch_start = Instant::now();
-
-        // Small delay to batch rapid copies
-        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-
-        // Drain any additional changes that arrived during the delay (keep latest)
         let mut batch_size = 1u32;
-        let mut content = change.content;
-        let mut image_data = change.image_data;
-        let mut html_data = change.html_data;
-        while let Ok(latest) = save_rx.try_recv() {
+
+        // Collect ALL pending changes into a vec — never merge/drop.
+        let mut changes = vec![change];
+        while let Ok(next) = save_rx.try_recv() {
             batch_size += 1;
-            if !latest.content.is_empty() {
-                content = latest.content;
-            }
-            if latest.image_data.is_some() {
-                image_data = latest.image_data;
-            }
-            if latest.html_data.is_some() {
-                html_data = latest.html_data;
-            }
+            changes.push(next);
         }
 
         let state = app.state::<BentoAppState>();
         let save_start = Instant::now();
 
-        if let Some(img_bytes) = image_data {
-            if !img_bytes.is_empty() {
-                if let Err(e) = save_clipboard_image_entry(&app, &state, &img_bytes).await {
-                    eprintln!("[clipboard] failed to save image entry: {e}");
+        for ch in &changes {
+            if let Some(ref img_bytes) = ch.image_data {
+                if !img_bytes.is_empty() {
+                    if let Err(e) = save_clipboard_image_entry(&app, &state, img_bytes).await {
+                        eprintln!("[clipboard] failed to save image entry: {e}");
+                    }
                 }
-            }
-        } else if let Some(html) = html_data {
-            if !html.is_empty() {
-                if let Err(e) = save_clipboard_entry(&app, &state, &html).await {
-                    eprintln!("[clipboard] failed to save HTML entry: {e}");
+            } else if let Some(ref html) = ch.html_data {
+                if !html.is_empty() {
+                    if let Err(e) = save_clipboard_entry(&app, &state, html).await {
+                        eprintln!("[clipboard] failed to save HTML entry: {e}");
+                    }
                 }
-            }
-        } else if !content.is_empty() {
-            if let Err(e) = save_clipboard_entry(&app, &state, &content).await {
-                eprintln!("[clipboard] failed to save clipboard entry: {e}");
+            } else if !ch.content.is_empty() {
+                if let Err(e) = save_clipboard_entry(&app, &state, &ch.content).await {
+                    eprintln!("[clipboard] failed to save clipboard entry: {e}");
+                }
             }
         }
 
@@ -2399,30 +2369,6 @@ async fn save_clipboard_entry(
     let pool = state.db();
     let hash = content_hash(content.as_bytes());
     let now = time::now_ms();
-
-    // O(1) dedup via hash
-    let exists: bool =
-        sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM clipboard_items WHERE content_hash = ?")
-            .bind(&hash)
-            .fetch_one(&pool)
-            .await
-            .map_err(|e| e.to_string())?
-            > 0;
-
-    if exists {
-        // Update timestamp
-        sqlx::query(
-            "UPDATE clipboard_items SET created_at = ?, updated_at = ? WHERE content_hash = ?",
-        )
-        .bind(now)
-        .bind(now)
-        .bind(&hash)
-        .execute(&pool)
-        .await
-        .map_err(|e| e.to_string())?;
-        return Ok(());
-    }
-
     let id = uuid::Uuid::new_v4().to_string();
     let kind = detect_kind(content);
     let preview = if kind != ClipKind::Image {
@@ -2441,9 +2387,11 @@ async fn save_clipboard_entry(
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     let (content_path_opt, stored_content) = store_content(&data_dir, &hash, content).await?;
 
-    sqlx::query(
+    // Atomic dedup via INSERT OR IGNORE + UNIQUE INDEX on content_hash.
+    // Avoids check-then-insert race condition between concurrent saves.
+    let result = sqlx::query(
         r#"
-        INSERT INTO clipboard_items (id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, updated_at)
+        INSERT OR IGNORE INTO clipboard_items (id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)
         "#
     )
@@ -2462,30 +2410,43 @@ async fn save_clipboard_entry(
     .await
     .map_err(|e| e.to_string())?;
 
-    let entry = ClipEntry {
-        id,
-        kind,
-        content: content.to_string(),
-        content_hash: hash,
-        preview: if preview.is_empty() {
-            None
-        } else {
-            Some(preview)
-        },
-        source: None,
-        byte_size,
-        pinned: false,
-        favorite: false,
-        is_sensitive: is_sensitive == 1,
-        timestamp: now,
-        external_content: None,
-    };
+    if result.rows_affected() > 0 {
+        let entry = ClipEntry {
+            id,
+            kind,
+            content: content.to_string(),
+            content_hash: hash,
+            preview: if preview.is_empty() {
+                None
+            } else {
+                Some(preview)
+            },
+            source: None,
+            byte_size,
+            pinned: false,
+            favorite: false,
+            is_sensitive: is_sensitive == 1,
+            timestamp: now,
+            external_content: None,
+        };
 
-    // Index in Tantivy
-    index_clip_entry(app, &entry).await;
+        // Index in Tantivy
+        index_clip_entry(app, &entry).await;
 
-    // Notify frontend
-    let _ = app.emit("clipboard://new-entry", entry);
+        // Notify frontend
+        let _ = app.emit("clipboard://new-entry", entry);
+    } else {
+        // Duplicate — just update timestamp
+        sqlx::query(
+            "UPDATE clipboard_items SET created_at = ?, updated_at = ? WHERE content_hash = ?",
+        )
+        .bind(now)
+        .bind(now)
+        .bind(&hash)
+        .execute(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
+    }
 
     Ok(())
 }

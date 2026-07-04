@@ -61,10 +61,6 @@ import { time } from "$lib/utils/time";
   let copyFeedback= $state<string | null>(null);
   let loading     = $state(true);
   let pasteMode   = $state<"plain" | "rich" | "image">("plain");
-  let imageDisplayCount = $state(20);
-  $effect(() => {
-    if (selectedSection === "Images") imageDisplayCount = 20;
-  });
   let unlisten: (() => void) | null = null;
 
   // ── Derived ───────────────────────────────────────────────────────
@@ -74,23 +70,48 @@ import { time } from "$lib/utils/time";
     lightboxHash ? imageEntries.findIndex(c => c.contentHash === lightboxHash) : -1
   );
 
+  // Search state — populated by Rust backend search for full DB coverage.
+  // When active, replaces the local paginated view with server-side results.
+  let searchResults = $state<ClipEntry[] | null>(null);
+  let searchLoading = $state(false);
+
   const filtered = $derived.by(() => {
-    let pool = clips;
-    if (selectedSection === "Pinned")   pool = pool.filter(c => c.pinned);
-    else if (selectedSection === "Images")   pool = pool.filter(c => c.kind === "image");
-    else if (selectedSection === "Snippets") pool = pool.filter(c => c.kind === "text" || c.kind === "code" || c.kind === "html");
-    else if (selectedSection === "Sensitive") pool = pool.filter(c => c.isSensitive);
+    const pool = searchResults ?? clips;
+    let filtered = pool;
+    if (selectedSection === "Pinned")   filtered = filtered.filter(c => c.pinned);
+    else if (selectedSection === "Images")   filtered = filtered.filter(c => c.kind === "image");
+    else if (selectedSection === "Snippets") filtered = filtered.filter(c => c.kind === "text" || c.kind === "code" || c.kind === "html");
+    else if (selectedSection === "Sensitive") filtered = filtered.filter(c => c.isSensitive);
 
-    const q = searchQuery.trim().toLowerCase();
-    if (q) pool = pool.filter(c =>
-      c.content.toLowerCase().includes(q) || c.preview?.toLowerCase().includes(q)
-    );
-
-    return [...pool].sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       return b.timestamp - a.timestamp;
     });
   });
+
+  let searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function onSearchInput(q: string) {
+    searchQuery = q;
+    if (searchTimer) clearTimeout(searchTimer);
+    if (!q.trim()) {
+      searchResults = null;
+      return;
+    }
+    searchTimer = setTimeout(() => performSearch(q.trim()), 300);
+  }
+
+  async function performSearch(q: string) {
+    searchLoading = true;
+    try {
+      const results = await invoke<ClipEntry[]>("clipboard_search", { query: q, limit: 500 });
+      searchResults = results;
+    } catch {
+      searchResults = null;
+    } finally {
+      searchLoading = false;
+    }
+  }
 
   // ── Helpers ───────────────────────────────────────────────────────
   function makePreview(entry: ClipEntry): string {
@@ -132,6 +153,10 @@ import { time } from "$lib/utils/time";
   }
 
   // ── Image path cache ────────────────────────────────────────────
+  const PAGE_SIZE = 200;
+  let totalCount = $state(0);
+  let hasMore = $state(true);
+  let loadingMore = $state(false);
   let imagePathCache = $state<Map<string, string>>(new Map());
 
   async function preloadImagePaths(entries: ClipEntry[]) {
@@ -139,26 +164,64 @@ import { time } from "$lib/utils/time";
     if (imageHashes.length === 0) return;
     try {
       const result = await invoke<Record<string, string | null>>("clipboard_get_image_paths", { hashes: imageHashes });
-      const cached = new Map<string, string>();
       for (const [hash, path] of Object.entries(result)) {
-        if (path) cached.set(hash, path);
+        if (path) imagePathCache.set(hash, path);
       }
-      imagePathCache = cached;
     } catch {}
   }
 
   // ── Backend ───────────────────────────────────────────────────────
-  async function loadHistory() {
+  async function loadInitial() {
     loading = true;
     try {
-      const rows = await invoke<ClipEntry[]>("clipboard_list", { limit: 100 });
+      const [rows, count] = await Promise.all([
+        invoke<ClipEntry[]>("clipboard_list", { limit: PAGE_SIZE, offset: 0 }),
+        invoke<number>("clipboard_count"),
+      ]);
       clips = rows;
+      totalCount = count;
+      hasMore = clips.length < totalCount;
       if (clips.length > 0 && !activeId) activeId = clips[0].id;
       void preloadImagePaths(rows);
     } catch {
       clips = [];
     } finally {
       loading = false;
+    }
+  }
+
+  async function loadMore() {
+    if (loadingMore || !hasMore) return;
+    loadingMore = true;
+    try {
+      const rows = await invoke<ClipEntry[]>("clipboard_list", { limit: PAGE_SIZE, offset: clips.length });
+      if (rows.length === 0) {
+        hasMore = false;
+        return;
+      }
+      // Merge new items — skip any that already exist (dedup by contentHash)
+      const existingHashes = new Set(clips.map(c => c.contentHash));
+      const newItems = rows.filter(r => !existingHashes.has(r.contentHash));
+      if (newItems.length === 0) {
+        hasMore = false;
+        return;
+      }
+      clips = [...clips, ...newItems];
+      hasMore = clips.length < totalCount;
+      void preloadImagePaths(newItems);
+    } catch {
+      // Silently fail — user can scroll again to retry
+    } finally {
+      loadingMore = false;
+    }
+  }
+
+  function onListScroll(e: Event) {
+    const el = e.currentTarget as HTMLElement;
+    if (!el) return;
+    const threshold = 200;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - threshold) {
+      void loadMore();
     }
   }
 
@@ -302,7 +365,7 @@ import { time } from "$lib/utils/time";
   // ── Lifecycle ─────────────────────────────────────────────────────
   onMount(() => {
     ensureModuleSection(moduleId, sectionLabels);
-    void loadHistory();
+    void loadInitial();
     void startListening();
     window.addEventListener("keydown", handleKeydown);
   });
@@ -354,16 +417,17 @@ import { time } from "$lib/utils/time";
         {#if selectedSection === "History" || selectedSection === "Pinned" || selectedSection === "Snippets"}
           <div class="cb-shell__search" data-cb-search>
             <SearchIcon size={14} class="cb-shell__search-icon" />
-            <input
-              type="search"
-              placeholder="Search… ⌘F"
-              bind:value={searchQuery}
-              aria-label="Search clipboard"
-              autocomplete="off"
-              spellcheck="false"
-            />
+              <input
+                  type="search"
+                  placeholder="Search… ⌘F"
+                  value={searchQuery}
+                  oninput={(e) => onSearchInput((e.target as HTMLInputElement).value)}
+                  aria-label="Search clipboard"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
             {#if searchQuery}
-              <button class="cb-shell__search-clear" onclick={() => searchQuery = ""}><XIcon size={13} /></button>
+              <button class="cb-shell__search-clear" onclick={() => onSearchInput("")}><XIcon size={13} /></button>
             {/if}
           </div>
         {/if}
@@ -395,7 +459,7 @@ import { time } from "$lib/utils/time";
                 <span class="cb-hint"> · ↑↓ to navigate · ↵ to copy</span>
               </CardDescription>
             </CardHeader>
-            <CardContent class="cb-clip-list">
+            <CardContent class="cb-clip-list" onscroll={onListScroll}>
               {#if filtered.length === 0}
                 <p class="cb-muted cb-muted--center">
                   {searchQuery ? "No results for \"" + searchQuery + "\"" : "Nothing here yet."}
@@ -449,6 +513,11 @@ import { time } from "$lib/utils/time";
                     {/if}
                   </div>
                 {/each}
+                {#if loadingMore}
+                  <p class="cb-muted cb-muted--center" style="padding:16px">Loading more…</p>
+                {:else if !hasMore && filtered.length >= PAGE_SIZE}
+                  <p class="cb-muted cb-muted--center" style="padding:16px;opacity:0.5">All {totalCount} items loaded</p>
+                {/if}
               {/if}
             </CardContent>
           </Card>
@@ -547,10 +616,8 @@ import { time } from "$lib/utils/time";
       {:else if selectedSection === "Images"}
         <!-- ─── IMAGES (virtualized) ─── -->
         {#if filtered.length > 0}
-          <div
-            class="cb-image-grid"
-          >
-            {#each filtered.slice(0, imageDisplayCount) as clip (clip.id)}
+          <div class="cb-image-grid" onscroll={onListScroll}>
+            {#each filtered as clip (clip.id)}
               <div
                 class="cb-image-card"
                 role="button"
@@ -584,14 +651,12 @@ import { time } from "$lib/utils/time";
                 </span>
               </div>
             {/each}
+            {#if loadingMore}
+              <p class="cb-muted" style="grid-column:1/-1;padding:20px;text-align:center">Loading more images…</p>
+            {:else if !hasMore && filtered.length >= PAGE_SIZE}
+              <p class="cb-muted" style="grid-column:1/-1;padding:20px;text-align:center;opacity:0.5">All {totalCount} items loaded</p>
+            {/if}
           </div>
-          {#if filtered.length > imageDisplayCount}
-            <div class="cb-image-show-more">
-              <button onclick={() => imageDisplayCount += 20}>
-                Show {Math.min(20, filtered.length - imageDisplayCount)} more ({filtered.length - imageDisplayCount} remaining)
-              </button>
-            </div>
-          {/if}
         {:else}
           <div class="cb-image-empty">
             <ImageIcon size={32} />

@@ -511,546 +511,158 @@ pub async fn run_encrypted_migrations(pool: &SqlitePool) -> Result<(), String> {
 }
 
 async fn run_migrations(pool: &SqlitePool) -> Result<(), String> {
-    sqlx::query("PRAGMA journal_mode=WAL")
-        .execute(pool)
-        .await
-        .map_err(|error| error.to_string())?;
-    sqlx::query("PRAGMA foreign_keys=ON")
-        .execute(pool)
-        .await
-        .map_err(|error| error.to_string())?;
-    let migrations = [
+    // PRAGMA journal_mode=WAL and foreign_keys=ON are already set via
+    // SqliteConnectOptions in init_db — no need to re-apply here.
+
+    // ── Batched DDL migrations (fewer round-trips = faster startup) ─────
+    // Multiple semicolon-separated statements per query. ALTER TABLE
+    // statements are kept separate because they may fail harmlessly when
+    // the column already exists (handled by the per-statement loop below).
+    let batches = [
+        // Batch 1: Core notes + objects schema
         r#"
-        CREATE TABLE IF NOT EXISTS notes (
-            id TEXT PRIMARY KEY,
-            title TEXT NOT NULL DEFAULT '',
-            content TEXT NOT NULL DEFAULT '',
-            tags TEXT NOT NULL DEFAULT '[]',
-            pinned INTEGER NOT NULL DEFAULT 0,
-            created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL
-        )
+        CREATE TABLE IF NOT EXISTS notes (id TEXT PRIMARY KEY, title TEXT NOT NULL DEFAULT '', content TEXT NOT NULL DEFAULT '', tags TEXT NOT NULL DEFAULT '[]', pinned INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS objects (id TEXT PRIMARY KEY, type TEXT NOT NULL, layout TEXT NOT NULL, name TEXT, icon TEXT, cover TEXT, is_archived INTEGER NOT NULL DEFAULT 0, is_deleted INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, space_id TEXT, details TEXT NOT NULL DEFAULT '{}');
+        CREATE INDEX IF NOT EXISTS idx_objects_type_updated ON objects(type, updated_at DESC);
+        CREATE TABLE IF NOT EXISTS note_objects (id TEXT PRIMARY KEY, title TEXT NOT NULL DEFAULT '', icon TEXT, cover TEXT, tags TEXT NOT NULL DEFAULT '[]', pinned INTEGER NOT NULL DEFAULT 0, layout TEXT NOT NULL DEFAULT 'note', is_archived INTEGER NOT NULL DEFAULT 0, details TEXT NOT NULL DEFAULT '{}', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+        CREATE INDEX IF NOT EXISTS idx_note_objects_updated ON note_objects(is_archived, pinned DESC, updated_at DESC)
         "#,
+        // Batch 2: Blocks + relations
         r#"
-        CREATE TABLE IF NOT EXISTS objects (
-            id TEXT PRIMARY KEY,
-            type TEXT NOT NULL,
-            layout TEXT NOT NULL,
-            name TEXT,
-            icon TEXT,
-            cover TEXT,
-            is_archived INTEGER NOT NULL DEFAULT 0,
-            is_deleted INTEGER NOT NULL DEFAULT 0,
-            created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL,
-            space_id TEXT,
-            details TEXT NOT NULL DEFAULT '{}'
-        )
+        CREATE TABLE IF NOT EXISTS blocks (id TEXT PRIMARY KEY, object_id TEXT NOT NULL, parent_id TEXT, type TEXT NOT NULL, content TEXT NOT NULL DEFAULT '{}', fields TEXT NOT NULL DEFAULT '{}', align INTEGER NOT NULL DEFAULT 0, bg_color TEXT NOT NULL DEFAULT '', position INTEGER NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, FOREIGN KEY (object_id) REFERENCES objects(id) ON DELETE CASCADE, FOREIGN KEY (parent_id) REFERENCES blocks(id) ON DELETE SET NULL);
+        CREATE INDEX IF NOT EXISTS idx_blocks_object_position ON blocks(object_id, parent_id, position);
+        CREATE INDEX IF NOT EXISTS idx_blocks_object_type_position ON blocks(object_id, type, position);
+        CREATE TABLE IF NOT EXISTS relations (id TEXT NOT NULL, object_id TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL DEFAULT 'null', PRIMARY KEY (object_id, key), FOREIGN KEY (object_id) REFERENCES objects(id) ON DELETE CASCADE);
+        CREATE INDEX IF NOT EXISTS idx_relations_key ON relations(key)
         "#,
+        // Batch 3: Marks + object_children
         r#"
-        CREATE INDEX IF NOT EXISTS idx_objects_type_updated
-        ON objects(type, updated_at DESC)
+        CREATE TABLE IF NOT EXISTS marks (id INTEGER PRIMARY KEY AUTOINCREMENT, block_id TEXT NOT NULL, type INTEGER NOT NULL, param TEXT, range_start INTEGER NOT NULL, range_end INTEGER NOT NULL, FOREIGN KEY (block_id) REFERENCES blocks(id) ON DELETE CASCADE);
+        CREATE INDEX IF NOT EXISTS idx_marks_block_id ON marks(block_id);
+        CREATE TABLE IF NOT EXISTS object_children (object_id TEXT NOT NULL, block_id TEXT NOT NULL, child_id TEXT NOT NULL, position INTEGER NOT NULL, PRIMARY KEY (block_id, child_id), FOREIGN KEY (object_id) REFERENCES objects(id) ON DELETE CASCADE, FOREIGN KEY (block_id) REFERENCES blocks(id) ON DELETE CASCADE, FOREIGN KEY (child_id) REFERENCES blocks(id) ON DELETE CASCADE);
+        CREATE INDEX IF NOT EXISTS idx_object_children_object ON object_children(object_id);
+        CREATE INDEX IF NOT EXISTS idx_object_children_block ON object_children(block_id)
         "#,
+        // Batch 4: Tasks + subtasks
         r#"
-        CREATE TABLE IF NOT EXISTS note_objects (
-            id TEXT PRIMARY KEY,
-            title TEXT NOT NULL DEFAULT '',
-            icon TEXT,
-            cover TEXT,
-            tags TEXT NOT NULL DEFAULT '[]',
-            pinned INTEGER NOT NULL DEFAULT 0,
-            layout TEXT NOT NULL DEFAULT 'note',
-            is_archived INTEGER NOT NULL DEFAULT 0,
-            details TEXT NOT NULL DEFAULT '{}',
-            created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL
-        )
+        CREATE TABLE IF NOT EXISTS tasks (id TEXT PRIMARY KEY, title TEXT NOT NULL, done INTEGER NOT NULL DEFAULT 0, priority TEXT NOT NULL DEFAULT 'medium', project TEXT NOT NULL DEFAULT 'inbox', tags TEXT NOT NULL DEFAULT '[]', notes TEXT NOT NULL DEFAULT '', due_at INTEGER, due_time TEXT, start_at INTEGER, estimated_minutes INTEGER, tracked_minutes INTEGER NOT NULL DEFAULT 0, recurrence_rule TEXT, archived INTEGER NOT NULL DEFAULT 0, sort_order REAL NOT NULL DEFAULT 0, parent_id TEXT REFERENCES tasks(id), completed_at INTEGER, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS subtasks (id TEXT PRIMARY KEY, task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE, title TEXT NOT NULL, done INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+        CREATE INDEX IF NOT EXISTS idx_subtasks_task_id ON subtasks(task_id)
         "#,
+        // Batch 5: Health, habits
         r#"
-        CREATE INDEX IF NOT EXISTS idx_note_objects_updated
-        ON note_objects(is_archived, pinned DESC, updated_at DESC)
+        CREATE TABLE IF NOT EXISTS health_logs (id TEXT PRIMARY KEY, type TEXT NOT NULL, value REAL, unit TEXT, metadata TEXT DEFAULT '{}', logged_at INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS health_events (id INTEGER PRIMARY KEY AUTOINCREMENT, module_id TEXT NOT NULL, event_type TEXT NOT NULL, value REAL, unit TEXT, metadata TEXT NOT NULL DEFAULT '{}', started_at INTEGER, ended_at INTEGER, logged_at INTEGER NOT NULL);
+        CREATE INDEX IF NOT EXISTS idx_health_events_module_event_logged_at ON health_events(module_id, event_type, logged_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_health_events_logged_at ON health_events(logged_at DESC);
+        CREATE TABLE IF NOT EXISTS habits (id TEXT PRIMARY KEY, name TEXT NOT NULL, frequency TEXT NOT NULL DEFAULT 'daily', created_at INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS habit_completions (habit_id TEXT REFERENCES habits(id) ON DELETE CASCADE, completed_at INTEGER NOT NULL, PRIMARY KEY (habit_id, completed_at))
         "#,
+        // Batch 6: Recording, modules, contexts
         r#"
-        CREATE TABLE IF NOT EXISTS blocks (
-            id TEXT PRIMARY KEY,
-            object_id TEXT NOT NULL,
-            parent_id TEXT,
-            type TEXT NOT NULL,
-            content TEXT NOT NULL DEFAULT '{}',
-            fields TEXT NOT NULL DEFAULT '{}',
-            align INTEGER NOT NULL DEFAULT 0,
-            bg_color TEXT NOT NULL DEFAULT '',
-            position INTEGER NOT NULL,
-            created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL,
-            FOREIGN KEY (object_id) REFERENCES objects(id) ON DELETE CASCADE,
-            FOREIGN KEY (parent_id) REFERENCES blocks(id) ON DELETE SET NULL
-        )
+        CREATE TABLE IF NOT EXISTS recording_metadata (id TEXT PRIMARY KEY, title TEXT NOT NULL, duration_secs REAL NOT NULL, file_path TEXT NOT NULL, file_size_bytes INTEGER NOT NULL, module_id TEXT NOT NULL, created_at INTEGER NOT NULL, device_name TEXT, sample_rate INTEGER NOT NULL, channels INTEGER NOT NULL, tags TEXT NOT NULL DEFAULT '[]', transcribed INTEGER NOT NULL DEFAULT 0);
+        CREATE INDEX IF NOT EXISTS idx_recording_metadata_module_created_at ON recording_metadata(module_id, created_at DESC);
+        CREATE TABLE IF NOT EXISTS recording_transcripts (recording_id TEXT PRIMARY KEY REFERENCES recording_metadata(id) ON DELETE CASCADE, transcript TEXT NOT NULL DEFAULT '', language TEXT, model_path TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS installed_modules (id TEXT PRIMARY KEY, version TEXT NOT NULL, installed_at INTEGER NOT NULL, builtin INTEGER NOT NULL DEFAULT 0, manifest TEXT NOT NULL DEFAULT '{}');
+        CREATE TABLE IF NOT EXISTS module_settings (module_id TEXT PRIMARY KEY, data TEXT NOT NULL DEFAULT '{}', updated_at INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS module_context (module TEXT PRIMARY KEY, scroll_position REAL NOT NULL DEFAULT 0, last_open_id TEXT, cursor_position INTEGER, extra TEXT NOT NULL DEFAULT '{}');
+        CREATE TABLE IF NOT EXISTS module_fonts (module TEXT NOT NULL, role TEXT NOT NULL, family TEXT NOT NULL, source TEXT NOT NULL, file_path TEXT, size_scale REAL DEFAULT 1.0, PRIMARY KEY (module, role))
         "#,
+        // Batch 7: Telemetry, passwords, runtime, dashboard, journal
         r#"
-        CREATE INDEX IF NOT EXISTS idx_blocks_object_position
-        ON blocks(object_id, parent_id, position)
+        CREATE TABLE IF NOT EXISTS telemetry_snapshots (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp_ms INTEGER NOT NULL, module TEXT NOT NULL, data TEXT NOT NULL, anomaly_flags TEXT);
+        CREATE TABLE IF NOT EXISTS anomaly_log (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp_ms INTEGER NOT NULL, module TEXT NOT NULL, anomaly_type TEXT NOT NULL, severity TEXT NOT NULL, data TEXT NOT NULL, resolved INTEGER NOT NULL DEFAULT 0, resolution TEXT);
+        CREATE TABLE IF NOT EXISTS passwords (id TEXT PRIMARY KEY, site TEXT NOT NULL, username TEXT NOT NULL, password_encrypted TEXT NOT NULL DEFAULT '', notes_encrypted TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS performance_baselines (module TEXT PRIMARY KEY, avg_heap_mb REAL, p95_ipc_ms REAL, p95_db_ms REAL, computed_at INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS runtime_state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS dashboard_events (id INTEGER PRIMARY KEY AUTOINCREMENT, event_type TEXT NOT NULL, module_id TEXT NOT NULL, related_module_id TEXT, action TEXT NOT NULL, payload TEXT NOT NULL DEFAULT '{}', created_at INTEGER NOT NULL);
+        CREATE INDEX IF NOT EXISTS idx_dashboard_events_created_at ON dashboard_events(created_at DESC);
+        CREATE TABLE IF NOT EXISTS journal_entries (id TEXT PRIMARY KEY, date TEXT NOT NULL UNIQUE, blocks TEXT NOT NULL DEFAULT '[]', word_count INTEGER DEFAULT 0, mood TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)
         "#,
+        // Batch 8: Nutrition
         r#"
-        CREATE INDEX IF NOT EXISTS idx_blocks_object_type_position
-        ON blocks(object_id, type, position)
+        CREATE TABLE IF NOT EXISTS water_logs (id TEXT PRIMARY KEY, amount_ml INTEGER NOT NULL, logged_at INTEGER NOT NULL);
+        CREATE INDEX IF NOT EXISTS idx_water_logs_logged_at ON water_logs(logged_at DESC);
+        CREATE TABLE IF NOT EXISTS meals (id TEXT PRIMARY KEY, name TEXT NOT NULL, meal_type TEXT NOT NULL DEFAULT 'meal', notes TEXT NOT NULL DEFAULT '', total_kcal INTEGER NOT NULL DEFAULT 0, logged_at INTEGER NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+        CREATE INDEX IF NOT EXISTS idx_meals_logged_at ON meals(logged_at DESC);
+        CREATE TABLE IF NOT EXISTS meal_foods (id TEXT PRIMARY KEY, meal_id TEXT NOT NULL REFERENCES meals(id) ON DELETE CASCADE, name TEXT NOT NULL, quantity REAL NOT NULL DEFAULT 1.0, unit TEXT NOT NULL DEFAULT 'serving', calories_kcal INTEGER NOT NULL DEFAULT 0, protein_g REAL NOT NULL DEFAULT 0, carbs_g REAL NOT NULL DEFAULT 0, fat_g REAL NOT NULL DEFAULT 0, created_at INTEGER NOT NULL);
+        CREATE INDEX IF NOT EXISTS idx_meal_foods_meal_id ON meal_foods(meal_id);
+        CREATE TABLE IF NOT EXISTS nutrition_goals (id INTEGER PRIMARY KEY CHECK (id = 1), water_goal_ml INTEGER NOT NULL DEFAULT 2000, calorie_goal INTEGER NOT NULL DEFAULT 2200, protein_goal_g INTEGER NOT NULL DEFAULT 150, carbs_goal_g INTEGER NOT NULL DEFAULT 250, fat_goal_g INTEGER NOT NULL DEFAULT 70, updated_at INTEGER NOT NULL DEFAULT 0);
+        INSERT OR IGNORE INTO nutrition_goals (id, updated_at) VALUES (1, 0);
+        CREATE TABLE IF NOT EXISTS nutrition_reminders (id TEXT PRIMARY KEY, label TEXT NOT NULL, detail TEXT NOT NULL DEFAULT '', mode TEXT NOT NULL DEFAULT 'Active', schedule TEXT NOT NULL DEFAULT '{}', enabled INTEGER NOT NULL DEFAULT 1, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)
         "#,
+        // Batch 9: Countdown + commitment bonds + birthdays
         r#"
-        CREATE TABLE IF NOT EXISTS relations (
-            id TEXT NOT NULL,
-            object_id TEXT NOT NULL,
-            key TEXT NOT NULL,
-            value TEXT NOT NULL DEFAULT 'null',
-            PRIMARY KEY (object_id, key),
-            FOREIGN KEY (object_id) REFERENCES objects(id) ON DELETE CASCADE
-        )
+        CREATE TABLE IF NOT EXISTS countdown_events (id TEXT PRIMARY KEY, name TEXT NOT NULL, target_ms INTEGER NOT NULL, category TEXT NOT NULL DEFAULT 'Personal', accent TEXT NOT NULL DEFAULT '#6366f1', note TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS countdown_milestones (id TEXT PRIMARY KEY, name TEXT NOT NULL, target_ms INTEGER NOT NULL, progress INTEGER NOT NULL DEFAULT 0, accent TEXT NOT NULL DEFAULT '#6366f1', note TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS commitment_bonds (id TEXT PRIMARY KEY, title TEXT NOT NULL, goal_id TEXT REFERENCES goals(id), deadline INTEGER NOT NULL, success_metric TEXT NOT NULL, consequence TEXT NOT NULL, check_in_days INTEGER DEFAULT 7, status TEXT DEFAULT 'active', check_in_history TEXT DEFAULT '[]', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS countdown_birthdays (id TEXT PRIMARY KEY, name TEXT NOT NULL, month INTEGER NOT NULL, day INTEGER NOT NULL, accent TEXT NOT NULL DEFAULT '#6366f1', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)
         "#,
+        // Batch 10: tasks sort order index
         r#"
-        CREATE INDEX IF NOT EXISTS idx_relations_key
-        ON relations(key)
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS marks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            block_id TEXT NOT NULL,
-            type INTEGER NOT NULL,
-            param TEXT,
-            range_start INTEGER NOT NULL,
-            range_end INTEGER NOT NULL,
-            FOREIGN KEY (block_id) REFERENCES blocks(id) ON DELETE CASCADE
-        )
-        "#,
-        r#"
-        CREATE INDEX IF NOT EXISTS idx_marks_block_id
-        ON marks(block_id)
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS object_children (
-            object_id TEXT NOT NULL,
-            block_id TEXT NOT NULL,
-            child_id TEXT NOT NULL,
-            position INTEGER NOT NULL,
-            PRIMARY KEY (block_id, child_id),
-            FOREIGN KEY (object_id) REFERENCES objects(id) ON DELETE CASCADE,
-            FOREIGN KEY (block_id) REFERENCES blocks(id) ON DELETE CASCADE,
-            FOREIGN KEY (child_id) REFERENCES blocks(id) ON DELETE CASCADE
-        )
-        "#,
-        r#"
-        CREATE INDEX IF NOT EXISTS idx_object_children_object
-        ON object_children(object_id)
-        "#,
-        r#"
-        CREATE INDEX IF NOT EXISTS idx_object_children_block
-        ON object_children(block_id)
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS tasks (
-            id TEXT PRIMARY KEY,
-            title TEXT NOT NULL,
-            done INTEGER NOT NULL DEFAULT 0,
-            priority TEXT NOT NULL DEFAULT 'medium',
-            project TEXT NOT NULL DEFAULT 'inbox',
-            tags TEXT NOT NULL DEFAULT '[]',
-            notes TEXT NOT NULL DEFAULT '',
-            due_at INTEGER,
-            due_time TEXT,
-            start_at INTEGER,
-            estimated_minutes INTEGER,
-            tracked_minutes INTEGER NOT NULL DEFAULT 0,
-            recurrence_rule TEXT,
-            archived INTEGER NOT NULL DEFAULT 0,
-            sort_order REAL NOT NULL DEFAULT 0,
-            parent_id TEXT REFERENCES tasks(id),
-            completed_at INTEGER,
-            created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL
-        )
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS subtasks (
-            id TEXT PRIMARY KEY,
-            task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-            title TEXT NOT NULL,
-            done INTEGER NOT NULL DEFAULT 0,
-            created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL
-        )
-        "#,
-        r#"
-        CREATE INDEX IF NOT EXISTS idx_subtasks_task_id
-        ON subtasks(task_id)
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS health_logs (
-            id TEXT PRIMARY KEY,
-            type TEXT NOT NULL,
-            value REAL,
-            unit TEXT,
-            metadata TEXT DEFAULT '{}',
-            logged_at INTEGER NOT NULL
-        )
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS health_events (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            module_id TEXT NOT NULL,
-            event_type TEXT NOT NULL,
-            value REAL,
-            unit TEXT,
-            metadata TEXT NOT NULL DEFAULT '{}',
-            started_at INTEGER,
-            ended_at INTEGER,
-            logged_at INTEGER NOT NULL
-        )
-        "#,
-        r#"
-        CREATE INDEX IF NOT EXISTS idx_health_events_module_event_logged_at
-        ON health_events(module_id, event_type, logged_at DESC)
-        "#,
-        r#"
-        CREATE INDEX IF NOT EXISTS idx_health_events_logged_at
-        ON health_events(logged_at DESC)
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS habits (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            frequency TEXT NOT NULL DEFAULT 'daily',
-            created_at INTEGER NOT NULL
-        )
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS habit_completions (
-            habit_id TEXT REFERENCES habits(id) ON DELETE CASCADE,
-            completed_at INTEGER NOT NULL,
-            PRIMARY KEY (habit_id, completed_at)
-        )
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS recording_metadata (
-            id TEXT PRIMARY KEY,
-            title TEXT NOT NULL,
-            duration_secs REAL NOT NULL,
-            file_path TEXT NOT NULL,
-            file_size_bytes INTEGER NOT NULL,
-            module_id TEXT NOT NULL,
-            created_at INTEGER NOT NULL,
-            device_name TEXT,
-            sample_rate INTEGER NOT NULL,
-            channels INTEGER NOT NULL,
-            tags TEXT NOT NULL DEFAULT '[]',
-            transcribed INTEGER NOT NULL DEFAULT 0
-        )
-        "#,
-        r#"
-        CREATE INDEX IF NOT EXISTS idx_recording_metadata_module_created_at
-        ON recording_metadata(module_id, created_at DESC)
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS recording_transcripts (
-            recording_id TEXT PRIMARY KEY REFERENCES recording_metadata(id) ON DELETE CASCADE,
-            transcript TEXT NOT NULL DEFAULT '',
-            language TEXT,
-            model_path TEXT,
-            created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL
-        )
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS installed_modules (
-            id TEXT PRIMARY KEY,
-            version TEXT NOT NULL,
-            installed_at INTEGER NOT NULL,
-            builtin INTEGER NOT NULL DEFAULT 0,
-            manifest TEXT NOT NULL DEFAULT '{}'
-        )
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS module_settings (
-            module_id TEXT PRIMARY KEY,
-            data TEXT NOT NULL DEFAULT '{}',
-            updated_at INTEGER NOT NULL
-        )
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS module_context (
-            module TEXT PRIMARY KEY,
-            scroll_position REAL NOT NULL DEFAULT 0,
-            last_open_id TEXT,
-            cursor_position INTEGER,
-            extra TEXT NOT NULL DEFAULT '{}'
-        )
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS module_fonts (
-            module TEXT NOT NULL,
-            role TEXT NOT NULL,
-            family TEXT NOT NULL,
-            source TEXT NOT NULL,
-            file_path TEXT,
-            size_scale REAL DEFAULT 1.0,
-            PRIMARY KEY (module, role)
-        )
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS telemetry_snapshots (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp_ms INTEGER NOT NULL,
-            module TEXT NOT NULL,
-            data TEXT NOT NULL,
-            anomaly_flags TEXT
-        )
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS anomaly_log (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            timestamp_ms INTEGER NOT NULL,
-            module TEXT NOT NULL,
-            anomaly_type TEXT NOT NULL,
-            severity TEXT NOT NULL,
-            data TEXT NOT NULL,
-            resolved INTEGER NOT NULL DEFAULT 0,
-            resolution TEXT
-        )
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS passwords (
-            id                TEXT PRIMARY KEY,
-            site              TEXT NOT NULL,
-            username          TEXT NOT NULL,
-            password_encrypted TEXT NOT NULL DEFAULT '',
-            notes_encrypted   TEXT NOT NULL DEFAULT '',
-            created_at        INTEGER NOT NULL,
-            updated_at        INTEGER NOT NULL
-        )
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS performance_baselines (
-            module TEXT PRIMARY KEY,
-            avg_heap_mb REAL,
-            p95_ipc_ms REAL,
-            p95_db_ms REAL,
-            computed_at INTEGER NOT NULL
-        )
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS runtime_state (
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL
-        )
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS dashboard_events (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            event_type TEXT NOT NULL,
-            module_id TEXT NOT NULL,
-            related_module_id TEXT,
-            action TEXT NOT NULL,
-            payload TEXT NOT NULL DEFAULT '{}',
-            created_at INTEGER NOT NULL
-        )
-        "#,
-        r#"
-        CREATE INDEX IF NOT EXISTS idx_dashboard_events_created_at
-        ON dashboard_events(created_at DESC)
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS journal_entries (
-            id              TEXT PRIMARY KEY,
-            date            TEXT NOT NULL UNIQUE,
-            blocks          TEXT NOT NULL DEFAULT '[]',
-            word_count      INTEGER DEFAULT 0,
-            mood            TEXT,
-            created_at      INTEGER NOT NULL,
-            updated_at      INTEGER NOT NULL
-        )
-        "#,
-        // ── Additive column migrations (safely skipped if column exists) ───
-        // These handle upgrades from databases created before the full column
-        // set was included in the CREATE TABLE IF NOT EXISTS statements.
-        // All errors are caught — the column either already exists, or the
-        // ALTER TABLE does not apply, and neither is fatal on startup.
-        r#"ALTER TABLE objects ADD COLUMN type TEXT NOT NULL DEFAULT 'note'"#,
-        r#"ALTER TABLE objects ADD COLUMN layout TEXT NOT NULL DEFAULT 'note'"#,
-        r#"ALTER TABLE objects ADD COLUMN name TEXT"#,
-        r#"ALTER TABLE objects ADD COLUMN icon TEXT"#,
-        r#"ALTER TABLE objects ADD COLUMN cover TEXT"#,
-        r#"ALTER TABLE objects ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0"#,
-        r#"ALTER TABLE objects ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0"#,
-        r#"ALTER TABLE objects ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0"#,
-        r#"ALTER TABLE objects ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0"#,
-        r#"ALTER TABLE objects ADD COLUMN space_id TEXT"#,
-        r#"ALTER TABLE objects ADD COLUMN details TEXT NOT NULL DEFAULT '{}'"#,
-        r#"ALTER TABLE blocks ADD COLUMN object_id TEXT"#,
-        r#"ALTER TABLE blocks ADD COLUMN parent_id TEXT"#,
-        r#"ALTER TABLE blocks ADD COLUMN type TEXT NOT NULL DEFAULT 'text'"#,
-        r#"ALTER TABLE blocks ADD COLUMN content TEXT NOT NULL DEFAULT '{}'"#,
-        r#"ALTER TABLE blocks ADD COLUMN fields TEXT NOT NULL DEFAULT '{}'"#,
-        r#"ALTER TABLE blocks ADD COLUMN align INTEGER NOT NULL DEFAULT 0"#,
-        r#"ALTER TABLE blocks ADD COLUMN bg_color TEXT NOT NULL DEFAULT ''"#,
-        r#"ALTER TABLE blocks ADD COLUMN position INTEGER NOT NULL DEFAULT 0"#,
-        r#"ALTER TABLE blocks ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0"#,
-        r#"ALTER TABLE blocks ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0"#,
-        r#"ALTER TABLE note_objects ADD COLUMN title TEXT NOT NULL DEFAULT ''"#,
-        r#"ALTER TABLE note_objects ADD COLUMN icon TEXT"#,
-        r#"ALTER TABLE note_objects ADD COLUMN cover TEXT"#,
-        r#"ALTER TABLE note_objects ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'"#,
-        r#"ALTER TABLE note_objects ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0"#,
-        r#"ALTER TABLE note_objects ADD COLUMN layout TEXT NOT NULL DEFAULT 'note'"#,
-        r#"ALTER TABLE note_objects ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0"#,
-        r#"ALTER TABLE note_objects ADD COLUMN details TEXT NOT NULL DEFAULT '{}'"#,
-        r#"ALTER TABLE note_objects ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0"#,
-        r#"ALTER TABLE note_objects ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0"#,
-        r#"ALTER TABLE tasks ADD COLUMN sort_order REAL NOT NULL DEFAULT 0"#,
-        r#"ALTER TABLE tasks ADD COLUMN due_time TEXT"#,
-        r#"ALTER TABLE tasks ADD COLUMN start_at INTEGER"#,
-        r#"ALTER TABLE tasks ADD COLUMN estimated_minutes INTEGER"#,
-        r#"ALTER TABLE tasks ADD COLUMN tracked_minutes INTEGER NOT NULL DEFAULT 0"#,
-        r#"ALTER TABLE tasks ADD COLUMN recurrence_rule TEXT"#,
-        r#"ALTER TABLE tasks ADD COLUMN archived INTEGER NOT NULL DEFAULT 0"#,
-        r#"ALTER TABLE tasks ADD COLUMN parent_id TEXT"#,
-        r#"ALTER TABLE tasks ADD COLUMN completed_at INTEGER"#,
-        r#"
-        CREATE INDEX IF NOT EXISTS idx_tasks_sort_order
-        ON tasks(sort_order ASC)
-        "#,
-        // ── Nutrition ─────────────────────────────────────────────────────────
-        r#"
-        CREATE TABLE IF NOT EXISTS water_logs (
-            id         TEXT PRIMARY KEY,
-            amount_ml  INTEGER NOT NULL,
-            logged_at  INTEGER NOT NULL
-        )
-        "#,
-        r#"
-        CREATE INDEX IF NOT EXISTS idx_water_logs_logged_at
-        ON water_logs(logged_at DESC)
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS meals (
-            id         TEXT PRIMARY KEY,
-            name       TEXT NOT NULL,
-            meal_type  TEXT NOT NULL DEFAULT 'meal',
-            notes      TEXT NOT NULL DEFAULT '',
-            total_kcal INTEGER NOT NULL DEFAULT 0,
-            logged_at  INTEGER NOT NULL,
-            created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL
-        )
-        "#,
-        r#"
-        CREATE INDEX IF NOT EXISTS idx_meals_logged_at
-        ON meals(logged_at DESC)
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS meal_foods (
-            id           TEXT PRIMARY KEY,
-            meal_id      TEXT NOT NULL REFERENCES meals(id) ON DELETE CASCADE,
-            name         TEXT NOT NULL,
-            quantity     REAL NOT NULL DEFAULT 1.0,
-            unit         TEXT NOT NULL DEFAULT 'serving',
-            calories_kcal INTEGER NOT NULL DEFAULT 0,
-            protein_g    REAL NOT NULL DEFAULT 0,
-            carbs_g      REAL NOT NULL DEFAULT 0,
-            fat_g        REAL NOT NULL DEFAULT 0,
-            created_at   INTEGER NOT NULL
-        )
-        "#,
-        r#"
-        CREATE INDEX IF NOT EXISTS idx_meal_foods_meal_id
-        ON meal_foods(meal_id)
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS nutrition_goals (
-            id             INTEGER PRIMARY KEY CHECK (id = 1),
-            water_goal_ml  INTEGER NOT NULL DEFAULT 2000,
-            calorie_goal   INTEGER NOT NULL DEFAULT 2200,
-            protein_goal_g INTEGER NOT NULL DEFAULT 150,
-            carbs_goal_g   INTEGER NOT NULL DEFAULT 250,
-            fat_goal_g     INTEGER NOT NULL DEFAULT 70,
-            updated_at     INTEGER NOT NULL DEFAULT 0
-        )
-        "#,
-        r#"
-        INSERT OR IGNORE INTO nutrition_goals (id, updated_at) VALUES (1, 0)
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS nutrition_reminders (
-            id         TEXT PRIMARY KEY,
-            label      TEXT NOT NULL,
-            detail     TEXT NOT NULL DEFAULT '',
-            mode       TEXT NOT NULL DEFAULT 'Active',
-            schedule   TEXT NOT NULL DEFAULT '{}',
-            enabled    INTEGER NOT NULL DEFAULT 1,
-            created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL
-        )
-        "#,
-        // ── Countdown ──────────────────────────────────────────────────────
-        r#"
-        CREATE TABLE IF NOT EXISTS countdown_events (
-            id         TEXT PRIMARY KEY,
-            name       TEXT NOT NULL,
-            target_ms  INTEGER NOT NULL,
-            category   TEXT NOT NULL DEFAULT 'Personal',
-            accent     TEXT NOT NULL DEFAULT '#6366f1',
-            note       TEXT NOT NULL DEFAULT '',
-            created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL
-        )
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS countdown_milestones (
-            id         TEXT PRIMARY KEY,
-            name       TEXT NOT NULL,
-            target_ms  INTEGER NOT NULL,
-            progress   INTEGER NOT NULL DEFAULT 0,
-            accent     TEXT NOT NULL DEFAULT '#6366f1',
-            note       TEXT NOT NULL DEFAULT '',
-            created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL
-        )
-        "#,
-        // ── Intelligence: Commitment Bonds ───────────────────────────────────
-        r#"
-        CREATE TABLE IF NOT EXISTS commitment_bonds (
-            id                TEXT PRIMARY KEY,
-            title             TEXT NOT NULL,
-            goal_id           TEXT REFERENCES goals(id),
-            deadline          INTEGER NOT NULL,
-            success_metric    TEXT NOT NULL,
-            consequence       TEXT NOT NULL,
-            check_in_days     INTEGER DEFAULT 7,
-            status            TEXT DEFAULT 'active',
-            check_in_history  TEXT DEFAULT '[]',
-            created_at        INTEGER NOT NULL,
-            updated_at        INTEGER NOT NULL
-        )
-        "#,
-        r#"
-        CREATE TABLE IF NOT EXISTS countdown_birthdays (
-            id         TEXT PRIMARY KEY,
-            name       TEXT NOT NULL,
-            month      INTEGER NOT NULL,
-            day        INTEGER NOT NULL,
-            accent     TEXT NOT NULL DEFAULT '#6366f1',
-            created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL
-        )
+        CREATE INDEX IF NOT EXISTS idx_tasks_sort_order ON tasks(sort_order ASC)
         "#,
     ];
 
-    for migration in migrations {
-        let result = sqlx::query(migration).execute(pool).await;
+    for batch in &batches {
+        sqlx::query(batch)
+            .execute(pool)
+            .await
+            .map_err(|error| error.to_string())?;
+    }
+
+    // ── Additive column migrations (safely skipped if column exists) ───
+    // These handle upgrades from databases created before the full column
+    // set was included in the CREATE TABLE IF NOT EXISTS statements.
+    // Errors are caught individually — the column either already exists or
+    // the ALTER TABLE does not apply; neither is fatal on startup.
+    let alter_statements: &[&str] = &[
+        "ALTER TABLE objects ADD COLUMN type TEXT NOT NULL DEFAULT 'note'",
+        "ALTER TABLE objects ADD COLUMN layout TEXT NOT NULL DEFAULT 'note'",
+        "ALTER TABLE objects ADD COLUMN name TEXT",
+        "ALTER TABLE objects ADD COLUMN icon TEXT",
+        "ALTER TABLE objects ADD COLUMN cover TEXT",
+        "ALTER TABLE objects ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE objects ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE objects ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE objects ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE objects ADD COLUMN space_id TEXT",
+        "ALTER TABLE objects ADD COLUMN details TEXT NOT NULL DEFAULT '{}'",
+        "ALTER TABLE blocks ADD COLUMN object_id TEXT",
+        "ALTER TABLE blocks ADD COLUMN parent_id TEXT",
+        "ALTER TABLE blocks ADD COLUMN type TEXT NOT NULL DEFAULT 'text'",
+        "ALTER TABLE blocks ADD COLUMN content TEXT NOT NULL DEFAULT '{}'",
+        "ALTER TABLE blocks ADD COLUMN fields TEXT NOT NULL DEFAULT '{}'",
+        "ALTER TABLE blocks ADD COLUMN align INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE blocks ADD COLUMN bg_color TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE blocks ADD COLUMN position INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE blocks ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE blocks ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE note_objects ADD COLUMN title TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE note_objects ADD COLUMN icon TEXT",
+        "ALTER TABLE note_objects ADD COLUMN cover TEXT",
+        "ALTER TABLE note_objects ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'",
+        "ALTER TABLE note_objects ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE note_objects ADD COLUMN layout TEXT NOT NULL DEFAULT 'note'",
+        "ALTER TABLE note_objects ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE note_objects ADD COLUMN details TEXT NOT NULL DEFAULT '{}'",
+        "ALTER TABLE note_objects ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE note_objects ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE tasks ADD COLUMN sort_order REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE tasks ADD COLUMN due_time TEXT",
+        "ALTER TABLE tasks ADD COLUMN start_at INTEGER",
+        "ALTER TABLE tasks ADD COLUMN estimated_minutes INTEGER",
+        "ALTER TABLE tasks ADD COLUMN tracked_minutes INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE tasks ADD COLUMN recurrence_rule TEXT",
+        "ALTER TABLE tasks ADD COLUMN archived INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE tasks ADD COLUMN parent_id TEXT",
+        "ALTER TABLE tasks ADD COLUMN completed_at INTEGER",
+    ];
+
+    for stmt in alter_statements {
+        let result = sqlx::query(stmt).execute(pool).await;
         if let Err(e) = result {
             let msg = e.to_string();
-            // ALTER TABLE ADD COLUMN errors are safe to ignore on startup:
-            //   - "duplicate column name" — column already exists
-            //   - "Cannot add a NOT NULL column" — column already exists with NOT NULL
-            //   - any other ALTER TABLE error — the schema is already in good shape
-            //     from the CREATE TABLE IF NOT EXISTS statements above.
-            // These migrations exist only for upgrading from older database versions.
             if msg.contains("duplicate column name")
                 || msg.contains("Cannot add a NOT NULL")
                 || msg.starts_with("error returned from database: cannot add")

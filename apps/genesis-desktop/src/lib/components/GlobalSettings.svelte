@@ -874,6 +874,10 @@
               <span><strong>Dynamic Island</strong><small>Quick-launch overlay at top of screen</small></span>
               <input type="checkbox" checked={$desktopSettings.dynamicIslandEnabled} onchange={() => void updateDesktopSettings((c) => ({ ...c, dynamicIslandEnabled: !c.dynamicIslandEnabled }))} />
             </label>
+            <label class="global-settings__toggle">
+              <span><strong>Agent Dock</strong><small>AI assistant bar at bottom of screen — disabled by default for stability</small></span>
+              <input type="checkbox" checked={$desktopSettings.agentDockEnabled} onchange={() => void updateDesktopSettings((c) => ({ ...c, agentDockEnabled: !c.agentDockEnabled }))} />
+            </label>
           </div>
 
         {:else if activeSection === "accessibility"}

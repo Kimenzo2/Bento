@@ -1,26 +1,35 @@
 ﻿<script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { isTauri } from "@tauri-apps/api/core";
-  import { authStore, setAuthLoginLoading, setAuthError } from "$lib/stores/auth.store";
+  import { authStore, setAuthLoginLoading, setAuthError, setLoginUrl } from "$lib/stores/auth.store";
+  import { openExternal } from "$lib/desktop/open-external";
   import AuthLogo from "$lib/components/auth/AuthLogo.svelte";
 
   async function handleGoogleSignIn() {
     if ($authStore.loginLoading) return;
+    console.log("[LoginPage] handleGoogleSignIn: starting");
     setAuthLoginLoading(true);
 
     try {
       if (!isTauri()) {
-        // Fallback for browser dev: just simulate success
         console.warn("[LoginPage] Not in Tauri environment — can't start Google OAuth");
         setAuthError("Desktop auth requires the Tauri runtime.");
         setAuthLoginLoading(false);
         return;
       }
 
-      await invoke("begin_google_auth");
-      // The login loading stays true until auth:success or auth:error is received
+      console.log("[LoginPage] invoking begin_google_auth...");
+      const authUrl = await invoke<string>("begin_google_auth");
+      console.log("[LoginPage] begin_google_auth returned URL:", authUrl);
+
+      setLoginUrl(authUrl);
+      console.log("[LoginPage] auth URL stored in store, opening external browser...");
+
+      await openExternal(authUrl);
+      console.log("[LoginPage] external browser open command completed");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to start Google sign-in.";
+      console.error("[LoginPage] Google sign-in error:", message, error);
       setAuthError(message);
       setAuthLoginLoading(false);
     }
@@ -75,6 +84,19 @@
 
     {#if $authStore.message}
       <p class="login-page__message" role="status" aria-live="polite">{$authStore.message}</p>
+    {/if}
+
+    {#if $authStore.loginUrl}
+      <div class="login-page__manual-link">
+        <p class="login-page__manual-hint">Press the button below if the browser didn't open automatically:</p>
+        <button
+          type="button"
+          class="login-page__manual-btn"
+          onclick={() => openExternal($authStore.loginUrl!).catch(() => window.open($authStore.loginUrl!, "_blank"))}
+        >
+          Open sign-in page in browser
+        </button>
+      </div>
     {/if}
   </div>
 </section>
@@ -197,6 +219,43 @@
     border-radius: 50%;
     animation: login-spin 0.6s linear infinite;
     flex-shrink: 0;
+  }
+
+  .login-page__manual-link {
+    margin-top: 20px;
+    text-align: center;
+    width: 100%;
+  }
+
+  .login-page__manual-hint {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0 0 8px 0;
+    line-height: 1.4;
+  }
+
+  .login-page__manual-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    height: 48px;
+    padding: 0 24px;
+    border: 1px solid rgba(66, 133, 244, 0.3);
+    border-radius: 8px;
+    background: rgba(66, 133, 244, 0.15);
+    color: #4285f4;
+    font-family: var(--font-body, system-ui, sans-serif);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    outline: none;
+  }
+
+  .login-page__manual-btn:hover {
+    background: rgba(66, 133, 244, 0.25);
   }
 
   @keyframes login-spin {
