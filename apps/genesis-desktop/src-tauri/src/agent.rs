@@ -212,14 +212,6 @@ pub fn setup_agent_window(app: &tauri::App) -> Result<(), Box<dyn std::error::Er
         eprintln!("[agent] hit test setup failed: {e}");
     }
 
-    // Auto-open DevTools for the agent window in debug builds
-    // (right-click and keyboard shortcuts are unreliable on transparent windows)
-    #[cfg(debug_assertions)]
-    {
-        let _ = window.open_devtools();
-        eprintln!("[agent] DevTools auto-opened for agent window");
-    }
-
     Ok(())
 }
 

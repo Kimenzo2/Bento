@@ -564,11 +564,6 @@ pub fn run() {
 
         eprintln!("[init] phase=17 setup_complete");
 
-        // Open DevTools for the main window (late enough to avoid WebView2 init race)
-        if let Some(ww) = app.get_webview_window("main") {
-            let _ = ww.open_devtools();
-        }
-
         Ok(())
     });
 
