@@ -54,7 +54,7 @@ function Start-GenesisFrontend {
     return
   }
 
-  Start-Process -WindowStyle Hidden -FilePath bun -ArgumentList @("run", "dev:frontend") -WorkingDirectory $appRoot | Out-Null
+  Start-Process -WindowStyle Hidden -FilePath npm -ArgumentList @("run", "dev:frontend") -WorkingDirectory $appRoot | Out-Null
 
   $deadline = [DateTime]::UtcNow.AddSeconds(30)
   while ([DateTime]::UtcNow -lt $deadline) {
