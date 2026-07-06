@@ -1,5 +1,4 @@
-﻿<script lang="ts">
-  import { invoke } from "@tauri-apps/api/core";
+﻿  <script lang="ts">
   import { isTauri } from "@tauri-apps/api/core";
   import { authStore, setAuthLoginLoading, setAuthError, setLoginUrl } from "$lib/stores/auth.store";
   import { openExternal } from "$lib/desktop/open-external";
@@ -18,19 +17,32 @@
         return;
       }
 
-      console.log("[LoginPage] invoking begin_google_auth...");
-      const authUrl = await invoke<string>("begin_google_auth");
-      console.log("[LoginPage] begin_google_auth returned URL:", authUrl);
+      const authUrl = $authStore.loginUrl;
+      if (!authUrl) {
+        console.log("[LoginPage] no pre-stored URL yet");
+        setAuthLoginLoading(false);
+        return;
+      }
 
-      setLoginUrl(authUrl);
-      console.log("[LoginPage] auth URL stored in store, opening external browser...");
-
+      console.log("[LoginPage] using pre-stored URL:", authUrl);
       await openExternal(authUrl);
       console.log("[LoginPage] external browser open command completed");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to start Google sign-in.";
-      console.error("[LoginPage] Google sign-in error:", message, error);
-      setAuthError(message);
+      const rawMessage = error instanceof Error ? error.message : "Failed to start Google sign-in.";
+      console.error("[LoginPage] Google sign-in error:", rawMessage, error);
+
+      let friendlyMessage: string;
+      if (rawMessage.includes("timed out")) {
+        friendlyMessage = "Sign-in is taking longer than expected. Check your internet connection and try again.";
+      } else if (rawMessage.includes("already active")) {
+        friendlyMessage = "A sign-in attempt is already in progress. Please wait or restart the app.";
+      } else if (rawMessage.includes("network") || rawMessage.includes("connection")) {
+        friendlyMessage = "Could not reach the sign-in server. Please check your internet connection.";
+      } else {
+        friendlyMessage = rawMessage.length > 120 ? "Sign-in failed unexpectedly. Please try again." : rawMessage;
+      }
+
+      setAuthError(friendlyMessage);
       setAuthLoginLoading(false);
     }
   }
@@ -54,9 +66,9 @@
       class="login-page__google-btn"
       type="button"
       onclick={handleGoogleSignIn}
-      disabled={$authStore.loginLoading}
+      disabled={$authStore.loginLoading || (!$authStore.loginUrl && $authStore.status === "loginRequired")}
     >
-      {#if $authStore.loginLoading}
+      {#if $authStore.loginLoading || (!$authStore.loginUrl && $authStore.status === "loginRequired")}
         <span class="login-page__spinner" aria-hidden="true"></span>
       {:else}
         <!-- Google "G" Logo SVG -->
@@ -79,11 +91,30 @@
           />
         </svg>
       {/if}
-      <span class="login-page__google-label">{$authStore.loginLoading ? "Signing in…" : "Continue with Google"}</span>
+      <span class="login-page__google-label">
+        {#if $authStore.loginLoading}
+          Signing in…
+        {:else if !$authStore.loginUrl && $authStore.status === "loginRequired"}
+          Preparing sign-in…
+        {:else}
+          Continue with Google
+        {/if}
+      </span>
     </button>
 
     {#if $authStore.message}
-      <p class="login-page__message" role="status" aria-live="polite">{$authStore.message}</p>
+      <div class="login-page__message" role="status" aria-live="polite">
+        <p>{$authStore.message}</p>
+        {#if $authStore.status === "error" && !$authStore.loginLoading}
+          <button
+            type="button"
+            class="login-page__retry-btn"
+            onclick={handleGoogleSignIn}
+          >
+            Try again
+          </button>
+        {/if}
+      </div>
     {/if}
 
     {#if $authStore.loginUrl}
@@ -92,7 +123,15 @@
         <button
           type="button"
           class="login-page__manual-btn"
-          onclick={() => openExternal($authStore.loginUrl!).catch(() => window.open($authStore.loginUrl!, "_blank"))}
+          onclick={() => {
+          openExternal($authStore.loginUrl!).catch(() => {
+            const win = window.open($authStore.loginUrl!, "_blank");
+            if (!win) {
+              navigator.clipboard.writeText($authStore.loginUrl!).catch(() => {});
+              setAuthError("Could not open browser. The sign-in link has been copied to your clipboard.");
+            }
+          });
+        }}
         >
           Open sign-in page in browser
         </button>
@@ -209,6 +248,27 @@
     line-height: 1.5;
     color: var(--muted, #888888);
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .login-page__retry-btn {
+    border: none;
+    background: transparent;
+    color: #4285f4;
+    font-family: var(--font-body, system-ui, sans-serif);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 12px;
+    border-radius: 4px;
+    transition: background 0.15s ease;
+  }
+
+  .login-page__retry-btn:hover {
+    background: rgba(66, 133, 244, 0.1);
   }
 
   .login-page__spinner {

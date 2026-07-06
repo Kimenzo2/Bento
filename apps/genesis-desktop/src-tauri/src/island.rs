@@ -2,9 +2,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
 
 #[cfg(target_os = "windows")]
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-#[cfg(target_os = "windows")]
-use std::time::{Duration, Instant};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 
 const EXPANDED_W: f64 = 560.0;
 
@@ -37,18 +35,10 @@ fn seconds_since_last_toggle() -> f64 {
     (now.saturating_sub(last) as f64) / 1000.0
 }
 
-/// Cursor polling interval in milliseconds (~30 fps).
+/// Window procedure for the island — handles WM_NCHITTEST to provide
+/// per-pixel click-through outside the interactive island bounds.
 #[cfg(target_os = "windows")]
-const POLL_MS: u64 = 33;
-
-/// Hysteresis margin (px) used when the cursor is entering the island bounds.
-#[cfg(target_os = "windows")]
-const ENTER_MARGIN: f64 = 10.0;
-
-/// Hysteresis margin (px) used when the cursor is leaving the island bounds.
-/// Larger than ENTER_MARGIN to prevent flickering at the boundary.
-#[cfg(target_os = "windows")]
-const EXIT_MARGIN: f64 = 30.0;
+static ORIGINAL_ISLAND_WNDPROC: AtomicUsize = AtomicUsize::new(0);
 
 /// macOS window level — NSFloatingWindowLevel (5), above normal windows but below
 /// the menu bar (NSStatusWindowLevel = 21+). Using 5 ensures the island is visible
@@ -61,6 +51,24 @@ const MACOS_WINDOW_LEVEL: i64 = 5;
 /// | NSWindowCollectionBehaviorFullScreenAuxiliary (1 << 8)
 #[cfg(target_os = "macos")]
 const MACOS_COLLECTION_BEHAVIOR: i64 = 0 | (1 << 1) | (1 << 8);
+
+// ── Win32 FFI — functions not exported by windows-sys 0.52 ─────────────
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::Foundation::RECT;
+
+#[cfg(target_os = "windows")]
+#[link(name = "user32")]
+extern "system" {
+    fn GetWindowRect(hWnd: isize, lpRect: *mut RECT) -> i32;
+    fn CallWindowProcW(
+        prev: Option<unsafe extern "system" fn(isize, u32, usize, isize) -> isize>,
+        hWnd: isize,
+        msg: u32,
+        wParam: usize,
+        lParam: isize,
+    ) -> isize;
+    fn DefWindowProcW(hWnd: isize, msg: u32, wParam: usize, lParam: isize) -> isize;
+}
 
 /// Remove the CS_DROPSHADOW class style from the window class.
 /// This prevents DWM from drawing drop shadows on this window class.
@@ -85,121 +93,94 @@ fn remove_class_shadow(window: &WebviewWindow) -> Result<(), Box<dyn std::error:
     Ok(())
 }
 
-/// Background thread that polls the cursor position and toggles click-through.
+/// Apply WS_EX_NOACTIVATE + subclass window with WM_NCHITTEST handler.
 ///
-/// When the cursor is within (or near) the island window bounds, click-through
-/// is disabled so the user can click the island. When the cursor is outside,
-/// click-through is enabled -- clicks pass through the transparent window to
-/// whatever is beneath.
+/// - WS_EX_NOACTIVATE prevents the transparent island window from stealing
+///   focus when the user clicks through it to windows underneath.
+/// - The WM_NCHITTEST handler returns HTTRANSPARENT for pixels outside the
+///   interactive island bounds, and HTCLIENT for pixels within. This gives
+///   per-pixel click-through control without the race conditions of a
+///   background polling thread toggling set_ignore_cursor_events.
 ///
-/// Hysteresis (larger exit margin) prevents flickering at the boundary.
-/// Skips processing when the window is hidden to save CPU.
+/// Replaces the old background polling thread approach entirely.
 #[cfg(target_os = "windows")]
-fn start_mouse_monitor(app: AppHandle) {
-    use windows_sys::Win32::Foundation::POINT;
-    use windows_sys::Win32::UI::WindowsAndMessaging::GetCursorPos;
+fn prepare_island_window_for_hit_test(
+    window: &WebviewWindow,
+) -> Result<(), Box<dyn std::error::Error>> {
+    use raw_window_handle::HasWindowHandle;
+    use windows_sys::Win32::UI::WindowsAndMessaging::*;
 
-    // Track whether a monitor thread is already running to prevent duplicates.
-    static MONITOR_SPAWNED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-    if MONITOR_SPAWNED.swap(true, std::sync::atomic::Ordering::SeqCst) {
-        eprintln!("[island-monitor] monitor already running, skipping duplicate spawn");
-        return;
+    let handle = window.window_handle()?;
+    let raw_window_handle::RawWindowHandle::Win32(win) = handle.as_raw() else {
+        return Err("not a Win32 window".into());
+    };
+    let hwnd = win.hwnd.get();
+
+    unsafe {
+        let ex_style = GetWindowLongW(hwnd, GWL_EXSTYLE);
+        SetWindowLongW(hwnd, GWL_EXSTYLE, ex_style | (WS_EX_NOACTIVATE as i32));
+
+        let prev = SetWindowLongPtrW(hwnd, GWLP_WNDPROC, island_hit_test_proc as *const () as isize);
+        ORIGINAL_ISLAND_WNDPROC.store(prev as usize, Ordering::Relaxed);
     }
 
-    let _ = std::thread::Builder::new()
-        .name("island-mouse-monitor".into())
-        .spawn(move || {
-        let mut was_inside = false;
-        let mut transition_count: u32 = 0;
-        let mut last_log = Instant::now();
+    eprintln!("[island] WM_NCHITTEST hook installed + WS_EX_NOACTIVATE applied");
+    Ok(())
+}
 
-        eprintln!("[island-monitor] thread started");
+/// Custom window procedure: returns HTTRANSPARENT outside the interactive island bounds.
+/// The OS delivers WM_NCHITTEST immediately on every cursor movement — no polling needed.
+#[cfg(target_os = "windows")]
+unsafe extern "system" fn island_hit_test_proc(
+    hwnd: isize,
+    msg: u32,
+    wparam: usize,
+    lparam: isize,
+) -> isize {
+    const WM_NCHITTEST: u32 = 132u32;
+    const HTTRANSPARENT: isize = -1;
 
-        loop {
-            std::thread::sleep(std::time::Duration::from_millis(POLL_MS));
+    if msg == WM_NCHITTEST {
+        let cursor_x = (lparam as i16) as i32;
+        let cursor_y = ((lparam >> 16) as i16) as i32;
 
-            let Some(window) = app.get_webview_window("island") else {
-                if last_log.elapsed() > Duration::from_secs(5) {
-                    eprintln!("[island-monitor] WARN: island window not found, waiting...");
-                    last_log = Instant::now();
-                }
-                continue;
-            };
+        let mut rect = std::mem::zeroed::<RECT>();
+        if GetWindowRect(hwnd, &mut rect) != 0 {
+            let win_x = rect.left as f64;
+            let win_y = rect.top as f64;
+            let win_w = (rect.right - rect.left) as f64;
+            let win_h = (rect.bottom - rect.top) as f64;
 
-            // Skip processing when hidden but do NOT exit — the island window
-            // starts hidden (see setup_island_window) and is shown later via
-            // toggle_island / show_island. Exiting here would leave no monitor
-            // when the window becomes visible.
-            if !window.is_visible().unwrap_or(false) {
-                was_inside = false;
-                continue;
-            }
+            let expanded = ISLAND_EXPANDED.load(Ordering::Relaxed);
 
-            // Watchdog: check if ISLAND_EXPANDED has been stuck for > 30s
-            let toggle_secs = seconds_since_last_toggle();
-            let expanded_now = ISLAND_EXPANDED.load(Ordering::Relaxed);
-            if expanded_now && toggle_secs > 30.0 && toggle_secs < 30.5 {
-                eprintln!("[island-monitor] WARN: ISLAND_EXPANDED = true for {toggle_secs:.1}s without toggle. Possible freeze.");
-            }
+            let (i_w, i_h) = if expanded { (win_w, win_h) } else { (COMPACT_W, COMPACT_H) };
+            let i_x = win_x + (win_w - i_w) / 2.0;
 
-            let mut pt = POINT { x: 0, y: 0 };
-            if unsafe { GetCursorPos(&mut pt) } == 0 {
-                if last_log.elapsed() > Duration::from_secs(5) {
-                    eprintln!("[island-monitor] GetCursorPos failed");
-                    last_log = Instant::now();
-                }
-                continue;
-            }
+            let inside = (cursor_x as f64) >= i_x
+                && (cursor_x as f64) <= i_x + i_w
+                && (cursor_y as f64) >= win_y
+                && (cursor_y as f64) <= win_y + i_h;
 
-            let Ok(pos) = window.outer_position() else { continue; };
-            let Ok(size) = window.outer_size() else { continue; };
-
-            let win_x = pos.x as f64;
-            let win_y = pos.y as f64;
-            let win_w = size.width as f64;
-            let win_h = size.height as f64;
-
-            let (island_w, island_h) = if expanded_now {
-                (win_w, win_h)
-            } else {
-                (COMPACT_W, COMPACT_H)
-            };
-            let island_x = win_x + (win_w - island_w) / 2.0;
-            let island_y = win_y;
-
-            let margin = if was_inside { EXIT_MARGIN } else { ENTER_MARGIN };
-
-            let inside = pt.x as f64 >= island_x - margin
-                && pt.x as f64 <= island_x + island_w + margin
-                && pt.y as f64 >= island_y - margin
-                && pt.y as f64 <= island_y + island_h + margin;
-
-            if inside != was_inside {
-                was_inside = inside;
-                transition_count += 1;
-                eprintln!(
-                    "[island-monitor] cursor {} bounds at ({},{}) island=({:.0},{:.0})+({:.0},{:.0}) [transition #{}, expanded={}, toggle_secs={:.1}]",
-                    if inside { "ENTERED" } else { "LEFT" },
-                    pt.x, pt.y,
-                    island_x, island_y, island_w, island_h,
-                    transition_count,
-                    expanded_now,
-                    toggle_secs,
-                );
-                let result = window.set_ignore_cursor_events(!inside);
-                if let Err(e) = result {
-                    eprintln!("[island-monitor] set_ignore_cursor_events failed: {e}");
-                }
+            if !inside {
+                return HTTRANSPARENT;
             }
         }
-    });
+    }
+
+    let original = ORIGINAL_ISLAND_WNDPROC.load(Ordering::Relaxed);
+    if original != 0 {
+        let proc: unsafe extern "system" fn(isize, u32, usize, isize) -> isize =
+            std::mem::transmute(original);
+        CallWindowProcW(Some(proc), hwnd, msg, wparam, lparam)
+    } else {
+        DefWindowProcW(hwnd, msg, wparam, lparam)
+    }
 }
 
 /// Setup the island window -- position, transparency.
-/// Does NOT call `window.show()` because showing a transparent+alwaysOnTop
-/// window during startup can corrupt the DWM compositor on Windows, causing
-/// the app (and sometimes the entire desktop) to crash irrecoverably.
-/// The island is shown later via `show_island` / `toggle_island` commands.
+/// Shows the window after configuration so the WebView2 IPC channel
+/// fully initializes. The window is hidden by `visible: false` in
+/// `tauri.conf.json` and becomes truly visible only on first toggle.
 pub fn setup_island_window(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let settings = crate::settings::load_desktop_settings(app.handle());
     if !settings.dynamic_island_enabled {
@@ -229,8 +210,8 @@ pub fn setup_island_window(app: &tauri::App) -> Result<(), Box<dyn std::error::E
     }
 
     #[cfg(target_os = "windows")]
-    if let Err(e) = window.set_ignore_cursor_events(true) {
-        eprintln!("[island] set_ignore_cursor_events failed: {e}");
+    if let Err(e) = prepare_island_window_for_hit_test(&window) {
+        eprintln!("[island] hit test setup failed: {e}");
     }
 
     #[cfg(target_os = "windows")]
@@ -242,12 +223,16 @@ pub fn setup_island_window(app: &tauri::App) -> Result<(), Box<dyn std::error::E
         eprintln!("[island] position_top_center_expanded failed: {e}");
     });
 
-    // DO NOT call window.show() here. See doc comment above.
-    eprintln!("[island] setup_island_window: window configured (not shown — deferred)");
+    // Show the window so the WebView2 IPC channel fully initializes.
+    // The window is hidden by `visible: false` in tauri.conf.json but
+    // `show()` ensures WebView2's native messaging bridge is active.
+    if let Err(e) = window.show() {
+        eprintln!("[island] window.show() failed: {e}");
+    }
+
+    eprintln!("[island] setup_island_window: window configured and shown");
 
     #[cfg(target_os = "windows")]
-    start_mouse_monitor(app.handle().clone());
-
     eprintln!("[island] setup_island_window: complete");
     Ok(())
 }
@@ -557,8 +542,7 @@ pub fn set_island_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
 
         #[cfg(target_os = "windows")]
         {
-            let _ = window.set_ignore_cursor_events(false);
-            start_mouse_monitor(app.clone());
+            let _ = prepare_island_window_for_hit_test(&window);
         }
 
         eprintln!("[island] set_island_enabled(true): complete");

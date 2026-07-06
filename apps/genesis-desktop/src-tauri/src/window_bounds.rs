@@ -86,6 +86,14 @@ fn recenter_and_show(window: &WebviewWindow) -> tauri::Result<()> {
     }
     window.center()?;
     window.show()?;
+    #[cfg(target_os = "windows")]
+    {
+        // Tauri/WebView2 can lose all click input after a hidden window is
+        // shown again. Re-toggling resizable restores input on Windows and is
+        // already used on the main startup path.
+        window.set_resizable(false)?;
+        window.set_resizable(true)?;
+    }
     window.set_focus()?;
     Ok(())
 }
@@ -106,6 +114,13 @@ fn fit_shell_to_monitor(window: &WebviewWindow, monitor: &Monitor) -> tauri::Res
         target_x, target_y,
     )))?;
     window.show()?;
+    #[cfg(target_os = "windows")]
+    {
+        // Match the startup workaround so transition-to-shell does not leave
+        // the webview visible but non-interactive on Windows.
+        window.set_resizable(false)?;
+        window.set_resizable(true)?;
+    }
     window.set_focus()?;
     Ok(())
 }

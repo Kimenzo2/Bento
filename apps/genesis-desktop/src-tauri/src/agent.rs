@@ -1,7 +1,4 @@
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::LazyLock;
-use std::thread;
-use std::time::Duration;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, WebviewWindow, WebviewWindowBuilder};
@@ -125,31 +122,32 @@ const AGENT_H: f64 = 60.0;
 /// Expanded height when the composer or listening panel is open.
 const AGENT_H_EXPANDED: f64 = 200.0;
 
-/// Cursor polling interval in milliseconds (~30 fps like island).
+/// Window procedure for the agent dock — handles WM_NCHITTEST to provide
+/// per-pixel click-through outside the interactive dock bounds.
 #[cfg(target_os = "windows")]
-const POLL_MS: u64 = 33;
-/// Margin (px) for entering the dock hit area.
-#[cfg(target_os = "windows")]
-const ENTER_MARGIN: f64 = 10.0;
-/// Larger margin for exiting — prevents flickering at the boundary.
-#[cfg(target_os = "windows")]
-const EXIT_MARGIN: f64 = 30.0;
-/// Cooldown after showing the window before the mouse monitor starts toggling.
-/// Prevents the race where show() forces click-through OFF then the monitor
-/// immediately forces it back ON because the cursor hasn't moved yet.
-#[cfg(target_os = "windows")]
-const SHOW_COOLDOWN_MS: u64 = 300;
+static ORIGINAL_AGENT_WNDPROC: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 
 static INITIAL_POSITION_SET: AtomicBool = AtomicBool::new(false);
 /// When true, the composer is open — expands the hit area vertically.
 static COMPOSER_OPEN: AtomicBool = AtomicBool::new(false);
-/// When true, the mouse monitor pauses — set during drag operations.
-static DRAG_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
-/// Timestamp (ms since process start) when the window was last shown.
-/// The mouse monitor ignores toggle requests during the cooldown after show.
-static SHOW_TIMESTAMP_MS: AtomicU64 = AtomicU64::new(0);
-/// Signal for the mouse monitor thread to stop (S1 fix: no zombie threads).
-static MONITOR_STOP: AtomicBool = AtomicBool::new(false);
+
+// ── Win32 FFI — functions not exported by windows-sys 0.52 ─────────────
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::Foundation::RECT;
+
+#[cfg(target_os = "windows")]
+#[link(name = "user32")]
+extern "system" {
+    fn GetWindowRect(hWnd: isize, lpRect: *mut RECT) -> i32;
+    fn CallWindowProcW(
+        prev: Option<unsafe extern "system" fn(isize, u32, usize, isize) -> isize>,
+        hWnd: isize,
+        msg: u32,
+        wParam: usize,
+        lParam: isize,
+    ) -> isize;
+    fn DefWindowProcW(hWnd: isize, msg: u32, wParam: usize, lParam: isize) -> isize;
+}
 
 /// Remove the CS_DROPSHADOW class style from the window class.
 /// Prevents DWM from drawing drop shadows on this transparent window.
@@ -204,17 +202,15 @@ fn init_agent_window(window: &tauri::WebviewWindow) {
 
 /// Setup the agent dock window — transparency, shadow removal, positioning.
 pub fn setup_agent_window(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
-    // Ensure any previous monitor is stopped (defensive — should not happen at setup).
-    MONITOR_STOP.store(true, Ordering::SeqCst);
-    thread::sleep(Duration::from_millis(POLL_MS * 2));
-    MONITOR_STOP.store(false, Ordering::SeqCst);
-
     let window = get_or_create_agent_window(app.handle())?;
 
     init_agent_window(&window);
 
-    // Start the mouse monitor — toggles click-through based on cursor position.
-    start_mouse_monitor(app.handle().clone());
+    // Install WM_NCHITTEST hook + WS_EX_NOACTIVATE for per-pixel click-through.
+    #[cfg(target_os = "windows")]
+    if let Err(e) = prepare_agent_window_for_hit_test(&window) {
+        eprintln!("[agent] hit test setup failed: {e}");
+    }
 
     // Auto-open DevTools for the agent window in debug builds
     // (right-click and keyboard shortcuts are unreliable on transparent windows)
@@ -228,125 +224,89 @@ pub fn setup_agent_window(app: &tauri::App) -> Result<(), Box<dyn std::error::Er
 }
 
 /// Signal the mouse monitor thread to shut down.
-/// Called on app teardown or when the agent window is permanently disabled.
-pub fn stop_mouse_monitor() {
-    MONITOR_STOP.store(true, Ordering::SeqCst);
-}
+/// No-op since the polling thread was replaced with WM_NCHITTEST.
+pub fn stop_mouse_monitor() {}
 
-/// Background thread that polls the cursor position and toggles click-through.
+/// Apply WS_EX_NOACTIVATE + subclass agent window with WM_NCHITTEST.
 ///
-/// When the cursor is within (or near) the dock window bounds, click-through
-/// is disabled so the user can click the dock. When the cursor is outside,
-/// click-through is enabled — clicks pass through the transparent window.
-///
-/// Hysteresis (larger exit margin) prevents flickering at the boundary.
-///
-/// Uses a static flag to prevent duplicate thread spawns.
+/// - WS_EX_NOACTIVATE prevents the transparent agent window from stealing focus.
+/// - WM_NCHITTEST returns HTTRANSPARENT outside the interactive dock bounds for
+///   per-pixel click-through without a polling thread.
 #[cfg(target_os = "windows")]
-fn start_mouse_monitor(app: AppHandle) {
-    use windows_sys::Win32::Foundation::POINT;
-    use windows_sys::Win32::UI::WindowsAndMessaging::GetCursorPos;
+fn prepare_agent_window_for_hit_test(
+    window: &WebviewWindow,
+) -> Result<(), Box<dyn std::error::Error>> {
+    use raw_window_handle::HasWindowHandle;
+    use windows_sys::Win32::UI::WindowsAndMessaging::*;
 
-    // Track whether a monitor thread is already running to prevent duplicates.
-    static MONITOR_SPAWNED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-    if MONITOR_SPAWNED.swap(true, std::sync::atomic::Ordering::SeqCst) {
-        eprintln!("[agent] mouse monitor already running, skipping duplicate spawn");
-        return;
+    let handle = window.window_handle()?;
+    let raw_window_handle::RawWindowHandle::Win32(win) = handle.as_raw() else {
+        return Err("not a Win32 window".into());
+    };
+    let hwnd = win.hwnd.get();
+
+    unsafe {
+        let ex_style = GetWindowLongW(hwnd, GWL_EXSTYLE);
+        SetWindowLongW(hwnd, GWL_EXSTYLE, ex_style | (WS_EX_NOACTIVATE as i32));
+
+        let prev = SetWindowLongPtrW(hwnd, GWLP_WNDPROC, agent_hit_test_proc as *const () as isize);
+        ORIGINAL_AGENT_WNDPROC.store(prev as usize, Ordering::Relaxed);
     }
 
-    let _ = thread::Builder::new()
-        .name("agent-mouse-monitor".into())
-        .spawn(move || {
-            let mut was_inside = false;
-
-            loop {
-                thread::sleep(Duration::from_millis(POLL_MS));
-
-                // S1: Check stop signal — allows clean shutdown.
-                if MONITOR_STOP.load(Ordering::Relaxed) {
-                    eprintln!("[agent] mouse monitor stopped via signal");
-                    return;
-                }
-
-                let Some(window) = app.get_webview_window("agent") else {
-                    eprintln!("[agent] mouse monitor: window gone, exiting");
-                    return;
-                };
-
-                // Skip when hidden but do NOT self-terminate — the agent window
-                // may be toggled on/off many times during a session. Each hide
-                // would kill the thread, leaving no monitor on next show.
-                if !window.is_visible().unwrap_or(false) {
-                    was_inside = false;
-                    continue;
-                }
-
-                // Pause during drag.
-                if DRAG_IN_PROGRESS.load(Ordering::Relaxed) {
-                    was_inside = false;
-                    continue;
-                }
-
-                // Respect cooldown after show — don't fight with the show command's
-                // set_ignore_cursor_events(false). The cursor may not be over
-                // the dock yet, so we'd immediately re-enable click-through.
-                let now_ms = now_millis();
-                let show_ts = SHOW_TIMESTAMP_MS.load(Ordering::Relaxed);
-                if show_ts > 0 && now_ms.saturating_sub(show_ts) < SHOW_COOLDOWN_MS {
-                    was_inside = false;
-                    continue;
-                }
-
-                let mut pt = POINT { x: 0, y: 0 };
-                if unsafe { GetCursorPos(&mut pt) } == 0 {
-                    continue;
-                }
-
-                let Ok(pos) = window.outer_position() else {
-                    continue;
-                };
-                let Ok(size) = window.outer_size() else {
-                    continue;
-                };
-
-                let win_x = pos.x as f64;
-                let win_y = pos.y as f64;
-                let win_h = size.height as f64;
-
-                // Expand hit area when composer is open.
-                let dock_h = if COMPOSER_OPEN.load(Ordering::Relaxed) {
-                    AGENT_H_EXPANDED
-                } else {
-                    AGENT_H
-                };
-
-                // Dock sits at the bottom-right of the window.
-                let dock_x = win_x;
-                let dock_y = win_y + (win_h - dock_h);
-
-                let margin = if was_inside {
-                    EXIT_MARGIN
-                } else {
-                    ENTER_MARGIN
-                };
-
-                let inside = pt.x as f64 >= dock_x - margin
-                    && pt.x as f64 <= dock_x + AGENT_W + margin
-                    && pt.y as f64 >= dock_y - margin
-                    && pt.y as f64 <= dock_y + dock_h + margin;
-
-                if inside != was_inside {
-                    was_inside = inside;
-                    if let Err(e) = window.set_ignore_cursor_events(!inside) {
-                        eprintln!("[agent] set_ignore_cursor_events failed: {e}");
-                    }
-                }
-            }
-        });
+    eprintln!("[agent] WM_NCHITTEST hook installed + WS_EX_NOACTIVATE applied");
+    Ok(())
 }
 
-#[cfg(not(target_os = "windows"))]
-fn start_mouse_monitor(_app: AppHandle) {}
+/// Custom window procedure: returns HTTRANSPARENT outside the interactive dock bounds.
+/// The dock sits at the bottom of the window — only the visible dock bar area
+/// receives mouse events; the transparent area above passes clicks through.
+#[cfg(target_os = "windows")]
+unsafe extern "system" fn agent_hit_test_proc(
+    hwnd: isize,
+    msg: u32,
+    wparam: usize,
+    lparam: isize,
+) -> isize {
+    const WM_NCHITTEST: u32 = 132u32;
+    const HTTRANSPARENT: isize = -1;
+
+    if msg == WM_NCHITTEST {
+        let cursor_x = (lparam as i16) as i32;
+        let cursor_y = ((lparam >> 16) as i16) as i32;
+
+        let mut rect = std::mem::zeroed::<RECT>();
+        if GetWindowRect(hwnd, &mut rect) != 0 {
+            let win_x = rect.left as f64;
+            let win_y = rect.top as f64;
+            let _win_w = (rect.right - rect.left) as f64;
+            let win_h = (rect.bottom - rect.top) as f64;
+
+            let dock_h = if COMPOSER_OPEN.load(Ordering::Relaxed) {
+                AGENT_H_EXPANDED
+            } else {
+                AGENT_H
+            };
+
+            let inside = (cursor_x as f64) >= win_x
+                && (cursor_x as f64) <= win_x + AGENT_W
+                && (cursor_y as f64) >= win_y + win_h - dock_h
+                && (cursor_y as f64) <= win_y + win_h;
+
+            if !inside {
+                return HTTRANSPARENT;
+            }
+        }
+    }
+
+    let original = ORIGINAL_AGENT_WNDPROC.load(std::sync::atomic::Ordering::Relaxed);
+    if original != 0 {
+        let proc: unsafe extern "system" fn(isize, u32, usize, isize) -> isize =
+            std::mem::transmute(original);
+        CallWindowProcW(Some(proc), hwnd, msg, wparam, lparam)
+    } else {
+        DefWindowProcW(hwnd, msg, wparam, lparam)
+    }
+}
 
 /// Set the macOS window level and collection behavior for the agent dock.
 /// Using objc2 msg_send! on the NSWindow obtained from the webview's view.
@@ -369,12 +329,6 @@ fn set_agent_macos_window_level(window: &WebviewWindow) -> Result<(), Box<dyn st
     }
 
     Ok(())
-}
-
-/// Get current time in milliseconds since process start.
-fn now_millis() -> u64 {
-    static START: LazyLock<std::time::Instant> = LazyLock::new(std::time::Instant::now);
-    START.elapsed().as_millis() as u64
 }
 
 /// Position the agent window at bottom-right of the primary monitor.
@@ -417,18 +371,7 @@ fn show_agent_window_impl(app: &AppHandle) -> Result<(), String> {
         });
     }
 
-    // Record show timestamp BEFORE show() so the cooldown covers the entire operation.
-    SHOW_TIMESTAMP_MS.store(now_millis(), Ordering::SeqCst);
-
     window.show().map_err(|e| e.to_string())?;
-
-    // S2: Set click-through OFF AFTER show(), not before.
-    // This avoids the race where set_ignore_cursor_events(false) is overwritten
-    // by the monitor's first poll before the cooldown kicks in.
-    #[cfg(target_os = "windows")]
-    if let Err(e) = window.set_ignore_cursor_events(false) {
-        eprintln!("[agent] set_ignore_cursor_events(false) after show failed: {e}");
-    }
 
     window.set_focus().map_err(|e| e.to_string())?;
     Ok(())
@@ -473,10 +416,7 @@ pub fn agent_set_composer_open(open: bool) {
 /// Start dragging the agent window. Pauses the mouse monitor during drag.
 #[tauri::command]
 pub fn agent_start_drag(window: tauri::WebviewWindow) -> Result<(), String> {
-    DRAG_IN_PROGRESS.store(true, Ordering::SeqCst);
-    let result = window.start_dragging().map_err(|e| e.to_string());
-    DRAG_IN_PROGRESS.store(false, Ordering::SeqCst);
-    result
+    window.start_dragging().map_err(|e| e.to_string())
 }
 
 /// Set up the system tray icon with context menu.
@@ -553,8 +493,7 @@ pub fn set_agent_dock_enabled(app: AppHandle, enabled: bool) -> Result<(), Strin
 
         #[cfg(target_os = "windows")]
         {
-            let _ = window.set_ignore_cursor_events(false);
-            start_mouse_monitor(app.clone());
+            let _ = prepare_agent_window_for_hit_test(&window);
         }
 
         window.show().map_err(|e| e.to_string())?;

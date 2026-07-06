@@ -17,22 +17,12 @@ use tokio::{
 };
 use url::Url;
 
-/// Open a URL using OS-specific system commands to bypass flaky JS opener handoff.
+/// Open a URL using the platform's default mechanism via `tauri-plugin-opener`.
+/// Replaces the old `rundll32`/`open`/`xdg-open` approach which was unreliable on Windows.
 fn open_url_in_browser(_app: &AppHandle, url: &str) -> Result<(), String> {
     eprintln!("[auth] open_url_in_browser: {url}");
-    let result = if cfg!(target_os = "windows") {
-        std::process::Command::new("rundll32")
-            .args(["url.dll,FileProtocolHandler", url])
-            .spawn()
-    } else if cfg!(target_os = "macos") {
-        std::process::Command::new("open").arg(url).spawn()
-    } else {
-        std::process::Command::new("xdg-open").arg(url).spawn()
-    };
-    match result {
-        Ok(_) => { eprintln!("[auth] browser opened via system command"); Ok(()) }
-        Err(e) => { eprintln!("[auth] system command failed: {e}"); Err(format!("Failed to open browser: {e}")) }
-    }
+    tauri_plugin_opener::open_url(url, None::<&str>)
+        .map_err(|e| format!("Failed to open browser: {e}"))
 }
 
 // window_bounds::transition_to_shell is imported locally in prepare_shell_window
@@ -43,7 +33,7 @@ const AUTH_SESSION_FILENAME: &str = "session.json";
 const SUPABASE_REDIRECT_STATE_TTL_MS: i64 = 2 * 60 * 1000;
 const SUPABASE_REFRESH_CHECK_INTERVAL_MS: u64 = 5 * 60 * 1000;
 const SUPABASE_REFRESH_WINDOW_MS: i64 = 10 * 60 * 1000;
-const SUPABASE_OAUTH_PORT: u16 = 47831;
+const SUPABASE_OAUTH_PORT: u16 = 47832;
 const LOGIN_WINDOW_WIDTH: f64 = 400.0;
 const LOGIN_WINDOW_HEIGHT: f64 = 480.0;
 // Public desktop auth config. These values are safe to ship in the client.
@@ -492,23 +482,18 @@ impl AuthManager {
     }
 
     pub async fn start_google_login(&self, app: AppHandle) -> Result<String, String> {
-        eprintln!("[auth] start_google_login: BEGIN");
+        eprintln!("[auth] start_google_login: ENTERED");
         let config = self.inner.config.clone();
-
-        eprintln!("[auth] start_google_login: creating OAuth flow");
         let flow = self.new_flow();
-        eprintln!("[auth] start_google_login: flow created, started_at_ms={}", flow.started_at_ms);
 
         let stale_port = {
             let mut state = self.inner.state.lock().await;
             if let Some(active_flow) = state.active_flow.as_ref() {
                 let age_ms = unix_ms().saturating_sub(active_flow.started_at_ms);
                 if age_ms < SUPABASE_REDIRECT_STATE_TTL_MS {
-                    eprintln!("[auth] start_google_login: ERROR — active flow already exists");
                     return Err("An auth flow is already active.".to_string());
                 }
 
-                eprintln!("[auth] start_google_login: clearing stale active flow");
                 let stale_port = active_flow.port;
                 state.active_flow = None;
                 Some(stale_port)
@@ -524,10 +509,9 @@ impl AuthManager {
         {
             let mut state = self.inner.state.lock().await;
             state.active_flow = Some(flow.clone());
-            eprintln!("[auth] start_google_login: active flow set");
         }
 
-        eprintln!("[auth] start_google_login: starting OAuth server on port {}", SUPABASE_OAUTH_PORT);
+        eprintln!("[auth] start_google_login: about to call start_with_config on port {SUPABASE_OAUTH_PORT}");
         let manager = self.clone();
         let app_for_callback = app.clone();
         let port = match start_with_config(
@@ -547,14 +531,16 @@ impl AuthManager {
                 });
             },
         ) {
-            Ok(port) => port,
+            Ok(port) => {
+                eprintln!("[auth] OAuth server started on port {port}");
+                port
+            }
             Err(error) => {
                 eprintln!("[auth] start_with_config FAILED: {error}");
                 self.clear_flow().await;
                 return Err(error.to_string());
             }
         };
-        eprintln!("[auth] OAuth server started on port {port}");
 
         {
             let mut state = self.inner.state.lock().await;
@@ -563,14 +549,10 @@ impl AuthManager {
             }
         }
 
-        eprintln!("[auth] start_google_login: building authorize URL");
         let auth_url = self.build_authorize_url(&flow, &config)?;
-        eprintln!("[auth] start_google_login: auth_url={auth_url}");
 
-        eprintln!("[auth] start_google_login: spawning timeout watchdog");
         self.spawn_timeout_watchdog(app.clone(), port, flow.started_at_ms);
 
-        eprintln!("[auth] start_google_login: returning auth_url to frontend");
         Ok(auth_url.to_string())
     }
 
@@ -584,6 +566,10 @@ impl AuthManager {
         window.center().map_err(|error| error.to_string())?;
         window.show().map_err(|error| error.to_string())?;
         window.set_focus().map_err(|error| error.to_string())?;
+        #[cfg(debug_assertions)]
+        {
+            let _ = window.open_devtools();
+        }
         Ok(())
     }
 
@@ -1859,6 +1845,7 @@ pub async fn begin_google_auth(
     app: AppHandle,
     manager: State<'_, AuthManager>,
 ) -> Result<String, String> {
+    eprintln!("[auth] begin_google_auth: COMMAND ENTERED");
     manager.start_google_login(app).await
 }
 

@@ -2,9 +2,7 @@ use raw_window_handle::HasWindowHandle;
 use tauri::utils::config::WindowEffectsConfig;
 use tauri::{AppHandle, Manager};
 
-#[cfg(target_os = "windows")]
-use raw_window_handle::RawWindowHandle; 
-#[cfg(target_os = "windows")]
+use raw_window_handle::RawWindowHandle;
 use tauri::window::{Effect, EffectsBuilder};
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -7,18 +7,11 @@
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
   import { isTauri } from "@tauri-apps/api/core";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
 
   // ── Island/Agent windows: bare render, no shell/auth ────────────────
   let isIsland = $state(false);
   let isAgent = $state(false);
-
-  $effect(() => {
-    if (browser) {
-      const path = window.location.pathname;
-      isIsland = path === "/island";
-      isAgent = path === "/agent";
-    }
-  });
   import { initEnterprisePolish } from "$lib/enterprise";
   import { hydrateDesktopSettings } from "$lib/desktop/settings";
   import { clearBillingProfile, refreshBillingProfile } from "$lib/stores/billing.store";
@@ -49,6 +42,7 @@
     setAuthSessionExpired,
     setAuthError,
     setAuthLoginLoading,
+    setLoginUrl,
   } from "$lib/stores/auth.store";
 
   let { children } = $props();
@@ -57,89 +51,172 @@
   onMount(() => {
     if (!browser) return;
 
+    // Island/Agent windows: render only their content, no auth bootstrap
+    const windowKind = isTauri() ? getCurrentWindow().label : window.location.pathname;
+    isIsland = windowKind === "island" || windowKind === "/island";
+    isAgent = windowKind === "agent" || windowKind === "/agent";
+    if (isIsland || isAgent) return;
+
     // Enterprise polish — native-feel behaviors (context menu, zoom, etc.)
     initEnterprisePolish();
+
+    console.log("[LAYOUT] onMount running, path=" + window.location.pathname);
+
+    // HMR guard: prevent stale hot-reload instances from running duplicate bootstrap
+    if ((window as any).__bentoAuthBootstrapping) {
+      console.log("[LAYOUT] auth bootstrap already running — skipping duplicate HMR instance");
+      return;
+    }
+    (window as any).__bentoAuthBootstrapping = true;
+
+    const done = () => { (window as any).__bentoAuthBootstrapping = false; };
 
     // Bootstrap auth state from Rust backend
     (async () => {
       const dbg = async (msg: string) => {
-        try { await invoke("write_debug_log", { msg }); } catch { /* ignore */ }
         console.log("[BENTO DEBUG]", msg);
+        try {
+          await Promise.race([
+            invoke("write_debug_log", { msg }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("dbg timeout")), 2000)),
+          ]);
+        } catch { /* ignore */ }
       };
 
       await dbg("layout onMount started");
 
-      // ── Language + settings bootstrap — non-fatal, never blocks auth ──
-      try {
-        await dbg("hydrating settings...");
-        const settings = await hydrateDesktopSettings();
-        await dbg("settings hydrated: " + JSON.stringify(settings.language));
-        try { await hydrateLanguage(settings.language?.code ?? "en"); } catch (e) { await dbg("hydrateLanguage failed: " + String(e)); }
-        // Apply editor font from settings
-        applyEditorFont(settings.appearance.fontPairingId);
-        // Apply Journal font from localStorage store
-        initJournalFont();
-        // Apply Notes font from localStorage store
-        initNotesFont();
-      } catch (e) {
-        await dbg("hydrateDesktopSettings failed: " + String(e));
-      }
+      if (isTauri()) {
+        await dbg("calling bootstrap_auth_state...");
 
-      if (!isTauri()) {
+        const invokeWithTimeout = <T>(cmd: string, args?: Record<string, unknown>, ms = 5000): Promise<T> =>
+          Promise.race([
+            invoke<T>(cmd, args),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`${cmd} timed out after ${ms}ms`)), ms)),
+          ]);
+
+        const showWindow = async (shell: boolean) => {
+          await dbg("showWindow shell=" + shell);
+          try {
+            await invokeWithTimeout(shell ? "prepare_shell_window" : "prepare_login_window");
+            await dbg("showWindow invoke succeeded");
+          } catch (e) {
+            await dbg("showWindow invoke failed: " + String(e) + ", trying restore_window");
+            try { await invokeWithTimeout("restore_window"); } catch (e2) { await dbg("restore_window also failed: " + String(e2)); }
+          }
+        };
+
+        const enforceUserBoundary = async () => {
+          await dbg("enforcing auth user boundary...");
+          await invoke("enforce_auth_user_boundary");
+          await dbg("auth user boundary enforced");
+        };
+
+        let bootstrapDone = false;
+        try {
+          const bootstrapState = await Promise.race([
+            invoke<{
+              status: string;
+              user?: { id: string; name: string; email: string; avatarUrl: string };
+            }>("bootstrap_auth_state"),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("bootstrap_auth_state timed out after 10s")), 10000)
+            ),
+          ]);
+
+          bootstrapDone = true;
+          await dbg("bootstrap_auth_state result: " + bootstrapState.status);
+
+          if (bootstrapState.status === "restored" && bootstrapState.user) {
+            await enforceUserBoundary();
+            shellTransitioned = true;
+            clearBillingProfile();
+            setAuthBootstrap({ status: "restored", user: bootstrapState.user });
+            void refreshBillingProfile();
+            void showWindow(true);
+          } else {
+            clearBillingProfile();
+            setAuthLoginRequired();
+            await showWindow(false);
+            await startOAuth();
+          }
+        } catch (error) {
+          await dbg("bootstrap_auth_state threw: " + String(error));
+          if (!bootstrapDone) {
+            setAuthLoginRequired();
+            await showWindow(false);
+            await startOAuth();
+          }
+        }
+
+        // ── OAuth flow: start server, open browser, poll for success ──
+        async function startOAuth() {
+          await dbg("starting OAuth flow inline...");
+          try {
+            const authUrl = await invokeWithTimeout<string>("begin_google_auth", undefined, 15000);
+            await dbg("OAuth URL obtained: " + authUrl);
+            setLoginUrl(authUrl);
+
+            await dbg("auto-opening browser...");
+            try {
+              await invokeWithTimeout("open_external_url", { url: authUrl });
+              await dbg("browser auto-opened successfully");
+            } catch (e) {
+              await dbg("auto-open browser failed: " + String(e));
+            }
+
+            // Poll for auth success (fallback in case listen doesn't register)
+            let pollCount = 0;
+            const POLL_MAX = 90;
+            const checkSession = async () => {
+              if (get(authStore).status === "restored") return;
+              pollCount++;
+              if (pollCount > POLL_MAX) return;
+                try {
+                  const result = await invokeWithTimeout<{
+                    status: string;
+                    user?: { id: string; name: string; email: string; avatarUrl: string };
+                  }>("check_auth_session", undefined, 5000);
+                await dbg("auth poll #" + pollCount + ": " + result.status);
+                if (result.status === "restored" && result.user) {
+                  await dbg("auth restored via poll!");
+                  try { await invoke("enforce_auth_user_boundary"); } catch {}
+                  clearBillingProfile();
+                  setAuthRestored(result.user);
+                  setAuthLoginLoading(false);
+                  void refreshBillingProfile();
+                  void invoke("prepare_shell_window");
+                  return;
+                }
+              } catch {}
+              setTimeout(checkSession, 2000);
+            };
+            setTimeout(checkSession, 2000);
+          } catch (e) {
+            await dbg("OAuth start failed: " + String(e));
+          }
+        }
+      } else {
         await dbg("not tauri, setting local dev user");
         setAuthRestored({ id: "local-dev", name: "Local Developer", email: "dev@local.dev", avatarUrl: "" });
         clearBillingProfile();
-        return;
       }
 
-      await dbg("calling bootstrap_auth_state...");
-
-      const showWindow = async (shell: boolean) => {
-        await dbg("showWindow shell=" + shell);
+      // ── Language + settings hydration — non-fatal, never blocks auth ──
+      (async () => {
         try {
-          await invoke(shell ? "prepare_shell_window" : "prepare_login_window");
-          await dbg("showWindow invoke succeeded");
+          await dbg("hydrating settings...");
+          const settings = await hydrateDesktopSettings();
+          await dbg("settings hydrated: " + JSON.stringify(settings.language));
+          try { await hydrateLanguage(settings.language?.code ?? "en"); } catch (e) { await dbg("hydrateLanguage failed: " + String(e)); }
+          applyEditorFont(settings.appearance.fontPairingId);
+          initJournalFont();
+          initNotesFont();
         } catch (e) {
-          await dbg("showWindow invoke failed: " + String(e) + ", trying restore_window");
-          try { await invoke("restore_window"); } catch (e2) { await dbg("restore_window also failed: " + String(e2)); }
+          await dbg("hydrateDesktopSettings failed: " + String(e));
         }
-      };
+      })();
 
-      const enforceUserBoundary = async () => {
-        await dbg("enforcing auth user boundary...");
-        await invoke("enforce_auth_user_boundary");
-        await dbg("auth user boundary enforced");
-      };
-
-      let bootstrapDone = false;
-      try {
-        const bootstrapState = await invoke<{
-          status: string;
-          user?: { id: string; name: string; email: string; avatarUrl: string };
-        }>("bootstrap_auth_state");
-
-        bootstrapDone = true;
-        await dbg("bootstrap_auth_state result: " + bootstrapState.status);
-
-        if (bootstrapState.status === "restored" && bootstrapState.user) {
-          await enforceUserBoundary();
-          shellTransitioned = true;
-          clearBillingProfile();
-          setAuthBootstrap({ status: "restored", user: bootstrapState.user });
-          void refreshBillingProfile();
-          void showWindow(true);
-        } else {
-          clearBillingProfile();
-          setAuthLoginRequired();
-          await showWindow(false);
-        }
-      } catch (error) {
-        await dbg("bootstrap_auth_state threw: " + String(error));
-        if (!bootstrapDone) {
-          setAuthLoginRequired();
-          await showWindow(false);
-        }
-      }
+      done();
     })();
 
     // Listen for auth events — Tauri events only (guarded for browser mode)
@@ -198,10 +275,19 @@
     // When the laptop wakes from sleep, the webview may reload or the page
     // may become visible again. Re-check the session to avoid showing a
     // stale / logged-out state.
+    //
+    // CRITICAL: Do NOT fire during initial bootstrap (first 5s after mount).
+    // The bootstrap_auth_state call is async and the focus/visibility events
+    // can fire during setup, racing with the bootstrap and potentially
+    // clobbering the auth state.
     let checkAuthTimer: ReturnType<typeof setTimeout> | null = null;
+    let wakeCheckEnabled = false;
+
+    // Enable wake checks after initial bootstrap settles
+    const enableWakeCheckTimer = setTimeout(() => { wakeCheckEnabled = true; }, 5000);
 
     async function checkSessionOnWake() {
-      if (!isTauri()) return;
+      if (!isTauri() || !wakeCheckEnabled) return;
       if (get(authStore).status !== "restored") return;
 
       try {
@@ -221,25 +307,11 @@
       }
     }
 
-    // Debounced wake check: fires at most once per 10 seconds
+    // Debounced wake check: fires at most once per N seconds
     function scheduleWakeCheck() {
       if (checkAuthTimer) clearTimeout(checkAuthTimer);
       checkAuthTimer = setTimeout(checkSessionOnWake, 500);
     }
-
-    // visibilitychange fires when the page becomes visible after sleep
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    // window focus fires when the window regains focus (also on wake)
-    window.addEventListener("focus", onFocus);
-
-    return () => {
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-      window.removeEventListener("focus", onFocus);
-      if (checkAuthTimer) clearTimeout(checkAuthTimer);
-      if (unlistenSuccess) void unlistenSuccess.then((fn) => fn());
-      if (unlistenExpired) void unlistenExpired.then((fn) => fn());
-      if (unlistenError) void unlistenError.then((fn) => fn());
-    };
 
     function onVisibilityChange() {
       if (document.visibilityState === "visible") {
@@ -250,6 +322,19 @@
     function onFocus() {
       scheduleWakeCheck();
     }
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      clearTimeout(enableWakeCheckTimer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", onFocus);
+      if (checkAuthTimer) clearTimeout(checkAuthTimer);
+      if (unlistenSuccess) void unlistenSuccess.then((fn) => fn());
+      if (unlistenExpired) void unlistenExpired.then((fn) => fn());
+      if (unlistenError) void unlistenError.then((fn) => fn());
+    };
   });
 </script>
 
