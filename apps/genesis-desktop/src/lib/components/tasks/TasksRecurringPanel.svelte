@@ -191,7 +191,7 @@
         </div>
       {:else}
         {#each recurringTasks as task (task.id)}
-          {@const nextDue = nextDueDate(task)}
+          {const nextDue = nextDueDate(task)}
           <div class="tasks-recurring-panel-row">
             <!-- Left: task info -->
             <div class="tasks-recurring-panel-row-main">

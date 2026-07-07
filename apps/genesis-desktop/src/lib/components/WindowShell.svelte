@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { browser } from "$app/environment";
-  import { onMount } from "svelte";
-  import { getCurrentWebviewWindow, type WebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { browser } from "$app/environment";
+import { onMount } from "svelte";
+import { isTauri } from "@tauri-apps/api/core";
   import MinusIcon from "@lucide/svelte/icons/minus";
   import SquareIcon from "@lucide/svelte/icons/square";
   import XIcon from "@lucide/svelte/icons/x";
@@ -14,9 +14,9 @@
   import { getShellTokens } from "$lib/shell-theme";
 
   const isMac = browser && /mac/i.test(navigator.userAgent);
-  const canUseTauri = browser && "__TAURI_INTERNALS__" in window;
+  const canUseTauri = browser && isTauri();
   let isMaximized = $state(false);
-  let appWindow: WebviewWindow | null = null;
+  let appWindow: any = null;
   const isAuthShell = $derived($authStore.status !== "restored");
   const shellStyle = $derived(
     Object.entries(getShellTokens($isDark))
@@ -87,26 +87,29 @@
       return;
     }
 
-    appWindow = getCurrentWebviewWindow();
-    void syncMaximizedState();
-
     let disposed = false;
     let removeResizeListener: (() => void) | undefined;
 
-    const resizeListener = appWindow.listen("tauri://resize", () => {
-      if (!disposed) {
-        void syncMaximizedState();
-      }
-    });
+    void (async () => {
+      const { getCurrentWebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+      appWindow = getCurrentWebviewWindow();
+      void syncMaximizedState();
 
-    void resizeListener.then((unlisten: () => void) => {
-      if (disposed) {
-        unlisten();
-        return;
-      }
+      const resizeListener = appWindow.listen("tauri://resize", () => {
+        if (!disposed) {
+          void syncMaximizedState();
+        }
+      });
 
-      removeResizeListener = unlisten;
-    });
+      void resizeListener.then((unlisten: () => void) => {
+        if (disposed) {
+          unlisten();
+          return;
+        }
+
+        removeResizeListener = unlisten;
+      });
+    })();
 
     return () => {
       disposed = true;

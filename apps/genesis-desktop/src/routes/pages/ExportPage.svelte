@@ -2,6 +2,7 @@
   import { browser } from "$app/environment";
   import { time } from "$lib/utils/time";
   import { toast } from "svelte-sonner";
+  import { isTauri } from "@tauri-apps/api/core";
   import { exportFormats } from "$lib/data/app-data";
   import { Button } from "$lib/components/ui/button/index.js";
   import { Card, CardContent, CardHeader, CardTitle } from "$lib/components/ui/card/index.js";
@@ -12,7 +13,7 @@
   let isChoosingFolder = $state(false);
 
   const startExport = async () => {
-    if (!browser || !("__TAURI_INTERNALS__" in window)) {
+    if (!browser || !isTauri()) {
       toast.info("Run this view inside the desktop shell to write export bundles.");
       return;
     }
@@ -40,7 +41,7 @@
   };
 
   const chooseExportDirectory = async () => {
-    if (!browser || !("__TAURI_INTERNALS__" in window)) {
+    if (!browser || !isTauri()) {
       toast.info("Run this view inside the desktop shell to choose an export folder.");
       return;
     }

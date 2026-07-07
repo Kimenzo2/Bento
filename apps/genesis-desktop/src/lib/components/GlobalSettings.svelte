@@ -39,7 +39,7 @@
   import { languageStore, setLanguage } from "$lib/stores/language.store";
   import { activeBundle, createTranslator, INTERFACE_LANGUAGES, DATE_FORMATS, TIME_FORMATS, FIRST_DAY_OPTIONS } from "$lib/i18n";
   import { toast } from "svelte-sonner";
-  import { invoke } from "@tauri-apps/api/core";
+  import { invoke, isTauri } from "@tauri-apps/api/core";
   import { browser } from "$app/environment";
   import {
     needsSetup,
@@ -96,7 +96,7 @@
 
   let open = $state(false);
   let activeSection = $state<SectionId>("account");
-  let canUseTauri = $derived(browser && "__TAURI_INTERNALS__" in window);
+  let canUseTauri = $derived(browser && isTauri());
 
   // Language picker
   let langSearch = $state("");
@@ -451,7 +451,7 @@
       <!-- ── Sidebar Nav ─────────────────────────────── -->
       <nav class="global-settings__nav" aria-label="Settings sections">
         {#each sections as section}
-          {@const Icon = section.icon}
+          {const Icon = section.icon}
           <button
             type="button"
             class:global-settings__nav-active={activeSection === section.id}

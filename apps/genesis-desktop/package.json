@@ -1,6 +1,6 @@
 {
   "name": "@bento/desktop",
-  "version": "0.2.13",
+  "version": "0.2.14",
   "private": true,
   "description": "Bento Desktop application",
   "license": "MIT",
@@ -84,6 +84,7 @@
     "@types/sortablejs": "^1.15.9",
     "@typescript/native-preview": "beta",
     "bits-ui": "^2.16.3",
+    "esbuild": "^0.28.1",
     "jsdom": "^28.1.0",
     "mode-watcher": "^1.1.0",
     "oxfmt": "^0.47.0",

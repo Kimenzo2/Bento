@@ -1,10 +1,7 @@
 <script lang="ts">
   import { browser } from "$app/environment";
   import { onMount } from "svelte";
-  import { invoke } from "@tauri-apps/api/core";
-  import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-  import { check } from "@tauri-apps/plugin-updater";
-  import { goto } from "@mateothegreat/svelte5-router";
+  import { goto } from "$app/navigation";
   import { toast } from "svelte-sonner";
   import { hydrateDesktopSettings } from "$lib/desktop/settings";
   import { setLifecycleState, type DesktopLifecycleState } from "$lib/stores/lifecycle.store";
@@ -123,125 +120,135 @@
     // Preload alarm audios so they play instantly
     preloadAlarmAudios(["alarm", "ringtone", "gentle-rain", "ocean-waves", "guitar-loop"]);
 
-    if ("__TAURI_INTERNALS__" in window) {
-      const appWindow = getCurrentWebviewWindow();
-
-      void hydrateDesktopSettings().catch((error) => {
-        console.error("Bento desktop settings failed to hydrate.", error);
-      });
-
-      void invoke<DesktopLifecycleState>("get_lifecycle_state")
-        .then((state) => {
-          setLifecycleState(state);
-        })
-        .catch(() => {
-          // The native lifecycle event stream will still update once available.
-        });
-
+    if (browser) {
       void (async () => {
-        let safety = 0;
-        while (safety < 10) {
-          safety++;
-          const payload = await invoke<string | null>('consume_pending_deep_link');
-          if (!payload) break;
-          routeDeepLink(payload);
-        }
-        if (safety >= 10) {
-          console.warn('[RuntimeBridge] Deep link loop exceeded safety limit — possible backend bug');
-        }
-      })().catch(() => {
-        // Normal launches do not have a pending deep link.
-      });
+        const { isTauri, invoke } = await import("@tauri-apps/api/core");
+        const { listen } = await import("@tauri-apps/api/event");
+        const { getCurrentWebviewWindow } = await import("@tauri-apps/api/webviewWindow");
+        if (!isTauri()) return;
+        const appWindow = getCurrentWebviewWindow();
 
-      unlistenPromises.push(
-        appWindow.listen<string>("bento://deep-link", ({ payload }) => {
-          routeDeepLink(payload);
-        })
-      );
-
-      unlistenPromises.push(
-        appWindow.listen<string>("bento://navigate", ({ payload }) => {
-          if (payload.startsWith("/")) {
-            goto(payload);
-          }
-        })
-      );
-
-      unlistenPromises.push(
-        appWindow.listen<string>("bento://dashboard-refresh", ({ payload }) => {
-          window.dispatchEvent(
-            new CustomEvent("bento:dashboard-refresh", {
-              detail: payload,
-            })
-          );
-        })
-      );
-
-      unlistenPromises.push(
-        appWindow.listen<{ message: string; logPath: string; timestamp: string }>(
-          "bento://crash",
-          ({ payload }) => {
-            showCrash(payload);
-          }
-        )
-      );
-
-      unlistenPromises.push(
-        appWindow.listen<string>("bento://lifecycle", ({ payload }) => {
-          setLifecycleState(payload as DesktopLifecycleState);
-        })
-      );
-
-      // Initialize Tauri → EventBus bridge for schedule-fire and other system events
-      void initEventBridge().then(() => {
-        // Show an in-app toast + play alarm sound when a schedule fires
-        eventBus.on(BentoEventType.ScheduleDue, (_event) => {
-          const label = (_event?.payload?.label as string) ?? "";
-          const moduleId = (_event?.payload?.moduleId as string) ?? "";
-          if (!label) return;
-          const ctx = moduleId === "sleep" ? "Alarm" : "Reminder";
-          toast.info(label, {
-            description: ctx,
-            duration: 8000,
-          });
-          // Play alarm sound (non-blocking; browser may require user gesture on first play)
-          const soundName = (_event?.payload?.sound as string) ?? "alarm";
-          const audio = playAlarmSound(soundName as SoundName, { loop: true, volume: 0.6 });
-          if (audio) {
-            // Auto-stop after 30s to prevent infinite loop
-            setTimeout(() => { stopAlarmSound(audio); }, 30_000);
-          }
+        void hydrateDesktopSettings().catch((error) => {
+          console.error("Bento desktop settings failed to hydrate.", error);
         });
-      });
 
-      cancelDeferredTasks.push(
-        scheduleAfterFirstPaint(() => {
-          void (async () => {
-            setUpdateChecking(true);
-            try {
-              const update = await check();
-              if (update) {
-                setAvailableUpdate({
-                  version: update.version,
-                  body: update.body,
-                });
-                setTimeout(() => showUpdatePanel(), 2000);
-              }
-            } catch (e) {
-              const msg = e instanceof Error ? e.message : String(e);
-              const type = /network|fetch|econnrefused|timeout|dns/i.test(msg) ? "network"
-                : /signature|verify|invalid.*key/i.test(msg) ? "signature"
-                : /parse|json|unexpected/i.test(msg) ? "manifest"
-                : /version|semver/i.test(msg) ? "version"
-                : "unknown";
-              console.error(`[updater] check failed (${type}): ${msg}`);
-              console.debug("[updater] full error:", e);
-            } finally {
-              setUpdateChecking(false);
+        void invoke<DesktopLifecycleState>("get_lifecycle_state")
+          .then((state) => {
+            setLifecycleState(state);
+          })
+          .catch(() => {
+            // The native lifecycle event stream will still update once available.
+          });
+
+        void (async () => {
+          let safety = 0;
+          while (safety < 10) {
+            safety++;
+            const payload = await invoke<string | null>('consume_pending_deep_link');
+            if (!payload) break;
+            routeDeepLink(payload);
+          }
+          if (safety >= 10) {
+            console.warn('[RuntimeBridge] Deep link loop exceeded safety limit — possible backend bug');
+          }
+        })().catch(() => {
+          // Normal launches do not have a pending deep link.
+        });
+
+        unlistenPromises.push(
+          appWindow.listen<string>("bento://deep-link", ({ payload }) => {
+            routeDeepLink(payload);
+          })
+        );
+
+        unlistenPromises.push(
+          appWindow.listen<string | { route?: string }>("bento://navigate", ({ payload }) => {
+            const route = typeof payload === "string" ? payload : payload?.route;
+            if (typeof route === "string" && route.startsWith("/")) {
+              goto(route);
             }
-          })();
-        }, 900)
-      );
+          })
+        );
+
+        unlistenPromises.push(
+          appWindow.listen<string>("bento://dashboard-refresh", ({ payload }) => {
+            window.dispatchEvent(
+              new CustomEvent("bento:dashboard-refresh", {
+                detail: payload,
+              })
+            );
+          })
+        );
+
+        unlistenPromises.push(
+          appWindow.listen<{ message: string; logPath: string; timestamp: string }>(
+            "bento://crash",
+            ({ payload }) => {
+              showCrash(payload);
+            }
+          )
+        );
+
+        unlistenPromises.push(
+          appWindow.listen<string>("bento://lifecycle", ({ payload }) => {
+            setLifecycleState(payload as DesktopLifecycleState);
+          })
+        );
+
+        // Initialize Tauri → EventBus bridge for schedule-fire and other system events
+        void initEventBridge().then(() => {
+          // Show an in-app toast + play alarm sound when a schedule fires
+          eventBus.on(BentoEventType.ScheduleDue, (_event) => {
+            const label = (_event?.payload?.label as string) ?? "";
+            const moduleId = (_event?.payload?.moduleId as string) ?? "";
+            if (!label) return;
+            const ctx = moduleId === "sleep" ? "Alarm" : "Reminder";
+            toast.info(label, {
+              description: ctx,
+              duration: 8000,
+            });
+            // Play alarm sound (non-blocking; browser may require user gesture on first play)
+            const soundName = (_event?.payload?.sound as string) ?? "alarm";
+            const audio = playAlarmSound(soundName as SoundName, { loop: true, volume: 0.6 });
+            if (audio) {
+              // Auto-stop after 30s to prevent infinite loop
+              setTimeout(() => { stopAlarmSound(audio); }, 30_000);
+            }
+          });
+        });
+
+        cancelDeferredTasks.push(
+          scheduleAfterFirstPaint(() => {
+            void (async () => {
+              setUpdateChecking(true);
+              try {
+                const { check } = await import("@tauri-apps/plugin-updater");
+                const update = await check();
+                if (update) {
+                  setAvailableUpdate({
+                    version: update.version,
+                    body: update.body,
+                  });
+                  setTimeout(() => showUpdatePanel(), 2000);
+                }
+              } catch (e) {
+                const msg = e instanceof Error ? e.message : String(e);
+                const type = /network|fetch|econnrefused|timeout|dns/i.test(msg) ? "network"
+                  : /signature|verify|invalid.*key/i.test(msg) ? "signature"
+                  : /parse|json|unexpected/i.test(msg) ? "manifest"
+                  : /version|semver/i.test(msg) ? "version"
+                  : "unknown";
+                console.error(`[updater] check failed (${type}): ${msg}`);
+                console.debug("[updater] full error:", e);
+              } finally {
+                setUpdateChecking(false);
+              }
+            })();
+          }, 900)
+        );
+      })().catch((error) => {
+        console.warn("[RuntimeBridge] Native bridge initialization failed:", error);
+      });
     }
 
     return () => {

@@ -450,8 +450,8 @@
         {/if}
 
         {#each appNavigationItems as item}
-          {@const isFlyout = item.action === 'flyout'}
-          {@const isActive = isFlyout ? flyoutPanel?.item.label === item.label : item.label === selectedAppSection}
+          {const isFlyout = item.action === 'flyout'}
+          {const isActive = isFlyout ? flyoutPanel?.item.label === item.label : item.label === selectedAppSection}
           {#if $workspaceStore.sidebarCollapsed}
             <Tooltip>
               <TooltipTrigger>

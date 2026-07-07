@@ -1,7 +1,7 @@
 ﻿<script lang="ts">
   import { browser } from "$app/environment";
   import { onMount, onDestroy } from "svelte";
-  import { invoke } from "@tauri-apps/api/core";
+  import { invoke, isTauri } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
   import { Button } from "$lib/components/ui/button/index.js";
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "$lib/components/ui/card/index.js";
@@ -14,7 +14,7 @@
 
   let _t = $derived.by(() => createTranslator($activeBundle));
 
-  const canUseTauri = browser && "__TAURI_INTERNALS__" in window;
+  const canUseTauri = browser && isTauri();
 
   type BillingPeriod = "monthly" | "yearly";
   type TierName = "free" | "core" | "pro" | "power";

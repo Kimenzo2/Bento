@@ -233,7 +233,7 @@
   {:else}
     <div class="timer-list">
       {#each displayTimers as timer (timer.id)}
-        {@const pct = timer.duration > 0 ? ((timer.duration - timer.remaining) / timer.duration) * 100 : 0}
+        {const pct = timer.duration > 0 ? ((timer.duration - timer.remaining) / timer.duration) * 100 : 0}
         <div class="timer-row" class:timer-row--done={timer.remaining <= 0} in:slide={{ duration: 200 }} out:slide={{ duration: 150 }}>
           <div class="timer-ring" onclick={() => toggleTimer(timer.id)} role="button" tabindex="0" onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter") toggleTimer(timer.id); }}>
             <svg viewBox="0 0 44 44" class="ring-svg">

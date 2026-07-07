@@ -554,7 +554,7 @@
       <!-- Left margin space — for mood accent, word count, etc. -->
       <div class="je-margin-space" aria-hidden="true">
         {#if selectedMood}
-          {@const mood = MOODS.find(m => m.id === selectedMood)}
+          {const mood = MOODS.find(m => m.id === selectedMood)}
           {#if mood}
             <span class="je-margin-mood" style="background: {mood.color}" title={mood.label}></span>
           {/if}

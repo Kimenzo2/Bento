@@ -63,7 +63,7 @@
     </div>
 
   {:else if processor !== (0 as EmbedProcessor)}
-    {@const embedUrl = getEmbedUrl()}
+    {const embedUrl = getEmbedUrl()}
     {#if embedUrl}
       <div class="file-embed">
         <iframe

@@ -24,6 +24,7 @@
     requestPermission,
     sendNotification,
   } from "@tauri-apps/plugin-notification";
+  import { isTauri } from "@tauri-apps/api/core";
   import { desktopSettings } from "$lib/desktop/settings";
   import { lifecycleStore } from "$lib/stores/lifecycle.store";
   import { activeBundle, createTranslator } from "$lib/i18n";
@@ -73,7 +74,7 @@
 
   // ── Background native notification (mirrors Anytype's notify logic) ─
   async function notifyBackgroundUpdate(version: string, body?: string) {
-    if (!browser || !("__TAURI_INTERNALS__" in window)) return;
+    if (!browser || !isTauri()) return;
 
     const granted = await isPermissionGranted();
     const allowed = granted || (await requestPermission()) === "granted";
@@ -243,7 +244,7 @@
 
     <!-- Release notes — truncated to MAX_PREVIEW_LINES, toggle to expand -->
     {#if $updateStore.available?.body && !$updateStore.installing}
-      {@const lines = $updateStore.available.body.split("\n").filter((l) => l.trim())}
+      {const lines = $updateStore.available.body.split("\n").filter((l) => l.trim())}
       <div class="update-notification__body" class:update-notification__body--truncated={!notesExpanded && lines.length > MAX_PREVIEW_LINES}>
         {#if notesExpanded || lines.length <= MAX_PREVIEW_LINES}
           {#each lines as line}

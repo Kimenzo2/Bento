@@ -967,7 +967,7 @@
         <CardContent>
         <div class="goals-big3__grid">
           {#each [0, 1, 2] as slotIndex}
-            {@const slotGoal = big3Goals[slotIndex]}
+            {const slotGoal = big3Goals[slotIndex]}
             {#if slotGoal}
               <div class="goals-big3__card" data-horizon={slotGoal.horizon}>
                 <div class="goals-big3__card-top">
@@ -1019,8 +1019,8 @@
           <p style="color:color-mix(in srgb, var(--muted) 70%, transparent);font-style:italic;font-size:0.85rem;">No focus areas yet. Group your goals into categories like Health, Career, or Learning.</p>
         {:else}
           {#each focusAreas as area, i (area.id)}
-            {@const areaGoals = goals.filter((g) => g.focusAreaId === area.id)}
-            {@const aggPct = focusAreaAggregate(area.id)}
+            {const areaGoals = goals.filter((g) => g.focusAreaId === area.id)}
+            {const aggPct = focusAreaAggregate(area.id)}
             <div class="goals-focus-band" style="--band-accent: {focusAreaColor(i)}">
               <div class="goals-focus-band__left">
                 <span class="goals-focus-band__accent"></span>
@@ -1115,7 +1115,7 @@
         {:else if goals.length === 0}
           <div class="goals-zone-empty"><p class="goals-zone-empty__text">No goals to visualize yet. Start tracking to see your timeline.</p></div>
         {:else}
-          {@const tlData = computeTimelineData()}
+          {const tlData = computeTimelineData()}
           <div class="goals-timeline">
             <!-- Time axis header -->
             <div class="goals-timeline__header" style="--tl-left: {tlData.monthLabelLeft}px; --tl-width: {tlData.totalDays}">
@@ -1168,7 +1168,7 @@
         {:else if goals.length === 0}
           <div class="goals-zone-empty"><p class="goals-zone-empty__text">No activity data yet. Consistency builds over time.</p></div>
         {:else}
-          {@const hmData = computeHeatmapData()}
+          {const hmData = computeHeatmapData()}
           <div class="goals-heatmap">
             <div class="goals-heatmap__grid">
               <!-- Month labels -->

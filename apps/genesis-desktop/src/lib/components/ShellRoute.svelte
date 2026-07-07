@@ -97,7 +97,7 @@ import NotesPage from "../../routes/pages/NotesPage.svelte";
         <p class="text-sm font-medium text-[var(--muted)]">Loading page…</p>
       </section>
     {:then module}
-      {@const Cmp = module.default as any}
+      {const Cmp = module.default as any}
       {#if page === "settings"}
         <Cmp surface="page" />
       {:else}

@@ -462,7 +462,7 @@
           }
         }}
       >          {#if islandStore.activeModule}
-            {@const CompactActiveIcon = getIcon(islandStore.activeModule.icon)}
+            {const CompactActiveIcon = getIcon(islandStore.activeModule.icon)}
             <div class="compact-live">
               <span class="compact-live-icon" style="color: {getAccentColor(islandStore.activeModule.id)}">
                 <CompactActiveIcon size={12} strokeWidth={2.2} />
@@ -569,8 +569,8 @@
         {:else if islandStore.page === "apps"}
           <div class="w-grid" bind:this={appGridEl} onkeydown={handleGridKeydown} role="listbox" tabindex="-1">
             {#each islandStore.filteredItems as item (item.id)}
-              {@const w = getLiveWidget(item.id) ?? item.widget}
-              {@const ItemIcon = getIcon(item.icon)}
+              {const w = getLiveWidget(item.id) ?? item.widget}
+              {const ItemIcon = getIcon(item.icon)}
               <button
                 class="widget-card"
                 class:w-sm={w.width === "sm"}
@@ -600,13 +600,13 @@
           </div>
 
           {#if islandStore.selectedItem}
-            {@const item = islandStore.selectedItem}
+            {const item = islandStore.selectedItem}
             {#if item.quickActions.length}
               <div class="quick-actions">
                 <div class="qa-label">Quick Actions</div>
                 <div class="qa-grid">
                   {#each item.quickActions as action}
-                    {@const ActionIcon = getIcon(action.icon)}
+                    {const ActionIcon = getIcon(action.icon)}
                     <button class="qa-btn" onclick={() => onQuickAction(action.action, item)}>
                       <ActionIcon size={11} strokeWidth={2} />
                       {action.label}
@@ -635,7 +635,7 @@
         {:else}
           <div class="r-list">
             {#each islandStore.recentItems as item (item.id)}
-              {@const RecentIcon = getIcon(item.icon)}
+              {const RecentIcon = getIcon(item.icon)}
               <button class="r-item" onclick={() => onLaunch(item)}>
                 <div class="r-item-icon" style="background: {item.accentColor}18; color: {item.accentColor}">
                   <RecentIcon size={14} strokeWidth={1.6} />

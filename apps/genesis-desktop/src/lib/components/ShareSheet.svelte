@@ -119,7 +119,7 @@
       {/if}
 
       {#each allowedFormats as format}
-        {@const fmt = formatLabels[format]}
+        {const fmt = formatLabels[format]}
         <div class="flex items-center gap-2 rounded-xl border border-border/60 bg-surface/50 p-1">
           <div class="flex flex-1 items-center gap-2 px-2">
             <fmt.icon size={14} class="text-muted-foreground shrink-0" />

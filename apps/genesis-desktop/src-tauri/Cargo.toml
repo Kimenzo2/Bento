@@ -1,6 +1,6 @@
 [package]
 name = "bento-desktop"
-version = "0.2.13"
+version = "0.2.14"
 description = "Bento Desktop application"
 authors = ["Lorenzo Otieno"]
 edition = "2021"
@@ -48,7 +48,14 @@ tauri-plugin-window-state = "2.4.1"
 tauri-plugin-shell = "2"
 tauri-plugin-store = "2"
 tauri-plugin-updater = "2"
-tokio = { version = "1", features = ["sync", "time", "net", "rt-multi-thread", "macros", "io-util"] }
+tokio = { version = "1", features = [
+  "sync",
+  "time",
+  "net",
+  "rt-multi-thread",
+  "macros",
+  "io-util",
+] }
 base64 = "0.22"
 keyring = "3"
 reqwest = { version = "0.12", default-features = false, features = [

@@ -318,7 +318,7 @@
     <!-- Feature list -->
     <div class="ai-feature-list">
       {#each allFeatures as feature}
-        {@const Icon = featureIcon(feature.id)}
+        {const Icon = featureIcon(feature.id)}
         <label
           class="ai-feature-item"
           class:ai-feature-item--disabled={!$aiFeaturesPrefs.enabled}

@@ -456,8 +456,8 @@
 
   <!-- ══ FULLSCREEN overlay ══ -->
   {#if drawer === "fullscreen" && focusEvent}
-    {@const remaining = msToTarget(focusEvent.targetMs)}
-    {@const { days, hours, mins, secs } = decompose(remaining)}
+    {const remaining = msToTarget(focusEvent.targetMs)}
+    {const { days, hours, mins, secs } = decompose(remaining)}
     <div class="cd-overlay cd-overlay--fullscreen" role="dialog" aria-modal="true" aria-label="Fullscreen countdown: {focusEvent.name}">
       <button class="cd-overlay-close" onclick={closeFullscreen} aria-label="Close fullscreen (Escape)">
         <XIcon size={18}/>
@@ -552,7 +552,7 @@
           </div>
 
         {:else if drawer === "edit-progress"}
-          {@const ms = milestones.find(m => m.id === editMsId)}
+          {const ms = milestones.find(m => m.id === editMsId)}
           {#if ms}
             <h3 class="cd-drawer-title">Update progress</h3>
             <p class="cd-drawer-sub">{ms.name}</p>
@@ -614,8 +614,8 @@
     {#if selectedSection === "Events"}
 
       {#if heroEvent}
-        {@const remaining = msToTarget(heroEvent.targetMs)}
-        {@const { days, hours, mins, secs } = decompose(remaining)}
+        {const remaining = msToTarget(heroEvent.targetMs)}
+        {const { days, hours, mins, secs } = decompose(remaining)}
         <Card class="cd-hero {urgencyClass(heroEvent.targetMs)}" style="--cd-accent:{heroEvent.accent}">
           <CardContent class="cd-hero__body">
             <div class="cd-hero__top">
@@ -697,7 +697,7 @@
 
       <!-- TiltCard celebration popup — dominates screen when an event is tapped -->
       {#if celebEvent}
-        {@const daysGone = Math.abs(daysTo(celebEvent.targetMs))}
+        {const daysGone = Math.abs(daysTo(celebEvent.targetMs))}
         <TiltCard open={true} onClose={() => celebEventId = null} maxTilt={25}>
           <p class="tc-meta">{fmtDate(celebEvent.targetMs)}</p>
           <p class="tc-name">{celebEvent.name}</p>
@@ -843,7 +843,7 @@
           </CardHeader>
           <CardContent class="cd-event-list">
             {#each pastEvents as ev}
-              {@const d = Math.abs(daysTo(ev.targetMs))}
+              {const d = Math.abs(daysTo(ev.targetMs))}
               <article class="cd-event-row" style="--cd-accent:{ev.accent}">
                 <span class="cd-event-dot" style="background:{ev.accent}" aria-hidden="true"></span>
                 <div class="cd-event-info">

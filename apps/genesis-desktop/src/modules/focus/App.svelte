@@ -416,7 +416,7 @@
           <CardContent class="focus-sound-list">
             <div class="focus-sound-grid">
               {#each focusSounds as snd}
-                {@const isActive = activeSoundName === snd.name}
+                {const isActive = activeSoundName === snd.name}
                 <button
                   type="button"
                   class="focus-sound-card"

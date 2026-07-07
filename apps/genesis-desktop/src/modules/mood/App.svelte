@@ -464,9 +464,9 @@
         <CardContent class="mood-calendar">
           <div class="mood-calendar__grid">
             {#each Array.from({ length: daysInMonth }, (_, i) => i + 1) as day}
-              {@const key = `${currentMonth}-${String(day).padStart(2,"0")}`}
-              {@const entry = calendarMap.get(key)}
-              {@const mood = entry ? moods.find(m => m.id === entry.mood) ?? moods[2] : null}
+              {const key = `${currentMonth}-${String(day).padStart(2,"0")}`}
+              {const entry = calendarMap.get(key)}
+              {const mood = entry ? moods.find(m => m.id === entry.mood) ?? moods[2] : null}
               <div class="mood-cal-day" class:mood-cal-day--logged={!!entry}>
                 {#if entry}
                   <div class="mood-cal-day__ring" style="background:color-mix(in srgb, {moodColor(entry.mood)} 20%, transparent)">

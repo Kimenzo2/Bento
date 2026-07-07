@@ -288,7 +288,7 @@
         <!-- ── Linear progress indicator — tasks stack in creation order ── -->
         <ol class="dpi" aria-label="Today's tasks">
           {#each data.featuredModule.items.slice(0, 6) as item, i}
-            {@const isLast = i === Math.min(data.featuredModule.items.length, 6) - 1}
+            {const isLast = i === Math.min(data.featuredModule.items.length, 6) - 1}
             <li class="dpi__item" class:dpi__item--done={item.completed}>
               <!-- Left rail: node + continuous line going down -->
               <div class="dpi__rail">

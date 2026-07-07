@@ -180,7 +180,7 @@
                 {/if}
               </div>
               {#if task.tags && task.tags !== '[]' && task.tags !== ''}
-                {@const tags: string[] = (() => { try { return JSON.parse(task.tags); } catch { return []; } })()}
+                {const tags: string[] = (() => { try { return JSON.parse(task.tags); } catch { return []; } })()}
                 {#if tags.length > 0}
                   <div class="ts-result-tags">
                     {#each tags.slice(0, 3) as tag}

@@ -466,10 +466,10 @@ import { time } from "$lib/utils/time";
                 </p>
               {:else}
                 {#each filtered as clip (clip.id)}
-                  {@const Icon = kindIcon(clip.kind)}
-                  {@const color = kindColor(clip.kind)}
-                  {@const isCopied = copyFeedback === clip.id}
-                  {@const isActive = activeId === clip.id}
+                  {const Icon = kindIcon(clip.kind)}
+                  {const color = kindColor(clip.kind)}
+                  {const isCopied = copyFeedback === clip.id}
+                  {const isActive = activeId === clip.id}
                   <div
                     class="cb-clip-row"
                     class:cb-clip-row--active={isActive}
@@ -533,9 +533,9 @@ import { time } from "$lib/utils/time";
                 </CardDescription>
               </CardHeader>
             {:else}
-              {@const clip = activeClip}
-              {@const color = kindColor(clip.kind)}
-              {@const Icon = kindIcon(clip.kind)}
+              {const clip = activeClip}
+              {const color = kindColor(clip.kind)}
+              {const Icon = kindIcon(clip.kind)}
 
               <CardHeader>
                 <div class="cb-detail__kind" style="color:{color}">
@@ -596,7 +596,7 @@ import { time } from "$lib/utils/time";
         <!-- ─── SNIPPETS ─── -->
         <div class="cb-grid cb-grid--snippets">
           {#each filtered as clip (clip.id)}
-            {@const Icon = kindIcon(clip.kind)}
+            {const Icon = kindIcon(clip.kind)}
             <button class="cb-snippet-card" onclick={() => activeId = clip.id}>
               <div class="cb-snippet-card__head">
                 <span class="cb-snippet-card__icon"><Icon size={12}/></span>

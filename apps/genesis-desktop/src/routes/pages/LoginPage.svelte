@@ -1,5 +1,5 @@
 ﻿  <script lang="ts">
-  import { isTauri } from "@tauri-apps/api/core";
+  import { browser } from "$app/environment";
   import { authStore, setAuthLoginLoading, setAuthError, setLoginUrl } from "$lib/stores/auth.store";
   import { openExternal } from "$lib/desktop/open-external";
   import AuthLogo from "$lib/components/auth/AuthLogo.svelte";
@@ -10,21 +10,26 @@
     setAuthLoginLoading(true);
 
     try {
+      if (!browser) {
+        console.warn("[LoginPage] No browser environment available");
+        setAuthError("Desktop auth requires a browser environment.");
+        setAuthLoginLoading(false);
+        return;
+      }
+
+      const { isTauri, invoke } = await import("@tauri-apps/api/core");
       if (!isTauri()) {
         console.warn("[LoginPage] Not in Tauri environment — can't start Google OAuth");
         setAuthError("Desktop auth requires the Tauri runtime.");
         setAuthLoginLoading(false);
         return;
       }
-
-      const authUrl = $authStore.loginUrl;
-      if (!authUrl) {
-        console.log("[LoginPage] no pre-stored URL yet");
-        setAuthLoginLoading(false);
-        return;
+      const authUrl = $authStore.loginUrl ?? await invoke<string>("begin_google_auth");
+      if (!$authStore.loginUrl) {
+        setLoginUrl(authUrl);
       }
 
-      console.log("[LoginPage] using pre-stored URL:", authUrl);
+      console.log("[LoginPage] opening auth URL:", authUrl);
       await openExternal(authUrl);
       console.log("[LoginPage] external browser open command completed");
     } catch (error) {
@@ -66,9 +71,9 @@
       class="login-page__google-btn"
       type="button"
       onclick={handleGoogleSignIn}
-      disabled={$authStore.loginLoading || (!$authStore.loginUrl && $authStore.status === "loginRequired")}
+      disabled={$authStore.loginLoading}
     >
-      {#if $authStore.loginLoading || (!$authStore.loginUrl && $authStore.status === "loginRequired")}
+      {#if $authStore.loginLoading}
         <span class="login-page__spinner" aria-hidden="true"></span>
       {:else}
         <!-- Google "G" Logo SVG -->
@@ -94,8 +99,6 @@
       <span class="login-page__google-label">
         {#if $authStore.loginLoading}
           Signing in…
-        {:else if !$authStore.loginUrl && $authStore.status === "loginRequired"}
-          Preparing sign-in…
         {:else}
           Continue with Google
         {/if}
@@ -124,14 +127,11 @@
           type="button"
           class="login-page__manual-btn"
           onclick={() => {
-          openExternal($authStore.loginUrl!).catch(() => {
-            const win = window.open($authStore.loginUrl!, "_blank");
-            if (!win) {
+            openExternal($authStore.loginUrl!).catch(() => {
               navigator.clipboard.writeText($authStore.loginUrl!).catch(() => {});
               setAuthError("Could not open browser. The sign-in link has been copied to your clipboard.");
-            }
-          });
-        }}
+            });
+          }}
         >
           Open sign-in page in browser
         </button>

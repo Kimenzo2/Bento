@@ -272,8 +272,8 @@
 
           <!-- Cells -->
           {#each columns as col, colIdx (col.id)}
-            {@const key = getCellKey(row.id, col.id)}
-            {@const isEditing = editingCell === key}
+            {const key = getCellKey(row.id, col.id)}
+            {const isEditing = editingCell === key}
             <div
               class="table-cell"
               class:is-header-cell={row.isHeader}

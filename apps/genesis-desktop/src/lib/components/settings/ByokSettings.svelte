@@ -325,7 +325,7 @@
               aria-expanded={showProviderMenu ? 'true' : 'false'}
             >
               {#if $byokSettings.activeProvider}
-                {@const Icon = providerIcon($byokSettings.activeProvider)}
+                {const Icon = providerIcon($byokSettings.activeProvider)}
                 <span class="byok-provider-dot" style={`background:${providerColors[$byokSettings.activeProvider] ?? "#666"}`}></span>
                 <Icon size={16} />
                 <span>{providerDisplayName($byokSettings.activeProvider)}</span>
@@ -467,7 +467,7 @@
 
           <div class="byok-provider-list">
             {#each $byokProviders as provider}
-              {@const Icon = providerIcon(provider.provider)}
+              {const Icon = providerIcon(provider.provider)}
               <div class="byok-provider-card" class:byok-provider-card--expanded={addingKeyProvider === provider.provider || editingKeyProvider === provider.provider}>
                 <div class="byok-provider-card__main">
                   <div class="byok-provider-card__info">

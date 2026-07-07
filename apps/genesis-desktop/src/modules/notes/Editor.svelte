@@ -430,7 +430,7 @@
         <div class="slash-menu-header">Basic Blocks</div>
         <div class="slash-menu-items">
           {#each filteredCommands as cmd, i}
-            {@const Icon = cmd.icon}
+            {const Icon = cmd.icon}
             <button class="slash-menu-item" class:active={i === slashMenuIndex} type="button" onclick={() => handleSlashSelect(cmd)}>
               <span class="slash-menu-item-icon"><Icon size={16} /></span>
               <span class="slash-menu-item-label">{cmd.label}</span>

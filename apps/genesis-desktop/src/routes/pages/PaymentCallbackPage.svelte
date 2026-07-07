@@ -1,10 +1,10 @@
 <script lang="ts">
   import { browser } from "$app/environment";
   import { onMount } from "svelte";
-  import { invoke } from "@tauri-apps/api/core";
+  import { invoke, isTauri } from "@tauri-apps/api/core";
   import { goto } from "@mateothegreat/svelte5-router";
 
-  const canUseTauri = browser && "__TAURI_INTERNALS__" in window;
+  const canUseTauri = browser && isTauri();
 
   type CallbackState =
     | { status: "syncing" }

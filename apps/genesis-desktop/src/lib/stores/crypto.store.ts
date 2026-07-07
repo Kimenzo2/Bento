@@ -7,7 +7,6 @@
  */
 
 import { writable, derived } from "svelte/store";
-import { invoke } from "@tauri-apps/api/core";
 import { browser } from "$app/environment";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -77,13 +76,18 @@ function applyStatus(res: CryptoStatusResponse) {
   }));
 }
 
+async function invokeTauri<T>(command: string, args?: Record<string, unknown>): Promise<T> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<T>(command, args);
+}
+
 // ── Public API ─────────────────────────────────────────────────────────────
 
 /** Fetch current crypto status from Rust. Call on app mount. */
 export async function hydrateCryptoStatus(): Promise<CryptoStatus> {
   if (!browser) return "NotConfigured";
   try {
-    const res = await invoke<CryptoStatusResponse>("crypto_get_status");
+    const res = await invokeTauri<CryptoStatusResponse>("crypto_get_status");
     applyStatus(res);
     return res.status;
   } catch (e) {
@@ -97,7 +101,9 @@ export async function setupMasterPassword(password: string): Promise<void> {
   clearError();
   setLoading(true);
   try {
-    const res = await invoke<CryptoStatusResponse>("crypto_setup_master_password", { password });
+    const res = await invokeTauri<CryptoStatusResponse>("crypto_setup_master_password", {
+      password,
+    });
     applyStatus(res);
   } catch (e) {
     setError(String(e));
@@ -114,7 +120,7 @@ export async function unlockDatabase(password: string): Promise<void> {
   clearError();
   setLoading(true);
   try {
-    const res = await invoke<CryptoStatusResponse>("crypto_unlock_database", { password });
+    const res = await invokeTauri<CryptoStatusResponse>("crypto_unlock_database", { password });
     applyStatus(res);
   } catch (e) {
     setError(String(e));
@@ -129,7 +135,7 @@ export async function lockDatabase(): Promise<void> {
   clearError();
   setLoading(true);
   try {
-    const res = await invoke<CryptoStatusResponse>("crypto_lock_database");
+    const res = await invokeTauri<CryptoStatusResponse>("crypto_lock_database");
     applyStatus(res);
   } catch (e) {
     setError(String(e));
@@ -145,7 +151,7 @@ export async function changeMasterPassword(
   clearError();
   setLoading(true);
   try {
-    const backup = await invoke<BackupInfo>("crypto_change_master_password", {
+    const backup = await invokeTauri<BackupInfo>("crypto_change_master_password", {
       currentPassword,
       newPassword,
     });
@@ -162,12 +168,12 @@ export async function changeMasterPassword(
 
 /** Migrate a legacy unencrypted module database to encrypted. */
 export async function migrateUnencryptedDb(module: string): Promise<void> {
-  return invoke("crypto_migrate_unencrypted_db", { module });
+  return invokeTauri("crypto_migrate_unencrypted_db", { module });
 }
 
 /** Create a manual backup. */
 export async function createBackup(): Promise<BackupInfo> {
-  const backup = await invoke<BackupInfo>("crypto_create_backup");
+  const backup = await invokeTauri<BackupInfo>("crypto_create_backup");
   _store.update((s) => ({ ...s, lastBackup: backup }));
   return backup;
 }

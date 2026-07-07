@@ -151,7 +151,7 @@
         </div>
       {:else}
         {#each savedViews as view, i (view.id)}
-          {@const Icon = viewModeIcon(view.viewMode)}
+          {const Icon = viewModeIcon(view.viewMode)}
           <div class="ts-view-row">
             <div
               class="ts-view-row-main"

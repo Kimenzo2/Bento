@@ -1,5 +1,5 @@
 import { browser } from "$app/environment";
-import { invoke, isTauri } from "@tauri-apps/api/core";
+import { isTauri } from "@tauri-apps/api/core";
 import { get, writable } from "svelte/store";
 
 export type BillingProfileSnapshot = {
@@ -33,6 +33,11 @@ function normalizeBillingProfile(profile: any): BillingProfileSnapshot {
   };
 }
 
+async function invokeTauri<T>(command: string): Promise<T> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<T>(command);
+}
+
 export function setBillingProfile(profile: BillingProfileSnapshot | null) {
   billingProfile.set(profile);
 }
@@ -56,7 +61,7 @@ export async function refreshBillingProfile(): Promise<BillingProfileSnapshot | 
     return billingProfileRequest;
   }
 
-  billingProfileRequest = invoke<unknown>("get_billing_profile")
+  billingProfileRequest = invokeTauri<unknown>("get_billing_profile")
     .then((profile) => {
       const normalized = normalizeBillingProfile(profile);
       billingProfile.set(normalized);

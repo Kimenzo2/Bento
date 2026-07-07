@@ -2077,7 +2077,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
     {#if viewMode === 'board'}
     <div class="tasks-board">
       {#each ['urgent', 'high', 'medium', 'none'] as priority}
-        {@const boardTasks = filteredTasks.filter(t => t.priority === priority)}
+        {const boardTasks = filteredTasks.filter(t => t.priority === priority)}
         <div class="tasks-board-column">
           <div class="tasks-board-column-header">
               <span style="color: {priorityColor(priority)};">
@@ -2181,9 +2181,9 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
           <!-- Body: 6 rows × 7 cols -->
           <div class="tasks-cal-body">
             {#each calViewData() as cell}
-              {@const cellTasks = calTasksOnDay(cell.d, cell.m, cell.y)}
-              {@const LIMIT = 4}
-              {@const overflow = cellTasks.length > LIMIT ? cellTasks.length - LIMIT : 0}
+              {const cellTasks = calTasksOnDay(cell.d, cell.m, cell.y)}
+              {const LIMIT = 4}
+              {const overflow = cellTasks.length > LIMIT ? cellTasks.length - LIMIT : 0}
               <div
                 class="tasks-cal-day"
                 class:tasks-cal-day--other={cell.isOtherMonth}
@@ -2374,7 +2374,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
       <div class="tasks-mind-view">
         <div class="tasks-mind-root">{viewTitle}</div>
         {#each projects as project}
-          {@const projectTasks = visibleTasks.filter(t => t.project === project.id)}
+          {const projectTasks = visibleTasks.filter(t => t.project === project.id)}
           {#if projectTasks.length}
             <section class="tasks-mind-branch" style="--branch: {project.color}">
               <h3>{project.name}</h3>
@@ -2778,7 +2778,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
 
       <div class="tasks-reschedule-list">
         {#each overdueTasksToReschedule as task (task.id)}
-          {@const currentAction = rescheduleActions.get(task.id) ?? 'leave'}
+          {const currentAction = rescheduleActions.get(task.id) ?? 'leave'}
           <div class="tasks-reschedule-row">
             <div class="tasks-reschedule-info">
               <span class="tasks-reschedule-title">{task.title}</span>

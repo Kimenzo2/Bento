@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { goto } from "@mateothegreat/svelte5-router";
+  import { goto } from "$app/navigation";
   import AuthLogo from "$lib/components/auth/AuthLogo.svelte";
   import { Button } from "$lib/components/ui/button/index.js";
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "$lib/components/ui/card/index.js";

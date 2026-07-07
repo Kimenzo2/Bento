@@ -19,10 +19,15 @@ use url::Url;
 
 /// Open a URL using the platform's default mechanism via `tauri-plugin-opener`.
 /// Replaces the old `rundll32`/`open`/`xdg-open` approach which was unreliable on Windows.
-fn open_url_in_browser(_app: &AppHandle, url: &str) -> Result<(), String> {
+async fn open_url_in_browser(_app: &AppHandle, url: &str) -> Result<(), String> {
     eprintln!("[auth] open_url_in_browser: {url}");
-    tauri_plugin_opener::open_url(url, None::<&str>)
-        .map_err(|e| format!("Failed to open browser: {e}"))
+    let url = url.to_owned();
+    tokio::task::spawn_blocking(move || {
+        tauri_plugin_opener::open_url(&url, None::<&str>)
+            .map_err(|e| format!("Failed to open browser: {e}"))
+    })
+    .await
+    .map_err(|e| format!("spawn_blocking failed: {e}"))?
 }
 
 // window_bounds::transition_to_shell is imported locally in prepare_shell_window
@@ -1872,7 +1877,7 @@ pub async fn open_external_url(app: AppHandle, url: String) -> Result<(), String
         return Err("Only http(s) URLs can be opened externally.".to_string());
     }
 
-    open_url_in_browser(&app, parsed.as_str())
+    open_url_in_browser(&app, parsed.as_str()).await
 }
 
 #[tauri::command]

@@ -19,6 +19,7 @@
   import { getEditorFontFamily, fontPairings } from "$lib/data/preferences";
   import { initJournalFont } from "$lib/stores/journal-font.store";
   import { initNotesFont } from "$lib/stores/notes-font.store";
+  import { openExternal } from "$lib/desktop/open-external";
 
   function applyEditorFont(fontPairingId: string) {
     if (!browser) return;
@@ -158,7 +159,7 @@
 
             await dbg("auto-opening browser...");
             try {
-              await invokeWithTimeout("open_external_url", { url: authUrl });
+              await openExternal(authUrl);
               await dbg("browser auto-opened successfully");
             } catch (e) {
               await dbg("auto-open browser failed: " + String(e));

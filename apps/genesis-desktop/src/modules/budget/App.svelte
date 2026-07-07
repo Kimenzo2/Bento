@@ -585,13 +585,13 @@
             </div>
           {:else}
             {#each categoryGroups as group}
-              {@const groupCats = categories.filter(c => c.groupName === group)}
+              {const groupCats = categories.filter(c => c.groupName === group)}
               {#if groupCats.length > 0}
                 <div class="bg-budget-group">
                   <h3 class="bg-group-title">{group}</h3>
                   <div class="bg-budget-cards">
                     {#each groupCats as cat}
-                      {@const Icon = resolveIcon(cat.icon)}
+                      {const Icon = resolveIcon(cat.icon)}
                       <Card class="bg-budget-card" style="--bg-cat-color: {cat.color}">
                         <CardContent style="padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;">
                           <div class="bg-budget-card-header">
@@ -683,10 +683,10 @@
                 {/each}
 
                 {#each Array(calDays) as _, i}
-                  {@const day = i + 1}
-                  {@const dayBills = bills.filter(b => b.dueDay === day && b.active)}
-                  {@const isToday = day === calToday}
-                  {@const hasBill = dayBills.length > 0}
+                  {const day = i + 1}
+                  {const dayBills = bills.filter(b => b.dueDay === day && b.active)}
+                  {const isToday = day === calToday}
+                  {const hasBill = dayBills.length > 0}
                   <div
                     class="subs-cell"
                     class:subs-cell--today={isToday}
@@ -728,8 +728,8 @@
 
               <!-- Detail card — brand-color tinted -->
               {#if selectedBill}
-                {@const sb = selectedBill}
-                {@const sbColor = SUB_COLORS[sb.name] ?? '#6b7280'}
+                {const sb = selectedBill}
+                {const sbColor = SUB_COLORS[sb.name] ?? '#6b7280'}
                 <div class="subs-detail" style="--sb:{sbColor}">
                   <div class="subs-detail-hd">
                     <div class="subs-detail-icon" style="background:{sbColor}">
@@ -1076,7 +1076,7 @@
                   {/each}
                   </Table.Body>
                   {#if cashFlow.length > 0}
-                    {@const last = cashFlow[cashFlow.length - 1]}
+                    {const last = cashFlow[cashFlow.length - 1]}
                     <Table.Footer>
                       <Table.Row>
                         <Table.Cell colspan={3}>Projected End Balance</Table.Cell>

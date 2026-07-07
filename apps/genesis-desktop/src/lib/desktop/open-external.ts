@@ -1,14 +1,35 @@
 import { browser } from "$app/environment";
-import { invoke } from "@tauri-apps/api/core";
 
-/** Timeout for the open_external_url invoke — avoids hanging if the Rust backend stalls. */
-const INVOKE_TIMEOUT_MS = 10_000;
+/** Detect whether the app is running inside a Tauri webview. */
+async function detectTauri(): Promise<boolean> {
+  try {
+    const { isTauri } = await import("@tauri-apps/api/core");
+    return isTauri();
+  } catch {
+    return false;
+  }
+}
 
-async function invokeWithTimeout<T>(fn: () => Promise<T>, timeoutMs: number, label: string): Promise<T> {
-  const timeout = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error(`"${label}" timed out after ${timeoutMs}ms`)), timeoutMs);
-  });
-  return Promise.race([fn(), timeout]);
+/** Open a URL using the Tauri opener plugin. Returns true on success. */
+async function openViaPlugin(url: string): Promise<boolean> {
+  try {
+    const { openUrl } = await import("@tauri-apps/plugin-opener");
+    await openUrl(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Open a URL via the Rust open_external_url command. Returns true on success. */
+async function openViaRustBridge(url: string): Promise<boolean> {
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("open_external_url", { url });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function openExternal(url: string): Promise<void> {
@@ -16,15 +37,21 @@ export async function openExternal(url: string): Promise<void> {
     throw new Error("Only http(s) URLs can be opened externally.");
   }
 
-  if (browser && "__TAURI_INTERNALS__" in window) {
-    await invokeWithTimeout(
-      () => invoke("open_external_url", { url }),
-      INVOKE_TIMEOUT_MS,
-      "open_external_url",
-    );
-    return;
+  if (browser) {
+    const tauriRuntime = await detectTauri();
+
+    if (tauriRuntime) {
+      const pluginOk = await openViaPlugin(url);
+      if (pluginOk) return;
+
+      const bridgeOk = await openViaRustBridge(url);
+      if (bridgeOk) return;
+
+      throw new Error("Could not open the URL in the desktop runtime.");
+    }
   }
 
+  // Fallback: open in browser tab
   const opened = window.open(url, "_blank", "noopener,noreferrer");
   if (!opened) {
     window.location.href = url;

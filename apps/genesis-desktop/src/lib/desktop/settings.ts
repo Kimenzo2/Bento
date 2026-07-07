@@ -1,7 +1,4 @@
 import { browser } from "$app/environment";
-import { setTheme as setNativeTheme } from "@tauri-apps/api/app";
-import { invoke, isTauri } from "@tauri-apps/api/core";
-import { load, type Store } from "@tauri-apps/plugin-store";
 import { writable, get } from "svelte/store";
 import { z } from "zod";
 import {
@@ -304,7 +301,7 @@ export const defaultDesktopSettings: DesktopSettings = {
 export const desktopSettings = writable<DesktopSettings>(defaultDesktopSettings);
 export const desktopSettingsReady = writable(false);
 
-let settingsStorePromise: Promise<Store> | null = null;
+let settingsStorePromise: Promise<any> | null = null;
 
 export function normalizeThemeId(themeId: string): ThemeId {
   return desktopThemes.find((theme) => theme.id === themeId)?.id ?? defaultThemeId;
@@ -348,7 +345,12 @@ function parseStringArray(value: string | null): string[] {
 }
 
 function isTauriRuntimeAvailable() {
-  return browser && isTauri();
+  return browser && (globalThis as typeof globalThis & { isTauri?: unknown }).isTauri === true;
+}
+
+async function invokeTauri<T>(command: string, args?: Record<string, unknown>): Promise<T> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<T>(command, args);
 }
 
 function storeDefaults() {
@@ -395,10 +397,13 @@ function storeDefaults() {
 }
 
 function getSettingsStore() {
-  settingsStorePromise ??= load(STORE_PATH, {
-    defaults: storeDefaults(),
-    autoSave: true,
-  });
+  settingsStorePromise ??= (async () => {
+    const { load } = await import("@tauri-apps/plugin-store");
+    return load(STORE_PATH, {
+      defaults: storeDefaults(),
+      autoSave: true,
+    });
+  })();
   return settingsStorePromise;
 }
 
@@ -830,7 +835,7 @@ async function readNativeSettingsMirror(): Promise<DesktopSettings | null> {
   }
 
   try {
-    const settings = await invoke<unknown>("load_desktop_settings");
+    const settings = await invokeTauri<unknown>("load_desktop_settings");
     const parsed = desktopSettingsSchema.safeParse(settings);
     if (!parsed.success) return null;
     const normalized = normalizeSettings(parsed.data);
@@ -849,7 +854,7 @@ async function syncNativeSettingsMirror(settings: DesktopSettings) {
   }
 
   try {
-    await invoke<unknown>("save_desktop_settings", { settings });
+    await invokeTauri<unknown>("save_desktop_settings", { settings });
   } catch (error) {
     console.warn("Bento desktop settings were stored, but native mirror sync failed.", error);
   }
@@ -877,6 +882,7 @@ async function applyNativeTheme(settings: DesktopSettings) {
   }
 
   try {
+    const { setTheme: setNativeTheme } = await import("@tauri-apps/api/app");
     await setNativeTheme(settings.appearance.mode);
   } catch (error) {
     console.warn("Bento native app theme failed to update.", error);
@@ -884,11 +890,11 @@ async function applyNativeTheme(settings: DesktopSettings) {
 }
 
 async function applyGlassEffect(settings: DesktopSettings) {
-  if (!isTauri()) return;
+  if (!isTauriRuntimeAvailable()) return;
   const enabled = !!settings?.appearance?.glassEnabled;
   document.documentElement.classList.toggle("glass-enabled", enabled);
   try {
-    await invoke("set_window_glass", { enabled });
+    await invokeTauri("set_window_glass", { enabled });
   } catch (error) {
     console.warn("Bento window glass effect failed to apply.", error);
   }
@@ -897,12 +903,12 @@ async function applyGlassEffect(settings: DesktopSettings) {
 let prevDynamicIslandEnabled: boolean | undefined;
 
 async function applyIslandEffect(settings: DesktopSettings) {
-  if (!isTauri()) return;
+  if (!isTauriRuntimeAvailable()) return;
   const enabled = !!settings?.dynamicIslandEnabled;
   if (enabled === prevDynamicIslandEnabled) return;
   prevDynamicIslandEnabled = enabled;
   try {
-    await invoke("set_island_enabled", { enabled });
+    await invokeTauri("set_island_enabled", { enabled });
   } catch (error) {
     console.warn("Dynamic Island toggle failed.", error);
   }
@@ -911,12 +917,12 @@ async function applyIslandEffect(settings: DesktopSettings) {
 let prevAgentDockEnabled: boolean | undefined;
 
 async function applyAgentDockEffect(settings: DesktopSettings) {
-  if (!isTauri()) return;
+  if (!isTauriRuntimeAvailable()) return;
   const enabled = !!settings?.agentDockEnabled;
   if (enabled === prevAgentDockEnabled) return;
   prevAgentDockEnabled = enabled;
   try {
-    await invoke("set_agent_dock_enabled", { enabled });
+    await invokeTauri("set_agent_dock_enabled", { enabled });
   } catch (error) {
     console.warn("Agent Dock toggle failed, reverting.", error);
     prevAgentDockEnabled = undefined;

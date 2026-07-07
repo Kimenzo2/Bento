@@ -262,8 +262,8 @@
 
         <!-- ── X-axis (months) ─────────────────────────────────────── -->
         {#each parsed as d, i}
-          {@const x = xScale(d.date)}
-          {@const isTransition = i === transitionIndex}
+          {const x = xScale(d.date)}
+          {const isTransition = i === transitionIndex}
           {#if isTransition}
             <!-- "Today" vertical marker -->
             <line

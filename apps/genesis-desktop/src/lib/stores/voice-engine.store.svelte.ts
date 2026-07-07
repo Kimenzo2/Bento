@@ -111,7 +111,7 @@ class VoiceEngineStore {
   pttPressStart = $state<number | null>(null);
   /** Whether the current PTT press has exceeded the grace period threshold. */
   pttHeldLongEnough = $derived(
-    this.pttPressStart !== null ? (performance.now() - this.pttPressStart) >= PTT_GRACE_MS : false
+    this.pttPressStart !== null ? performance.now() - this.pttPressStart >= PTT_GRACE_MS : false,
   );
 
   // ── Derived ────────────────────────────────────────────────────
@@ -187,7 +187,9 @@ class VoiceEngineStore {
 
     const unsubSleep = await listen<{ driftMs: number }>("voice:sleep-detected", (event) => {
       if (this.session) {
-        console.warn(`[voice-engine] Sleep detected mid-recording: drift=${event.payload.driftMs}ms`);
+        console.warn(
+          `[voice-engine] Sleep detected mid-recording: drift=${event.payload.driftMs}ms`,
+        );
       }
     });
     this.#unlisteners.push(unsubSleep);
@@ -534,7 +536,8 @@ class VoiceEngineStore {
    * For dictation modes, runs post-processing (fillers + style + agent detection) first.
    */
   async #classifyAndRouteSession() {
-    const rawTranscript = this.session?.finalText?.trim() || this.session?.interimText?.trim() || "";
+    const rawTranscript =
+      this.session?.finalText?.trim() || this.session?.interimText?.trim() || "";
     if (!rawTranscript) {
       this.complete("");
       return;
@@ -605,10 +608,12 @@ class VoiceEngineStore {
 
   async #handleVoiceNote(transcript: string) {
     try {
-      const result = await invoke<{ success: boolean; noteId: string; title: string; charCount: number }>(
-        "voice_save_note",
-        { transcript, title: null },
-      );
+      const result = await invoke<{
+        success: boolean;
+        noteId: string;
+        title: string;
+        charCount: number;
+      }>("voice_save_note", { transcript, title: null });
       if (this.session) {
         this.session = { ...this.session, summary: `Saved as note: ${result.title}` };
       }
@@ -622,7 +627,11 @@ class VoiceEngineStore {
   #stopWebSpeech() {
     this.#recognitionDisposed = true;
     if (this.#recognition) {
-      try { this.#recognition.stop(); } catch { /* already stopped */ }
+      try {
+        this.#recognition.stop();
+      } catch {
+        /* already stopped */
+      }
       this.#recognition = null;
     }
   }
@@ -634,11 +643,19 @@ class VoiceEngineStore {
 
   async #stopRustRecording() {
     try {
-      const result = await invoke<{ id: string; status: string; elapsedMs: number; filePath: string | null }>(
-        "voice_stop",
-      );
+      const result = await invoke<{
+        id: string;
+        status: string;
+        elapsedMs: number;
+        filePath: string | null;
+      }>("voice_stop");
       if (this.session) {
-        this.session = { ...this.session, recordingId: result.id, filePath: result.filePath, elapsedMs: result.elapsedMs };
+        this.session = {
+          ...this.session,
+          recordingId: result.id,
+          filePath: result.filePath,
+          elapsedMs: result.elapsedMs,
+        };
       }
     } catch (err) {
       console.warn("[voice-engine] Rust recording stop failed:", err);
@@ -650,8 +667,16 @@ class VoiceEngineStore {
       try {
         await invoke("voice_pause");
         this.status = "paused";
-        if (this.session) { this.session = { ...this.session, status: "paused" }; }
-        this.#setIslandState({ id: "voice", label: "Voice", icon: "mic", status: "Paused", activityType: "active" });
+        if (this.session) {
+          this.session = { ...this.session, status: "paused" };
+        }
+        this.#setIslandState({
+          id: "voice",
+          label: "Voice",
+          icon: "mic",
+          status: "Paused",
+          activityType: "active",
+        });
       } catch (err) {
         console.warn("[voice-engine] Pause failed:", err);
       }
@@ -663,8 +688,16 @@ class VoiceEngineStore {
       try {
         await invoke("voice_resume");
         this.status = "recording";
-        if (this.session) { this.session = { ...this.session, status: "recording" }; }
-        this.#setIslandState({ id: "voice", label: "Voice", icon: "mic", status: "Recording", activityType: "recording" });
+        if (this.session) {
+          this.session = { ...this.session, status: "recording" };
+        }
+        this.#setIslandState({
+          id: "voice",
+          label: "Voice",
+          icon: "mic",
+          status: "Recording",
+          activityType: "recording",
+        });
       } catch (err) {
         console.warn("[voice-engine] Resume failed:", err);
       }
@@ -675,7 +708,11 @@ class VoiceEngineStore {
     if (this.mode === "dictation" || this.mode === "agent_conversation") {
       this.#stopWebSpeech();
     } else {
-      try { await invoke("voice_cancel"); } catch { /* best-effort */ }
+      try {
+        await invoke("voice_cancel");
+      } catch {
+        /* best-effort */
+      }
     }
     this.#reset();
   }
@@ -694,7 +731,13 @@ class VoiceEngineStore {
     if (this.session) {
       this.session = { ...this.session, status: "completed", finalText, summary: summary ?? null };
     }
-    this.#setIslandState({ id: "voice", label: "Voice", icon: "check", status: "Done", activityType: "active" });
+    this.#setIslandState({
+      id: "voice",
+      label: "Voice",
+      icon: "check",
+      status: "Done",
+      activityType: "active",
+    });
     if (this.#autoResetTimeout) clearTimeout(this.#autoResetTimeout);
     this.#autoResetTimeout = setTimeout(() => {
       this.#autoResetTimeout = null;
@@ -706,7 +749,9 @@ class VoiceEngineStore {
 
   setError(error: string): void {
     this.status = "error";
-    if (this.session) { this.session = { ...this.session, status: "error", error }; }
+    if (this.session) {
+      this.session = { ...this.session, status: "error", error };
+    }
   }
 
   #autoResetTimeout: ReturnType<typeof setTimeout> | null = null;

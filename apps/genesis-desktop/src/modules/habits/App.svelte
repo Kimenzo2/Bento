@@ -661,7 +661,7 @@
             const sb = (b.streak * 0.5) + (b.completionHistory.filter(Boolean).length / 90 * 0.3 * 100) + (b.completionHistory.slice(-7).filter(Boolean).length / 7 * 0.2 * 100);
             return sb - sa;
           }) as h}
-            {@const score = Math.min(100, Math.round(
+            {const score = Math.min(100, Math.round(
               (h.streak * 0.5) + (h.completionHistory.filter(Boolean).length / 90 * 0.3 * 100) +
               (h.completionHistory.slice(-7).filter(Boolean).length / 7 * 0.2 * 100)
             ))}
@@ -759,7 +759,7 @@
         </CardHeader>
         <CardContent class="hb-list">
           {#each activeHabits as h}
-            {@const rate = Math.round(h.completionHistory.filter(Boolean).length / 90 * 100)}
+            {const rate = Math.round(h.completionHistory.filter(Boolean).length / 90 * 100)}
             <article class="hb-perf-row">
               <span class="hb-perf-emoji">{h.emoji}</span>
               <span class="hb-perf-name">{h.name}</span>
@@ -791,11 +791,11 @@
         </CardHeader>
         <CardContent class="hb-week-content">
           {#each ['M','T','W','T','F','S','S'] as d, i}
-            {@const dayTotal = activeHabits.reduce((s,h) => {
+            {const dayTotal = activeHabits.reduce((s,h) => {
               const idx = 89 - (6 - i);
               return s + (h.completionHistory[idx] ? 1 : 0);
             }, 0)}
-            {@const pct = totalHabits > 0 ? dayTotal / totalHabits : 0}
+            {const pct = totalHabits > 0 ? dayTotal / totalHabits : 0}
             <div class="hb-week-col">
               <div class="hb-week-bar-wrap"><div class="hb-week-bar" style="height:{Math.max(pct * 100, 4)}%"></div></div>
               <span class="hb-week-day">{d}</span>
@@ -842,7 +842,7 @@
         </CardHeader>
         <CardContent class="hb-list">
           {#each activeHabits as h}
-            {@const rate = Math.round(h.completionHistory.filter(Boolean).length / 90 * 100)}
+            {const rate = Math.round(h.completionHistory.filter(Boolean).length / 90 * 100)}
             <article class="hb-bd-row" style="--hc:{h.color}">
               <span>{h.emoji}</span>
               <div class="hb-bd-info">
