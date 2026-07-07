@@ -2,7 +2,8 @@
   import { onMount, tick } from "svelte";
   import { toast } from "svelte-sonner";
   import { fly } from "svelte/transition";
-  import { invoke, isTauri } from "@tauri-apps/api/core";
+  import { isTauri } from "@tauri-apps/api/core";
+  import { invoke, trackEvent } from "$lib/ipc";
 
   import ChatIcon from "@lucide/svelte/icons/message-square";
   import MicIcon from "@lucide/svelte/icons/mic";
@@ -76,6 +77,12 @@
   let submitBusy = $state(false);
   let userNearBottom = $state(true);
   let lastSentMessage = $state("");
+  let dockRootRef = $state<HTMLDivElement | null>(null);
+
+  // ResizeObserver state
+  let resizeRaf = 0;
+  let resizeSuppressed = $state(false);   // true while we're applying a resize from Rust
+  let resizeFirstFire = true;             // skip the initial observe() delivery
 
   // ── Voice Engine Integration ───────────────────────────────────
   // Derive dock mode from voice engine state
@@ -218,6 +225,7 @@
     mode = "working";
     streamingError = null;
     streamingText = "";
+    trackEvent("agent", "ai_stream_start", { textLength: text.length });
     try {
       await withTimeout(
         streamAiResponse(text, (token) => {
@@ -230,8 +238,12 @@
       }
       streamingText = "";
       mode = "idle";
+      trackEvent("agent", "ai_stream_complete");
     } catch (err) {
       console.warn("[agent-dock] sendAndStream failed:", err);
+      trackEvent("agent", "ai_stream_error", {
+        error: err instanceof Error ? err.message : String(err),
+      });
       streamingError = categorizeError(err);
       streamingText = "";
       mode = "idle";
@@ -266,6 +278,7 @@
 
   async function retryLastMessage() {
     if (!lastSentMessage || submitBusy) return;
+    trackEvent("agent", "retry_message");
     const msg = lastSentMessage;
     // Remove the last user message — will be restored if retry fails
     const prevMessages = messages;
@@ -282,6 +295,7 @@
   function openComposer() {
     streamingError = null;
     mode = "composing";
+    trackEvent("agent", "open_composer");
     requestAnimationFrame(() => textareaRef?.focus());
   }
 
@@ -296,6 +310,12 @@
       openComposer();
       return;
     }
+
+    trackEvent("agent", "message_submit", {
+      hasTranscript: !!transcriptText,
+      hasScreenCapture: !!screenCapture,
+      messageLength: (nextMessage || transcriptText).length,
+    });
 
     const finalMessage = nextMessage || transcriptText;
 
@@ -345,12 +365,15 @@
     console.log("[agent-dock] toggleVoice called, isActive:", voiceEngine.isActive, "hasSpeech:", hasSpeech);
     console.log("[agent-dock] navigator.mediaDevices:", !!navigator.mediaDevices, "getUserMedia:", !!navigator.mediaDevices?.getUserMedia);
     if (voiceEngine.isActive) {
+      trackEvent("agent", "voice_stop");
       await voiceEngine.stop();
       onVoiceStop?.();
     } else if (hasSpeech) {
+      trackEvent("agent", "voice_start");
       await voiceEngine.start("dictation");
       console.log("[agent-dock] voiceEngine.start completed, status:", voiceEngine.status);
       if (voiceEngine.status === "error") {
+        trackEvent("agent", "voice_start_error", { error: voiceEngine.session?.error });
         console.error("[agent-dock] voiceEngine error:", voiceEngine.session?.error);
       }
       onVoiceStart?.();
@@ -364,22 +387,26 @@
 
   /** Pause current recording. */
   async function pauseRecording() {
+    trackEvent("agent", "voice_pause");
     await voiceEngine.pause();
   }
 
   /** Resume paused recording. */
   async function resumeRecording() {
+    trackEvent("agent", "voice_resume");
     await voiceEngine.resume();
   }
 
   /** Cancel current recording — discard. */
   async function cancelRecording() {
+    trackEvent("agent", "voice_cancel");
     await voiceEngine.cancel();
     onVoiceStop?.();
   }
 
   /** Finish recording and process. */
   async function finishRecording() {
+    trackEvent("agent", "voice_finish");
     await voiceEngine.stop();
     onVoiceStop?.();
     // If we have final/interim text from dictation, submit it as a message
@@ -392,13 +419,17 @@
 
   // ── S7: Screen capture — Rust xcap in Tauri, getDisplayMedia fallback in browser ──
   async function captureScreen() {
+    trackEvent("agent", "capture_screen_start");
     if (isTauri()) {
       try {
         const dataUri = await invoke<string>("capture_screen");
         screenCapture = dataUri;
+        trackEvent("agent", "capture_screen_success");
+        // Resize handled by ResizeObserver detecting content change.
         return;
       } catch (err) {
         const msg = typeof err === "string" ? err : err instanceof Error ? err.message : "Unknown error";
+        trackEvent("agent", "capture_screen_error", { error: msg });
         console.warn("[agent-dock] screen capture invoke failed:", msg);
         toast.error("Screen capture failed", { description: msg, duration: 8000 });
         return;
@@ -444,7 +475,9 @@
       canvas.height = video.videoHeight;
       canvas.getContext("2d")!.drawImage(video, 0, 0);
       screenCapture = canvas.toDataURL("image/jpeg", 0.7);
+      trackEvent("agent", "capture_screen_success");
     } catch (err) {
+      trackEvent("agent", "capture_screen_cancelled");
       console.debug("[agent-dock] screen capture failed/cancelled:", err);
     } finally {
       if (track) track.stop();
@@ -492,9 +525,51 @@
     mq.addEventListener("change", updateMotion);
     window.addEventListener("keydown", handleKeydown);
 
+    // ResizeObserver: when the dock content changes size, tell the Rust side
+    // so the native window matches the exact content bounds (no DWM frame bleed).
+    let ro: ResizeObserver | null = null;
+    if (isAgentWindow && dockRootRef) {
+      ro = new ResizeObserver((entries) => {
+        if (!isTauri() || resizeSuppressed) return;
+        // Skip the initial observe() delivery — the Rust side already set the size.
+        if (resizeFirstFire) { resizeFirstFire = false; return; }
+        cancelAnimationFrame(resizeRaf);
+        resizeRaf = requestAnimationFrame(() => {
+          const entry = entries[0];
+          if (!entry) return;
+          // Use borderBoxSize for accurate total dimensions (includes padding + border).
+          const box = entry.borderBoxSize?.[0];
+          const w = box ? box.inlineSize : entry.contentRect.width + 20;
+          const h = box ? box.blockSize : entry.contentRect.height + 20;
+          if (w > 0 && h > 0) {
+            resizeSuppressed = true;
+            invoke("agent_set_size", { width: Math.ceil(w), height: Math.ceil(h) })
+              .catch(() => {})
+              .finally(() => {
+                resizeSuppressed = false;
+                // Re-check: if content changed while suppressed, schedule a follow-up.
+                requestAnimationFrame(() => {
+                  if (!dockRootRef) return;
+                  const rect = dockRootRef.getBoundingClientRect();
+                  if (rect.width > 0 && rect.height > 0) {
+                    invoke("agent_set_size", {
+                      width: Math.ceil(rect.width),
+                      height: Math.ceil(rect.height),
+                    }).catch(() => {});
+                  }
+                });
+              });
+          }
+        });
+      });
+      ro.observe(dockRootRef);
+    }
+
     return () => {
       mq.removeEventListener("change", updateMotion);
       window.removeEventListener("keydown", handleKeydown);
+      ro?.disconnect();
+      cancelAnimationFrame(resizeRaf);
     };
   });
 
@@ -505,6 +580,7 @@
     class="dock-root"
     class:dock-root--expanded={isExpanded}
     class:dock-root--pill={isPill}
+    bind:this={dockRootRef}
   >
     {#if isPill}
       <!-- ── Pill mode: os-june RecorderBar ── -->
@@ -784,13 +860,15 @@
     color: #fff;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
     transition:
-      width 0.55s cubic-bezier(0.34, 1.3, 0.64, 1);
+      width 0.55s cubic-bezier(0.34, 1.3, 0.64, 1),
+      height 0.55s cubic-bezier(0.34, 1.3, 0.64, 1);
   }
 
   @supports (animation-timing-function: linear(0, 1)) {
     .dock-root {
       transition:
-        width 0.55s linear(0, 0.09 10%, 0.26 20%, 0.5 33%, 0.74 46%, 0.9 58%, 1.02 76%, 1 88%, 1);
+        width 0.55s linear(0, 0.09 10%, 0.26 20%, 0.5 33%, 0.74 46%, 0.9 58%, 1.02 76%, 1 88%, 1),
+        height 0.55s linear(0, 0.09 10%, 0.26 20%, 0.5 33%, 0.74 46%, 0.9 58%, 1.02 76%, 1 88%, 1);
     }
   }
 
@@ -1233,7 +1311,8 @@
   }
 
   .dock-composer--open {
-    height: 150px;
+    height: auto;
+    max-height: min(400px, 60vh);
     opacity: 1;
   }
 
@@ -1244,6 +1323,9 @@
   .dock-composer-inner {
     position: relative;
     margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
   }
 
   .dock-composer-close {
@@ -1276,7 +1358,8 @@
   .dock-textarea {
     display: block;
     width: 100%;
-    height: 142px;
+    flex: 1;
+    min-height: 80px;
     padding: 8px 36px 8px 8px;
     border: none;
     background: transparent;

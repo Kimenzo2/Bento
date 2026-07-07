@@ -573,11 +573,6 @@ pub async fn set_island_enabled(app: AppHandle, enabled: bool) -> Result<(), Str
 
             let _ = window.emit("island:hide", ());
 
-            #[cfg(target_os = "windows")]
-            {
-                let _ = prepare_island_window_for_hit_test(&window);
-            }
-
             eprintln!("[island] set_island_enabled(true): complete");
         } else {
             window.hide().map_err(|e| e.to_string())?;

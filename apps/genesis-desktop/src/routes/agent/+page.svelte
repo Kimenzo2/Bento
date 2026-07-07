@@ -1,24 +1,38 @@
 <svelte:head>
   <style>
-    html, body, #root { background: transparent !important; overflow: hidden; }
+    :root {
+      interpolate-size: allow-keywords;
+    }
+    html, body {
+      background: transparent !important;
+      background-color: transparent !important;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+    }
   </style>
 </svelte:head>
 
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/core";
+  import { invoke, trackEvent } from "$lib/ipc";
   import XIcon from "@lucide/svelte/icons/x";
   import AgentDock from "$lib/components/agent/AgentDock.svelte";
 
   function handleMessageSubmit(_message: string, _context?: { screenCapture?: string; transcript?: string }) {
+    trackEvent("agent", "focus_main");
     invoke("focus_main_from_agent");
   }
 
   async function hideWindow() {
+    trackEvent("agent", "hide_window");
     try { await invoke("hide_agent"); } catch {}
   }
 
   function handleComposerStateChange(open: boolean) {
-    invoke("agent_set_composer_open", { open }).catch(() => {});
+    trackEvent("agent", open ? "composer_open" : "composer_closed");
+    // Resize is handled by the ResizeObserver in AgentDock → agent_set_size.
   }
 
   let dragActive = $state(false);
@@ -27,6 +41,7 @@
     const target = e.target as HTMLElement;
     if (target.closest("button") || target.closest("textarea") || target.closest("input")) return;
     dragActive = true;
+    trackEvent("agent", "drag_start");
     try { await invoke("agent_start_drag"); } catch {}
     dragActive = false;
   }
@@ -88,8 +103,8 @@
 
   .agent-close {
     position: absolute;
-    bottom: 72px;
-    right: 12px;
+    top: 8px;
+    right: 8px;
     display: flex;
     width: 24px;
     height: 24px;

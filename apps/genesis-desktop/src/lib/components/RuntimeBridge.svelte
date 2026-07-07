@@ -196,26 +196,30 @@
         );
 
         // Initialize Tauri → EventBus bridge for schedule-fire and other system events
-        void initEventBridge().then(() => {
-          // Show an in-app toast + play alarm sound when a schedule fires
-          eventBus.on(BentoEventType.ScheduleDue, (_event) => {
-            const label = (_event?.payload?.label as string) ?? "";
-            const moduleId = (_event?.payload?.moduleId as string) ?? "";
-            if (!label) return;
-            const ctx = moduleId === "sleep" ? "Alarm" : "Reminder";
-            toast.info(label, {
-              description: ctx,
-              duration: 8000,
-            });
-            // Play alarm sound (non-blocking; browser may require user gesture on first play)
-            const soundName = (_event?.payload?.sound as string) ?? "alarm";
-            const audio = playAlarmSound(soundName as SoundName, { loop: true, volume: 0.6 });
-            if (audio) {
-              // Auto-stop after 30s to prevent infinite loop
-              setTimeout(() => { stopAlarmSound(audio); }, 30_000);
-            }
-          });
+        const bridgeCleanupPromise = initEventBridge();
+        bridgeCleanupPromise.then((cleanup) => {
+          unlistenPromises.push(Promise.resolve(cleanup));
         });
+
+        // Show an in-app toast + play alarm sound when a schedule fires
+        const unsubSchedule = eventBus.on(BentoEventType.ScheduleDue, (_event) => {
+          const label = (_event?.payload?.label as string) ?? "";
+          const moduleId = (_event?.payload?.moduleId as string) ?? "";
+          if (!label) return;
+          const ctx = moduleId === "sleep" ? "Alarm" : "Reminder";
+          toast.info(label, {
+            description: ctx,
+            duration: 8000,
+          });
+          const soundName = (_event?.payload?.sound as string) ?? "alarm";
+          const audio = playAlarmSound(soundName as SoundName, { loop: true, volume: 0.6 });
+          if (audio) {
+            setTimeout(() => { stopAlarmSound(audio); }, 30_000);
+          }
+        });
+        unlistenPromises.push(
+          Promise.resolve(() => { unsubSchedule(); }),
+        );
 
         cancelDeferredTasks.push(
           scheduleAfterFirstPaint(() => {

@@ -176,7 +176,8 @@ function prefersReduced(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-/** Play an alarm/notification sound. Loops by default. Respects prefers-reduced-motion (halves volume). */
+/** Play an alarm/notification sound. Loops by default. Respects prefers-reduced-motion (halves volume).
+ *  Falls back to AudioContext-based playback when HTMLAudioElement autoplay is blocked. */
 export function playAlarmSound(
   name: SoundName,
   options?: { loop?: boolean; volume?: number },
@@ -186,11 +187,31 @@ export function playAlarmSound(
     audio.loop = options?.loop ?? true;
     const baseVol = options?.volume ?? 0.6;
     audio.volume = prefersReduced() ? baseVol * 0.4 : baseVol;
-    audio.play().catch(() => {});
+    audio.play().catch(() => {
+      playAlarmSoundViaContext(name, options).catch(() => {});
+    });
     return audio;
   } catch {
     return null;
   }
+}
+
+/** Fallback: play via AudioContext when the browser blocks HTMLAudioElement autoplay. */
+async function playAlarmSoundViaContext(
+  name: SoundName,
+  options?: { loop?: boolean; volume?: number },
+): Promise<void> {
+  const buffer = await preloadSound(name);
+  const ac = getContext();
+  const gainNode = ac.createGain();
+  const baseVol = options?.volume ?? 0.6;
+  gainNode.gain.value = prefersReduced() ? baseVol * 0.4 : baseVol;
+  gainNode.connect(ac.destination);
+  const source = ac.createBufferSource();
+  source.buffer = buffer;
+  source.loop = options?.loop ?? true;
+  source.connect(gainNode);
+  source.start(0);
 }
 
 /** Stop a playing alarm sound. */

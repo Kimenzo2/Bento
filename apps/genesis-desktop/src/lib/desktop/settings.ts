@@ -1,3 +1,4 @@
+import type { Store } from "@tauri-apps/plugin-store";
 import { browser } from "$app/environment";
 import { writable, get } from "svelte/store";
 import { z } from "zod";
@@ -301,7 +302,7 @@ export const defaultDesktopSettings: DesktopSettings = {
 export const desktopSettings = writable<DesktopSettings>(defaultDesktopSettings);
 export const desktopSettingsReady = writable(false);
 
-let settingsStorePromise: Promise<any> | null = null;
+let settingsStorePromise: Promise<Store> | null = null;
 
 export function normalizeThemeId(themeId: string): ThemeId {
   return desktopThemes.find((theme) => theme.id === themeId)?.id ?? defaultThemeId;

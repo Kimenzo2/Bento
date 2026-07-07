@@ -122,33 +122,27 @@ impl Schedule {
                 self.next_fire_at = None;
             }
             Ok(ScheduleType::Daily) => {
+                // Use the wake-adjusted anchor as the reference point so daily
+                // recurrence doesn't drift backward and cause an infinite loop.
+                // Without wake window: anchor = start_at.
+                // With wake window:  anchor = start_at - wake_window (the actual fire time).
                 if let Some(start) = self.start_at {
-                    let elapsed = time::now_ms() - start;
+                    let wake_offset = self.wake_window_minutes.unwrap_or(0) * 60_000;
+                    let anchor = start - wake_offset;
+                    let elapsed = time::now_ms() - anchor;
                     let days = elapsed / 86_400_000;
-                    let mut next = start + (days + 1) * 86_400_000;
-                    // Apply wake window offset: fire early by wake_window_minutes
-                    if let Some(w) = self.wake_window_minutes {
-                        if w > 0 {
-                            next -= w * 60_000;
-                        }
-                    }
-                    self.next_fire_at = Some(next);
+                    self.next_fire_at = Some(anchor + (days + 1) * 86_400_000);
                 } else if let Some(last) = self.last_fired_at {
                     self.next_fire_at = Some(last + 86_400_000);
                 }
             }
             Ok(ScheduleType::Weekly) => {
                 if let Some(start) = self.start_at {
-                    let elapsed = time::now_ms() - start;
+                    let wake_offset = self.wake_window_minutes.unwrap_or(0) * 60_000;
+                    let anchor = start - wake_offset;
+                    let elapsed = time::now_ms() - anchor;
                     let weeks = elapsed / 604_800_000;
-                    let mut next = start + (weeks + 1) * 604_800_000;
-                    // Apply wake window offset for weekly schedules too
-                    if let Some(w) = self.wake_window_minutes {
-                        if w > 0 {
-                            next -= w * 60_000;
-                        }
-                    }
-                    self.next_fire_at = Some(next);
+                    self.next_fire_at = Some(anchor + (weeks + 1) * 604_800_000);
                 } else if let Some(last) = self.last_fired_at {
                     self.next_fire_at = Some(last + 604_800_000);
                 }

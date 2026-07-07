@@ -1005,7 +1005,7 @@ pub fn run() {
             crate::agent::show_agent,
             crate::agent::hide_agent,
             crate::agent::agent_start_drag,
-            crate::agent::agent_set_composer_open,
+            crate::agent::agent_set_size,
             crate::agent::focus_main_from_agent,
             crate::agent::capture_screen,
             // Voice Engine

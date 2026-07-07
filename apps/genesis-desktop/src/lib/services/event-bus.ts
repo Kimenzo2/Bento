@@ -190,11 +190,13 @@ export async function initEventBridge(): Promise<() => void> {
       scheduleId: string;
       moduleId: string;
       label: string;
+      sound?: string;
     }>("bento://schedule-fire", (e) => {
       eventBus.emitSimple(BentoEventType.ScheduleDue, "system", {
         scheduleId: e.payload.scheduleId,
         moduleId: e.payload.moduleId,
         label: e.payload.label,
+        sound: e.payload.sound,
       });
     });
     unlisteners.push(unlistenSchedule);

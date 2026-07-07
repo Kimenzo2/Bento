@@ -121,7 +121,9 @@ async fn sync_tasks(
     let rows: Vec<SbTask> = match sb_get(client, &url, session, anon_key).await {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("[sync] tasks fetch failed: {e}");
+            if !e.contains("PGRST205") {
+                eprintln!("[sync] tasks fetch failed: {e}");
+            }
             return Ok(0);
         }
     };
@@ -184,7 +186,9 @@ async fn sync_habits(
     let rows: Vec<SbHabit> = match sb_get(client, &url, session, anon_key).await {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("[sync] habits fetch failed: {e}");
+            if !e.contains("PGRST205") {
+                eprintln!("[sync] habits fetch failed: {e}");
+            }
             return Ok(0);
         }
     };
@@ -241,7 +245,9 @@ async fn sync_habit_completions(
     let rows: Vec<SbHabitCompletion> = match sb_get(client, &url, session, anon_key).await {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("[sync] habit_completions fetch failed: {e}");
+            if !e.contains("PGRST205") {
+                eprintln!("[sync] habit_completions fetch failed: {e}");
+            }
             return Ok(0);
         }
     };
@@ -290,7 +296,9 @@ async fn sync_health_logs(
     let rows: Vec<SbHealthLog> = match sb_get(client, &url, session, anon_key).await {
         Ok(r) => r,
         Err(e) => {
-            eprintln!("[sync] health_logs fetch failed: {e}");
+            if !e.contains("PGRST205") {
+                eprintln!("[sync] health_logs fetch failed: {e}");
+            }
             return Ok(0);
         }
     };
