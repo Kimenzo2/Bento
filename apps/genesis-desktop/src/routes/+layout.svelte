@@ -4,7 +4,8 @@
   import { onMount } from "svelte";
   import { get } from "svelte/store";
   import { page } from "$app/stores";
-  import { invoke } from "@tauri-apps/api/core";
+  import LogRocket from "logrocket";
+  import { invoke, invokeWithTimeout, setLogRocketInstance, trackShortcut, trackEvent } from "$lib/ipc";
   import { listen } from "@tauri-apps/api/event";
   import { isTauri } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -58,6 +59,15 @@
     isAgent = windowKind === "agent" || windowKind === "/agent";
     if (isIsland || isAgent) return;
 
+    // ── LogRocket session recording (diagnostics for IPC issues) ──
+    try {
+      LogRocket.init("itajip/palma");
+      setLogRocketInstance(LogRocket);
+      console.log("[LogRocket] initialized for app itajip/palma");
+    } catch (e) {
+      console.warn("[LogRocket] init failed:", e);
+    }
+
     // Enterprise polish — native-feel behaviors (context menu, zoom, etc.)
     initEnterprisePolish();
 
@@ -89,12 +99,6 @@
       if (isTauri()) {
         await dbg("calling bootstrap_auth_state...");
 
-        const invokeWithTimeout = <T>(cmd: string, args?: Record<string, unknown>, ms = 5000): Promise<T> =>
-          Promise.race([
-            invoke<T>(cmd, args),
-            new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`${cmd} timed out after ${ms}ms`)), ms)),
-          ]);
-
         const showWindow = async (shell: boolean) => {
           await dbg("showWindow shell=" + shell);
           try {
@@ -108,7 +112,7 @@
 
         const enforceUserBoundary = async () => {
           await dbg("enforcing auth user boundary...");
-          await invoke("enforce_auth_user_boundary");
+          await invokeWithTimeout("enforce_auth_user_boundary", undefined, 8000);
           await dbg("auth user boundary enforced");
         };
 
@@ -324,10 +328,30 @@
       scheduleWakeCheck();
     }
 
+    // ── Keyboard shortcut listeners: Ctrl+Shift+A (Agent) / Ctrl+Shift+D (Island) ──
+    function handleGlobalShortcut(e: KeyboardEvent) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      if (!e.shiftKey) return;
+      if (e.key === "A" || e.key === "a") {
+        e.preventDefault();
+        trackShortcut("Ctrl+Shift+A");
+        trackEvent("shortcut", "toggle_agent");
+        console.log("[shortcut] Ctrl+Shift+A — agent toggle (tracked to LogRocket)");
+      }
+      if (e.key === "D" || e.key === "d") {
+        e.preventDefault();
+        trackShortcut("Ctrl+Shift+D");
+        trackEvent("shortcut", "toggle_island");
+        console.log("[shortcut] Ctrl+Shift+D — island toggle (tracked to LogRocket)");
+      }
+    }
+
+    window.addEventListener("keydown", handleGlobalShortcut);
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("focus", onFocus);
 
     return () => {
+      window.removeEventListener("keydown", handleGlobalShortcut);
       clearTimeout(enableWakeCheckTimer);
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("focus", onFocus);

@@ -519,14 +519,89 @@ impl RecordingEngine {
     }
 
     /// Stop the current recording and finalize the WAV file.
-    /// Waits for the background thread to confirm SQLite persistence before returning.
+    ///
+    /// Finalizes the WAV writer synchronously on the calling thread so the
+    /// file handle is released before returning — prevents file lock contention
+    /// on Windows when playback immediately follows (an open `hound::WavWriter`
+    /// holds a write lock that blocks `std::fs::File::open` in the playback engine).
     pub fn stop_recording(&self) -> Result<RecordingSession, String> {
         if self.status_atomic.load(Ordering::Relaxed) == status_code::IDLE {
             return Err("No recording in progress.".to_string());
         }
+
+        // Step 1: Take the session from the Mutex and finalize the WAV writer NOW.
+        let mut guard = self.session.lock().map_err(|e| e.to_string())?;
+        let session_data = guard.take();
+        drop(guard); // Release lock before potentially blocking on SQLite
+
+        // Destructure to take ownership of `file` (hound::WavWriter::finalize consumes self).
+        let (sleep_detected, start_time, paused_duration, pause_start, id, file_path,
+             module_id, device_name, sample_rate, channels) = match session_data {
+            Some(inner) => {
+                let InnerSession {
+                    file,
+                    sleep_detected,
+                    start_time,
+                    paused_duration,
+                    pause_start,
+                    id,
+                    file_path,
+                    module_id,
+                    device_name,
+                    sample_rate,
+                    channels,
+                    start_time_ms: _,
+                } = inner;
+                let _ = file.finalize(); // Close WAV writer — file handle released
+                (sleep_detected, start_time, paused_duration, pause_start, id, file_path,
+                 module_id, device_name, sample_rate, channels)
+            }
+            None => {
+                // Background thread already consumed the session (unlikely racing case)
+                (false, std::time::Instant::now(), std::time::Duration::ZERO, None,
+                 String::new(), PathBuf::new(), String::new(), String::new(), 0u32, 0u16)
+            }
+        };
+
+        // Step 2: Signal the background thread to stop (audio callback will cease)
         self.set_status(RecordingStatus::Idle);
 
-        // Wait for background thread to finalize + persist (up to 3 seconds)
+        // Step 3: Persist metadata synchronously (bg thread sees empty session, just cleans up)
+        if !id.is_empty() {
+            let rt_handle = tokio::runtime::Handle::current();
+            let dur = start_time.elapsed() - paused_duration;
+            let pause_deduction = pause_start
+                .map(|ps| start_time.elapsed() - ps.elapsed())
+                .unwrap_or(std::time::Duration::ZERO);
+            let actual_dur = dur - pause_deduction;
+            let start_ts = time::now_ms() - actual_dur.as_millis() as i64;
+            let size = std::fs::metadata(&file_path)
+                .map(|m| m.len())
+                .unwrap_or(0);
+
+            let _ = rt_handle.block_on(async {
+                sqlx::query(
+                    r#"INSERT INTO recording_metadata 
+                    (id, title, duration_secs, file_path, file_size_bytes, module_id, 
+                     created_at, device_name, sample_rate, channels, transcribed)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)"#,
+                )
+                .bind(&id)
+                .bind(format!("Recording {}", &id[..8]))
+                .bind(actual_dur.as_secs_f64())
+                .bind(&file_path.to_string_lossy().to_string())
+                .bind(size as i64)
+                .bind(&module_id)
+                .bind(start_ts)
+                .bind(&device_name)
+                .bind(sample_rate as i64)
+                .bind(channels as i64)
+                .execute(&self.db)
+                .await
+            });
+        }
+
+        // Step 4: Wait for background thread to see IDLE, clean up, and signal
         for _ in 0..30 {
             if self.finalized.load(Ordering::Acquire) {
                 break;
@@ -535,50 +610,26 @@ impl RecordingEngine {
         }
         self.finalized.store(false, Ordering::Release);
 
-        // Extract session data
-        let mut guard = self.session.lock().map_err(|e| e.to_string())?;
-        let sleep_detected = guard.as_ref().map(|s| s.sleep_detected).unwrap_or(false);
-        let session_data = guard.take();
-        let elapsed = session_data
-            .as_ref()
-            .map(|s| {
-                let total = s.start_time.elapsed() - s.paused_duration;
-                let pause_deduction = s
-                    .pause_start
-                    .map(|ps| s.start_time.elapsed() - ps.elapsed())
-                    .unwrap_or(std::time::Duration::ZERO);
-                total - pause_deduction
-            })
-            .unwrap_or(std::time::Duration::ZERO);
-
-        let result = RecordingSession {
-            id: session_data
-                .as_ref()
-                .map(|s| s.id.clone())
-                .unwrap_or_default(),
-            status: "completed".to_string(),
-            start_time: session_data
-                .as_ref()
-                .map(|s| time::now_ms() - s.start_time.elapsed().as_millis() as i64)
-                .unwrap_or(time::now_ms()),
-            elapsed_ms: elapsed.as_millis() as i64,
-            paused_duration_ms: session_data
-                .as_ref()
-                .map(|s| s.paused_duration.as_millis() as i64)
-                .unwrap_or(0),
-            file_path: session_data
-                .as_ref()
-                .map(|s| s.file_path.to_string_lossy().to_string()),
-            module_id: session_data
-                .as_ref()
-                .map(|s| s.module_id.clone())
-                .unwrap_or_default(),
-            device_name: session_data.as_ref().map(|s| s.device_name.clone()),
-            sleep_detected,
+        // Step 5: Build result (all fields always available since we took the session)
+        let elapsed = {
+            let total = start_time.elapsed() - paused_duration;
+            let pause_deduction = pause_start
+                .map(|ps| start_time.elapsed() - ps.elapsed())
+                .unwrap_or(std::time::Duration::ZERO);
+            total - pause_deduction
         };
 
-        drop(guard);
-        Ok(result)
+        Ok(RecordingSession {
+            id,
+            status: "completed".to_string(),
+            start_time: time::now_ms() - start_time.elapsed().as_millis() as i64,
+            elapsed_ms: elapsed.as_millis() as i64,
+            paused_duration_ms: paused_duration.as_millis() as i64,
+            file_path: Some(file_path.to_string_lossy().to_string()),
+            module_id,
+            device_name: Some(device_name),
+            sleep_detected,
+        })
     }
 
     /// Pause the current recording.

@@ -3,16 +3,20 @@
   import { authStore, setAuthLoginLoading } from "$lib/stores/auth.store";
   import { openExternal } from "$lib/desktop/open-external";
   import { activeBundle, createTranslator } from "$lib/i18n";
+  import { trackEvent } from "$lib/ipc";
 
   let _t = $derived.by(() => createTranslator($activeBundle));
 
   async function signIn() {
+    trackEvent("auth", "session_overlay_sign_in");
     setAuthLoginLoading(true);
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       const authUrl = await invoke<string>("begin_google_auth");
       await openExternal(authUrl);
+      trackEvent("auth", "session_overlay_browser_opened");
     } catch (error) {
+      trackEvent("auth", "session_overlay_error", { error: String(error) });
       setAuthLoginLoading(false);
       console.error("Session re-authentication failed.", error);
     }

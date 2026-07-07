@@ -15,6 +15,7 @@ pub mod flashcards;
 pub mod goals;
 pub mod habits;
 pub mod health;
+pub mod ipc_util;
 pub mod island;
 pub mod local_store;
 pub mod mcp;
@@ -343,11 +344,7 @@ pub fn run() {
                 eprintln!("[init] start_hidden=true, deferring main window show");
             }
 
-            // ── Force IPC postMessage fallback (workaround for Tauri #15216) ──
-            // On some WebView2 versions, fetch(ipc://...) hangs silently without
-            // triggering the postMessage fallback. This interceptor makes the fetch
-            // reject immediately so the built-in fallback mechanism kicks in.
-            let _ = window.eval(r#"(function(){var a=window.fetch;window.fetch=function(b,c){var d=typeof b==='string'?b:b&&b.url||'';return d.indexOf('ipc://')!==-1||d.indexOf('ipc.localhost')!==-1?Promise.reject(new Error('forced ipc fallback')):a.call(window,b,c)}})()"#);
+
         }
 
         // ── Dynamic Island overlay window ────────────────────────────
@@ -357,28 +354,16 @@ pub fn run() {
         }
         eprintln!("[init] phase=4 setup_island_window  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
 
-        // ── IPC fallback interceptor on island window ────────────────
-        if let Some(island) = app.get_webview_window("island") {
-            let _ = island.eval(r#"(function(){var a=window.fetch;window.fetch=function(b,c){var d=typeof b==='string'?b:b&&b.url||'';return d.indexOf('ipc://')!==-1||d.indexOf('ipc.localhost')!==-1?Promise.reject(new Error('forced ipc fallback')):a.call(window,b,c)}})()"#);
-        }
-
-        // ── Agent dock window (respects setting) ────────────────────
+        // ── Agent dock window (always pre-created so set_agent_dock_enabled
+        //     never triggers WebviewWindowBuilder::build() on a background
+        //     thread — Windows Win32 thread affinity requires builder calls
+        //     on the main thread). The window starts hidden; the setting
+        //     controls whether show()/hide() is called later.
         t0 = Instant::now();
-        if settings.agent_dock_enabled {
-            if let Err(e) = crate::agent::setup_agent_window(app) {
-                eprintln!("[agent] failed to setup agent window (non-fatal): {e}");
-            }
-        } else {
-            eprintln!("[agent] disabled via settings, skipping");
+        if let Err(e) = crate::agent::setup_agent_window(app) {
+            eprintln!("[agent] failed to setup agent window (non-fatal): {e}");
         }
         eprintln!("[init] phase=5 setup_agent_window  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
-
-        // ── IPC fallback interceptor on agent window ────────────────
-        if settings.agent_dock_enabled {
-            if let Some(agent) = app.get_webview_window("agent") {
-                let _ = agent.eval(r#"(function(){var a=window.fetch;window.fetch=function(b,c){var d=typeof b==='string'?b:b&&b.url||'';return d.indexOf('ipc://')!==-1||d.indexOf('ipc.localhost')!==-1?Promise.reject(new Error('forced ipc fallback')):a.call(window,b,c)}})()"#);
-            }
-        }
 
         // ── System tray icon ─────────────────────────────────────────
         t0 = Instant::now();
@@ -392,8 +377,9 @@ pub fn run() {
         eprintln!("[init] phase=6 setup_tray  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
 
         // ── Global shortcut: Ctrl+Shift+A → toggle agent ──
+        // Registered even when agent dock is disabled so the shortcut always works.
         t0 = Instant::now();
-        if settings.agent_dock_enabled {
+        {
             let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyA);
             match app.global_shortcut().on_shortcut(
                 shortcut,
@@ -409,8 +395,6 @@ pub fn run() {
                 Ok(_) => eprintln!("[shortcut] registered Ctrl+Shift+A for agent toggle"),
                 Err(e) => eprintln!("[shortcut] failed to register agent shortcut: {e}"),
             }
-        } else {
-            eprintln!("[shortcut] agent dock disabled, skipping Ctrl+Shift+A registration");
         }
         eprintln!("[init] phase=7 register_shortcut_agent_toggle  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
 

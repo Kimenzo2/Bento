@@ -1,3 +1,4 @@
+use crate::spawn_timeout;
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use tauri::utils::config::WindowEffectsConfig;
 use tauri::window::{Effect, EffectsBuilder};
@@ -136,53 +137,64 @@ pub fn configure_macos_titlebar(window: &impl HasWindowHandle) -> Result<(), Str
 // Glass / Acrylic / Vibrancy effect
 // ─────────────────────────────────────────────────────────────────────────────
 
+// The `return` statements inside the cfg-guarded blocks make the
+// trailing `unreachable!()` path unreachable on Windows/macOS at
+// compile time. This is intentional — we just suppress the warning.
+#[allow(unreachable_code)]
 #[tauri::command]
-pub fn set_window_glass(app: AppHandle, enabled: bool) -> Result<(), String> {
+#[allow(unreachable_code)] // cfg-guarded branches make the fallthrough unreachable on Windows/macOS
+pub async fn set_window_glass(app: AppHandle, enabled: bool) -> Result<(), String> {
     let window = app.get_webview_window("main").ok_or("no main window")?;
 
-    if !enabled {
-        window
-            .set_effects(None::<WindowEffectsConfig>)
-            .map_err(|e| e.to_string())?;
-        return Ok(());
-    }
+    // app is only used inside cfg(macos) — macro's move closure captures it
+    // but on non-macOS it would trigger unused-variable warnings.
+    #[cfg(not(target_os = "macos"))]
+    let _ = &app;
 
-    #[cfg(target_os = "macos")]
-    {
-        use tauri_plugin_liquid_glass::LiquidGlassExt;
-
-        let supported = app.liquid_glass().is_supported();
-        if supported {
-            app.liquid_glass()
-                .set_effect(&window, Default::default())
-                .map_err(|e| e.to_string())?;
-            return Ok(());
+    spawn_timeout!(10, {
+        if !enabled {
+            return window
+                .set_effects(None::<WindowEffectsConfig>)
+                .map_err(|e| e.to_string());
         }
 
-        window
-            .set_effects(
-                EffectsBuilder::new()
-                    .effects(vec![Effect::UnderWindowBackground])
-                    .build(),
-            )
-            .map_err(|e| e.to_string())?;
-    }
+        #[cfg(target_os = "macos")]
+        {
+            use tauri_plugin_liquid_glass::LiquidGlassExt;
 
-    #[cfg(target_os = "windows")]
-    {
-        window
-            .set_effects(
-                EffectsBuilder::new()
-                    .effects(vec![Effect::Acrylic])
-                    .color(tauri::window::Color(32, 32, 32, 200))
-                    .build(),
-            )
-            .map_err(|e| e.to_string())?;
-    }
+            let supported = app.liquid_glass().is_supported();
+            if supported {
+                app.liquid_glass()
+                    .set_effect(&window, Default::default())
+                    .map_err(|e| e.to_string())?;
+                return Ok(());
+            }
 
-    // Linux — material effects are unsupported; the window stays opaque.
-    // Callers that only disable effects (`enabled: false`) hit the early
-    // return above, so this path is unreachable on Linux in practice.
+            return window
+                .set_effects(
+                    EffectsBuilder::new()
+                        .effects(vec![Effect::UnderWindowBackground])
+                        .build(),
+                )
+                .map_err(|e| e.to_string());
+        }
 
-    Ok(())
+        #[cfg(target_os = "windows")]
+        {
+            return window
+                .set_effects(
+                    EffectsBuilder::new()
+                        .effects(vec![Effect::Acrylic])
+                        .color(tauri::window::Color(32, 32, 32, 200))
+                        .build(),
+                )
+                .map_err(|e| e.to_string());
+        }
+
+        #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+        return Ok(());
+
+        #[cfg(any(target_os = "windows", target_os = "macos"))]
+        unreachable!()
+    })
 }

@@ -41,6 +41,7 @@
   import { toast } from "svelte-sonner";
   import { invoke, isTauri } from "@tauri-apps/api/core";
   import { browser } from "$app/environment";
+  import { trackEvent, trackSetting, trackPageView } from "$lib/ipc";
   import {
     needsSetup,
     setupMasterPassword,
@@ -58,10 +59,13 @@
   let _t = $derived.by(() => createTranslator($activeBundle));
 
   async function handleManageBilling() {
+    trackEvent("settings", "manage_billing", { section: activeSection });
     try {
       await openExternal("https://iamazeyou.me/account/billing");
+      trackEvent("settings", "manage_billing_opened");
     } catch (error) {
       console.error("Billing portal failed:", error);
+      trackEvent("settings", "manage_billing_error", { error: String(error) });
     }
   }
 
@@ -396,10 +400,13 @@
   }
 
   onMount(() => {
-    if (surface === "page") return;
+    if (surface === "page") {
+      trackPageView("settings");
+      return;
+    }
     window.addEventListener("keydown", handleKeydown);
-    const openSettings = () => show();
-    const closeSettings = () => hide();
+    const openSettings = () => { trackEvent("settings", "open"); show(); };
+    const closeSettings = () => { trackEvent("settings", "close"); hide(); };
     window.addEventListener("bento:open-global-settings", openSettings);
     window.addEventListener("bento:close-global-settings", closeSettings);
     return () => {
@@ -677,7 +684,7 @@
               </div>
               <div class="global-settings__info-card">
                 <strong>Storage usage</strong>
-                <span>{cloudBackupState?.storageUsageBytes !== null ? `${Math.round(cloudBackupState!.storageUsageBytes / 1024)} KB` : "Unknown"}</span>
+                <span>{cloudBackupState?.storageUsageBytes != null ? `${Math.round(cloudBackupState.storageUsageBytes / 1024)} KB` : "Unknown"}</span>
               </div>
             </div>
 
@@ -872,11 +879,19 @@
             </label>
             <label class="global-settings__toggle">
               <span><strong>Dynamic Island</strong><small>Quick-launch overlay at top of screen</small></span>
-              <input type="checkbox" checked={$desktopSettings.dynamicIslandEnabled} onchange={() => void updateDesktopSettings((c) => ({ ...c, dynamicIslandEnabled: !c.dynamicIslandEnabled }))} />
+              <input type="checkbox" checked={$desktopSettings.dynamicIslandEnabled} onchange={() => {
+                const newVal = !$desktopSettings.dynamicIslandEnabled;
+                trackSetting("dynamic_island", newVal);
+                void updateDesktopSettings((c) => ({ ...c, dynamicIslandEnabled: newVal }));
+              }} />
             </label>
             <label class="global-settings__toggle">
               <span><strong>Agent Dock</strong><small>AI assistant bar at bottom of screen — disabled by default for stability</small></span>
-              <input type="checkbox" checked={$desktopSettings.agentDockEnabled} onchange={() => void updateDesktopSettings((c) => ({ ...c, agentDockEnabled: !c.agentDockEnabled }))} />
+              <input type="checkbox" checked={$desktopSettings.agentDockEnabled} onchange={() => {
+                const newVal = !$desktopSettings.agentDockEnabled;
+                trackSetting("agent_dock", newVal);
+                void updateDesktopSettings((c) => ({ ...c, agentDockEnabled: newVal }));
+              }} />
             </label>
           </div>
 

@@ -1,3 +1,4 @@
+use crate::spawn_timeout;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
@@ -20,74 +21,80 @@ const AGENT_MACOS_COLLECTION_BEHAVIOR: i64 = 0 | (1 << 1) | (1 << 8);
 /// bypassing the browser's `getDisplayMedia()` API entirely.
 /// The result is a `data:image/jpeg;base64,...` string ready for `<img>`.
 ///
+/// Runs on tokio's blocking thread pool via `spawn_timeout!` because
+/// xcap screen capture is a synchronous OS call that can take 100-500ms
+/// and would otherwise block the main IPC thread.
+///
 /// # Errors
 /// - No primary monitor found
 /// - xcap capture failure
 /// - JPEG encoding failure
 #[tauri::command]
-pub fn capture_screen() -> Result<String, String> {
-    eprintln!("[capture_screen] starting...");
-    use base64::Engine;
-    use std::io::Cursor;
-    use xcap::Monitor;
+pub async fn capture_screen() -> Result<String, String> {
+    spawn_timeout!(15, {
+        eprintln!("[capture_screen] starting...");
+        use base64::Engine;
+        use std::io::Cursor;
+        use xcap::Monitor;
 
-    let monitors = match Monitor::all() {
-        Ok(m) => {
-            eprintln!("[capture_screen] found {} monitors", m.len());
-            m
-        }
-        Err(e) => {
-            eprintln!("[capture_screen] FAILED to enumerate monitors: {e}");
-            return Err(format!("Failed to enumerate monitors: {e}"));
-        }
-    };
+        let monitors = match Monitor::all() {
+            Ok(m) => {
+                eprintln!("[capture_screen] found {} monitors", m.len());
+                m
+            }
+            Err(e) => {
+                eprintln!("[capture_screen] FAILED to enumerate monitors: {e}");
+                return Err(format!("Failed to enumerate monitors: {e}"));
+            }
+        };
 
-    let monitor = match monitors
-        .into_iter()
-        .find(|m| m.is_primary().unwrap_or(false))
-    {
-        Some(m) => {
-            eprintln!("[capture_screen] found primary monitor");
-            m
-        }
-        None => {
-            eprintln!("[capture_screen] FAILED: no primary monitor");
-            return Err("No primary monitor found".to_string());
-        }
-    };
+        let monitor = match monitors
+            .into_iter()
+            .find(|m| m.is_primary().unwrap_or(false))
+        {
+            Some(m) => {
+                eprintln!("[capture_screen] found primary monitor");
+                m
+            }
+            None => {
+                eprintln!("[capture_screen] FAILED: no primary monitor");
+                return Err("No primary monitor found".to_string());
+            }
+        };
 
-    let image = match monitor.capture_image() {
-        Ok(img) => {
-            eprintln!(
-                "[capture_screen] captured image: {}x{}",
-                img.width(),
-                img.height()
-            );
-            img
-        }
-        Err(e) => {
-            eprintln!("[capture_screen] FAILED to capture image: {e}");
-            return Err(format!("Failed to capture screen: {e}"));
-        }
-    };
+        let image = match monitor.capture_image() {
+            Ok(img) => {
+                eprintln!(
+                    "[capture_screen] captured image: {}x{}",
+                    img.width(),
+                    img.height()
+                );
+                img
+            }
+            Err(e) => {
+                eprintln!("[capture_screen] FAILED to capture image: {e}");
+                return Err(format!("Failed to capture screen: {e}"));
+            }
+        };
 
-    // xcap returns ImageBuffer<Rgba<u8>> — wrap in DynamicImage for JPEG encoding
-    let dyn_img = image::DynamicImage::from(image);
-    let mut buf = Cursor::new(Vec::new());
-    if let Err(e) = dyn_img.write_to(&mut buf, image::ImageFormat::Jpeg) {
-        eprintln!("[capture_screen] FAILED to encode JPEG: {e}");
-        return Err(format!("Failed to encode JPEG: {e}"));
-    }
+        // xcap returns ImageBuffer<Rgba<u8>> — wrap in DynamicImage for JPEG encoding
+        let dyn_img = image::DynamicImage::from(image);
+        let mut buf = Cursor::new(Vec::new());
+        if let Err(e) = dyn_img.write_to(&mut buf, image::ImageFormat::Jpeg) {
+            eprintln!("[capture_screen] FAILED to encode JPEG: {e}");
+            return Err(format!("Failed to encode JPEG: {e}"));
+        }
 
-    let bytes = buf.into_inner();
-    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
-    let result = format!("data:image/jpeg;base64,{b64}");
-    eprintln!(
-        "[capture_screen] success: {} bytes, {} base64 chars",
-        bytes.len(),
-        b64.len()
-    );
-    Ok(result)
+        let bytes = buf.into_inner();
+        let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+        let result = format!("data:image/jpeg;base64,{b64}");
+        eprintln!(
+            "[capture_screen] success: {} bytes, {} base64 chars",
+            bytes.len(),
+            b64.len()
+        );
+        Ok(result)
+    })
 }
 
 /// Get the agent window if it exists, or create it programmatically.
@@ -473,15 +480,30 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 
 /// Enable or disable the Agent Dock at runtime.
 /// When disabled, the agent window is hidden and the mouse monitor is stopped.
-/// When re-enabled, the window is fully initialized (position, transparency, platform setup).
+/// When re-enabled, the window is shown (it was pre-created at startup so
+/// only fast `show()`/`hide()` calls are made — no WebView2 creation).
+///
+/// SAFETY: WebviewWindowBuilder::build() MUST run on the main thread
+/// (Windows Win32 thread affinity). The window is pre-created during
+/// app startup in lib.rs so this command never touches the builder.
 #[tauri::command]
 pub fn set_agent_dock_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
-    let window = get_or_create_agent_window(&app)?;
-
     eprintln!("[agent] set_agent_dock_enabled({enabled}) called");
 
+    let window = match get_or_create_agent_window(&app) {
+        Ok(w) => w,
+        Err(e) => {
+            eprintln!("[agent] set_agent_dock_enabled: failed to get/create window: {e}");
+            return Err(format!("Failed to get/create agent window: {e}"));
+        }
+    };
+
     if enabled {
-        init_agent_window(&window);
+        if !INITIAL_POSITION_SET.swap(true, Ordering::SeqCst) {
+            position_bottom_right(&window, false).unwrap_or_else(|e| {
+                eprintln!("[agent] set_agent_dock_enabled: position failed: {e}");
+            });
+        }
 
         #[cfg(target_os = "windows")]
         {

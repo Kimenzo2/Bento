@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import AuthLogo from "$lib/components/auth/AuthLogo.svelte";
   import { Button } from "$lib/components/ui/button/index.js";
@@ -7,8 +8,23 @@
   import { Label } from "$lib/components/ui/label/index.js";
   import { authStore } from "$lib/stores/auth.store";
   import { activeBundle, createTranslator } from "$lib/i18n";
+  import { trackPageView, trackEvent } from "$lib/ipc";
 
   let _t = $derived.by(() => createTranslator($activeBundle));
+
+  onMount(() => {
+    trackPageView("auth");
+  });
+
+  function handleContinueDesktop() {
+    trackEvent("auth", "continue_to_desktop");
+    goto("/");
+  }
+
+  function handleViewPlans() {
+    trackEvent("auth", "view_plans");
+    goto("/pricing");
+  }
 </script>
 
 <section class="desktop-gate">
@@ -43,8 +59,8 @@
         <Input id="password" type="password" placeholder="••••••••" />
       </div>
       <div class="flex flex-wrap gap-3">
-        <Button class="rounded-full px-5" onclick={() => goto("/")}>{_t('authContinueToDesktop')}</Button>
-        <Button class="rounded-full px-5" variant="outline" onclick={() => goto("/pricing")}>
+        <Button class="rounded-full px-5" onclick={handleContinueDesktop}>{_t('authContinueToDesktop')}</Button>
+        <Button class="rounded-full px-5" variant="outline" onclick={handleViewPlans}>
           {_t('authViewPlans')}
         </Button>
       </div>

@@ -345,14 +345,6 @@ class VoiceEngineStore {
     if (typeof navigator === "undefined") return true;
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true;
 
-    if (navigator.userAgent.includes("Windows")) {
-      try {
-        await invoke("clear_webview_browsing_data");
-      } catch {
-        // best-effort
-      }
-    }
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach((t) => t.stop());
@@ -494,14 +486,18 @@ class VoiceEngineStore {
    */
   async stop(): Promise<void> {
     // ── PTT grace period: discard if held too short ──────────────
-    // If the session was shorter than the grace period, treat as
-    // an accidental tap ("graze") and discard without processing.
-    const elapsed = this.elapsedMs;
-    if (this.#hasShortRecording(elapsed)) {
-      console.log("[voice-engine] PTT graze detected — discarding");
-      this.#stopWebSpeech();
-      this.#reset();
-      return;
+    // Use performance.now() directly against the recorded press timestamp,
+    // NOT the 200ms elapsed timer (which jumps from 0 to ~200ms on first
+    // tick, skipping the grace threshold). This catches accidental taps
+    // with sub-ms precision regardless of timer granularity.
+    if (this.pttPressStart !== null) {
+      const heldMs = performance.now() - this.pttPressStart;
+      if (heldMs >= 0 && heldMs < PTT_GRACE_MS) {
+        console.log("[voice-engine] PTT graze detected — discarding");
+        this.#stopWebSpeech();
+        this.#reset();
+        return;
+      }
     }
 
     if (this.mode === "dictation" || this.mode === "agent_conversation") {
@@ -524,11 +520,6 @@ class VoiceEngineStore {
     });
 
     await this.#classifyAndRouteSession();
-  }
-
-  /** True when elapsed time is below the PTT grace threshold (accidental tap). */
-  #hasShortRecording(elapsedMs: number): boolean {
-    return elapsedMs > 0 && elapsedMs < PTT_GRACE_MS;
   }
 
   /**

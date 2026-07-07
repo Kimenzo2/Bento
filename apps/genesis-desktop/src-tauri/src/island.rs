@@ -1,3 +1,4 @@
+use crate::spawn_timeout;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
 
@@ -305,58 +306,64 @@ fn position_top_center_expanded(window: &WebviewWindow) -> Result<(), Box<dyn st
 
 /// Toggle compact/expanded state on the frontend.
 #[tauri::command]
-pub fn toggle_island(window: tauri::WebviewWindow) -> Result<(), String> {
-    eprintln!("[island] toggle_island() called");
-    if window.label() == "island" {
-        position_top_center(&window).unwrap_or_else(|e| {
-            eprintln!("[island] reposition on toggle failed: {e}");
-        });
-        window
-            .emit("island:toggle", ())
-            .map_err(|e| e.to_string())?;
-        eprintln!("[island] toggle_island: emitted island:toggle event");
-    } else {
-        eprintln!(
-            "[island] toggle_island: wrong window label '{}'",
-            window.label()
-        );
-    }
-    Ok(())
+pub async fn toggle_island(window: tauri::WebviewWindow) -> Result<(), String> {
+    spawn_timeout!(5, {
+        eprintln!("[island] toggle_island() called");
+        if window.label() == "island" {
+            position_top_center(&window).unwrap_or_else(|e| {
+                eprintln!("[island] reposition on toggle failed: {e}");
+            });
+            window
+                .emit("island:toggle", ())
+                .map_err(|e| e.to_string())?;
+            eprintln!("[island] toggle_island: emitted island:toggle event");
+        } else {
+            eprintln!(
+                "[island] toggle_island: wrong window label '{}'",
+                window.label()
+            );
+        }
+        Ok(())
+    })
 }
 
 /// Expand the island via frontend event.
 #[tauri::command]
-pub fn show_island(window: tauri::WebviewWindow) -> Result<(), String> {
-    eprintln!("[island] show_island() called");
-    if window.label() == "island" {
-        position_top_center(&window).unwrap_or_else(|e| {
-            eprintln!("[island] reposition on show failed: {e}");
-        });
-        window.emit("island:show", ()).map_err(|e| e.to_string())?;
-        eprintln!("[island] show_island: emitted island:show event");
-    } else {
-        eprintln!(
-            "[island] show_island: wrong window label '{}'",
-            window.label()
-        );
-    }
-    Ok(())
+pub async fn show_island(window: tauri::WebviewWindow) -> Result<(), String> {
+    spawn_timeout!(5, {
+        eprintln!("[island] show_island() called");
+        if window.label() == "island" {
+            position_top_center(&window).unwrap_or_else(|e| {
+                eprintln!("[island] reposition on show failed: {e}");
+            });
+            window.emit("island:show", ()).map_err(|e| e.to_string())?;
+            eprintln!("[island] show_island: emitted island:show event");
+        } else {
+            eprintln!(
+                "[island] show_island: wrong window label '{}'",
+                window.label()
+            );
+        }
+        Ok(())
+    })
 }
 
 /// Collapse to compact via frontend event.
 #[tauri::command]
-pub fn hide_island(window: tauri::WebviewWindow) -> Result<(), String> {
-    eprintln!("[island] hide_island() called");
-    if window.label() == "island" {
-        window.emit("island:hide", ()).map_err(|e| e.to_string())?;
-        eprintln!("[island] hide_island: emitted island:hide event");
-    } else {
-        eprintln!(
-            "[island] hide_island: wrong window label '{}'",
-            window.label()
-        );
-    }
-    Ok(())
+pub async fn hide_island(window: tauri::WebviewWindow) -> Result<(), String> {
+    spawn_timeout!(5, {
+        eprintln!("[island] hide_island() called");
+        if window.label() == "island" {
+            window.emit("island:hide", ()).map_err(|e| e.to_string())?;
+            eprintln!("[island] hide_island: emitted island:hide event");
+        } else {
+            eprintln!(
+                "[island] hide_island: wrong window label '{}'",
+                window.label()
+            );
+        }
+        Ok(())
+    })
 }
 
 /// Toggle whether the island window accepts cursor events.
@@ -454,19 +461,30 @@ pub fn island_start_drag(window: tauri::WebviewWindow) -> Result<(), String> {
     Ok(())
 }
 
+/// Focus the main Bento window.
+///
+/// Calls `window.show()` + `window.set_focus()` which are synchronous WebView2
+/// compositor calls that can block the main IPC thread if DWM is under load
+/// (e.g. acrylic/glass effect transitions, window animation).
+///
+/// Runs on the blocking thread pool via spawn_timeout! to keep the IPC thread free.
 #[tauri::command]
-pub fn focus_main_window(app: AppHandle) -> Result<(), String> {
+pub async fn focus_main_window(app: AppHandle) -> Result<(), String> {
     eprintln!("[island] focus_main_window() called");
-    if let Some(window) = app.get_webview_window("main") {
+
+    let Some(window) = app.get_webview_window("main") else {
+        eprintln!("[island] focus_main_window: main window not found");
+        return Ok(());
+    };
+
+    spawn_timeout!(5, {
         window.show().map_err(|e: tauri::Error| e.to_string())?;
         window
             .set_focus()
             .map_err(|e: tauri::Error| e.to_string())?;
         eprintln!("[island] focus_main_window: main window focused");
-    } else {
-        eprintln!("[island] focus_main_window: main window not found");
-    }
-    Ok(())
+        Ok(())
+    })
 }
 
 /// Set the voice engine state on the Dynamic Island.
@@ -484,8 +502,17 @@ pub struct VoiceIslandState {
     pub activity_type: Option<String>,
 }
 
+/// Update the Dynamic Island voice state.
+///
+/// Called from the VoiceEngine store on every state change (recording start/stop,
+/// transcription progress, module switch). `window.emit()` is a synchronous WebView2
+/// IPC call that can block the main thread if the island's IPC channel is congested
+/// (e.g. during animations or compositor changes).
+///
+/// Runs on the blocking thread pool via spawn_timeout! to prevent voice recognition
+/// from stalling when the island is busy rendering.
 #[tauri::command]
-pub fn voice_set_island_state(
+pub async fn voice_set_island_state(
     app: AppHandle,
     state: Option<VoiceIslandState>,
 ) -> Result<(), String> {
@@ -493,63 +520,70 @@ pub fn voice_set_island_state(
         eprintln!("[voice] voice_set_island_state: island window not found");
         return Err("island window not found".into());
     };
+
     let is_active = state.is_some();
-    window
-        .emit("voice:island-state-changed", &state)
-        .map_err(|e| format!("failed to emit island state: {e}"))?;
-    eprintln!(
-        "[voice] voice_set_island_state: emitted state={}",
-        if is_active { "active" } else { "null" }
-    );
-    Ok(())
+    let state_clone = state.clone();
+
+    spawn_timeout!(5, {
+        window
+            .emit("voice:island-state-changed", &state_clone)
+            .map_err(|e| format!("failed to emit island state: {e}"))?;
+        eprintln!(
+            "[voice] voice_set_island_state: emitted state={}",
+            if is_active { "active" } else { "null" }
+        );
+        Ok(())
+    })
 }
 
 /// Enable or disable the Dynamic Island at runtime.
 /// When disabled, the island window is hidden. When re-enabled, it's shown again
 /// with proper positioning and transparency.
 #[tauri::command]
-pub fn set_island_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
+pub async fn set_island_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
     let Some(window) = app.get_webview_window("island") else {
         return Err("island window not found".into());
     };
 
-    eprintln!("[island] set_island_enabled({enabled}) called");
+    spawn_timeout!(10, {
+        eprintln!("[island] set_island_enabled({enabled}) called");
 
-    if enabled {
-        #[cfg(target_os = "windows")]
-        {
-            ISLAND_EXPANDED.store(false, Ordering::SeqCst);
-            LAST_EXPAND_CHANGE_MS.store(
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_millis() as u64,
-                Ordering::Relaxed,
-            );
+        if enabled {
+            #[cfg(target_os = "windows")]
+            {
+                ISLAND_EXPANDED.store(false, Ordering::SeqCst);
+                LAST_EXPAND_CHANGE_MS.store(
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_millis() as u64,
+                    Ordering::Relaxed,
+                );
+            }
+
+            if let Err(e) = window.set_background_color(Some(tauri::webview::Color(0, 0, 0, 0))) {
+                eprintln!("[island] set_background_color on re-enable failed: {e}");
+            }
+
+            position_top_center_expanded(&window).unwrap_or_else(|e| {
+                eprintln!("[island] reposition on re-enable failed: {e}");
+            });
+
+            window.show().map_err(|e| e.to_string())?;
+
+            let _ = window.emit("island:hide", ());
+
+            #[cfg(target_os = "windows")]
+            {
+                let _ = prepare_island_window_for_hit_test(&window);
+            }
+
+            eprintln!("[island] set_island_enabled(true): complete");
+        } else {
+            window.hide().map_err(|e| e.to_string())?;
+            eprintln!("[island] set_island_enabled(false): window hidden");
         }
 
-        if let Err(e) = window.set_background_color(Some(tauri::webview::Color(0, 0, 0, 0))) {
-            eprintln!("[island] set_background_color on re-enable failed: {e}");
-        }
-
-        position_top_center_expanded(&window).unwrap_or_else(|e| {
-            eprintln!("[island] reposition on re-enable failed: {e}");
-        });
-
-        window.show().map_err(|e| e.to_string())?;
-
-        let _ = window.emit("island:hide", ());
-
-        #[cfg(target_os = "windows")]
-        {
-            let _ = prepare_island_window_for_hit_test(&window);
-        }
-
-        eprintln!("[island] set_island_enabled(true): complete");
-    } else {
-        window.hide().map_err(|e| e.to_string())?;
-        eprintln!("[island] set_island_enabled(false): window hidden");
-    }
-
-    Ok(())
+        Ok(())
+    })
 }

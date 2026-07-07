@@ -1,12 +1,19 @@
 ﻿  <script lang="ts">
+  import { onMount } from "svelte";
   import { browser } from "$app/environment";
   import { authStore, setAuthLoginLoading, setAuthError, setLoginUrl } from "$lib/stores/auth.store";
   import { openExternal } from "$lib/desktop/open-external";
   import AuthLogo from "$lib/components/auth/AuthLogo.svelte";
+  import { trackPageView, trackEvent } from "$lib/ipc";
+
+  onMount(() => {
+    trackPageView("login");
+  });
 
   async function handleGoogleSignIn() {
     if ($authStore.loginLoading) return;
     console.log("[LoginPage] handleGoogleSignIn: starting");
+    trackEvent("login", "sign_in_started");
     setAuthLoginLoading(true);
 
     try {
@@ -32,9 +39,11 @@
       console.log("[LoginPage] opening auth URL:", authUrl);
       await openExternal(authUrl);
       console.log("[LoginPage] external browser open command completed");
+      trackEvent("login", "sign_in_browser_opened");
     } catch (error) {
       const rawMessage = error instanceof Error ? error.message : "Failed to start Google sign-in.";
       console.error("[LoginPage] Google sign-in error:", rawMessage, error);
+      trackEvent("login", "sign_in_error", { error: rawMessage });
 
       let friendlyMessage: string;
       if (rawMessage.includes("timed out")) {
@@ -112,7 +121,7 @@
           <button
             type="button"
             class="login-page__retry-btn"
-            onclick={handleGoogleSignIn}
+            onclick={() => { trackEvent("login", "retry"); void handleGoogleSignIn(); }}
           >
             Try again
           </button>
@@ -127,7 +136,9 @@
           type="button"
           class="login-page__manual-btn"
           onclick={() => {
+            trackEvent("login", "manual_browser_open");
             openExternal($authStore.loginUrl!).catch(() => {
+              trackEvent("login", "manual_browser_failed");
               navigator.clipboard.writeText($authStore.loginUrl!).catch(() => {});
               setAuthError("Could not open browser. The sign-in link has been copied to your clipboard.");
             });

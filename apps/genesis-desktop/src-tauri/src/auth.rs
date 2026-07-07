@@ -11,23 +11,56 @@ use sha2::{Digest, Sha256};
 use std::time::Instant;
 use tauri::{AppHandle, Emitter, State, WebviewWindow};
 use tauri_plugin_oauth::{start_with_config, OauthConfig};
+use tauri_plugin_opener::OpenerExt;
 use tokio::{
     sync::Mutex,
     time::{sleep, Duration},
 };
 use url::Url;
+use crate::spawn_timeout;
 
 /// Open a URL using the platform's default mechanism via `tauri-plugin-opener`.
-/// Replaces the old `rundll32`/`open`/`xdg-open` approach which was unreliable on Windows.
-async fn open_url_in_browser(_app: &AppHandle, url: &str) -> Result<(), String> {
-    eprintln!("[auth] open_url_in_browser: {url}");
+///
+/// Uses `app.opener().open_url()` (the recommended Tauri v2 plugin-integrated path)
+/// instead of the standalone `tauri_plugin_opener::open_url()` wrapped in spawn_blocking.
+///
+/// On Windows, `ShellExecuteW` can transiently fail with ERROR_CANCELLED (os error 1223)
+/// during rapid state changes. We retry up to 2 times with a 100ms delay to work around this.
+///
+/// The entire retry loop runs inside `spawn_timeout!` (spawn_blocking + 15s timeout)
+/// so neither the tokio async worker nor the main IPC thread is ever blocked.
+async fn open_url_in_browser(app: &AppHandle, url: &str) -> Result<(), String> {
     let url = url.to_owned();
-    tokio::task::spawn_blocking(move || {
-        tauri_plugin_opener::open_url(&url, None::<&str>)
-            .map_err(|e| format!("Failed to open browser: {e}"))
+    let app = app.clone();
+    eprintln!("[opener] open_url_in_browser: {url}");
+
+    spawn_timeout!(15, {
+        let max_attempts = 3;
+        let mut last_err = String::new();
+
+        for attempt in 1..=max_attempts {
+            match app.opener().open_url(&url, None::<&str>) {
+                Ok(()) => {
+                    if attempt > 1 {
+                        eprintln!("[opener] open_url succeeded on attempt {attempt}");
+                    }
+                    return Ok(());
+                }
+                Err(e) => {
+                    let err_str: String = e.to_string();
+                    eprintln!("[opener] attempt {attempt}/{max_attempts} failed: {err_str}");
+                    last_err = err_str;
+                }
+            }
+
+            if attempt < max_attempts {
+                // Short blocking sleep (fine inside spawn_blocking)
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+        }
+
+        Err(format!("Failed to open browser after {max_attempts} attempts: {last_err}"))
     })
-    .await
-    .map_err(|e| format!("spawn_blocking failed: {e}"))?
 }
 
 // window_bounds::transition_to_shell is imported locally in prepare_shell_window

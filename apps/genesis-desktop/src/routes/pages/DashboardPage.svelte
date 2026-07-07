@@ -2,7 +2,8 @@
   import PromptDialog from "$lib/components/PromptDialog.svelte";
   import { onMount } from "svelte";
   import { browser } from "$app/environment";
-  import { invoke, isTauri } from "@tauri-apps/api/core";
+  import { isTauri } from "@tauri-apps/api/core";
+  import { invoke, invokeWithTimeout } from "$lib/ipc";
   import { hiddenModuleIds } from "$lib/data/module-catalog";
   import { switchModule, moduleIdSchema, type BentoModuleId } from "$lib/desktop/modules";
   import { activeBundle, createTranslator } from "$lib/i18n";
@@ -110,9 +111,10 @@
   async function loadDashboard() {
     if (!canUseTauri) { loadFallbackData(); loading = false; return; }
     try {
-      const result = await invoke<DashboardPayload>("get_dashboard_data");
+      const result = await invokeWithTimeout<DashboardPayload>("get_dashboard_data", undefined, 10_000);
       data = result; error = null;
     } catch (err) {
+      console.error("[dashboard] loadDashboard failed:", err);
       error = typeof err === "string" ? err : _t('dashboardFailedToLoad');
     } finally { loading = false; }
   }

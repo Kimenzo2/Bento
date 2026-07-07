@@ -837,6 +837,43 @@ fn is_valid_module_id(id: &str) -> bool {
 // Main dashboard command
 // ---------------------------------------------------------------------------
 
+/// Fallback payload returned when the dashboard query times out.
+/// Ensures the frontend never hangs forever waiting for data.
+fn fallback_payload() -> DashboardPayload {
+    DashboardPayload {
+        greeting: compute_greeting(""),
+        insight_line: "Loading...".to_string(),
+        featured_module: FeaturedModule {
+            id: "tasks".to_string(),
+            name: "Tasks".to_string(),
+            icon: "layout-grid".to_string(),
+            accent_hex: "#52b788".to_string(),
+            primary_count: 0,
+            primary_label: "tasks".to_string(),
+            descriptor_label: "Open Tasks →".to_string(),
+            items: vec![DashboardItem {
+                text: "Add a task to get started".to_string(),
+                secondary: None,
+                completed: false,
+            }],
+        },
+        recent_activity: vec![],
+        streak: StreakInfo {
+            count: 0,
+            module_id: "habits".to_string(),
+            module_name: "Habits".to_string(),
+        },
+        featured_metric: MetricInfo {
+            label: "tasks done today".to_string(),
+            value: "0".to_string(),
+            module_id: "tasks".to_string(),
+            trend: None,
+        },
+        recent_modules: vec![],
+        gradient_colors: ["#4F6EF7".to_string(), "#5B7BFA".to_string()],
+    }
+}
+
 #[tauri::command]
 pub async fn get_dashboard_data(
     app: tauri::AppHandle,
@@ -850,66 +887,101 @@ pub async fn get_dashboard_data(
 
     let db = state.db();
 
-    // Pull live data from Supabase into local SQLite before running queries.
-    // Keep this below the startup interaction budget; stale local data is safer
-    // than blocking the dashboard on network or SQLite pool contention.
-    if let Some(auth) = app.try_state::<AuthManager>() {
-        let _ = tokio::time::timeout(
-            std::time::Duration::from_secs(3),
-            sync_user_data(&db, &auth),
-        )
-        .await;
+    // ── Fire-and-forget: sync Supabase data in background ────────────────
+    // DO NOT await sync in the dashboard hot path. reqwest uses blocking DNS
+    // on Windows which can block the tokio worker thread, preventing the
+    // timeout from firing and causing the dashboard to hang for 10+ seconds.
+    // The local DB already has the user's data — sync is just a refresh.
+    {
+        let db_clone = db.clone();
+        let app_clone = app.clone();
+        tauri::async_runtime::spawn(async move {
+            if let Some(auth) = app_clone.try_state::<AuthManager>() {
+                let _ = tokio::time::timeout(
+                    std::time::Duration::from_secs(15),
+                    sync_user_data(&db_clone, &auth),
+                )
+                .await;
+            }
+        });
     }
 
-    let today_start = today_start_ms();
-    let today_end = today_end_ms();
+    // Top-level timeout: if the entire query takes longer than 4 seconds,
+    // return a fallback payload so the UI never hangs forever.
+    // This prevents a deadlock in ANY downstream call (SQLite, network, mutex)
+    // from freezing the entire app.
+    let result = tokio::time::timeout(
+        std::time::Duration::from_secs(4),
+        async {
+            let today_start = today_start_ms();
+            let today_end = today_end_ms();
 
-    // Read user's display name from Supabase auth (fallback to DesktopRuntime settings)
-    let display_name = if let Some(auth) = app.try_state::<AuthManager>() {
-        match auth.snapshot().await {
-            AuthBootstrapState::Restored { user } if !user.name.trim().is_empty() => user.name,
-            _ => app
-                .try_state::<DesktopRuntime>()
-                .map(|r| r.settings().display_name)
-                .unwrap_or_default(),
+            // Read user's display name from Supabase auth (fallback to DesktopRuntime settings)
+            let display_name = if let Some(auth) = app.try_state::<AuthManager>() {
+                match auth.snapshot().await {
+                    AuthBootstrapState::Restored { user } if !user.name.trim().is_empty() => user.name,
+                    _ => app
+                        .try_state::<DesktopRuntime>()
+                        .map(|r| r.settings().display_name)
+                        .unwrap_or_default(),
+                }
+            } else {
+                app.try_state::<DesktopRuntime>()
+                    .map(|r| r.settings().display_name)
+                    .unwrap_or_default()
+            };
+
+            let mut insight = String::new();
+
+            let featured_module = query_featured_module(&db, today_start, today_end, &mut insight).await?;
+            let recent_activity = query_recent_activity(&db, &mut insight).await?;
+            let streak = query_streak(&db, &mut insight).await?;
+            let featured_metric = query_featured_metric(&db, today_start, &mut insight).await?;
+            let preferred_module = read_runtime_state(&db, "last_active_module").await?;
+            let recent_modules = query_recent_modules(&db, preferred_module.as_deref()).await?;
+
+            if insight.is_empty() {
+                insight = String::from("Welcome back! Open a module to get started");
+            }
+
+            let accent_a = String::from("#4F6EF7");
+            let accent_b = String::from("#5B7BFA");
+
+            let payload = DashboardPayload {
+                greeting: compute_greeting(&display_name),
+                insight_line: insight,
+                featured_module,
+                recent_activity,
+                streak,
+                featured_metric,
+                recent_modules,
+                gradient_colors: [accent_a, accent_b],
+            };
+
+            // Store in cache
+            cache.set(payload.clone());
+
+            Ok(payload) as Result<DashboardPayload, String>
+        },
+    )
+    .await;
+
+    match result {
+        Ok(Ok(payload)) => Ok(payload),
+        Ok(Err(db_err)) => {
+            eprintln!("[dashboard] get_dashboard_data query failed: {db_err}");
+            // Return fallback rather than failing — the user can retry
+            let fb = fallback_payload();
+            cache.set(fb.clone());
+            Ok(fb)
         }
-    } else {
-        app.try_state::<DesktopRuntime>()
-            .map(|r| r.settings().display_name)
-            .unwrap_or_default()
-    };
-
-    let mut insight = String::new();
-
-    let featured_module = query_featured_module(&db, today_start, today_end, &mut insight).await?;
-    let recent_activity = query_recent_activity(&db, &mut insight).await?;
-    let streak = query_streak(&db, &mut insight).await?;
-    let featured_metric = query_featured_metric(&db, today_start, &mut insight).await?;
-    let preferred_module = read_runtime_state(&db, "last_active_module").await?;
-    let recent_modules = query_recent_modules(&db, preferred_module.as_deref()).await?;
-
-    if insight.is_empty() {
-        insight = String::from("Welcome back! Open a module to get started");
+        Err(_timeout) => {
+            eprintln!("[dashboard] get_dashboard_data timed out after 4s — returning fallback");
+            let fb = fallback_payload();
+            cache.set(fb.clone());
+            Ok(fb)
+        }
     }
-
-    let accent_a = String::from("#4F6EF7");
-    let accent_b = String::from("#5B7BFA");
-
-    let payload = DashboardPayload {
-        greeting: compute_greeting(&display_name),
-        insight_line: insight,
-        featured_module,
-        recent_activity,
-        streak,
-        featured_metric,
-        recent_modules,
-        gradient_colors: [accent_a, accent_b],
-    };
-
-    // Store in cache
-    cache.set(payload.clone());
-
-    Ok(payload)
 }
 
 // ---------------------------------------------------------------------------
