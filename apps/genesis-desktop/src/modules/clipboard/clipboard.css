@@ -944,6 +944,134 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   BOOKMARK INPUT BAR — URL Save Input
+   Matches cb-shell__search input design patterns exactly.
+═══════════════════════════════════════════════════════════════ */
+
+:global(.cb-bookmark-input) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px;
+  margin-bottom: 16px;
+}
+
+:global(.cb-bookmark-input__field) {
+  flex: 1;
+  position: relative;
+}
+
+:global(.cb-bookmark-input__field) input {
+  width: 100%;
+  height: 42px;
+  padding: 0 16px 0 40px;
+  border: none;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--cb-ink) 6%, var(--cb-bg));
+  color: var(--cb-ink);
+  font: inherit;
+  font-size: 0.9rem;
+  outline: none;
+  box-sizing: border-box;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+:global(.cb-bookmark-input__field) input::placeholder {
+  color: var(--cb-muted);
+}
+
+:global(.cb-bookmark-input__field) input:focus {
+  background: color-mix(in srgb, var(--cb-ink) 8%, var(--cb-bg));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cb-accent) 30%, transparent);
+}
+
+/* Link icon */
+:global(.cb-bookmark-input__icon) {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--cb-muted);
+  pointer-events: none;
+}
+
+/* Platform badge preview (shown when URL is detected in input) */
+:global(.cb-bookmark-input__badge) {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+:global(.cb-bookmark-input__badge--visible) {
+  opacity: 1;
+}
+
+:global(.cb-bookmark-input__badge[data-platform="x"])         { background: #000; }
+:global(.cb-bookmark-input__badge[data-platform="youtube"])   { background: #FF0000; }
+:global(.cb-bookmark-input__badge[data-platform="reddit"])    { background: #FF4500; }
+:global(.cb-bookmark-input__badge[data-platform="threads"])   { background: #000; }
+:global(.cb-bookmark-input__badge[data-platform="instagram"]) { background: #FF0076; }
+:global(.cb-bookmark-input__badge[data-platform="tiktok"])    { background: #000; }
+:global(.cb-bookmark-input__badge[data-platform="other"])     { background: #787873; }
+
+/* Save button */
+:global(.cb-bookmark-input__save) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 42px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 14px;
+  background: var(--cb-ink);
+  color: var(--cb-bg);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 650;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+:global(.cb-bookmark-input__save:hover) {
+  opacity: 0.85;
+}
+
+:global(.cb-bookmark-input__save:disabled) {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Saved confirmation state */
+:global(.cb-bookmark-input__save--saved) {
+  background: #22c55e;
+  color: #fff;
+}
+
+:global(.cb-bookmark-input__error) {
+  font-size: 0.78rem;
+  color: var(--cb-sensitive);
+  padding: 4px 8px;
+  margin-top: -8px;
+  margin-bottom: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    BOOKMARK CARDS — Pinterest-exact Design System
    
    Design tokens extracted from Pinterest production CSS:
@@ -1148,6 +1276,20 @@
 
 :global(.cb-pin-card__action--danger:hover) {
   background: rgba(220, 38, 38, 0.8);
+}
+
+:global(.cb-pin-card__action--confirm) {
+  background: rgba(34, 197, 94, 0.8);
+  cursor: default;
+}
+
+:global(.cb-pin-card__action--confirm:hover) {
+  background: rgba(34, 197, 94, 0.8);
+}
+
+:global(.cb-pin-card__action--confirm:disabled) {
+  opacity: 1;
+  cursor: default;
 }
 
 /* ─── Bookmarks Empty State ─── */

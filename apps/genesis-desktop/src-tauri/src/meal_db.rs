@@ -353,10 +353,12 @@ fn meal_detail_to_recipe_payload(meal: &MealDbFullMeal) -> NewRecipePayload {
 
 /// Search meals by name
 #[tauri::command]
-pub async fn discover_search(
+pub async fn discover_search(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     query: String,
 ) -> Result<Vec<DiscoverRecipeSummary>, String> {
+    crate::auth::require_billing_tier(&auth, "meal_db").await?;
+
     ensure_cache_table(&state.db()).await?;
 
     let cache_key = format!("search:{}", query.to_lowercase().trim());
@@ -392,9 +394,11 @@ pub async fn discover_search(
 
 /// Get random meal
 #[tauri::command]
-pub async fn discover_random(
+pub async fn discover_random(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<DiscoverRecipeDetail, String> {
+    crate::auth::require_billing_tier(&auth, "meal_db").await?;
+
     ensure_cache_table(&state.db()).await?;
 
     let url = format!("{MEALDB_BASE}/random.php");
@@ -413,10 +417,12 @@ pub async fn discover_random(
 
 /// Get full meal detail by ID
 #[tauri::command]
-pub async fn discover_meal_detail(
+pub async fn discover_meal_detail(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     meal_id: String,
 ) -> Result<DiscoverRecipeDetail, String> {
+    crate::auth::require_billing_tier(&auth, "meal_db").await?;
+
     ensure_cache_table(&state.db()).await?;
 
     let cache_key = format!("detail:{}", meal_id);
@@ -444,9 +450,11 @@ pub async fn discover_meal_detail(
 
 /// List all categories
 #[tauri::command]
-pub async fn discover_categories(
+pub async fn discover_categories(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<DiscoverCategory>, String> {
+    crate::auth::require_billing_tier(&auth, "meal_db").await?;
+
     ensure_cache_table(&state.db()).await?;
 
     let cache_key = "categories".to_string();
@@ -479,9 +487,11 @@ pub async fn discover_categories(
 
 /// List all areas
 #[tauri::command]
-pub async fn discover_areas(
+pub async fn discover_areas(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<DiscoverFilterOption>, String> {
+    crate::auth::require_billing_tier(&auth, "meal_db").await?;
+
     ensure_cache_table(&state.db()).await?;
 
     let cache_key = "areas".to_string();
@@ -510,10 +520,12 @@ pub async fn discover_areas(
 
 /// Filter meals by category
 #[tauri::command]
-pub async fn discover_filter_by_category(
+pub async fn discover_filter_by_category(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     category: String,
 ) -> Result<Vec<DiscoverRecipeSummary>, String> {
+    crate::auth::require_billing_tier(&auth, "meal_db").await?;
+
     filter_meals(
         &state,
         &format!("filter_category:{}", category),
@@ -524,10 +536,12 @@ pub async fn discover_filter_by_category(
 
 /// Filter meals by area
 #[tauri::command]
-pub async fn discover_filter_by_area(
+pub async fn discover_filter_by_area(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     area: String,
 ) -> Result<Vec<DiscoverRecipeSummary>, String> {
+    crate::auth::require_billing_tier(&auth, "meal_db").await?;
+
     filter_meals(
         &state,
         &format!("filter_area:{}", area),
@@ -538,10 +552,12 @@ pub async fn discover_filter_by_area(
 
 /// Filter meals by ingredient
 #[tauri::command]
-pub async fn discover_filter_by_ingredient(
+pub async fn discover_filter_by_ingredient(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     ingredient: String,
 ) -> Result<Vec<DiscoverRecipeSummary>, String> {
+    crate::auth::require_billing_tier(&auth, "meal_db").await?;
+
     filter_meals(
         &state,
         &format!("filter_ingredient:{}", ingredient),
@@ -552,9 +568,11 @@ pub async fn discover_filter_by_ingredient(
 
 /// List all ingredients
 #[tauri::command]
-pub async fn discover_ingredients(
+pub async fn discover_ingredients(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<DiscoverFilterOption>, String> {
+    crate::auth::require_billing_tier(&auth, "meal_db").await?;
+
     ensure_cache_table(&state.db()).await?;
 
     let cache_key = "ingredients".to_string();
@@ -583,11 +601,13 @@ pub async fn discover_ingredients(
 
 /// Import a TheMealDB meal into the local recipes database
 #[tauri::command]
-pub async fn discover_import_meal(
+pub async fn discover_import_meal(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     search: State<'_, crate::search::SearchService>,
     meal_id: String,
 ) -> Result<RecipeRow, String> {
+    crate::auth::require_billing_tier(&auth, "meal_db").await?;
+
     ensure_cache_table(&state.db()).await?;
 
     // Fetch full detail

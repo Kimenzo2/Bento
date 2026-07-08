@@ -6,6 +6,7 @@ import {
   defaultThemeId,
   desktopThemes,
   getThemeTokensFor,
+  resolveThemeMode,
   type ThemeId,
   type ThemeMode,
 } from "$lib/data/themes";
@@ -71,7 +72,7 @@ const storeKeys = {
   agentDockEnabled: "agentDockEnabled",
 } as const;
 
-const themeModeSchema = z.enum(["light", "dark"]);
+const themeModeSchema = z.enum(["light", "dark", "system"]);
 // All 27 interface language codes — ported from Anytype-ts src/json/lang.ts
 const languageCodeSchema = z.enum([
   "en",
@@ -866,12 +867,13 @@ function writeThemeSnapshot(settings: DesktopSettings) {
     return;
   }
 
+  const resolvedMode = resolveThemeMode(settings.appearance.mode);
   const tokens = getThemeTokensFor(settings.appearance.themeId, settings.appearance.mode);
   window.sessionStorage.setItem(
     THEME_SNAPSHOT_KEY,
     JSON.stringify({
       themeId: settings.appearance.themeId,
-      mode: settings.appearance.mode,
+      mode: resolvedMode,
       tokens,
     }),
   );
@@ -884,7 +886,7 @@ async function applyNativeTheme(settings: DesktopSettings) {
 
   try {
     const { setTheme: setNativeTheme } = await import("@tauri-apps/api/app");
-    await setNativeTheme(settings.appearance.mode);
+    await setNativeTheme(resolveThemeMode(settings.appearance.mode));
   } catch (error) {
     console.warn("Bento native app theme failed to update.", error);
   }
@@ -1070,4 +1072,21 @@ export function resolveShortcutId(shortcutId: string): DesktopShortcutId {
 
 export function desktopSettingsSchemaSafeParse(value: unknown) {
   return desktopSettingsSchema.safeParse(value);
+}
+
+let systemThemeCleanup: (() => void) | null = null;
+
+export function watchSystemTheme() {
+  if (!browser) return;
+  if (systemThemeCleanup) systemThemeCleanup();
+
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  const handler = () => {
+    const settings = get(desktopSettings);
+    if (settings.appearance.mode === "system") {
+      void applyNativeTheme(settings);
+    }
+  };
+  mq.addEventListener("change", handler);
+  systemThemeCleanup = () => mq.removeEventListener("change", handler);
 }

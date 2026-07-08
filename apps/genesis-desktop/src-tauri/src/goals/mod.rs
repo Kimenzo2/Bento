@@ -269,10 +269,12 @@ async fn fetch_goal(pool: &sqlx::SqlitePool, id: &str) -> Result<GoalRow, String
 // ═══ GOALS_LIST ═══════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn goals_list(
+pub async fn goals_list(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     horizon: Option<String>,
 ) -> Result<Vec<GoalRow>, String> {
+    crate::auth::require_billing_tier(&auth, "goals").await?;
+
     let db = state.db();
     ensure_goals_tables(&db).await?;
 
@@ -305,10 +307,12 @@ pub async fn goals_list(
 // ═══ GOALS_SAVE ═══════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn goals_save(
+pub async fn goals_save(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     payload: GoalSavePayload,
 ) -> Result<GoalRow, String> {
+    crate::auth::require_billing_tier(&auth, "goals").await?;
+
     let db = state.db();
     ensure_goals_tables(&db).await?;
 
@@ -433,7 +437,9 @@ pub async fn goals_save(
 // ═══ GOALS_DELETE ═════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn goals_delete(state: State<'_, BentoAppState>, id: String) -> Result<(), String> {
+pub async fn goals_delete(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>, id: String) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "goals").await?;
+
     let db = state.db();
     ensure_goals_tables(&db).await?;
 
@@ -449,10 +455,12 @@ pub async fn goals_delete(state: State<'_, BentoAppState>, id: String) -> Result
 // ═══ GOALS_PROGRESS_UPDATE ═══════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn goals_progress_update(
+pub async fn goals_progress_update(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     payload: GoalProgressPayload,
 ) -> Result<GoalRow, String> {
+    crate::auth::require_billing_tier(&auth, "goals").await?;
+
     let db = state.db();
     ensure_goals_tables(&db).await?;
 
@@ -479,10 +487,12 @@ pub async fn goals_progress_update(
 // ═══ GOAL_SUBTASKS_LIST ═════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn goal_subtasks_list(
+pub async fn goal_subtasks_list(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     goal_id: String,
 ) -> Result<Vec<GoalSubtaskRow>, String> {
+    crate::auth::require_billing_tier(&auth, "goals").await?;
+
     let db = state.db();
     ensure_goals_tables(&db).await?;
 
@@ -510,10 +520,12 @@ pub async fn goal_subtasks_list(
 // ═══ GOAL_SUBTASK_SAVE ═══════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn goal_subtask_save(
+pub async fn goal_subtask_save(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     payload: GoalSubtaskSavePayload,
 ) -> Result<GoalSubtaskRow, String> {
+    crate::auth::require_billing_tier(&auth, "goals").await?;
+
     let db = state.db();
     ensure_goals_tables(&db).await?;
 
@@ -588,10 +600,12 @@ pub async fn goal_subtask_save(
 // ═══ GOAL_SUBTASK_TOGGLE ═════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn goal_subtask_toggle(
+pub async fn goal_subtask_toggle(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<GoalSubtaskRow, String> {
+    crate::auth::require_billing_tier(&auth, "goals").await?;
+
     let db = state.db();
     ensure_goals_tables(&db).await?;
 
@@ -648,10 +662,12 @@ pub async fn goal_subtask_toggle(
 // ═══ GOAL_ADD_REVIEW ═══════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn goal_add_review(
+pub async fn goal_add_review(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     payload: GoalReviewPayload,
 ) -> Result<GoalReviewRow, String> {
+    crate::auth::require_billing_tier(&auth, "goals").await?;
+
     let db = state.db();
     ensure_goals_tables(&db).await?;
 
@@ -691,10 +707,12 @@ pub async fn goal_add_review(
 // ═══ GOAL_REVIEWS_LIST ═════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn goal_reviews_list(
+pub async fn goal_reviews_list(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     goal_id: String,
 ) -> Result<Vec<GoalReviewRow>, String> {
+    crate::auth::require_billing_tier(&auth, "goals").await?;
+
     let db = state.db();
     ensure_goals_tables(&db).await?;
 
@@ -723,11 +741,13 @@ pub async fn goal_reviews_list(
 /// Toggle a goal's big-3 status. If setting to true, un-set any existing big-3
 /// goals first so there are at most 3.
 #[tauri::command]
-pub async fn goals_toggle_big_3(
+pub async fn goals_toggle_big_3(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     id: String,
     is_big_3: bool,
 ) -> Result<GoalRow, String> {
+    crate::auth::require_billing_tier(&auth, "goals").await?;
+
     let db = state.db();
     ensure_goals_tables(&db).await?;
 
@@ -770,9 +790,11 @@ pub async fn goals_toggle_big_3(
 // ═══ FOCUS_AREAS_LIST ══════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn focus_areas_list(
+pub async fn focus_areas_list(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<FocusAreaRow>, String> {
+    crate::auth::require_billing_tier(&auth, "goals").await?;
+
     let db = state.db();
     ensure_goals_tables(&db).await?;
 
@@ -795,10 +817,12 @@ pub async fn focus_areas_list(
 // ═══ FOCUS_AREA_SAVE ═══════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn focus_area_save(
+pub async fn focus_area_save(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     payload: FocusAreaSavePayload,
 ) -> Result<FocusAreaRow, String> {
+    crate::auth::require_billing_tier(&auth, "goals").await?;
+
     let db = state.db();
     ensure_goals_tables(&db).await?;
 
@@ -844,7 +868,9 @@ pub async fn focus_area_save(
 // ═══ FOCUS_AREA_DELETE ═════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn focus_area_delete(state: State<'_, BentoAppState>, id: String) -> Result<(), String> {
+pub async fn focus_area_delete(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>, id: String) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "goals").await?;
+
     let db = state.db();
     ensure_goals_tables(&db).await?;
 

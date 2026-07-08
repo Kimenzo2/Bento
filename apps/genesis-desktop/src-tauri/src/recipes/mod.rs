@@ -458,7 +458,9 @@ pub async fn ensure_recipes_tables(pool: &sqlx::SqlitePool) -> Result<(), String
 // ═══ RECIPES CRUD ════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn recipes_list(state: State<'_, BentoAppState>) -> Result<Vec<RecipeRow>, String> {
+pub async fn recipes_list(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<Vec<RecipeRow>, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     use sqlx::Row;
     let rows = sqlx::query(
@@ -627,20 +629,24 @@ pub async fn recipe_save_internal(
 }
 
 #[tauri::command]
-pub async fn recipe_save(
+pub async fn recipe_save(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     search: State<'_, SearchService>,
     payload: NewRecipePayload,
 ) -> Result<RecipeRow, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     recipe_save_internal(&state.db(), &search, payload).await
 }
 
 #[tauri::command]
-pub async fn recipe_delete(
+pub async fn recipe_delete(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     search: State<'_, SearchService>,
     recipe_id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     sqlx::query("DELETE FROM recipes WHERE id = ?")
         .bind(&recipe_id)
@@ -657,10 +663,12 @@ pub async fn recipe_delete(
 }
 
 #[tauri::command]
-pub async fn recipe_toggle_favorite(
+pub async fn recipe_toggle_favorite(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     recipe_id: String,
 ) -> Result<bool, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     use sqlx::Row;
     let row = sqlx::query("SELECT favorite FROM recipes WHERE id = ?")
@@ -681,11 +689,13 @@ pub async fn recipe_toggle_favorite(
 }
 
 #[tauri::command]
-pub async fn recipe_rate(
+pub async fn recipe_rate(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     recipe_id: String,
     rating: i64,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     sqlx::query("UPDATE recipes SET rating=?,updated_at=? WHERE id=?")
         .bind(rating)
@@ -698,12 +708,14 @@ pub async fn recipe_rate(
 }
 
 #[tauri::command]
-pub async fn recipe_add_to_collection(
+pub async fn recipe_add_to_collection(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     search: State<'_, SearchService>,
     recipe_id: String,
     collection_id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     use sqlx::Row;
     let row = sqlx::query("SELECT collection_ids FROM recipes WHERE id=?")
@@ -735,10 +747,12 @@ pub async fn recipe_add_to_collection(
 }
 
 #[tauri::command]
-pub async fn recipe_toggle_ingredient(
+pub async fn recipe_toggle_ingredient(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     ingredient_id: String,
 ) -> Result<bool, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     use sqlx::Row;
     let row = sqlx::query("SELECT checked FROM recipe_ingredients WHERE id=?")
@@ -760,9 +774,11 @@ pub async fn recipe_toggle_ingredient(
 // ═══ COLLECTIONS ══════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn collections_list(
+pub async fn collections_list(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<CollectionRow>, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     use sqlx::Row;
     let rows = sqlx::query(
@@ -784,11 +800,13 @@ pub async fn collections_list(
 }
 
 #[tauri::command]
-pub async fn collection_create(
+pub async fn collection_create(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     name: String,
     emoji: String,
 ) -> Result<CollectionRow, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     if name.trim().is_empty() {
         return Err("Collection name required.".into());
@@ -810,10 +828,12 @@ pub async fn collection_create(
 }
 
 #[tauri::command]
-pub async fn collection_delete(
+pub async fn collection_delete(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     collection_id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     sqlx::query("DELETE FROM recipe_collections WHERE id=?")
         .bind(&collection_id)
@@ -826,7 +846,9 @@ pub async fn collection_delete(
 // ═══ PANTRY ═══════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn pantry_list(state: State<'_, BentoAppState>) -> Result<Vec<PantryItemRow>, String> {
+pub async fn pantry_list(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<Vec<PantryItemRow>, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     use sqlx::Row;
     let rows = sqlx::query(
@@ -847,13 +869,15 @@ pub async fn pantry_list(state: State<'_, BentoAppState>) -> Result<Vec<PantryIt
 }
 
 #[tauri::command]
-pub async fn pantry_upsert(
+pub async fn pantry_upsert(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     name: String,
     category: String,
     in_stock: bool,
     low_stock: bool,
 ) -> Result<PantryItemRow, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     let now = time::now_ms();
     use sqlx::Row;
@@ -898,10 +922,12 @@ pub async fn pantry_upsert(
 }
 
 #[tauri::command]
-pub async fn pantry_toggle(
+pub async fn pantry_toggle(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     item_id: String,
 ) -> Result<PantryItemRow, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     use sqlx::Row;
     let row = sqlx::query("SELECT * FROM pantry_items WHERE id=?")
@@ -932,9 +958,11 @@ pub async fn pantry_toggle(
 // ═══ SHOPPING LIST ════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn shopping_list(
+pub async fn shopping_list(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<ShoppingItemRow>, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     use sqlx::Row;
     let rows = sqlx::query(
@@ -959,13 +987,15 @@ pub async fn shopping_list(
 }
 
 #[tauri::command]
-pub async fn shopping_add(
+pub async fn shopping_add(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     name: String,
     amount: String,
     category: String,
     from_recipe: String,
 ) -> Result<ShoppingItemRow, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     let id = Uuid::new_v4().to_string();
     let now = time::now_ms();
@@ -987,10 +1017,12 @@ pub async fn shopping_add(
 }
 
 #[tauri::command]
-pub async fn shopping_toggle(
+pub async fn shopping_toggle(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     item_id: String,
 ) -> Result<bool, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     use sqlx::Row;
     let row = sqlx::query("SELECT checked FROM shopping_items WHERE id=?")
@@ -1010,10 +1042,12 @@ pub async fn shopping_toggle(
 }
 
 #[tauri::command]
-pub async fn shopping_delete(
+pub async fn shopping_delete(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     item_id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     sqlx::query("DELETE FROM shopping_items WHERE id=?")
         .bind(&item_id)
@@ -1024,7 +1058,9 @@ pub async fn shopping_delete(
 }
 
 #[tauri::command]
-pub async fn shopping_clear_checked(state: State<'_, BentoAppState>) -> Result<(), String> {
+pub async fn shopping_clear_checked(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     sqlx::query("DELETE FROM shopping_items WHERE checked=1")
         .execute(&state.db())
@@ -1034,10 +1070,12 @@ pub async fn shopping_clear_checked(state: State<'_, BentoAppState>) -> Result<(
 }
 
 #[tauri::command]
-pub async fn shopping_add_from_recipe(
+pub async fn shopping_add_from_recipe(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     recipe_id: String,
 ) -> Result<Vec<ShoppingItemRow>, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     use sqlx::Row;
     let title_row = sqlx::query("SELECT title FROM recipes WHERE id=?")
@@ -1080,7 +1118,9 @@ pub async fn shopping_add_from_recipe(
 // ═══ MEAL PLAN ════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn meal_plan_get(state: State<'_, BentoAppState>) -> Result<Vec<MealPlanRow>, String> {
+pub async fn meal_plan_get(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<Vec<MealPlanRow>, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     let week = current_week_key();
     use sqlx::Row;
@@ -1106,13 +1146,15 @@ pub async fn meal_plan_get(state: State<'_, BentoAppState>) -> Result<Vec<MealPl
 }
 
 #[tauri::command]
-pub async fn meal_plan_set(
+pub async fn meal_plan_set(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     day_index: i64,
     meal_type: String,
     recipe_id: Option<String>,
     recipe_label: String,
 ) -> Result<MealPlanRow, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     let week = current_week_key();
     let id = Uuid::new_v4().to_string();
@@ -1142,11 +1184,13 @@ pub async fn meal_plan_set(
 }
 
 #[tauri::command]
-pub async fn meal_plan_clear_slot(
+pub async fn meal_plan_clear_slot(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     day_index: i64,
     meal_type: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     let week = current_week_key();
     sqlx::query("DELETE FROM meal_plan WHERE day_index=? AND meal_type=? AND week_key=?")
@@ -1162,7 +1206,9 @@ pub async fn meal_plan_clear_slot(
 // ═══ DIET PROFILE ══════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn diet_profile_get(state: State<'_, BentoAppState>) -> Result<DietProfileRow, String> {
+pub async fn diet_profile_get(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<DietProfileRow, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     use sqlx::Row;
     let row = sqlx::query("SELECT diets_json,allergens_json,unit FROM diet_profile LIMIT 1")
@@ -1185,12 +1231,14 @@ pub async fn diet_profile_get(state: State<'_, BentoAppState>) -> Result<DietPro
 }
 
 #[tauri::command]
-pub async fn diet_profile_save(
+pub async fn diet_profile_save(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     diets: Vec<String>,
     allergens: Vec<String>,
     unit: String,
 ) -> Result<DietProfileRow, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     let now = time::now_ms();
     sqlx::query(
@@ -1220,9 +1268,11 @@ pub async fn diet_profile_save(
 // ═══ COOK HISTORY ═════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn cook_history_list(
+pub async fn cook_history_list(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<CookHistoryRow>, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     use sqlx::Row;
     let rows = sqlx::query(
@@ -1245,11 +1295,13 @@ pub async fn cook_history_list(
 }
 
 #[tauri::command]
-pub async fn cook_history_add(
+pub async fn cook_history_add(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     recipe_id: String,
     recipe_title: String,
 ) -> Result<CookHistoryRow, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     let id = Uuid::new_v4().to_string();
     let now = time::now_ms();
@@ -1281,7 +1333,9 @@ pub async fn cook_history_add(
 // ═══ SEED (first-run mock data) ═══════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn recipes_seed_if_empty(state: State<'_, BentoAppState>) -> Result<bool, String> {
+pub async fn recipes_seed_if_empty(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<bool, String> {
+    crate::auth::require_billing_tier(&auth, "recipes").await?;
+
     ensure_recipes_tables(&state.db()).await?;
     use sqlx::Row;
     let row = sqlx::query("SELECT COUNT(*) as c FROM recipes")

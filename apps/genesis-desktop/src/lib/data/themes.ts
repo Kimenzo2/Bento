@@ -1,4 +1,6 @@
-export type ThemeMode = "light" | "dark";
+export type ThemeMode = "light" | "dark" | "system";
+export type ResolvedThemeMode = "light" | "dark";
+type ThemeModeMap = Record<ResolvedThemeMode, ThemeTokens>;
 
 export type ThemeTokens = {
   "--background": string;
@@ -28,7 +30,7 @@ export type DesktopTheme = {
   name: string;
   description: string;
   preview: [string, string, string];
-  modes: Record<ThemeMode, ThemeTokens>;
+  modes: ThemeModeMap;
 };
 
 export type ThemeId = "bento" | "aurora" | "ocean" | "forest" | "nebula" | "sunset" | "midnight";
@@ -355,6 +357,12 @@ export function resolveThemeById(themeId: string) {
   );
 }
 
+export function resolveThemeMode(mode: ThemeMode): ResolvedThemeMode {
+  if (mode !== "system") return mode;
+  if (typeof window === "undefined") return "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 export function getThemeTokensFor(themeId: string, mode: ThemeMode) {
-  return resolveThemeById(themeId).modes[mode];
+  return resolveThemeById(themeId).modes[resolveThemeMode(mode)];
 }

@@ -14,6 +14,8 @@
   import { getModuleCatalogEntry, hiddenModuleIds, moduleCatalog } from "$lib/data/module-catalog";
   import { desktopSettings, updateDesktopSettings } from "$lib/desktop/settings";
   import { activeModule } from "$lib/desktop/modules";
+  import { billingProfile } from "$lib/stores/billing.store";
+  import { isModuleVisibleByPlan } from "$lib/desktop/billing-access";
   import { tooltip } from "$lib/components/Tooltip.svelte";
 
   // ── Reactive state from store ───────────────────────────────────────
@@ -49,7 +51,12 @@
   const openModuleIds = $derived(new Set(tabs.map((t) => t.moduleId)));
 
   const availableModules = $derived(
-    moduleCatalog.filter((m) => m.id !== "dashboard" && !openModuleIds.has(m.id) && !hiddenModuleIds.has(m.id)),
+    moduleCatalog.filter((m) =>
+      m.id !== "dashboard"
+      && !openModuleIds.has(m.id)
+      && !hiddenModuleIds.has(m.id)
+      && isModuleVisibleByPlan($billingProfile?.activePlanCode, m.id, $billingProfile?.hasActiveSubscription ?? false)
+    ),
   );
 
   // ── Marker & Background Positioning (Anytype's exact logic) ─────────

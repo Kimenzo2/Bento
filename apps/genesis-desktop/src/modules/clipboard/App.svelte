@@ -10,7 +10,9 @@
     Card, CardContent, CardDescription, CardHeader, CardTitle,
   } from "$lib/components/ui/card/index.js";
   import { ensureModuleSection, getModuleSectionLabel, setModuleSection, moduleSectionStore } from "$lib/stores/module-sections.store";
-import { time } from "$lib/utils/time";
+  import { time } from "$lib/utils/time";
+  import { trackEvent } from "$lib/ipc";
+  import { openExternal } from "$lib/desktop/open-external";
   import SearchIcon        from "@lucide/svelte/icons/search";
   import PinIcon           from "@lucide/svelte/icons/pin";
   import PinOffIcon        from "@lucide/svelte/icons/pin-off";
@@ -182,10 +184,16 @@ import { time } from "$lib/utils/time";
     return content.length > 120 ? content.slice(0, 117) + "…" : content;
   }
 
-  function openUrl(content: string) {
+  async function openUrl(entry: ClipEntry) {
     try {
-      const url = new URL(content.trim());
-      window.open(url.href, "_blank");
+      const url = new URL(entry.content.trim());
+      trackEvent("bookmark", "open", {
+        id: entry.id.slice(0, 8),
+        platform: entry.platform,
+        hasOgImage: !!entry.ogImage,
+        hostname: url.hostname,
+      });
+      await openExternal(url.href);
     } catch {}
   }
 
@@ -309,6 +317,14 @@ import { time } from "$lib/utils/time";
 
   async function deleteClip(id: string) {
     const deleted = clips.find(c => c.id === id);
+    if (deleted?.kind === "bookmark") {
+      trackEvent("bookmark", "delete", {
+        id: deleted.id.slice(0, 8),
+        platform: deleted.platform,
+        hadOgImage: !!deleted.ogImage,
+        ageMs: Date.now() - deleted.timestamp,
+      });
+    }
     clips = clips.filter(c => c.id !== id);
     if (activeId === id) activeId = clips[0]?.id ?? null;
     if (deleted?.kind === "image" && deleted.contentHash) {
@@ -338,6 +354,80 @@ import { time } from "$lib/utils/time";
     }, 10_000);
   }
 
+  // ── Bookmark state ────────────────────────────────────────────────
+  let bookmarkUrl = $state("");
+  let bookmarkSaving = $state(false);
+  let bookmarkSaved = $state(false);
+  let bookmarkError = $state<string | null>(null);
+  let bookmarkSaveTimer: ReturnType<typeof setTimeout> | null = null;
+  let bookmarkCopyId = $state<string | null>(null);
+  let bookmarkCopyTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const detectedPlatform = $derived.by((): string | undefined => {
+    const trimmed = bookmarkUrl.trim();
+    if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) return;
+    try {
+      const url = new URL(trimmed);
+      const host = url.hostname.replace(/^www\./, "").toLowerCase();
+      const map: Record<string, string> = {
+        "x.com": "x", "twitter.com": "x",
+        "youtube.com": "youtube", "youtu.be": "youtube",
+        "reddit.com": "reddit", "threads.net": "threads",
+        "instagram.com": "instagram", "tiktok.com": "tiktok",
+        "cosmos.so": "cosmos", "are.na": "arena",
+        "linkedin.com": "linkedin", "github.com": "github",
+      };
+      return map[host];
+    } catch {
+      return;
+    }
+  });
+
+  async function saveBookmark() {
+    const url = bookmarkUrl.trim();
+    if (!url) return;
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      bookmarkError = "Please enter a valid URL starting with http:// or https://";
+      return;
+    }
+    bookmarkSaving = true;
+    bookmarkError = null;
+    trackEvent("bookmark", "manual-save", {
+      platform: detectedPlatform,
+      urlLength: url.length,
+    });
+    try {
+      await invoke("clipboard_save", { content: url, source: null });
+      bookmarkSaved = true;
+      bookmarkUrl = "";
+      if (bookmarkSaveTimer) clearTimeout(bookmarkSaveTimer);
+      bookmarkSaveTimer = setTimeout(() => { bookmarkSaved = false; }, 2000);
+    } catch (err) {
+      bookmarkError = String(err);
+      trackEvent("bookmark", "manual-save-error", { error: String(err).slice(0, 100) });
+    } finally {
+      bookmarkSaving = false;
+    }
+  }
+
+  function copyBookmarkUrl(clip: ClipEntry) {
+    const url = clip.content.trim();
+    navigator.clipboard.writeText(url).catch(() => {});
+    bookmarkCopyId = clip.id;
+    if (bookmarkCopyTimer) clearTimeout(bookmarkCopyTimer);
+    bookmarkCopyTimer = setTimeout(() => {
+      if (bookmarkCopyId === clip.id) bookmarkCopyId = null;
+    }, 1400);
+  }
+
+  function onBookmarkInputKeydown(e: KeyboardEvent) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      void saveBookmark();
+    }
+    if (bookmarkError) bookmarkError = null;
+  }
+
   let pendingEntries: ClipEntry[] = [];
   let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -345,10 +435,19 @@ import { time } from "$lib/utils/time";
     const batch = pendingEntries;
     pendingEntries = [];
     const newImages: ClipEntry[] = [];
+    let bookmarkCount = 0;
     for (const entry of batch) {
       if (clips.find(c => c.contentHash === entry.contentHash)) continue;
+      if (entry.kind === "bookmark") bookmarkCount++;
       clips = [entry, ...clips];
       if (entry.kind === "image") newImages.push(entry);
+    }
+    if (bookmarkCount > 0) {
+      trackEvent("bookmark", "flush-pending", {
+        bookmarkCount,
+        totalBatch: batch.length,
+        totalClips: clips.length,
+      });
     }
     if (newImages.length > 0) void preloadImagePaths(newImages);
     if (!activeId && clips.length > 0) activeId = clips[0].id;
@@ -358,17 +457,53 @@ import { time } from "$lib/utils/time";
     try {
       unlisten = await listen<ClipEntry>("clipboard://new-entry", (event) => {
         const entry = event.payload;
-        if (clips.find(c => c.contentHash === entry.contentHash)) return;
+        const isDedup = clips.find(c => c.contentHash === entry.contentHash);
+        if (isDedup) return;
+        if (entry.kind === "bookmark") {
+          trackEvent("bookmark", "new-entry", {
+            id: entry.id.slice(0, 8),
+            platform: entry.platform,
+            enrichmentStatus: entry.enrichmentStatus,
+            hasOgImage: !!entry.ogImage,
+            pendingCount: pendingEntries.length,
+          });
+        }
         pendingEntries.push(entry);
         if (flushTimer) clearTimeout(flushTimer);
         flushTimer = setTimeout(flushPending, 200);
       });
-      // Listen for enrichment completion to update bookmark cards in-place
-      const unlistenEnrich = await listen<ClipEntry>("clipboard://enrichment-complete", (event) => {
+      // Listen for enrichment completion to update bookmark cards in-place.
+      // IMPORTANT: Only merge enrichment-specific fields, NOT the entire
+      // payload — the event only carries { id, ogTitle, ogImage, ... } without
+      // content, kind, timestamp etc. A naive { ...clips[idx], ...enriched }
+      // spread would overwrite those required fields with undefined.
+      const unlistenEnrich = await listen<any>("clipboard://enrichment-complete", (event) => {
         const enriched = event.payload;
         const idx = clips.findIndex(c => c.id === enriched.id);
         if (idx !== -1) {
-          clips[idx] = { ...clips[idx], ...enriched };
+          const prev = clips[idx];
+          trackEvent("bookmark", "enrichment-complete", {
+            id: enriched.id.slice(0, 8),
+            platform: enriched.platform ?? prev.platform,
+            hadOgImage: !!prev.ogImage,
+            gotOgImage: !!enriched.ogImage,
+            ogTitle: enriched.ogTitle?.slice(0, 60),
+          });
+          clips[idx] = {
+            ...clips[idx],
+            ogTitle: enriched.ogTitle ?? clips[idx].ogTitle,
+            ogDescription: enriched.ogDescription ?? clips[idx].ogDescription,
+            ogImage: enriched.ogImage ?? clips[idx].ogImage,
+            ogSiteName: enriched.ogSiteName ?? clips[idx].ogSiteName,
+            platform: enriched.platform ?? clips[idx].platform,
+            savedTimestampSeconds: enriched.savedTimestampSeconds ?? clips[idx].savedTimestampSeconds,
+            enrichmentStatus: "completed",
+          };
+        } else {
+          trackEvent("bookmark", "enrichment-orphan", {
+            id: enriched.id.slice(0, 8),
+            notFoundIn: clips.length,
+          });
         }
       });
       // Chain cleanup
@@ -436,6 +571,8 @@ import { time } from "$lib/utils/time";
 
   onDestroy(() => {
     if (flushTimer) clearTimeout(flushTimer);
+    if (bookmarkSaveTimer) clearTimeout(bookmarkSaveTimer);
+    if (bookmarkCopyTimer) clearTimeout(bookmarkCopyTimer);
     unlisten?.();
     window.removeEventListener("keydown", handleKeydown);
     document.body.style.overflow = "";
@@ -731,6 +868,44 @@ import { time } from "$lib/utils/time";
         {/if}
 
       {:else if selectedSection === "Bookmarks"}
+        <!-- ─── BOOKMARK INPUT BAR ─── -->
+        <div class="cb-bookmark-input">
+          <div class="cb-bookmark-input__field">
+            <Link2Icon size={16} class="cb-bookmark-input__icon" />
+            <input
+              type="url"
+              placeholder="Paste a URL to bookmark…"
+              bind:value={bookmarkUrl}
+              onkeydown={onBookmarkInputKeydown}
+              aria-label="Bookmark URL"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            {#if detectedPlatform}
+              <div class="cb-bookmark-input__badge cb-bookmark-input__badge--visible" data-platform={detectedPlatform}>
+                {platformLabel(detectedPlatform)}
+              </div>
+            {/if}
+          </div>
+          <button
+            class="cb-bookmark-input__save"
+            class:cb-bookmark-input__save--saved={bookmarkSaved}
+            onclick={() => void saveBookmark()}
+            disabled={bookmarkSaving || !bookmarkUrl.trim()}
+          >
+            {#if bookmarkSaved}
+              <CheckIcon size={14} /> Saved
+            {:else if bookmarkSaving}
+              Saving…
+            {:else}
+              <BookmarkIcon size={14} /> Save
+            {/if}
+          </button>
+        </div>
+        {#if bookmarkError}
+          <div class="cb-bookmark-input__error">{bookmarkError}</div>
+        {/if}
+
         <!-- ─── BOOKMARKS (Pinterest masonry) ─── -->
         {#if filtered.length > 0}
           <div class="cb-bookmark-grid" onscroll={onListScroll}>
@@ -738,18 +913,19 @@ import { time } from "$lib/utils/time";
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div
                 class="cb-pin-card"
-                onclick={() => openUrl(clip.content)}
+                onclick={() => void openUrl(clip)}
                 role="button"
                 tabindex="0"
-                onkeydown={(e) => { if (e.key === 'Enter') openUrl(clip.content); }}
+                onkeydown={(e) => { if (e.key === 'Enter') openUrl(clip); }}
               >
                 <div class="cb-pin-card__image-wrapper" style="background:{platformColor(clip.platform)}">
                   {#if clip.ogImage}
                     <img
-                      src={clip.ogImage}                        alt={bookmarkAlt(clip)}
+                      src={clip.ogImage}
+                      alt={bookmarkAlt(clip)}
                       loading="lazy"
                       draggable="false"
-                      onerror={(e) => { e.currentTarget.style.display = 'none'; }}
+                      onerror={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
                     />
                   {:else}
                     <div class="cb-pin-card__img-placeholder">
@@ -764,8 +940,22 @@ import { time } from "$lib/utils/time";
                   {/if}
                   <!-- Hover actions -->
                   <div class="cb-pin-card__actions">
+                    {#if bookmarkCopyId === clip.id}
+                      <button class="cb-pin-card__action cb-pin-card__action--confirm" disabled aria-label="Copied" title="Copied">
+                        <CheckIcon size={12} />
+                      </button>
+                    {:else}
+                      <button
+                        class="cb-pin-card__action"
+                        onclick={(e) => { e.stopPropagation(); void copyBookmarkUrl(clip); }}
+                        aria-label="Copy URL"
+                        title="Copy URL"
+                      >
+                        <CopyIcon size={12} />
+                      </button>
+                    {/if}
                     <button
-                      class="cb-pin-card__action"
+                      class="cb-pin-card__action cb-pin-card__action--danger"
                       onclick={(e) => { e.stopPropagation(); void deleteClip(clip.id); }}
                       aria-label="Delete bookmark"
                       title="Delete"
@@ -802,7 +992,7 @@ import { time } from "$lib/utils/time";
           <div class="cb-bookmark-empty">
             <BookmarkIcon size={32} />
             <p>No bookmarks yet</p>
-            <span>Copy a link from X, YouTube, Reddit, or any supported platform and it will appear here automatically as a rich bookmark card with preview thumbnail.</span>
+            <span>Paste a URL above or copy a link from X, YouTube, Reddit, or any supported platform and it will appear here automatically as a rich bookmark card with preview thumbnail.</span>
           </div>
         {/if}
 

@@ -165,10 +165,12 @@ pub struct SleepAlarmInput {
 
 /// Returns the last N days of sleep sessions ordered by date desc.
 #[tauri::command]
-pub async fn get_sleep_sessions(
+pub async fn get_sleep_sessions(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     days: Option<i32>,
 ) -> Result<Vec<SleepSession>, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
     let n = days.unwrap_or(7).max(1).min(365);
 
@@ -186,9 +188,11 @@ pub async fn get_sleep_sessions(
 
 /// Returns the most recent completed session (last night).
 #[tauri::command]
-pub async fn get_last_night(
+pub async fn get_last_night(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Option<SleepSession>, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
 
     let row = sqlx::query(
@@ -204,19 +208,23 @@ pub async fn get_last_night(
 
 /// Get the current sleep goal (returns default if none exists — never fails).
 #[tauri::command]
-pub async fn get_sleep_goal(state: State<'_, BentoAppState>) -> Result<SleepGoal, String> {
+pub async fn get_sleep_goal(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<SleepGoal, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
     Ok(get_sleep_goal_inner(&state.db()).await)
 }
 
 /// Update the sleep goal.
 #[tauri::command]
-pub async fn update_sleep_goal(
+pub async fn update_sleep_goal(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     bedtime: String,
     waketime: String,
     duration: i32,
 ) -> Result<SleepGoal, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
     let now = time::now_ms();
     let clamped_dur = duration.clamp(360, 600); // 6h-10h
@@ -248,10 +256,12 @@ pub async fn update_sleep_goal(
 
 /// Add a manual sleep session (for days when user wants to log manually).
 #[tauri::command]
-pub async fn add_manual_sleep_session(
+pub async fn add_manual_sleep_session(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     input: ManualSessionInput,
 ) -> Result<SleepSession, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
 
     let id = Uuid::new_v4().to_string();
@@ -315,10 +325,12 @@ pub async fn add_manual_sleep_session(
 
 /// Delete a sleep session by id.
 #[tauri::command]
-pub async fn delete_sleep_session(
+pub async fn delete_sleep_session(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<bool, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
 
     let result = sqlx::query("DELETE FROM sleep_sessions WHERE id = ?")
@@ -332,11 +344,13 @@ pub async fn delete_sleep_session(
 
 /// Confirm or discard a pending session (morning confirmation).
 #[tauri::command]
-pub async fn confirm_sleep_session(
+pub async fn confirm_sleep_session(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     id: String,
     accept: bool,
 ) -> Result<bool, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
 
     if accept {
@@ -358,10 +372,12 @@ pub async fn confirm_sleep_session(
 
 /// Get comprehensive sleep stats for a period.
 #[tauri::command]
-pub async fn get_sleep_stats(
+pub async fn get_sleep_stats(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     days: Option<i32>,
 ) -> Result<SleepStats, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
     let n = days.unwrap_or(30).max(1).min(365);
 
@@ -746,19 +762,23 @@ fn today_key() -> String {
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn sleep_log_save(
+pub async fn sleep_log_save(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     entry: SleepLogEntry,
 ) -> Result<SleepLogRow, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     inner_sleep_log_save(state, entry, &today_key()).await
 }
 
 #[tauri::command]
-pub async fn sleep_log_save_for_date(
+pub async fn sleep_log_save_for_date(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     date_key: String,
     entry: SleepLogEntry,
 ) -> Result<SleepLogRow, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     inner_sleep_log_save(state, entry, &date_key).await
 }
 
@@ -806,40 +826,50 @@ async fn inner_sleep_log_save(
 }
 
 #[tauri::command]
-pub async fn sleep_log_today(
+pub async fn sleep_log_today(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Option<SleepLogRow>, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
     legacy_row_from_date(&state.db(), &today_key()).await
 }
 
 #[tauri::command]
-pub async fn sleep_log_get(
+pub async fn sleep_log_get(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     date_key: String,
 ) -> Result<Option<SleepLogRow>, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
     legacy_row_from_date(&state.db(), &date_key).await
 }
 
 #[tauri::command]
-pub async fn sleep_logs_week(state: State<'_, BentoAppState>) -> Result<Vec<SleepLogRow>, String> {
+pub async fn sleep_logs_week(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<Vec<SleepLogRow>, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
     legacy_logs_since(&state.db(), 7).await
 }
 
 #[tauri::command]
-pub async fn sleep_logs_recent(
+pub async fn sleep_logs_recent(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     days: Option<i32>,
 ) -> Result<Vec<SleepLogRow>, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
     let n = days.unwrap_or(5).max(1).min(365);
     legacy_logs_since(&state.db(), n).await
 }
 
 #[tauri::command]
-pub async fn sleep_log_delete(state: State<'_, BentoAppState>, id: String) -> Result<(), String> {
+pub async fn sleep_log_delete(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>, id: String) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
     sqlx::query("DELETE FROM sleep_logs WHERE id = ?")
         .bind(&id)
@@ -850,9 +880,11 @@ pub async fn sleep_log_delete(state: State<'_, BentoAppState>, id: String) -> Re
 }
 
 #[tauri::command]
-pub async fn sleep_routine_list(
+pub async fn sleep_routine_list(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<SleepRoutine>, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
     let rows = sqlx::query(
         "SELECT id, title, sort_order, created_at FROM sleep_routines ORDER BY sort_order ASC",
@@ -872,10 +904,12 @@ pub async fn sleep_routine_list(
 }
 
 #[tauri::command]
-pub async fn sleep_routine_save(
+pub async fn sleep_routine_save(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     input: SleepRoutineInput,
 ) -> Result<SleepRoutine, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
     if input.title.trim().is_empty() {
         return Err("Routine title is required.".into());
@@ -906,10 +940,12 @@ pub async fn sleep_routine_save(
 }
 
 #[tauri::command]
-pub async fn sleep_routine_delete(
+pub async fn sleep_routine_delete(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     ids: Vec<String>,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
     for id in &ids {
         sqlx::query("DELETE FROM sleep_routines WHERE id = ?")
@@ -922,10 +958,12 @@ pub async fn sleep_routine_delete(
 }
 
 #[tauri::command]
-pub async fn sleep_routine_reorder(
+pub async fn sleep_routine_reorder(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     ids: Vec<String>,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
     for (i, id) in ids.iter().enumerate() {
         sqlx::query("UPDATE sleep_routines SET sort_order = ? WHERE id = ?")
@@ -939,10 +977,12 @@ pub async fn sleep_routine_reorder(
 }
 
 #[tauri::command]
-pub async fn sleep_routine_status(
+pub async fn sleep_routine_status(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     date_key: Option<String>,
 ) -> Result<Vec<RoutineTracking>, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
     let date = date_key.unwrap_or_else(today_key);
     let rows = sqlx::query(
@@ -963,11 +1003,13 @@ pub async fn sleep_routine_status(
 }
 
 #[tauri::command]
-pub async fn sleep_routine_toggle(
+pub async fn sleep_routine_toggle(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     routine_id: String,
     date_key: Option<String>,
 ) -> Result<bool, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
     let date = date_key.unwrap_or_else(today_key);
     let now = time::now_ms();
@@ -996,7 +1038,9 @@ pub async fn sleep_routine_toggle(
 }
 
 #[tauri::command]
-pub async fn sleep_alarm_list(state: State<'_, BentoAppState>) -> Result<Vec<SleepAlarm>, String> {
+pub async fn sleep_alarm_list(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<Vec<SleepAlarm>, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
     let rows = sqlx::query("SELECT id, label, time, wake_window, mode, sound, active, created_at FROM sleep_alarms ORDER BY time ASC")
         .fetch_all(&state.db()).await.map_err(|e| e.to_string())?;
@@ -1016,10 +1060,12 @@ pub async fn sleep_alarm_list(state: State<'_, BentoAppState>) -> Result<Vec<Sle
 }
 
 #[tauri::command]
-pub async fn sleep_alarm_save(
+pub async fn sleep_alarm_save(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     alarm: SleepAlarmInput,
 ) -> Result<SleepAlarm, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
     // Ensure the scheduler table exists too (we write to it below)
     crate::scheduler::ensure_scheduler_tables(&state.db()).await?;
@@ -1091,10 +1137,12 @@ pub async fn sleep_alarm_save(
 }
 
 #[tauri::command]
-pub async fn sleep_alarm_delete(
+pub async fn sleep_alarm_delete(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     alarm_id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
     sqlx::query("DELETE FROM sleep_alarms WHERE id = ?")
         .bind(&alarm_id)
@@ -1110,10 +1158,12 @@ pub async fn sleep_alarm_delete(
 }
 
 #[tauri::command]
-pub async fn sleep_alarm_toggle(
+pub async fn sleep_alarm_toggle(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     alarm_id: String,
 ) -> Result<bool, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
     ensure_sleep_tables(&state.db()).await?;
     let current: i64 = sqlx::query_scalar("SELECT active FROM sleep_alarms WHERE id = ?")
         .bind(&alarm_id)

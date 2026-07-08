@@ -347,59 +347,14 @@ pub async fn set_active_module(
         return Err(format!("Module is not installed: {module_id}"));
     }
 
-    let billing_profile = auth.get_billing_profile().await.ok();
-    let active_plan_rank = billing_profile
-        .as_ref()
-        .map(|profile| billing_rank_from_code(profile.billing_tier.as_str()))
-        .unwrap_or(0);
-    let has_active_subscription = billing_profile
-        .as_ref()
-        .map(|profile| profile.has_active_subscription)
-        .unwrap_or(false);
-
-    if !module_is_allowed_by_rank(&module_id, active_plan_rank, has_active_subscription) {
-        return Err(format!("Upgrade required to open {module_id}."));
-    }
+    // Centralized billing tier check
+    crate::auth::require_billing_tier(&auth, &module_id).await?;
 
     write_runtime_state(&state.db(), "last_active_module", &module_id).await?;
     state.set_active_module(module_id.clone());
     cache.invalidate();
     let _ = emit_main_window_event(&app, "bento://dashboard-refresh", module_id.clone());
     Ok(module_id)
-}
-
-fn billing_rank_from_code(value: &str) -> u8 {
-    match value.trim().to_lowercase().as_str() {
-        "core" => 1,
-        "pro" => 2,
-        "power" => 3,
-        _ => 0,
-    }
-}
-
-fn module_is_allowed_by_rank(
-    module_id: &str,
-    active_plan_rank: u8,
-    has_active_subscription: bool,
-) -> bool {
-    if matches!(module_id, "dashboard" | "settings") {
-        return true;
-    }
-
-    if !has_active_subscription {
-        return false;
-    }
-
-    let required_rank = match module_id {
-        "notes" | "journal" | "tasks" | "passwords" | "budget" => 1,
-        "ai" => 2,
-        "telemetry" | "habits" | "focus" | "health" | "sleep" | "nutrition" | "mood"
-        | "flashcards" | "reading" | "grocery" | "recipes" | "time" | "goals" | "clipboard"
-        | "breathing" | "voice-memos" | "countdown" => 2,
-        _ => 2,
-    };
-
-    active_plan_rank >= required_rank
 }
 
 #[tauri::command]

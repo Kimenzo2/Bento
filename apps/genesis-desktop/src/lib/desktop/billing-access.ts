@@ -1,16 +1,14 @@
-export type DesktopPlanCode = "free" | "creator" | "studio" | "empire" | "power";
+export type DesktopPlanCode = "free" | "core" | "pro" | "power";
 
 const coreAnchorModules = new Set(["notes", "journal", "tasks", "passwords", "budget"]);
 
 export function planRankFromCode(value: string | null | undefined): number {
   switch ((value ?? "").toLowerCase()) {
-    case "creator":
+    case "core":
       return 1;
-    case "studio":
+    case "pro":
       return 2;
     case "power":
-      return 3;
-    case "empire":
       return 3;
     default:
       return 0;
@@ -43,4 +41,36 @@ export function canAccessModuleByPlan(
   }
 
   return planRankFromCode(activePlanCode) >= requiredPlanRankForModule(moduleId);
+}
+
+/**
+ * Whether a module should be VISIBLE in the app switcher / tabs / launcher.
+ *
+ * - Free plan: only dashboard + settings visible
+ * - Core plan: dashboard + settings + 5 anchor modules
+ * - Pro / Power: all modules visible
+ */
+export function isModuleVisibleByPlan(
+  activePlanCode: string | null | undefined,
+  moduleId: string,
+  hasActiveSubscription: boolean,
+): boolean {
+  if (moduleId === "dashboard" || moduleId === "settings") {
+    return true;
+  }
+
+  const rank = planRankFromCode(activePlanCode);
+
+  // Core plan (rank 1): show only the 5 anchor modules
+  if (rank === 1) {
+    return requiredPlanRankForModule(moduleId) <= 1;
+  }
+
+  // Pro (rank 2) and Power (rank 3): all modules visible
+  if (rank >= 2) {
+    return true;
+  }
+
+  // Free (rank 0): no gated modules visible
+  return false;
 }

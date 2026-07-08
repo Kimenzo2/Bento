@@ -1,9 +1,10 @@
-<script lang="ts">
-  import Grid2x2Icon from "@lucide/svelte/icons/grid-2x2";
-  import { toast } from "svelte-sonner";
-  import { activeModule, switchModule, type BentoModuleId } from "$lib/desktop/modules";
-  import { beginAppLaunch, signalAppLaunchError } from "$lib/stores/app-launch.store";
-  import { activeBundle, createTranslator } from "$lib/i18n";
+<script lang="ts">import Grid2x2Icon from "@lucide/svelte/icons/grid-2x2";
+import { toast } from "svelte-sonner";
+import { activeModule, switchModule, type BentoModuleId } from "$lib/desktop/modules";
+import { beginAppLaunch, signalAppLaunchError } from "$lib/stores/app-launch.store";
+import { activeBundle, createTranslator } from "$lib/i18n";
+import { billingProfile } from "$lib/stores/billing.store";
+import { isModuleVisibleByPlan } from "$lib/desktop/billing-access";
 
   let _t = $derived.by(() => createTranslator($activeBundle));
 
@@ -16,6 +17,19 @@
     id: BentoModuleId;
     label: string;
   } | null;
+
+  const visibleSlots = $derived.by(() => {
+    const bp = $billingProfile;
+    return rows.map(row =>
+      row.map(slot => {
+        if (slot && !isModuleVisibleByPlan(bp?.activePlanCode, slot.id, bp?.hasActiveSubscription ?? false)) {
+          return null;
+        }
+        return slot;
+      })
+    );
+  });
+
 
   const rows: ReadonlyArray<ReadonlyArray<SwitcherSlot>> = [
     [
@@ -149,7 +163,7 @@
     }}
   >
     <div class="module-switcher-stack__rows">
-      {#each rows as row, rowIndex}
+      {#each visibleSlots as row, rowIndex}
         <div class="module-switcher-stack__row" style={rowStyle(rowIndex)}>
           {#each row as slot}
             {#if slot}

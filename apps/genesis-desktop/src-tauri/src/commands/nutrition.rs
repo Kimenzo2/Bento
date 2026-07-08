@@ -201,10 +201,12 @@ pub struct SaveReminderParams {
 /// Log a water intake entry.
 /// Negative amount_ml = remove water (up to 0 floor enforced on query side).
 #[tauri::command]
-pub async fn nutrition_log_water(
+pub async fn nutrition_log_water(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     params: LogWaterParams,
 ) -> Result<WaterEntry, String> {
+    crate::auth::require_billing_tier(&auth, "nutrition").await?;
+
     if params.amount_ml == 0 {
         return Err("amount_ml must be non-zero".to_string());
     }
@@ -229,9 +231,11 @@ pub async fn nutrition_log_water(
 
 /// Get today's hydration: total, goal, percentage, and individual entries.
 #[tauri::command]
-pub async fn nutrition_get_today_water(
+pub async fn nutrition_get_today_water(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<TodayWater, String> {
+    crate::auth::require_billing_tier(&auth, "nutrition").await?;
+
     let db = state.db();
     let start = today_start_ms();
     let end = today_end_ms();
@@ -271,7 +275,9 @@ pub async fn nutrition_get_today_water(
 
 /// Delete all of today's water logs (reset button).
 #[tauri::command]
-pub async fn nutrition_reset_water(state: State<'_, BentoAppState>) -> Result<(), String> {
+pub async fn nutrition_reset_water(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "nutrition").await?;
+
     let db = state.db();
     sqlx::query("DELETE FROM water_logs WHERE logged_at >= ? AND logged_at <= ?")
         .bind(today_start_ms())
@@ -284,9 +290,11 @@ pub async fn nutrition_reset_water(state: State<'_, BentoAppState>) -> Result<()
 
 /// Get water totals for the past 7 days (for the Water section chart).
 #[tauri::command]
-pub async fn nutrition_get_weekly_water(
+pub async fn nutrition_get_weekly_water(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<WeeklyWaterDay>, String> {
+    crate::auth::require_billing_tier(&auth, "nutrition").await?;
+
     let db = state.db();
     let goals = fetch_goals(&db).await?;
     let week_start = today_start_ms() - 6 * 86_400_000;
@@ -343,10 +351,12 @@ pub async fn nutrition_get_weekly_water(
 
 /// Log a meal (with optional food items).
 #[tauri::command]
-pub async fn nutrition_log_meal(
+pub async fn nutrition_log_meal(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     params: LogMealParams,
 ) -> Result<MealEntry, String> {
+    crate::auth::require_billing_tier(&auth, "nutrition").await?;
+
     let db = state.db();
     let id = Uuid::new_v4().to_string();
     let now = now_ms();
@@ -422,19 +432,23 @@ pub async fn nutrition_log_meal(
 
 /// Get all meals logged today with their food items.
 #[tauri::command]
-pub async fn nutrition_get_today_meals(
+pub async fn nutrition_get_today_meals(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<MealEntry>, String> {
+    crate::auth::require_billing_tier(&auth, "nutrition").await?;
+
     let db = state.db();
     fetch_meals_for_range(&db, today_start_ms(), today_end_ms()).await
 }
 
 /// Get meals for a specific ISO date (YYYY-MM-DD).
 #[tauri::command]
-pub async fn nutrition_get_meals_for_date(
+pub async fn nutrition_get_meals_for_date(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     date: String,
 ) -> Result<Vec<MealEntry>, String> {
+    crate::auth::require_billing_tier(&auth, "nutrition").await?;
+
     let db = state.db();
     // Parse the date and compute start/end in ms
     let dt = chrono::NaiveDate::parse_from_str(&date, "%Y-%m-%d").map_err(|e| e.to_string())?;
@@ -514,10 +528,12 @@ async fn fetch_foods_for_meal(
 
 /// Delete a meal and all its food items.
 #[tauri::command]
-pub async fn nutrition_delete_meal(
+pub async fn nutrition_delete_meal(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "nutrition").await?;
+
     let db = state.db();
     sqlx::query("DELETE FROM meals WHERE id = ?")
         .bind(&id)
@@ -529,11 +545,13 @@ pub async fn nutrition_delete_meal(
 
 /// Add a food item to an existing meal (and update meal total_kcal).
 #[tauri::command]
-pub async fn nutrition_add_food_to_meal(
+pub async fn nutrition_add_food_to_meal(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     meal_id: String,
     food: LogFoodParams,
 ) -> Result<FoodItem, String> {
+    crate::auth::require_billing_tier(&auth, "nutrition").await?;
+
     let db = state.db();
     let id = Uuid::new_v4().to_string();
     let now = now_ms();
@@ -601,18 +619,22 @@ async fn fetch_goals(db: &sqlx::SqlitePool) -> Result<NutritionGoals, String> {
 
 /// Get the user's daily nutrition goals.
 #[tauri::command]
-pub async fn nutrition_get_goals(
+pub async fn nutrition_get_goals(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<NutritionGoals, String> {
+    crate::auth::require_billing_tier(&auth, "nutrition").await?;
+
     fetch_goals(&state.db()).await
 }
 
 /// Update any combination of daily goals.
 #[tauri::command]
-pub async fn nutrition_update_goals(
+pub async fn nutrition_update_goals(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     params: UpdateGoalsParams,
 ) -> Result<NutritionGoals, String> {
+    crate::auth::require_billing_tier(&auth, "nutrition").await?;
+
     let db = state.db();
     let now = now_ms();
     let existing = fetch_goals(&db).await?;
@@ -644,9 +666,11 @@ pub async fn nutrition_update_goals(
 
 /// Full today snapshot: water, meals, macro totals, goals, next reminder cue.
 #[tauri::command]
-pub async fn nutrition_get_today_summary(
+pub async fn nutrition_get_today_summary(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<TodaySummary, String> {
+    crate::auth::require_billing_tier(&auth, "nutrition").await?;
+
     let db = state.db();
     let goals = fetch_goals(&db).await?;
     let start = today_start_ms();
@@ -749,10 +773,12 @@ pub async fn nutrition_get_today_summary(
 
 /// Get macro totals for a specific date (or today if None).
 #[tauri::command]
-pub async fn nutrition_get_macro_totals(
+pub async fn nutrition_get_macro_totals(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     date: Option<String>,
 ) -> Result<MacroTotals, String> {
+    crate::auth::require_billing_tier(&auth, "nutrition").await?;
+
     let db = state.db();
     let (start, end) = if let Some(d) = date {
         let dt = chrono::NaiveDate::parse_from_str(&d, "%Y-%m-%d").map_err(|e| e.to_string())?;
@@ -810,9 +836,11 @@ pub async fn nutrition_get_macro_totals(
 
 /// List all nutrition reminders.
 #[tauri::command]
-pub async fn nutrition_get_reminders(
+pub async fn nutrition_get_reminders(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<NutritionReminder>, String> {
+    crate::auth::require_billing_tier(&auth, "nutrition").await?;
+
     let db = state.db();
     let rows = sqlx::query(
         "SELECT id, label, detail, mode, schedule, enabled, created_at, updated_at FROM nutrition_reminders ORDER BY created_at ASC",
@@ -836,10 +864,12 @@ pub async fn nutrition_get_reminders(
 
 /// Create or update a reminder.
 #[tauri::command]
-pub async fn nutrition_save_reminder(
+pub async fn nutrition_save_reminder(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     params: SaveReminderParams,
 ) -> Result<NutritionReminder, String> {
+    crate::auth::require_billing_tier(&auth, "nutrition").await?;
+
     let db = state.db();
     let now = now_ms();
     let id = params.id.unwrap_or_else(|| Uuid::new_v4().to_string());
@@ -877,10 +907,12 @@ pub async fn nutrition_save_reminder(
 
 /// Delete a reminder.
 #[tauri::command]
-pub async fn nutrition_delete_reminder(
+pub async fn nutrition_delete_reminder(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "nutrition").await?;
+
     sqlx::query("DELETE FROM nutrition_reminders WHERE id = ?")
         .bind(&id)
         .execute(&state.db())
@@ -891,11 +923,13 @@ pub async fn nutrition_delete_reminder(
 
 /// Toggle a reminder's enabled state.
 #[tauri::command]
-pub async fn nutrition_toggle_reminder(
+pub async fn nutrition_toggle_reminder(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     id: String,
     enabled: bool,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "nutrition").await?;
+
     sqlx::query("UPDATE nutrition_reminders SET enabled = ?, updated_at = ? WHERE id = ?")
         .bind(if enabled { 1i64 } else { 0i64 })
         .bind(now_ms())
@@ -919,9 +953,11 @@ pub struct HydrationStats {
 
 /// Hydration streak + averages for the Water section stats card.
 #[tauri::command]
-pub async fn nutrition_get_hydration_stats(
+pub async fn nutrition_get_hydration_stats(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<HydrationStats, String> {
+    crate::auth::require_billing_tier(&auth, "nutrition").await?;
+
     let db = state.db();
 
     // Daily totals for the past 30 days
@@ -1015,10 +1051,12 @@ pub struct NutritionExportRow {
 
 /// Export nutrition data as a structured array (frontend converts to CSV/PDF).
 #[tauri::command]
-pub async fn nutrition_export_data(
+pub async fn nutrition_export_data(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     days: Option<i64>,
 ) -> Result<Vec<NutritionExportRow>, String> {
+    crate::auth::require_billing_tier(&auth, "nutrition").await?;
+
     let db = state.db();
     let days = days.unwrap_or(14).max(1).min(365);
     let since = today_start_ms() - (days - 1) * 86_400_000;

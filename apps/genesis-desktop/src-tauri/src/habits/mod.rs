@@ -93,9 +93,11 @@ pub struct StreakFreezeState {
 /// List all habits with their completion history (last 90 days) and computed
 /// streak/state for today.
 #[tauri::command]
-pub async fn habits_list(
+pub async fn habits_list(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<HabitWithCompletions>, String> {
+    crate::auth::require_billing_tier(&auth, "habits").await?;
+
     ensure_habits_tables(&state.db()).await?;
 
     let habits = sqlx::query(
@@ -236,10 +238,12 @@ pub async fn habits_list(
 
 /// Save (create or update) a habit. If id is provided, update; otherwise insert.
 #[tauri::command]
-pub async fn habits_save(
+pub async fn habits_save(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     input: HabitInput,
 ) -> Result<HabitRow, String> {
+    crate::auth::require_billing_tier(&auth, "habits").await?;
+
     ensure_habits_tables(&state.db()).await?;
 
     let now = time::now_ms();
@@ -347,7 +351,9 @@ pub async fn habits_save(
 
 /// Delete a habit by id (cascades to completions).
 #[tauri::command]
-pub async fn habits_delete(state: State<'_, BentoAppState>, id: String) -> Result<bool, String> {
+pub async fn habits_delete(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>, id: String) -> Result<bool, String> {
+    crate::auth::require_billing_tier(&auth, "habits").await?;
+
     ensure_habits_tables(&state.db()).await?;
 
     let result = sqlx::query("DELETE FROM habits WHERE id = ?")
@@ -363,10 +369,12 @@ pub async fn habits_delete(state: State<'_, BentoAppState>, id: String) -> Resul
 /// If already completed for today, remove the completion (uncheck).
 /// If not completed, add a completion.
 #[tauri::command]
-pub async fn habits_toggle_complete(
+pub async fn habits_toggle_complete(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     habit_id: String,
 ) -> Result<bool, String> {
+    crate::auth::require_billing_tier(&auth, "habits").await?;
+
     ensure_habits_tables(&state.db()).await?;
 
     let today_start = time::start_of_today();
@@ -422,10 +430,12 @@ pub async fn habits_toggle_complete(
 
 /// Increment count for a count/duration habit. Returns new current_count.
 #[tauri::command]
-pub async fn habits_increment(
+pub async fn habits_increment(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     habit_id: String,
 ) -> Result<i32, String> {
+    crate::auth::require_billing_tier(&auth, "habits").await?;
+
     ensure_habits_tables(&state.db()).await?;
 
     let now = time::now_ms();
@@ -454,7 +464,9 @@ pub async fn habits_increment(
 
 /// Get basic stats for the habits dashboard widget.
 #[tauri::command]
-pub async fn habits_get_stats(state: State<'_, BentoAppState>) -> Result<HabitStats, String> {
+pub async fn habits_get_stats(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<HabitStats, String> {
+    crate::auth::require_billing_tier(&auth, "habits").await?;
+
     ensure_habits_tables(&state.db()).await?;
 
     let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM habits")
@@ -552,8 +564,10 @@ pub async fn habits_get_stats(state: State<'_, BentoAppState>) -> Result<HabitSt
 
 /// Export habits data as CSV content. Returns the CSV string.
 #[tauri::command]
-pub async fn habits_export_csv(state: State<'_, BentoAppState>) -> Result<String, String> {
-    let habits = habits_list(state).await?;
+pub async fn habits_export_csv(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<String, String> {
+    crate::auth::require_billing_tier(&auth, "habits").await?;
+
+    let habits = habits_list(auth, state).await?;
 
     let mut csv = String::from(
         "habit_id,name,emoji,frequency,streak,longest_streak,completion_rate_pct,completed_today\n",
@@ -596,7 +610,9 @@ fn csv_escape(s: &str) -> String {
 
 /// Get current freeze token state from settings.
 #[tauri::command]
-pub async fn habits_get_freeze_state(app: AppHandle) -> Result<StreakFreezeState, String> {
+pub async fn habits_get_freeze_state(auth: State<'_, crate::auth::AuthManager>, app: AppHandle) -> Result<StreakFreezeState, String> {
+    crate::auth::require_billing_tier(&auth, "habits").await?;
+
     let s = settings::current_settings(&app);
     Ok(StreakFreezeState {
         freeze_tokens: s.habits.freeze_tokens,
@@ -608,11 +624,13 @@ pub async fn habits_get_freeze_state(app: AppHandle) -> Result<StreakFreezeState
 
 /// Save freeze token state to settings.
 #[tauri::command]
-pub async fn habits_save_freeze_state(
+pub async fn habits_save_freeze_state(auth: State<'_, crate::auth::AuthManager>, 
     app: AppHandle,
     freeze_tokens: i32,
     used_freeze_tokens: i32,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "habits").await?;
+
     let tokens = freeze_tokens.max(1).min(10);
     let used = used_freeze_tokens.max(0).min(tokens);
     settings::update_desktop_settings(&app, |next| {
@@ -631,10 +649,12 @@ pub async fn habits_save_freeze_state(
 
 /// Mark a habit as skipped today (inserts sentinel).
 #[tauri::command]
-pub async fn habits_skip_today(
+pub async fn habits_skip_today(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     habit_id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "habits").await?;
+
     ensure_habits_tables(&state.db()).await?;
     sqlx::query("INSERT OR IGNORE INTO habit_completions (habit_id, completed_at) VALUES (?, -1)")
         .bind(&habit_id)
@@ -646,10 +666,12 @@ pub async fn habits_skip_today(
 
 /// Remove the skip sentinel for a habit.
 #[tauri::command]
-pub async fn habits_unskip_today(
+pub async fn habits_unskip_today(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     habit_id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "habits").await?;
+
     sqlx::query("DELETE FROM habit_completions WHERE habit_id = ? AND completed_at = -1")
         .bind(&habit_id)
         .execute(&state.db())
@@ -660,11 +682,13 @@ pub async fn habits_unskip_today(
 
 /// Freeze a habit's streak (inserts freeze sentinel + decrements token).
 #[tauri::command]
-pub async fn habits_freeze_streak(
+pub async fn habits_freeze_streak(auth: State<'_, crate::auth::AuthManager>, 
     app: AppHandle,
     state: State<'_, BentoAppState>,
     habit_id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "habits").await?;
+
     ensure_habits_tables(&state.db()).await?;
     sqlx::query("INSERT OR IGNORE INTO habit_completions (habit_id, completed_at) VALUES (?, -2)")
         .bind(&habit_id)
@@ -683,11 +707,13 @@ pub async fn habits_freeze_streak(
 
 /// Unfreeze a habit (removes sentinel + refunds token).
 #[tauri::command]
-pub async fn habits_unfreeze_streak(
+pub async fn habits_unfreeze_streak(auth: State<'_, crate::auth::AuthManager>, 
     app: AppHandle,
     state: State<'_, BentoAppState>,
     habit_id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "habits").await?;
+
     sqlx::query("DELETE FROM habit_completions WHERE habit_id = ? AND completed_at = -2")
         .bind(&habit_id)
         .execute(&state.db())
@@ -736,6 +762,38 @@ pub async fn ensure_habits_tables(pool: &sqlx::SqlitePool) -> Result<(), String>
 
     for sql in migrations {
         let result = sqlx::query(sql).execute(pool).await;
+        if let Err(e) = result {
+            let msg = e.to_string();
+            if msg.contains("duplicate column name")
+                || msg.contains("Cannot add a NOT NULL")
+                || msg.starts_with("error returned from database: cannot add")
+            {
+                continue;
+            }
+            return Err(msg);
+        }
+    }
+
+    // ── Additive column migrations for habits ──────────────────────────
+    // The habits table was originally created by db.rs with only:
+    //   id, name, frequency, created_at
+    // These ADD COLUMN statements fill in the missing columns for databases
+    // created before the full schema was introduced.
+    let habit_alter_statements: &[&str] = &[
+        "ALTER TABLE habits ADD COLUMN emoji TEXT NOT NULL DEFAULT '⭐'",
+        "ALTER TABLE habits ADD COLUMN color TEXT NOT NULL DEFAULT 'var(--mod-accent)'",
+        "ALTER TABLE habits ADD COLUMN kind TEXT NOT NULL DEFAULT 'build'",
+        "ALTER TABLE habits ADD COLUMN archived INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE habits ADD COLUMN completion_type TEXT NOT NULL DEFAULT 'binary'",
+        "ALTER TABLE habits ADD COLUMN target_count INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE habits ADD COLUMN unit TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE habits ADD COLUMN why TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE habits ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE habits ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0",
+    ];
+
+    for stmt in habit_alter_statements {
+        let result = sqlx::query(stmt).execute(pool).await;
         if let Err(e) = result {
             let msg = e.to_string();
             if msg.contains("duplicate column name")

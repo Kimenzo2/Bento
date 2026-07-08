@@ -207,7 +207,6 @@
           type="text"
           bind:value={title}
           placeholder={type === 'bug' ? 'Briefly describe the bug' : 'Briefly describe your request'}
-          maxlength={200}
           disabled={submitting}
         />
       </div>
@@ -235,7 +234,6 @@
               ? 'What were you doing? What did you expect? What happened instead?'
               : 'What problem does this solve? How would it work?'
             }
-            maxlength={5000}
             disabled={submitting}
             onpaste={handlePaste}
           ></textarea>
@@ -269,7 +267,7 @@
         </div>
 
         <div class="feedback-modal__char-count">
-          {description.length}/5000
+          {description.length}
         </div>
       </div>
 

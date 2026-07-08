@@ -53,10 +53,12 @@ pub struct DailyLogRow {
 
 /// Save or upsert today's daily check-in. One log per calendar day.
 #[tauri::command]
-pub async fn health_log_save(
+pub async fn health_log_save(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     entry: DailyLogEntry,
 ) -> Result<DailyLogRow, String> {
+    crate::auth::require_billing_tier(&auth, "health").await?;
+
     ensure_health_tables(&state.db()).await?;
 
     let id = Uuid::new_v4().to_string();
@@ -108,9 +110,11 @@ pub async fn health_log_save(
 
 /// Load today's check-in (if any).
 #[tauri::command]
-pub async fn health_log_today(
+pub async fn health_log_today(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Option<DailyLogRow>, String> {
+    crate::auth::require_billing_tier(&auth, "health").await?;
+
     ensure_health_tables(&state.db()).await?;
     let date = today_key();
 
@@ -144,7 +148,9 @@ pub async fn health_log_today(
 
 /// Last 7 days of check-ins for the weekly chart.
 #[tauri::command]
-pub async fn health_logs_week(state: State<'_, BentoAppState>) -> Result<Vec<DailyLogRow>, String> {
+pub async fn health_logs_week(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<Vec<DailyLogRow>, String> {
+    crate::auth::require_billing_tier(&auth, "health").await?;
+
     ensure_health_tables(&state.db()).await?;
 
     use sqlx::Row;
@@ -205,10 +211,12 @@ pub struct VitalsRow {
 }
 
 #[tauri::command]
-pub async fn health_vitals_save(
+pub async fn health_vitals_save(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     entry: VitalsEntry,
 ) -> Result<VitalsRow, String> {
+    crate::auth::require_billing_tier(&auth, "health").await?;
+
     ensure_health_tables(&state.db()).await?;
 
     let id = Uuid::new_v4().to_string();
@@ -246,7 +254,9 @@ pub async fn health_vitals_save(
 }
 
 #[tauri::command]
-pub async fn health_vitals_list(state: State<'_, BentoAppState>) -> Result<Vec<VitalsRow>, String> {
+pub async fn health_vitals_list(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<Vec<VitalsRow>, String> {
+    crate::auth::require_billing_tier(&auth, "health").await?;
+
     ensure_health_tables(&state.db()).await?;
 
     use sqlx::Row;
@@ -299,7 +309,9 @@ pub struct NewMedEntry {
 }
 
 #[tauri::command]
-pub async fn health_meds_list(state: State<'_, BentoAppState>) -> Result<Vec<MedRow>, String> {
+pub async fn health_meds_list(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<Vec<MedRow>, String> {
+    crate::auth::require_billing_tier(&auth, "health").await?;
+
     ensure_health_tables(&state.db()).await?;
     let date = today_key();
 
@@ -334,10 +346,12 @@ pub async fn health_meds_list(state: State<'_, BentoAppState>) -> Result<Vec<Med
 }
 
 #[tauri::command]
-pub async fn health_med_add(
+pub async fn health_med_add(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     entry: NewMedEntry,
 ) -> Result<MedRow, String> {
+    crate::auth::require_billing_tier(&auth, "health").await?;
+
     ensure_health_tables(&state.db()).await?;
 
     if entry.name.trim().is_empty() {
@@ -373,10 +387,12 @@ pub async fn health_med_add(
 }
 
 #[tauri::command]
-pub async fn health_med_toggle(
+pub async fn health_med_toggle(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     med_id: String,
 ) -> Result<bool, String> {
+    crate::auth::require_billing_tier(&auth, "health").await?;
+
     ensure_health_tables(&state.db()).await?;
     let date = today_key();
     let now = time::now_ms();
@@ -416,10 +432,12 @@ pub async fn health_med_toggle(
 }
 
 #[tauri::command]
-pub async fn health_med_delete(
+pub async fn health_med_delete(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     med_id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "health").await?;
+
     ensure_health_tables(&state.db()).await?;
 
     sqlx::query("UPDATE health_meds SET active = 0 WHERE id = ?")

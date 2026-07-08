@@ -82,10 +82,12 @@ pub struct PrivateNoteRow {
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn mood_checkin_save(
+pub async fn mood_checkin_save(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     entry: CheckinEntry,
 ) -> Result<CheckinRow, String> {
+    crate::auth::require_billing_tier(&auth, "mood").await?;
+
     ensure_mood_tables(&state.db()).await?;
 
     if entry.mood.trim().is_empty() {
@@ -125,9 +127,11 @@ pub async fn mood_checkin_save(
 }
 
 #[tauri::command]
-pub async fn mood_checkins_today(
+pub async fn mood_checkins_today(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<CheckinRow>, String> {
+    crate::auth::require_billing_tier(&auth, "mood").await?;
+
     ensure_mood_tables(&state.db()).await?;
 
     let rows = sqlx::query(
@@ -143,10 +147,12 @@ pub async fn mood_checkins_today(
 }
 
 #[tauri::command]
-pub async fn mood_checkins_month(
+pub async fn mood_checkins_month(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     month: String,
 ) -> Result<Vec<CheckinRow>, String> {
+    crate::auth::require_billing_tier(&auth, "mood").await?;
+
     ensure_mood_tables(&state.db()).await?;
 
     let prefix = format!("{}%", month.trim());
@@ -163,10 +169,12 @@ pub async fn mood_checkins_month(
 }
 
 #[tauri::command]
-pub async fn mood_checkins_recent(
+pub async fn mood_checkins_recent(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     limit: Option<i64>,
 ) -> Result<Vec<CheckinRow>, String> {
+    crate::auth::require_billing_tier(&auth, "mood").await?;
+
     ensure_mood_tables(&state.db()).await?;
 
     let n = limit.unwrap_or(30).clamp(1, 365);
@@ -183,10 +191,12 @@ pub async fn mood_checkins_recent(
 }
 
 #[tauri::command]
-pub async fn mood_checkin_delete(
+pub async fn mood_checkin_delete(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "mood").await?;
+
     ensure_mood_tables(&state.db()).await?;
     sqlx::query("DELETE FROM mood_checkins WHERE id = ?")
         .bind(&id)
@@ -201,7 +211,9 @@ pub async fn mood_checkin_delete(
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn mood_stats(state: State<'_, BentoAppState>) -> Result<MoodStats, String> {
+pub async fn mood_stats(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<MoodStats, String> {
+    crate::auth::require_billing_tier(&auth, "mood").await?;
+
     ensure_mood_tables(&state.db()).await?;
 
     let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM mood_checkins")
@@ -267,9 +279,11 @@ fn compute_streak(desc_dates: &[String]) -> u32 {
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn mood_activity_library(
+pub async fn mood_activity_library(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<ActivityRow>, String> {
+    crate::auth::require_billing_tier(&auth, "mood").await?;
+
     ensure_mood_tables(&state.db()).await?;
     seed_default_activities(&state.db()).await?;
 
@@ -289,10 +303,12 @@ pub async fn mood_activity_library(
 }
 
 #[tauri::command]
-pub async fn mood_activity_add(
+pub async fn mood_activity_add(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     name: String,
 ) -> Result<ActivityRow, String> {
+    crate::auth::require_billing_tier(&auth, "mood").await?;
+
     ensure_mood_tables(&state.db()).await?;
     let trimmed = name.trim().to_string();
     if trimmed.is_empty() {
@@ -339,10 +355,12 @@ pub async fn mood_activity_add(
 }
 
 #[tauri::command]
-pub async fn mood_activity_delete(
+pub async fn mood_activity_delete(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "mood").await?;
+
     ensure_mood_tables(&state.db()).await?;
     sqlx::query("DELETE FROM mood_activities WHERE id = ?")
         .bind(&id)
@@ -357,7 +375,9 @@ pub async fn mood_activity_delete(
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn mood_patterns(state: State<'_, BentoAppState>) -> Result<Vec<MoodPattern>, String> {
+pub async fn mood_patterns(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<Vec<MoodPattern>, String> {
+    crate::auth::require_billing_tier(&auth, "mood").await?;
+
     ensure_mood_tables(&state.db()).await?;
 
     let rows: Vec<(String, i64, String)> = sqlx::query_as(
@@ -513,10 +533,12 @@ pub async fn mood_patterns(state: State<'_, BentoAppState>) -> Result<Vec<MoodPa
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn mood_private_note_save(
+pub async fn mood_private_note_save(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     content: String,
 ) -> Result<PrivateNoteRow, String> {
+    crate::auth::require_billing_tier(&auth, "mood").await?;
+
     ensure_mood_tables(&state.db()).await?;
     let trimmed = content.trim().to_string();
     if trimmed.is_empty() {
@@ -541,9 +563,11 @@ pub async fn mood_private_note_save(
 }
 
 #[tauri::command]
-pub async fn mood_private_notes_list(
+pub async fn mood_private_notes_list(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<PrivateNoteRow>, String> {
+    crate::auth::require_billing_tier(&auth, "mood").await?;
+
     ensure_mood_tables(&state.db()).await?;
     let rows = sqlx::query(
         "SELECT id, content, created_at FROM mood_private_notes ORDER BY created_at DESC",
@@ -563,10 +587,12 @@ pub async fn mood_private_notes_list(
 }
 
 #[tauri::command]
-pub async fn mood_private_note_delete(
+pub async fn mood_private_note_delete(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "mood").await?;
+
     ensure_mood_tables(&state.db()).await?;
     sqlx::query("DELETE FROM mood_private_notes WHERE id = ?")
         .bind(&id)

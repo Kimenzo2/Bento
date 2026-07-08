@@ -164,9 +164,11 @@ fn load_focus_settings(value: Option<String>) -> FocusSettings {
 }
 
 #[tauri::command]
-pub async fn get_focus_dashboard(
+pub async fn get_focus_dashboard(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<FocusDashboardData, String> {
+    crate::auth::require_billing_tier(&auth, "focus").await?;
+
     let db = state.db();
     let window_days = 7i64;
     let since = time::now_ms() - (window_days * 24 * 60 * 60 * 1000);
@@ -300,10 +302,12 @@ pub async fn get_focus_dashboard(
 }
 
 #[tauri::command]
-pub async fn record_focus_session(
+pub async fn record_focus_session(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     params: RecordFocusSessionParams,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "focus").await?;
+
     let label = params.label.trim();
     if label.is_empty() {
         return Err("Focus session label is required.".to_string());
@@ -346,10 +350,12 @@ pub async fn record_focus_session(
 }
 
 #[tauri::command]
-pub async fn export_focus_sessions(
+pub async fn export_focus_sessions(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     _dummy: Option<String>,
 ) -> Result<String, String> {
+    crate::auth::require_billing_tier(&auth, "focus").await?;
+
     let db = state.db();
     let all_time = 0i64;
 

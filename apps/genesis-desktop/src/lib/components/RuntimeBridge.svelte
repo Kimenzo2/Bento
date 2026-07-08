@@ -3,7 +3,7 @@
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { toast } from "svelte-sonner";
-  import { hydrateDesktopSettings } from "$lib/desktop/settings";
+  import { hydrateDesktopSettings, watchSystemTheme } from "$lib/desktop/settings";
   import { setLifecycleState, type DesktopLifecycleState } from "$lib/stores/lifecycle.store";
   import { languageStore } from "$lib/stores/language.store";
   import { showCrash } from "$lib/stores/crash.store";
@@ -128,7 +128,9 @@
         if (!isTauri()) return;
         const appWindow = getCurrentWebviewWindow();
 
-        void hydrateDesktopSettings().catch((error) => {
+        void hydrateDesktopSettings().then(() => {
+          watchSystemTheme();
+        }).catch((error) => {
           console.error("Bento desktop settings failed to hydrate.", error);
         });
 

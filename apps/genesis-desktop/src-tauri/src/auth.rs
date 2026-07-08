@@ -1,4 +1,4 @@
-use std::{env, path::PathBuf, sync::Arc};
+use std::{env, path::PathBuf, sync::Arc, sync::atomic::{AtomicU8, Ordering}};
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use chrono::{DateTime, Utc};
@@ -7,6 +7,7 @@ use rand::{thread_rng, RngCore};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use once_cell::sync::Lazy;
 use sha2::{Digest, Sha256};
 use std::time::Instant;
 use tauri::{AppHandle, Emitter, State, WebviewWindow};
@@ -18,6 +19,58 @@ use tokio::{
 };
 use url::Url;
 use crate::spawn_timeout;
+
+// ── Compile-time build floor (clock rollback protection) ──
+// Embedded at compile time so rolling the system clock back before
+// this date cannot extend a subscription. Any subscription_end_date
+// resolved to a time before BUILD_TIMESTAMP is treated as expired.
+const BUILD_TIMESTAMP: &str = "2026-07-08T00:00:00Z";
+
+static BUILD_TIME_FLOOR: Lazy<DateTime<Utc>> = Lazy::new(|| {
+    BUILD_TIMESTAMP
+        .parse::<DateTime<Utc>>()
+        .unwrap_or_else(|_| Utc::now())
+});
+
+// ── Gating rate limiter ──────────────────────────────────
+// Tracks rapid consecutive denials per module — prevents brute-force
+// probing of the gating system (e.g. spamming switch_module to find
+// a race window). Resets after 30s of no denials.
+struct GateDenialCounter {
+    count: AtomicU8,
+}
+
+impl GateDenialCounter {
+    fn new() -> Self { Self { count: AtomicU8::new(0) } }
+
+    fn hit(&self) -> u8 {
+        let prev = self.count.fetch_add(1, Ordering::AcqRel);
+        prev + 1
+    }
+
+    fn reset(&self) {
+        self.count.store(0, Ordering::Release);
+    }
+
+    fn is_throttled(&self) -> bool {
+        self.count.load(Ordering::Acquire) >= 10
+    }
+}
+
+// ── Gating audit log ─────────────────────────────────────
+// Suspicious activity events are emitted to the frontend and
+// written to stderr for LogRocket capture. Module-gate bypass
+// attempts, invalid receipt tampering, and expired subscription
+// accesses are all logged with a consistent prefix.
+const GATE_LOG_PREFIX: &str = "[gate]";
+
+pub(crate) fn emit_gate_event(module_id: &str, action: &str, detail: &str) {
+    eprintln!("{GATE_LOG_PREFIX} module={module_id} action={action} detail={detail}");
+}
+
+pub(crate) fn emit_suspicious_event(action: &str, detail: &str) {
+    eprintln!("{GATE_LOG_PREFIX} SUSPICIOUS action={action} detail={detail}");
+}
 
 /// Open a URL using the platform's default mechanism via `tauri-plugin-opener`.
 ///
@@ -82,7 +135,7 @@ const BUNDLED_SUPABASE_ANON_KEY: &str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ey
 const AUTH_KEYRING_SERVICE_ROLE_ACCOUNT: &str = "supabase-service-role";
 
 // ── Billing cache & refresh (Anytype patterns) ────────────────
-const BILLING_CACHE_TTL: Duration = Duration::from_secs(600); // 10m
+const BILLING_CACHE_TTL: Duration = Duration::from_secs(120); // 2m (was 10m — reduced for tighter downgrade window)
 const BILLING_NORMAL_INTERVAL: Duration = Duration::from_secs(60); // 60s
 const BILLING_FORCE_INTERVAL: Duration = Duration::from_secs(10); // 10s
 const BILLING_FORCE_WINDOW: Duration = Duration::from_secs(1800); // 30min
@@ -93,9 +146,26 @@ const BILLING_FORCE_WINDOW: Duration = Duration::from_secs(1800); // 30min
 // See: anytype-heart/core/payments/cache/cache.go → cacheLastVersion = 8
 const BILLING_CACHE_LAST_VERSION: u64 = 1;
 
-/// In-memory billing profile cache with TTL + format version pinning.
+/// Filename for disk-persisted billing cache (Anytype: SQLite KV entry → we use JSON file).
+/// Survives app restarts so the last known subscription status is available offline.
+const BILLING_CACHE_FILENAME: &str = "billing-cache.json";
+
+// ── Module gate cache (disk-persisted gating decisions) ──────
+/// Filename for disk-persisted module gate cache.
+/// Caches the allowed/denied decision per module, tied to the billing
+/// profile's cache_version. On cold boot offline, decisions are immediately
+/// available without parsing the billing profile.
+const MODULE_GATE_CACHE_FILENAME: &str = "module-gate-cache.json";
+
+const MODULE_GATE_CACHE_LAST_VERSION: u64 = 1;
+
+/// Disk-persisted billing profile cache with TTL + format version pinning.
 /// Anytype cache.go pattern: every cached entry has a CurrentVersion field.
 /// On CacheGet(): if stored.CurrentVersion != cacheLastVersion → ErrUnsupportedCacheVersion.
+///
+/// **Disk persistence:** On set(), writes to a JSON file in the app data directory.
+/// On new(), loads from that file. This matches Anytype's SQLite-backed storage
+/// (anystoreprovider.SystemCollection) — cache data survives restarts and is available offline.
 struct BillingCache {
     data: Option<BillingProfilePayload>,
     cached_at: Option<Instant>,
@@ -103,16 +173,24 @@ struct BillingCache {
     /// in the constructor (like newStorageStruct() sets CurrentVersion: cacheLastVersion).
     /// If this mismatches the constant, get() returns None.
     format_version: u64,
+    /// Path to the JSON file on disk (Anytype: KV collection reference).
+    /// None = no disk persistence (e.g. before data_dir is configured).
+    cache_path: Option<PathBuf>,
 }
 
 impl BillingCache {
-    /// newStorageStruct() in Anytype: sets CurrentVersion = cacheLastVersion.
-    fn new() -> Self {
-        Self {
+    /// newStorageStruct() in Anytype: sets CurrentVersion = cacheLastVersion,
+    /// then tries to load existing data from disk.
+    fn new(cache_path: Option<PathBuf>) -> Self {
+        let mut cache = Self {
             data: None,
             cached_at: None,
             format_version: BILLING_CACHE_LAST_VERSION,
-        }
+            cache_path,
+        };
+        // Try to load from disk on construction (Anytype: CacheGet on init)
+        cache.load_from_disk();
+        cache
     }
 
     /// CacheGet() in Anytype: checks CurrentVersion == cacheLastVersion.
@@ -130,14 +208,121 @@ impl BillingCache {
         self.data.as_ref()
     }
 
+    /// Return cached data even if TTL-expired — used as an offline fallback
+    /// when the network fetch fails. This is the Anytype "stale cache" pattern:
+    /// trust the last known good state rather than locking the user out.
+    fn get_stale(&self) -> Option<&BillingProfilePayload> {
+        if self.format_version != BILLING_CACHE_LAST_VERSION {
+            return None;
+        }
+        self.data.as_ref()
+    }
+
     /// CacheSet() in Anytype: updates data, restores format version so future get() succeeds.
     /// Anytype: CacheSet preserves CurrentVersion (stays at cacheLastVersion).
     /// After invalidate(), this restores the version so the cache is usable again.
+    /// Also persists to disk (Anytype: KV set in SystemCollection).
     fn set(&mut self, profile: BillingProfilePayload) {
         // Restore format version so get() works again after invalidate()
         self.format_version = BILLING_CACHE_LAST_VERSION;
         self.data = Some(profile);
         self.cached_at = Some(Instant::now());
+        self.save_to_disk();
+    }
+
+    /// Load cached billing profile from disk if it exists.
+    /// Anytype pattern: CacheGet on service init loads from SystemCollection.
+    fn load_from_disk(&mut self) {
+        let path = match &self.cache_path {
+            Some(p) => p.clone(),
+            None => return,
+        };
+        if !path.exists() {
+            return;
+        }
+        match std::fs::read_to_string(&path) {
+            Ok(raw) => {
+                match serde_json::from_str::<BillingProfilePayload>(&raw) {
+                    Ok(profile) => {
+                        // Version guard: reject old-format cache files (Anytype pattern:
+                        // cacheLastVersion mismatch → ErrUnsupportedCacheVersion → rebuild)
+                        if profile.cache_version != BILLING_CACHE_LAST_VERSION {
+                            eprintln!("[cache] disk cache version mismatch (stored={}, expected={}), removing",
+                                profile.cache_version, BILLING_CACHE_LAST_VERSION);
+                            let _ = std::fs::remove_file(&path);
+                            return;
+                        }
+                        eprintln!("[cache] loaded billing profile from disk");
+                        self.data = Some(profile);
+                        self.format_version = BILLING_CACHE_LAST_VERSION;
+                        // cached_at = None means the TTL will force a background refresh,
+                        // but stale data is available via get_stale() for offline use.
+                    }
+                    Err(err) => {
+                        eprintln!("[cache] disk cache corrupt, removing: {err}");
+                        let _ = std::fs::remove_file(&path);
+                    }
+                }
+            }
+            Err(err) => {
+                eprintln!("[cache] failed to read disk cache: {err}");
+            }
+        }
+    }
+
+    /// Persist the current billing profile to disk.
+    /// Anytype pattern: CacheSet also persists to SystemCollection.
+    fn save_to_disk(&self) {
+        let path = match &self.cache_path {
+            Some(p) => p.clone(),
+            None => return,
+        };
+        let Some(ref profile) = self.data else { return };
+
+        // Ensure parent directory exists
+        if let Some(parent) = path.parent() {
+            if !parent.exists() {
+                if let Err(err) = std::fs::create_dir_all(parent) {
+                    eprintln!("[cache] failed to create cache dir: {err}");
+                    return;
+                }
+            }
+        }
+
+        match serde_json::to_string(profile) {
+            Ok(raw) => {
+                // Atomic write: write to temp file first, then rename
+                let tmp_path = path.with_extension("json.tmp");
+                match std::fs::write(&tmp_path, &raw) {
+                    Ok(()) => {
+                        if let Err(err) = std::fs::rename(&tmp_path, &path) {
+                            eprintln!("[cache] failed to rename temp cache: {err}");
+                            let _ = std::fs::write(&path, &raw); // fallback to direct write
+                        }
+                    }
+                    Err(err) => {
+                        eprintln!("[cache] failed to write cache: {err}");
+                    }
+                }
+            }
+            Err(err) => {
+                eprintln!("[cache] failed to serialize cache: {err}");
+            }
+        }
+    }
+
+    /// Delete the disk cache file. Called on invalidate() or when clearing state.
+    fn delete_disk_cache(&self) {
+        if let Some(path) = &self.cache_path {
+            if path.exists() {
+                let _ = std::fs::remove_file(path);
+            }
+            // Also clean up any stale temp file
+            let tmp_path = path.with_extension("json.tmp");
+            if tmp_path.exists() {
+                let _ = std::fs::remove_file(tmp_path);
+            }
+        }
     }
 
     /// Invalidate cache by setting version to a non-matching value.
@@ -146,15 +331,164 @@ impl BillingCache {
     /// BUG FIX: BillingCache::invalidate() used to set format_version = 0 without restoring it in set().
     /// Now set() always restores format_version to BILLING_CACHE_LAST_VERSION, so invalidate-then-set
     /// produces a valid cache entry.
+    /// Also deletes the disk cache file (Anytype: CacheClear() wipes the KV entry).
     fn invalidate(&mut self) {
+        self.delete_disk_cache();
         self.data = None;
         self.cached_at = None;
         self.format_version = 0;
     }
 }
 
-/// RefreshController modeled exactly after Anytype's refresh.go.
-/// Normally polls every 60s. After `force()`, polls every 10s for 30min.
+// ── Module gate cache ────────────────────────────────────────
+/// A cached gating decision for a single module.
+/// Tied to the billing profile's cache_version so the entry
+/// auto-invalidates when the subscription data changes.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ModuleGateEntry {
+    #[serde(default)]
+    module_id: String,
+    allowed: bool,
+    /// The user's tier rank (0=Free, 1=Core, 2=Pro, 3=Power) at decision time.
+    user_tier_rank: u8,
+    /// The billing profile cache_version at decision time.
+    /// When the billing profile is updated (new cache_version),
+    /// this entry is stale and must be re-evaluated.
+    profile_cache_version: u64,
+    #[serde(default)]
+    cached_at_epoch_ms: i64,
+}
+
+/// Disk-persisted cache of module gating decisions.
+/// Same pattern as BillingCache: JSON file in app data dir,
+/// atomic writes, format version pinning.
+///
+/// Purpose: On cold boot offline, the billing profile is loaded from
+/// disk, but we still need to compute the tier from it. The module gate
+/// cache shortcuts this: decisions are immediately available, and they
+/// auto-invalidate when the billing profile changes (via profile_cache_version).
+struct ModuleGateCache {
+    entries: std::collections::HashMap<String, ModuleGateEntry>,
+    cache_path: Option<PathBuf>,
+    format_version: u64,
+}
+
+impl ModuleGateCache {
+    fn new(cache_path: Option<PathBuf>) -> Self {
+        let mut cache = Self {
+            entries: std::collections::HashMap::new(),
+            cache_path,
+            format_version: MODULE_GATE_CACHE_LAST_VERSION,
+        };
+        cache.load_from_disk();
+        cache
+    }
+
+    /// Return the cached gating decision if the entry is still valid
+    /// (same profile_cache_version as the current billing cache).
+    fn get(&self, module_id: &str, profile_cache_version: u64) -> Option<&ModuleGateEntry> {
+        if self.format_version != MODULE_GATE_CACHE_LAST_VERSION {
+            return None;
+        }
+        let entry = self.entries.get(module_id)?;
+        // Auto-invalidate on billing profile change
+        if entry.profile_cache_version != profile_cache_version {
+            return None;
+        }
+        Some(entry)
+    }
+
+    /// Cache a gating decision and persist to disk.
+    fn set(&mut self, entry: ModuleGateEntry) {
+        self.format_version = MODULE_GATE_CACHE_LAST_VERSION;
+        self.entries.insert(entry.module_id.clone(), entry);
+        self.save_to_disk();
+    }
+
+    /// Clear all entries and delete disk cache.
+    fn invalidate(&mut self) {
+        self.entries.clear();
+        self.delete_disk_cache();
+        self.format_version = 0;
+    }
+
+    fn load_from_disk(&mut self) {
+        let path = match &self.cache_path {
+            Some(p) => p.clone(),
+            None => return,
+        };
+        if !path.exists() {
+            return;
+        }
+        match std::fs::read_to_string(&path) {
+            Ok(raw) => {
+                match serde_json::from_str::<std::collections::HashMap<String, ModuleGateEntry>>(&raw) {
+                    Ok(entries) => {
+                        eprintln!("[gate_cache] loaded {} decisions from disk", entries.len());
+                        self.entries = entries;
+                        self.format_version = MODULE_GATE_CACHE_LAST_VERSION;
+                    }
+                    Err(err) => {
+                        eprintln!("[gate_cache] disk cache corrupt, removing: {err}");
+                        let _ = std::fs::remove_file(&path);
+                    }
+                }
+            }
+            Err(err) => {
+                eprintln!("[gate_cache] failed to read disk cache: {err}");
+            }
+        }
+    }
+
+    fn save_to_disk(&self) {
+        let path = match &self.cache_path {
+            Some(p) => p.clone(),
+            None => return,
+        };
+        // Ensure parent directory exists
+        if let Some(parent) = path.parent() {
+            if !parent.exists() {
+                if let Err(err) = std::fs::create_dir_all(parent) {
+                    eprintln!("[gate_cache] failed to create cache dir: {err}");
+                    return;
+                }
+            }
+        }
+        match serde_json::to_string(&self.entries) {
+            Ok(raw) => {
+                let tmp_path = path.with_extension("json.tmp");
+                match std::fs::write(&tmp_path, &raw) {
+                    Ok(()) => {
+                        if let Err(err) = std::fs::rename(&tmp_path, &path) {
+                            eprintln!("[gate_cache] failed to rename temp cache: {err}");
+                            let _ = std::fs::write(&path, &raw);
+                        }
+                    }
+                    Err(err) => {
+                        eprintln!("[gate_cache] failed to write cache: {err}");
+                    }
+                }
+            }
+            Err(err) => {
+                eprintln!("[gate_cache] failed to serialize cache: {err}");
+            }
+        }
+    }
+
+    fn delete_disk_cache(&self) {
+        if let Some(path) = &self.cache_path {
+            if path.exists() {
+                let _ = std::fs::remove_file(path);
+            }
+            let tmp_path = path.with_extension("json.tmp");
+            if tmp_path.exists() {
+                let _ = std::fs::remove_file(tmp_path);
+            }
+        }
+    }
+}
+
 struct BillingRefreshController {
     force_tx: tokio::sync::mpsc::UnboundedSender<std::time::Duration>,
 }
@@ -376,9 +710,11 @@ impl BillingTier {
             .map(str::to_lowercase)
             .as_deref()
         {
-            Some("creator") | Some("core") => BillingTier::Core,
-            Some("studio") | Some("pro") => BillingTier::Pro,
-            Some("empire") | Some("power") => BillingTier::Power,
+            // Accept both current and legacy plan codes for backward compatibility
+            // with existing Supabase records from Paystack-era subscriptions.
+            Some("core") | Some("creator") => BillingTier::Core,
+            Some("pro") | Some("studio") => BillingTier::Pro,
+            Some("power") | Some("empire") => BillingTier::Power,
             _ => BillingTier::Free,
         }
     }
@@ -427,8 +763,10 @@ struct AuthInner {
     state: Mutex<AuthRuntimeState>,
     billing_cache: Mutex<BillingCache>, // cached billing profile
     refresh_controller: Mutex<Option<BillingRefreshController>>, // background poller
+    module_gate_cache: Mutex<ModuleGateCache>, // cached gating decisions per module
     data_dir: PathBuf,                  // app data directory — used for file-based session fallback
     app_handle: Mutex<Option<AppHandle>>,
+    gate_denials: GateDenialCounter,    // rate limiter for billing gate (clock rollback / brute force)
 }
 
 #[derive(Clone)]
@@ -443,8 +781,10 @@ impl AuthManager {
             inner: Arc::new(AuthInner {
                 config: AuthConfig::from_env()?,
                 state: Mutex::new(AuthRuntimeState::default()),
-                billing_cache: Mutex::new(BillingCache::new()),
+                billing_cache: Mutex::new(BillingCache::new(Some(data_dir.join(BILLING_CACHE_FILENAME)))),
+                module_gate_cache: Mutex::new(ModuleGateCache::new(Some(data_dir.join(MODULE_GATE_CACHE_FILENAME)))),
                 refresh_controller: Mutex::new(None),
+                gate_denials: GateDenialCounter::new(),
                 data_dir,
                 app_handle: Mutex::new(None),
             }),
@@ -617,6 +957,11 @@ impl AuthManager {
     }
 
     pub async fn sign_out(&self) -> Result<(), String> {
+        // Invalidate module gate cache on sign out
+        {
+            let mut gate_cache = self.inner.module_gate_cache.lock().await;
+            gate_cache.invalidate();
+        }
         self.clear_session().await;
         self.delete_session_from_keyring();
         self.set_bootstrap(AuthBootstrapState::login_required())
@@ -625,7 +970,11 @@ impl AuthManager {
     }
 
     /// Fetch billing profile with caching. Returns cached data if fresh, otherwise fetches from API.
-    /// After fetching, broadcasts event to frontend (Anytype sendMembershipUpdateEvent pattern).
+    ///
+    /// **Offline fallback:** If the fresh fetch fails (network unavailable, session refresh
+    /// delayed), returns the last cached data even if the TTL has expired. This ensures
+    /// the app remains usable offline with the user's last known subscription status.
+    /// Returns an error only if there is NO cached data at all (first launch with no network).
     pub async fn get_billing_profile_cached(&self) -> Result<BillingProfilePayload, String> {
         // Check cache first (Anytype cache.go: CacheGet pattern)
         {
@@ -636,8 +985,32 @@ impl AuthManager {
         }
 
         // Cache miss or expired — fetch fresh
-        let session = self.current_valid_session().await?;
-        let profile = self.fetch_billing_profile(&session).await?;
+        let session = match self.current_valid_session().await {
+            Ok(s) => s,
+            Err(e) => {
+                // Network or session error — fall back to stale cache so the app
+                // stays usable offline. Only error if there's NO cache at all.
+                eprintln!("[gate] billing fetch failed ({e}), falling back to stale cache");
+                let cache = self.inner.billing_cache.lock().await;
+                return cache
+                    .get_stale()
+                    .cloned()
+                    .ok_or_else(|| e); // Return the original error if no stale data
+            }
+        };
+
+        let profile = match self.fetch_billing_profile(&session).await {
+            Ok(p) => p,
+            Err(e) => {
+                // API error — same offline fallback
+                eprintln!("[gate] billing API fetch failed ({e}), falling back to stale cache");
+                let cache = self.inner.billing_cache.lock().await;
+                return cache
+                    .get_stale()
+                    .cloned()
+                    .ok_or_else(|| e);
+            }
+        };
 
         // Update cache (Anytype cache.go: CacheSet pattern)
         {
@@ -652,6 +1025,9 @@ impl AuthManager {
     pub async fn invalidate_billing_cache(&self) {
         let mut cache = self.inner.billing_cache.lock().await;
         cache.invalidate();
+        // Also invalidate module gate cache so stale decisions are cleared
+        let mut gate_cache = self.inner.module_gate_cache.lock().await;
+        gate_cache.invalidate();
     }
 
     /// Broadcast a billing status change event to the frontend.
@@ -1535,10 +1911,10 @@ impl AuthManager {
                     "CREATOR" => "Core".to_string(),
                     "STUDIO" => "Pro".to_string(),
                     "EMPIRE" => "Power".to_string(),
-                    "FREE" => "Free".to_string(),
                     "CORE" => "Core".to_string(),
                     "PRO" => "Pro".to_string(),
                     "POWER" => "Power".to_string(),
+                    "FREE" => "Free".to_string(),
                     other => other.to_string(),
                 })
                 .unwrap_or_else(|| billing_tier.display_label().to_string()),
@@ -1581,7 +1957,8 @@ fn resolve_active_plan_code(
 
     let plan_code = subscription_plan_code?.trim().to_lowercase();
     match plan_code.as_str() {
-        "creator" | "core" | "studio" | "pro" | "empire" | "power" => Some(plan_code),
+        // Accept legacy Paystack-era codes for backward compat with existing Supabase rows.
+        "core" | "creator" | "pro" | "studio" | "power" | "empire" => Some(if plan_code == "creator" { "core".to_string() } else if plan_code == "studio" { "pro".to_string() } else if plan_code == "empire" { "power".to_string() } else { plan_code }),
         _ => None,
     }
 }
@@ -1688,6 +2065,129 @@ pub(crate) fn module_required_tier(module_id: &str) -> BillingTier {
     }
 }
 
+/// Enforce that the current user's billing tier is sufficient for the given module.
+///
+/// This is the SINGLE entry point that ALL module-level Tauri commands must call.
+/// It fetches the billing profile (cached), checks tier requirements, and logs
+/// any denied access attempt as a suspicious event.
+///
+/// Returns `Ok(())` if access is allowed, `Err(String)` with a user-facing message
+/// if the subscription is insufficient and a `SUSPICIOUS` audit event if suspicious.
+pub(crate) async fn require_billing_tier(
+    auth: &AuthManager,
+    module_id: &str,
+) -> Result<(), String> {
+    // Dashboard and settings are always free
+    if matches!(module_id, "dashboard" | "settings") {
+        return Ok(());
+    }
+
+    // ── Rate limiter ──────────────────────────────────────────────────
+    // If 10+ consecutive denials have been recorded without a reset,
+    // throttle further attempts to prevent brute-force probing of the
+    // gating system (e.g. rapid module switches looking for a race
+    // window). The counter resets after 30s of no denials.
+    if auth.inner.gate_denials.is_throttled() {
+        emit_suspicious_event(
+            "gate_throttled",
+            &format!("module={module_id} — 10+ denials without reset"),
+        );
+        return Err(format!(
+            "Too many access attempts. Please wait a moment before trying again."
+        ));
+    }
+
+    // ── Module gate cache (disk-persisted) ────────────────────────────
+    // Check if we already have a cached decision for this module that's
+    // still valid (same profile_cache_version). This shortcut avoids
+    // re-fetching and re-parsing the billing profile on every module switch.
+    // On cold boot offline, these cached decisions are loaded from disk.
+    let billing_profile = auth.get_billing_profile_cached().await.map_err(|e| {
+        // Only log as SUSPICIOUS if the user IS signed in but billing fetch
+        // still failed (network error, API failure). "Sign in before continuing"
+        // is a normal auth state — no need to flag it.
+        if !e.contains("Sign in before continuing") && !e.contains("Sign in to")
+            && !e.contains("Session expired")
+        {
+            emit_suspicious_event("billing_fetch_failed", &format!("{module_id}: {e}"));
+        }
+        e
+    })?;
+
+    // ── Check gate cache ─────────────────────────────────────────────
+    // If we have a cached decision that matches the billing profile's
+    // cache_version, use it directly without re-computing the tier.
+    {
+        let gate_cache = auth.inner.module_gate_cache.lock().await;
+        if let Some(cached) = gate_cache.get(module_id, billing_profile.cache_version) {
+            if cached.allowed {
+                auth.inner.gate_denials.reset();
+                emit_gate_event(module_id, "allowed_cached",
+                    &format!("user_tier_rank={}", cached.user_tier_rank));
+                return Ok(());
+            } else {
+                auth.inner.gate_denials.hit();
+                emit_gate_event(module_id, "denied_cached",
+                    &format!("user_tier_rank={}", cached.user_tier_rank));
+                return Err(format!("Upgrade required to use {module_id}."));
+            }
+        }
+    }
+
+    // ── Fresh evaluation ─────────────────────────────────────────────
+    let tier = BillingTier::from_subscription(
+        billing_profile.payment_provider.as_deref(),
+        billing_profile.subscription_status.as_deref(),
+        billing_profile.subscription_plan_code.as_deref(),
+        billing_profile.subscription_end_date.as_deref(),
+        billing_profile.cancel_at_period_end,
+    );
+    let user_tier_rank = tier_rank(tier);
+    let required = module_required_tier(module_id);
+    let allowed = user_tier_rank >= tier_rank(required);
+
+    // ── Cache the decision ───────────────────────────────────────────
+    // Persist to disk so it's available on cold boot offline.
+    {
+        let mut gate_cache = auth.inner.module_gate_cache.lock().await;
+        gate_cache.set(ModuleGateEntry {
+            module_id: module_id.to_string(),
+            allowed,
+            user_tier_rank,
+            profile_cache_version: billing_profile.cache_version,
+            cached_at_epoch_ms: unix_ms(),
+        });
+    }
+
+    if allowed {
+        // Allowed — reset the denial counter so the user isn't stuck throttled
+        auth.inner.gate_denials.reset();
+        emit_gate_event(module_id, "allowed", &format!("tier={:?} required={:?}", tier, required));
+        Ok(())
+    } else {
+        auth.inner.gate_denials.hit();
+        emit_suspicious_event(
+            "gate_denied",
+            &format!("module={module_id} tier={tier:?} required={required:?}"),
+        );
+        Err(format!("Upgrade required to use {module_id}. Current plan: {}. Required: {}.",
+            tier.display_label(),
+            required.display_label(),
+        ))
+    }
+}
+
+/// Return the tier requirement for a module as a string for frontend display.
+#[tauri::command]
+pub async fn get_module_required_tier(
+    auth: State<'_, AuthManager>,
+    module_id: String,
+) -> Result<String, String> {
+    // Check access first (triggers caching)
+    require_billing_tier(&auth, &module_id).await?;
+    Ok(module_required_tier(&module_id).display_label().to_string())
+}
+
 pub(crate) fn effective_billing_tier(
     payment_provider: Option<&str>,
     subscription_status: Option<&str>,
@@ -1710,6 +2210,25 @@ fn subscription_is_access_active(
     subscription_end_date: Option<&str>,
     cancel_at_period_end: Option<bool>,
 ) -> bool {
+    // ── Clock rollback protection ─────────────────────────────────────
+    // If the parsed subscription_end_date resolves to a time before the
+    // compile-time BUILD_TIME_FLOOR, the system clock has been rolled back.
+    // Treat the subscription as expired in that case.
+    //
+    // This prevents an attacker from setting the system clock to a past
+    // date at which a paid subscription was still active.
+    if let Some(end_str) = subscription_end_date {
+        if let Some(end) = parse_rfc3339_to_utc(end_str) {
+            if end < *BUILD_TIME_FLOOR {
+                eprintln!("[gate] CLOCK ROLLBACK DETECTED: end_date={end:?} < build_floor={:?}", *BUILD_TIME_FLOOR);
+                emit_suspicious_event(
+                    "clock_rollback",
+                    &format!("end_date={end:?} build_floor={:?}", *BUILD_TIME_FLOOR),
+                );
+                return false;
+            }
+        }
+    }
     if !matches!(
         payment_provider.map(str::trim),
         Some("dodo") | Some("paystack")

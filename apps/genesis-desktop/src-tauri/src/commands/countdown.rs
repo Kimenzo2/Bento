@@ -98,9 +98,11 @@ pub struct CountdownBirthdaySave {
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn countdown_list_events(
+pub async fn countdown_list_events(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<CountdownEvent>, String> {
+    crate::auth::require_billing_tier(&auth, "countdown").await?;
+
     let rows = sqlx::query(
         "SELECT id, name, target_ms, category, accent, note, created_at, updated_at FROM countdown_events ORDER BY target_ms ASC",
     )
@@ -124,10 +126,12 @@ pub async fn countdown_list_events(
 }
 
 #[tauri::command]
-pub async fn countdown_save_event(
+pub async fn countdown_save_event(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     params: CountdownEventSave,
 ) -> Result<CountdownEvent, String> {
+    crate::auth::require_billing_tier(&auth, "countdown").await?;
+
     let id = Uuid::new_v4().to_string();
     let now = time::now_ms();
     let note = params.note.unwrap_or_default();
@@ -163,10 +167,12 @@ pub async fn countdown_save_event(
 }
 
 #[tauri::command]
-pub async fn countdown_delete_event(
+pub async fn countdown_delete_event(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "countdown").await?;
+
     sqlx::query("DELETE FROM countdown_events WHERE id = ?")
         .bind(&id)
         .execute(&state.db())
@@ -180,9 +186,11 @@ pub async fn countdown_delete_event(
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn countdown_list_milestones(
+pub async fn countdown_list_milestones(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<CountdownMilestone>, String> {
+    crate::auth::require_billing_tier(&auth, "countdown").await?;
+
     let rows = sqlx::query(
         "SELECT id, name, target_ms, progress, accent, note, created_at, updated_at FROM countdown_milestones ORDER BY target_ms ASC",
     )
@@ -206,10 +214,12 @@ pub async fn countdown_list_milestones(
 }
 
 #[tauri::command]
-pub async fn countdown_save_milestone(
+pub async fn countdown_save_milestone(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     params: CountdownMilestoneSave,
 ) -> Result<CountdownMilestone, String> {
+    crate::auth::require_billing_tier(&auth, "countdown").await?;
+
     let id = Uuid::new_v4().to_string();
     let now = time::now_ms();
     let note = params.note.unwrap_or_default();
@@ -245,11 +255,13 @@ pub async fn countdown_save_milestone(
 }
 
 #[tauri::command]
-pub async fn countdown_update_milestone_progress(
+pub async fn countdown_update_milestone_progress(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     id: String,
     progress: i32,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "countdown").await?;
+
     let now = time::now_ms();
     sqlx::query("UPDATE countdown_milestones SET progress = ?, updated_at = ? WHERE id = ?")
         .bind(progress.clamp(0, 100))
@@ -262,10 +274,12 @@ pub async fn countdown_update_milestone_progress(
 }
 
 #[tauri::command]
-pub async fn countdown_delete_milestone(
+pub async fn countdown_delete_milestone(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "countdown").await?;
+
     sqlx::query("DELETE FROM countdown_milestones WHERE id = ?")
         .bind(&id)
         .execute(&state.db())
@@ -279,9 +293,11 @@ pub async fn countdown_delete_milestone(
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn countdown_list_birthdays(
+pub async fn countdown_list_birthdays(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<CountdownBirthday>, String> {
+    crate::auth::require_billing_tier(&auth, "countdown").await?;
+
     let rows = sqlx::query(
         "SELECT id, name, month, day, accent, created_at, updated_at FROM countdown_birthdays ORDER BY month ASC, day ASC",
     )
@@ -304,10 +320,12 @@ pub async fn countdown_list_birthdays(
 }
 
 #[tauri::command]
-pub async fn countdown_save_birthday(
+pub async fn countdown_save_birthday(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     params: CountdownBirthdaySave,
 ) -> Result<CountdownBirthday, String> {
+    crate::auth::require_billing_tier(&auth, "countdown").await?;
+
     let id = Uuid::new_v4().to_string();
     let now = time::now_ms();
 
@@ -343,10 +361,12 @@ pub async fn countdown_save_birthday(
 }
 
 #[tauri::command]
-pub async fn countdown_delete_birthday(
+pub async fn countdown_delete_birthday(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "countdown").await?;
+
     sqlx::query("DELETE FROM countdown_birthdays WHERE id = ?")
         .bind(&id)
         .execute(&state.db())

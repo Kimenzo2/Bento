@@ -1,10 +1,11 @@
 <script lang="ts">
   import { desktopThemes, type ThemeId } from "$lib/data/themes";
-  import { activeTheme, mode, setTheme, toggleMode } from "$lib/stores/theme.store";
+  import { activeTheme, mode, effectiveMode, setTheme, toggleMode } from "$lib/stores/theme.store";
   import { toast } from "svelte-sonner";
 
   const currentThemeId = $derived($activeTheme.id);
   const currentMode = $derived($mode);
+  const currentEffectiveMode = $derived($effectiveMode);
 
   const selectTheme = async (themeId: ThemeId) => {
     console.info("[Bento Desktop] Theme card selected", { themeId });
@@ -19,15 +20,15 @@
   };
 
   const toggleThemeWithLog = async () => {
-    const nextMode = currentMode === "dark" ? "light" : "dark";
+    const nextLabel = currentEffectiveMode === "dark" ? "light" : "dark";
     console.info("[Bento Desktop] Settings theme toggle clicked", {
       currentMode,
-      nextMode,
+      nextLabel,
     });
 
     try {
       await toggleMode();
-      toast.success(`Theme switched to ${nextMode}.`);
+      toast.success(`Theme switched to ${nextLabel}.`);
     } catch (error) {
       console.error("[Bento Desktop] Settings theme toggle failed", error);
       toast.error(error instanceof Error ? error.message : "Theme toggle failed.");
@@ -39,14 +40,14 @@
   <div class="flex items-center justify-between gap-4 rounded-3xl border border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] px-5 py-4">
     <div>
       <p class="font-[var(--font-heading)] text-lg font-semibold text-[var(--foreground)]">
-        Active mode: {currentMode}
+        Mode: {currentMode}{currentMode === "system" ? ` (${currentEffectiveMode})` : ""}
       </p>
       <p class="text-sm text-[var(--muted)]">
         The shell and document variables update in the same cycle.
       </p>
     </div>
     <button class="theme-chip" type="button" onclick={toggleThemeWithLog}>
-      Toggle {currentMode === "dark" ? "light" : "dark"}
+      Toggle {currentEffectiveMode === "dark" ? "light" : "dark"}
     </button>
   </div>
 

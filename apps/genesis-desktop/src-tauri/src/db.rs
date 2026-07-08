@@ -12,7 +12,7 @@ use sqlx::{
 use tauri::{ipc::Channel, AppHandle, Manager, State};
 use uuid::Uuid;
 
-use crate::auth::{module_allowed_by_tier, AuthManager, BillingTier};
+use crate::auth::AuthManager;
 use crate::commands::{emit_main_window_event, DashboardCache};
 use crate::crypto::CryptoService;
 use crate::search::SearchService;
@@ -620,7 +620,19 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), String> {
         CREATE TABLE IF NOT EXISTS commitment_bonds (id TEXT PRIMARY KEY, title TEXT NOT NULL, goal_id TEXT REFERENCES goals(id), deadline INTEGER NOT NULL, success_metric TEXT NOT NULL, consequence TEXT NOT NULL, check_in_days INTEGER DEFAULT 7, status TEXT DEFAULT 'active', check_in_history TEXT DEFAULT '[]', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS countdown_birthdays (id TEXT PRIMARY KEY, name TEXT NOT NULL, month INTEGER NOT NULL, day INTEGER NOT NULL, accent TEXT NOT NULL DEFAULT '#6366f1', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)
         "#,
-        // Batch 10: tasks sort order index
+        // Batch 10: suspicious events audit trail (subscription gating)
+        r#"
+        CREATE TABLE IF NOT EXISTS suspicious_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_type TEXT NOT NULL,
+            module_id TEXT,
+            detail TEXT NOT NULL DEFAULT '',
+            created_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_suspicious_events_type_created
+            ON suspicious_events(event_type, created_at DESC)
+        "#,
+        // Batch 11: tasks sort order index
         r#"
         CREATE INDEX IF NOT EXISTS idx_tasks_sort_order ON tasks(sort_order ASC)
         "#,
@@ -822,24 +834,8 @@ pub async fn flush_module_state(
     let from_module = parse_module(&from_module)?;
     let to_module = parse_module(&to_module)?;
 
-    let billing_profile = auth.get_billing_profile().await.ok();
-    let billing_tier = match billing_profile
-        .as_ref()
-        .map(|profile| profile.billing_tier.as_str())
-        .unwrap_or("free")
-        .trim()
-        .to_lowercase()
-        .as_str()
-    {
-        "core" => BillingTier::Core,
-        "pro" => BillingTier::Pro,
-        "power" => BillingTier::Power,
-        _ => BillingTier::Free,
-    };
-
-    if !module_allowed_by_tier(to_module.as_str(), billing_tier) {
-        return Err(format!("Upgrade required to open {}.", to_module.as_str()));
-    }
+    // Centralized billing tier check
+    crate::auth::require_billing_tier(&auth, to_module.as_str()).await?;
 
     write_module_context(&state.db(), &from_module, context).await?;
     write_runtime_state(&state.db(), "last_active_module", to_module.as_str()).await?;

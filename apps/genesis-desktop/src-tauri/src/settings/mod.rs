@@ -359,6 +359,7 @@ pub enum ThemeMode {
     #[default]
     Light,
     Dark,
+    System,
 }
 
 /**
@@ -776,6 +777,7 @@ pub fn apply_legacy_settings(
 pub fn normalize_mode(mode: &str) -> ThemeMode {
     match mode.to_ascii_lowercase().as_str() {
         "dark" => ThemeMode::Dark,
+        "system" => ThemeMode::System,
         _ => ThemeMode::Light,
     }
 }

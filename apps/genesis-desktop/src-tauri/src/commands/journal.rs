@@ -59,11 +59,13 @@ pub struct SaveEntryParams {
 /// Create a new blank journal entry for the given date.
 /// Returns the new entry with empty blocks.
 #[tauri::command]
-pub async fn create_journal_entry(
+pub async fn create_journal_entry(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     search: State<'_, SearchService>,
     date: String,
 ) -> Result<JournalEntry, String> {
+    crate::auth::require_billing_tier(&auth, "journal").await?;
+
     let db = state.db();
     let now = now_ms();
     let id = Uuid::new_v4().to_string();
@@ -102,11 +104,13 @@ pub async fn create_journal_entry(
 /// Save (update) a journal entry by ID.
 /// If the ID doesn't exist, inserts a new row.
 #[tauri::command]
-pub async fn save_journal_entry(
+pub async fn save_journal_entry(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     search: State<'_, SearchService>,
     params: SaveEntryParams,
 ) -> Result<JournalEntry, String> {
+    crate::auth::require_billing_tier(&auth, "journal").await?;
+
     let db = state.db();
     let now = now_ms();
 
@@ -175,10 +179,12 @@ pub async fn save_journal_entry(
 
 /// Get a journal entry by its ID.
 #[tauri::command]
-pub async fn get_journal_entry(
+pub async fn get_journal_entry(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<Option<JournalEntry>, String> {
+    crate::auth::require_billing_tier(&auth, "journal").await?;
+
     let db = state.db();
 
     let row = sqlx::query(
@@ -205,11 +211,13 @@ pub async fn get_journal_entry(
 
 /// Delete a journal entry by ID.
 #[tauri::command]
-pub async fn delete_journal_entry(
+pub async fn delete_journal_entry(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     search: State<'_, SearchService>,
     id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "journal").await?;
+
     let db = state.db();
     sqlx::query("DELETE FROM journal_entries WHERE id = ?")
         .bind(&id)
@@ -224,10 +232,12 @@ pub async fn delete_journal_entry(
 
 /// List recent journal entries (newest first, by created_at).
 #[tauri::command]
-pub async fn list_journal_entries(
+pub async fn list_journal_entries(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     limit: Option<i32>,
 ) -> Result<Vec<JournalEntry>, String> {
+    crate::auth::require_billing_tier(&auth, "journal").await?;
+
     let db = state.db();
     let limit = limit.unwrap_or(30).clamp(1, 365);
 

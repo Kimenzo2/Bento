@@ -121,11 +121,13 @@ fn row_to_task(row: sqlx::sqlite::SqliteRow) -> TaskEntry {
 
 /// Save (insert) a new task.
 #[tauri::command]
-pub async fn save_task(
+pub async fn save_task(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     cache: State<'_, DashboardCache>,
     params: SaveTaskParams,
 ) -> Result<TaskEntry, String> {
+    crate::auth::require_billing_tier(&auth, "tasks").await?;
+
     let db = state.db();
     let now = time::now_ms();
     let id = Uuid::new_v4().to_string();
@@ -190,11 +192,13 @@ pub async fn save_task(
 
 /// Update an existing task (partial update — only provided fields change).
 #[tauri::command]
-pub async fn update_task(
+pub async fn update_task(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     cache: State<'_, DashboardCache>,
     params: UpdateTaskParams,
 ) -> Result<TaskEntry, String> {
+    crate::auth::require_billing_tier(&auth, "tasks").await?;
+
     let db = state.db();
     let now = time::now_ms();
 
@@ -293,11 +297,13 @@ pub async fn update_task(
 /// Toggle a task's done state. If the task has a recurrence rule,
 /// auto-generate the next instance on completion.
 #[tauri::command]
-pub async fn toggle_task(
+pub async fn toggle_task(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     cache: State<'_, DashboardCache>,
     id: String,
 ) -> Result<TaskEntry, String> {
+    crate::auth::require_billing_tier(&auth, "tasks").await?;
+
     let db = state.db();
     let now = time::now_ms();
 
@@ -399,10 +405,12 @@ fn advance_recurrence(rule: &str, current_due: Option<i64>) -> Option<i64> {
 
 /// Get a task by ID.
 #[tauri::command]
-pub async fn get_task(
+pub async fn get_task(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<Option<TaskEntry>, String> {
+    crate::auth::require_billing_tier(&auth, "tasks").await?;
+
     let db = state.db();
 
     let row = sqlx::query("SELECT id, title, done, priority, project, tags, notes, due_at, due_time, start_at, estimated_minutes, tracked_minutes, recurrence_rule, archived, parent_id, completed_at, created_at, updated_at, sort_order FROM tasks WHERE id = ?")
@@ -416,11 +424,13 @@ pub async fn get_task(
 
 /// Delete a task by ID.
 #[tauri::command]
-pub async fn delete_task(
+pub async fn delete_task(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     cache: State<'_, DashboardCache>,
     id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "tasks").await?;
+
     let db = state.db();
     sqlx::query("DELETE FROM tasks WHERE id = ?")
         .bind(&id)
@@ -434,7 +444,7 @@ pub async fn delete_task(
 /// List tasks with optional filters.
 #[allow(clippy::too_many_arguments)]
 #[tauri::command]
-pub async fn list_tasks(
+pub async fn list_tasks(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     project: Option<String>,
     priority: Option<String>,
@@ -444,6 +454,8 @@ pub async fn list_tasks(
     archived: Option<bool>,
     limit: Option<i32>,
 ) -> Result<Vec<TaskEntry>, String> {
+    crate::auth::require_billing_tier(&auth, "tasks").await?;
+
     let db = state.db();
     let limit = limit.unwrap_or(100).clamp(1, 10000);
 
@@ -495,10 +507,12 @@ pub async fn list_tasks(
 
 /// Log an activity entry for a task.
 #[tauri::command]
-pub async fn log_activity_entry(
+pub async fn log_activity_entry(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     params: LogActivityParams,
 ) -> Result<ActivityEntry, String> {
+    crate::auth::require_billing_tier(&auth, "tasks").await?;
+
     let db = state.db();
     let now = time::now_ms();
     let id = Uuid::new_v4().to_string();
@@ -535,11 +549,13 @@ pub async fn log_activity_entry(
 
 /// Archive a task (set archived = true).
 #[tauri::command]
-pub async fn archive_task(
+pub async fn archive_task(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     cache: State<'_, DashboardCache>,
     id: String,
 ) -> Result<TaskEntry, String> {
+    crate::auth::require_billing_tier(&auth, "tasks").await?;
+
     let db = state.db();
     let now = time::now_ms();
 
@@ -568,10 +584,12 @@ pub async fn archive_task(
 
 /// Duplicate a task (copy with new ID).
 #[tauri::command]
-pub async fn duplicate_task(
+pub async fn duplicate_task(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<TaskEntry, String> {
+    crate::auth::require_billing_tier(&auth, "tasks").await?;
+
     let db = state.db();
     let now = time::now_ms();
 
@@ -639,10 +657,12 @@ pub struct SaveSubtaskParams {
 
 /// Save (insert) a new subtask.
 #[tauri::command]
-pub async fn save_subtask(
+pub async fn save_subtask(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     params: SaveSubtaskParams,
 ) -> Result<SubtaskEntry, String> {
+    crate::auth::require_billing_tier(&auth, "tasks").await?;
+
     let db = state.db();
     let now = time::now_ms();
     let id = Uuid::new_v4().to_string();
@@ -676,7 +696,9 @@ pub async fn save_subtask(
 
 /// Delete a subtask by ID.
 #[tauri::command]
-pub async fn delete_subtask(state: State<'_, BentoAppState>, id: String) -> Result<(), String> {
+pub async fn delete_subtask(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>, id: String) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "tasks").await?;
+
     let db = state.db();
     sqlx::query("DELETE FROM subtasks WHERE id = ?")
         .bind(&id)
@@ -688,10 +710,12 @@ pub async fn delete_subtask(state: State<'_, BentoAppState>, id: String) -> Resu
 
 /// List all subtasks for a given task.
 #[tauri::command]
-pub async fn list_subtasks_for_task(
+pub async fn list_subtasks_for_task(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     task_id: String,
 ) -> Result<Vec<SubtaskEntry>, String> {
+    crate::auth::require_billing_tier(&auth, "tasks").await?;
+
     let db = state.db();
     let rows = sqlx::query(
         "SELECT id, task_id, title, done, created_at, updated_at FROM subtasks WHERE task_id = ? ORDER BY created_at ASC"
@@ -716,11 +740,13 @@ pub async fn list_subtasks_for_task(
 
 /// Update a subtask's done status.
 #[tauri::command]
-pub async fn update_subtask_status(
+pub async fn update_subtask_status(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     id: String,
     done: bool,
 ) -> Result<SubtaskEntry, String> {
+    crate::auth::require_billing_tier(&auth, "tasks").await?;
+
     let db = state.db();
     let now = time::now_ms();
 
@@ -752,11 +778,13 @@ pub async fn update_subtask_status(
 
 /// Reorder tasks in bulk (set sort_order for each).
 #[tauri::command]
-pub async fn reorder_tasks(
+pub async fn reorder_tasks(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     cache: State<'_, DashboardCache>,
     items: Vec<ReorderItem>,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "tasks").await?;
+
     let db = state.db();
     for item in &items {
         sqlx::query("UPDATE tasks SET sort_order = ?, updated_at = ? WHERE id = ?")
@@ -773,11 +801,13 @@ pub async fn reorder_tasks(
 
 /// List activity entries for a task.
 #[tauri::command]
-pub async fn list_activity_for_task(
+pub async fn list_activity_for_task(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     task_id: String,
     limit: Option<i32>,
 ) -> Result<Vec<ActivityEntry>, String> {
+    crate::auth::require_billing_tier(&auth, "tasks").await?;
+
     let db = state.db();
     let limit = limit.unwrap_or(50).clamp(1, 200);
 

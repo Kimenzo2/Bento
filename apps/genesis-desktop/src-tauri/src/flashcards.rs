@@ -156,9 +156,11 @@ async fn fetch_cards_for_deck(
 // ═══ LIST ALL DECKS ═══════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn flashcards_list(
+pub async fn flashcards_list(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<RecallDeckRow>, String> {
+    crate::auth::require_billing_tier(&auth, "flashcards").await?;
+
     ensure_flashcards_tables(&state.db()).await?;
     use sqlx::Row;
 
@@ -190,10 +192,12 @@ pub async fn flashcards_list(
 // ═══ CREATE DECK ══════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn flashcards_deck_create(
+pub async fn flashcards_deck_create(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     payload: NewDeckPayload,
 ) -> Result<RecallDeckRow, String> {
+    crate::auth::require_billing_tier(&auth, "flashcards").await?;
+
     ensure_flashcards_tables(&state.db()).await?;
     if payload.title.trim().is_empty() {
         return Err("Deck title is required.".into());
@@ -228,10 +232,12 @@ pub async fn flashcards_deck_create(
 // ═══ DELETE DECK ══════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn flashcards_deck_delete(
+pub async fn flashcards_deck_delete(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     deck_id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "flashcards").await?;
+
     ensure_flashcards_tables(&state.db()).await?;
     sqlx::query("DELETE FROM flashcard_cards WHERE deck_id = ?")
         .bind(&deck_id)
@@ -249,10 +255,12 @@ pub async fn flashcards_deck_delete(
 // ═══ CREATE CARD ══════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn flashcards_card_create(
+pub async fn flashcards_card_create(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     payload: NewCardPayload,
 ) -> Result<RecallCardRow, String> {
+    crate::auth::require_billing_tier(&auth, "flashcards").await?;
+
     ensure_flashcards_tables(&state.db()).await?;
     if payload.cue.trim().is_empty() || payload.anchor.trim().is_empty() {
         return Err("Cue and anchor are required.".into());
@@ -311,10 +319,12 @@ pub async fn flashcards_card_create(
 // ═══ GRADE CARD (SRS update) ═════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn flashcards_card_grade(
+pub async fn flashcards_card_grade(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     payload: GradeCardPayload,
 ) -> Result<RecallCardRow, String> {
+    crate::auth::require_billing_tier(&auth, "flashcards").await?;
+
     ensure_flashcards_tables(&state.db()).await?;
 
     sqlx::query(
@@ -367,10 +377,12 @@ pub async fn flashcards_card_grade(
 // ═══ TOGGLE PIN ══════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn flashcards_card_toggle_pin(
+pub async fn flashcards_card_toggle_pin(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     card_id: String,
 ) -> Result<RecallCardRow, String> {
+    crate::auth::require_billing_tier(&auth, "flashcards").await?;
+
     ensure_flashcards_tables(&state.db()).await?;
     use sqlx::Row;
 
@@ -422,10 +434,12 @@ pub async fn flashcards_card_toggle_pin(
 // ═══ ARCHIVE / RESTORE CARD ══════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn flashcards_card_archive(
+pub async fn flashcards_card_archive(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     card_id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "flashcards").await?;
+
     ensure_flashcards_tables(&state.db()).await?;
     sqlx::query("UPDATE flashcard_cards SET archived=1 WHERE id=?")
         .bind(&card_id)
@@ -436,10 +450,12 @@ pub async fn flashcards_card_archive(
 }
 
 #[tauri::command]
-pub async fn flashcards_card_restore(
+pub async fn flashcards_card_restore(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     card_id: String,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "flashcards").await?;
+
     ensure_flashcards_tables(&state.db()).await?;
     sqlx::query("UPDATE flashcard_cards SET archived=0 WHERE id=?")
         .bind(&card_id)
@@ -452,10 +468,12 @@ pub async fn flashcards_card_restore(
 // ═══ SEARCH ═══════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn flashcards_search(
+pub async fn flashcards_search(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     query: String,
 ) -> Result<Vec<RecallDeckRow>, String> {
+    crate::auth::require_billing_tier(&auth, "flashcards").await?;
+
     ensure_flashcards_tables(&state.db()).await?;
     use sqlx::Row;
 
@@ -498,10 +516,12 @@ pub async fn flashcards_search(
 // ═══ REVIEW QUEUE ═════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn flashcards_review_queue(
+pub async fn flashcards_review_queue(auth: State<'_, crate::auth::AuthManager>, 
     state: State<'_, BentoAppState>,
     deck_id: Option<String>,
 ) -> Result<Vec<RecallCardRow>, String> {
+    crate::auth::require_billing_tier(&auth, "flashcards").await?;
+
     ensure_flashcards_tables(&state.db()).await?;
     use sqlx::Row;
 

@@ -76,7 +76,6 @@
   // ── Derivation ─────────────────────────────────────────────────────────────
   const hasPowerPlan = $derived(
     $billingProfile?.activePlanCode?.toLowerCase() === "power" ||
-    $billingProfile?.activePlanCode?.toLowerCase() === "empire" ||
     $billingProfile?.billingTier?.toLowerCase() === "power"
   );
 

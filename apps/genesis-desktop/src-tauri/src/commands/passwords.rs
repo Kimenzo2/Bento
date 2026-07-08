@@ -59,7 +59,9 @@ pub struct VaultEntry {
 ///
 /// Returns an error if the crypto service is locked or not configured.
 #[tauri::command]
-pub async fn passwords_list(crypto: State<'_, CryptoService>) -> Result<Vec<VaultEntry>, String> {
+pub async fn passwords_list(auth: State<'_, crate::auth::AuthManager>, crypto: State<'_, CryptoService>) -> Result<Vec<VaultEntry>, String> {
+    crate::auth::require_billing_tier(&auth, "passwords").await?;
+
     let pool = crypto.pool("passwords").await?;
     ensure_passwords_table(&pool).await?;
 
@@ -95,10 +97,12 @@ pub async fn passwords_list(crypto: State<'_, CryptoService>) -> Result<Vec<Vaul
 
 /// Save (create or update) a password vault entry in the encrypted DB.
 #[tauri::command]
-pub async fn passwords_save(
+pub async fn passwords_save(auth: State<'_, crate::auth::AuthManager>, 
     crypto: State<'_, CryptoService>,
     entry: VaultEntry,
 ) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "passwords").await?;
+
     let pool = crypto.pool("passwords").await?;
     ensure_passwords_table(&pool).await?;
 
@@ -129,10 +133,12 @@ pub async fn passwords_save(
 
 /// Get a single password vault entry by ID.
 #[tauri::command]
-pub async fn passwords_get(
+pub async fn passwords_get(auth: State<'_, crate::auth::AuthManager>, 
     crypto: State<'_, CryptoService>,
     id: String,
 ) -> Result<Option<VaultEntry>, String> {
+    crate::auth::require_billing_tier(&auth, "passwords").await?;
+
     let pool = crypto.pool("passwords").await?;
     ensure_passwords_table(&pool).await?;
 
@@ -164,10 +170,12 @@ pub async fn passwords_get(
 
 /// Search password vault entries by site or username.
 #[tauri::command]
-pub async fn passwords_search(
+pub async fn passwords_search(auth: State<'_, crate::auth::AuthManager>, 
     crypto: State<'_, CryptoService>,
     query: String,
 ) -> Result<Vec<VaultEntry>, String> {
+    crate::auth::require_billing_tier(&auth, "passwords").await?;
+
     let pool = crypto.pool("passwords").await?;
     ensure_passwords_table(&pool).await?;
     let pattern = format!("%{}%", query);
@@ -207,7 +215,9 @@ pub async fn passwords_search(
 
 /// Delete a password vault entry by ID.
 #[tauri::command]
-pub async fn passwords_delete(crypto: State<'_, CryptoService>, id: String) -> Result<(), String> {
+pub async fn passwords_delete(auth: State<'_, crate::auth::AuthManager>, crypto: State<'_, CryptoService>, id: String) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "passwords").await?;
+
     let pool = crypto.pool("passwords").await?;
     ensure_passwords_table(&pool).await?;
 
@@ -226,10 +236,12 @@ pub async fn passwords_delete(crypto: State<'_, CryptoService>, id: String) -> R
 /// inserts all entries that don't already exist (idempotent — safe to call
 /// multiple times). Returns the count of entries migrated.
 #[tauri::command]
-pub async fn passwords_migrate_from_storage(
+pub async fn passwords_migrate_from_storage(auth: State<'_, crate::auth::AuthManager>, 
     crypto: State<'_, CryptoService>,
     entries_json: String,
 ) -> Result<usize, String> {
+    crate::auth::require_billing_tier(&auth, "passwords").await?;
+
     let entries: Vec<VaultEntry> =
         serde_json::from_str(&entries_json).map_err(|e| format!("Invalid entries JSON: {e}"))?;
 

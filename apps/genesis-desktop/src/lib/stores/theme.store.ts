@@ -1,7 +1,9 @@
-import { derived } from "svelte/store";
+import { browser } from "$app/environment";
+import { derived, readable } from "svelte/store";
 import {
   desktopThemes,
   defaultThemeId,
+  resolveThemeMode,
   type ThemeId,
   type ThemeMode,
   type ThemeTokens,
@@ -31,7 +33,22 @@ export const activeTheme = derived(themeState, ($themeState) => {
 });
 
 export const mode = derived(themeState, ($themeState) => $themeState.mode);
-export const isDark = derived(mode, ($mode) => $mode === "dark");
+
+export const systemPrefersDark = readable<boolean>(false, (set) => {
+  if (!browser) return;
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  set(mq.matches);
+  const handler = (e: MediaQueryListEvent) => set(e.matches);
+  mq.addEventListener("change", handler);
+  return () => mq.removeEventListener("change", handler);
+});
+
+export const effectiveMode = derived([mode, systemPrefersDark], ([$mode, $systemPrefersDark]) => {
+  if ($mode !== "system") return $mode;
+  return $systemPrefersDark ? "dark" : "light";
+});
+
+export const isDark = derived(effectiveMode, ($effectiveMode) => $effectiveMode === "dark");
 export const activeThemeName = derived(activeTheme, ($activeTheme) => $activeTheme.name);
 export const availableThemes = desktopThemes;
 
@@ -46,13 +63,26 @@ export function setTheme(themeId: ThemeId) {
 }
 
 export function toggleMode() {
-  return updateDesktopSettings((current) => ({
-    ...current,
-    appearance: {
-      ...current.appearance,
-      mode: current.appearance.mode === "dark" ? "light" : "dark",
-    },
-  }));
+  return updateDesktopSettings((current) => {
+    const currentMode = current.appearance.mode;
+    if (currentMode === "system") {
+      const resolved = resolveThemeMode("system");
+      return {
+        ...current,
+        appearance: {
+          ...current.appearance,
+          mode: resolved === "dark" ? "light" : "dark",
+        },
+      };
+    }
+    return {
+      ...current,
+      appearance: {
+        ...current.appearance,
+        mode: currentMode === "dark" ? "light" : "dark",
+      },
+    };
+  });
 }
 
 export function setMode(nextMode: ThemeMode) {
@@ -72,5 +102,5 @@ export function getThemeTokens(
     desktopThemes.find((entry) => entry.id === state.themeId) ??
     desktopThemes.find((entry) => entry.id === defaultThemeId) ??
     desktopThemes[0];
-  return theme.modes[state.mode];
+  return theme.modes[resolveThemeMode(state.mode)];
 }

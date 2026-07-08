@@ -52,10 +52,11 @@ use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_window_state::StateFlags;
 
 use crate::auth::AuthManager;
-use crate::cloud_backup::{
-    apply_pending_restore, backup_now, clear_service_role_key, delete_backup, get_key_state,
-    get_state, restore_backup, set_service_role_key, spawn_cloud_backup_worker, test_connection,
-};
+// Disabled: cloud backup not ready yet.
+// use crate::cloud_backup::{
+//     apply_pending_restore, backup_now, clear_service_role_key, delete_backup, get_key_state,
+//     get_state, restore_backup, set_service_role_key, spawn_cloud_backup_worker, test_connection,
+// };
 use crate::commands::{
     backup_desktop_settings, begin_background_task, clear_webview_browsing_data,
     consume_pending_deep_link, emit_main_window_event, export_content_to_file,
@@ -378,15 +379,7 @@ pub fn run() {
         write_startup_log(&format!("app_data_dir: {}", data_dir.display()));
         log_phase("phase=1 app_data_dir", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
-        // ── Phase 2: Pending restore (background, never blocks) ────────
-        t0 = Instant::now();
-        let restore_handle = app.handle().clone();
-        std::thread::spawn(move || {
-            if let Err(error) = apply_pending_restore(&restore_handle) {
-                eprintln!("[cloud-backup] pending restore skipped: {error}");
-            }
-        });
-        log_phase("phase=2 spawn_apply_pending_restore", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
+        // ── Phase 2: Pending restore (disabled — cloud backup not ready) ─
 
         // ── Phase 3: Load desktop settings + register shortcuts ────────
         t0 = Instant::now();
@@ -422,7 +415,26 @@ pub fn run() {
                         eprintln!("[window] set_resizable(true) failed: {e}");
                         write_startup_log(&format!("set_resizable(true) failed: {e}"));
                     }
+                    // Force-center + focus — ensures window is visible on the
+                    // active monitor even if window-state plugin or previous
+                    // session left it off-screen or corrupt.
+                    if let Err(e) = window.center() {
+                        eprintln!("[window] center() failed: {e}");
+                    }
+                    if let Err(e) = window.set_focus() {
+                        eprintln!("[window] set_focus() failed: {e}");
+                    }
                     eprintln!("[init] main window shown early (start_hidden=false)");
+
+                    // ── Force IPC postMessage fallback (release only) ──
+                    // Workaround for Tauri #15216: on some WebView2 versions,
+                    // fetch(ipc://...) hangs silently without triggering the
+                    // postMessage fallback. This interceptor makes the fetch
+                    // reject immediately so the built-in fallback kicks in.
+                    #[cfg(not(debug_assertions))]
+                    {
+                        let _ = window.eval(r#"(function(){var a=window.fetch;window.fetch=function(b,c){var d=typeof b==='string'?b:b&&b.url||'';return d.indexOf('ipc://')!==-1||d.indexOf('ipc.localhost')!==-1?Promise.reject(new Error('forced ipc fallback')):a.call(window,b,c)}})()"#);
+                    }
                 }
             } else {
                 eprintln!("[init] start_hidden=true, deferring main window show");
@@ -435,6 +447,12 @@ pub fn run() {
             eprintln!("[island] failed to setup island window (non-fatal): {e}");
             write_startup_log(&format!("setup_island_window failed: {e}"));
         }
+        #[cfg(not(debug_assertions))]
+        {
+            if let Some(island) = app.get_webview_window("island") {
+                let _ = island.eval(r#"(function(){var a=window.fetch;window.fetch=function(b,c){var d=typeof b==='string'?b:b&&b.url||'';return d.indexOf('ipc://')!==-1||d.indexOf('ipc.localhost')!==-1?Promise.reject(new Error('forced ipc fallback')):a.call(window,b,c)}})()"#);
+            }
+        }
         log_phase("phase=4 setup_island_window", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
         // ── Agent dock window (always pre-created so set_agent_dock_enabled
@@ -446,6 +464,12 @@ pub fn run() {
         if let Err(e) = crate::agent::setup_agent_window(app) {
             eprintln!("[agent] failed to setup agent window (non-fatal): {e}");
             write_startup_log(&format!("setup_agent_window failed: {e}"));
+        }
+        #[cfg(not(debug_assertions))]
+        {
+            if let Some(agent) = app.get_webview_window("agent") {
+                let _ = agent.eval(r#"(function(){var a=window.fetch;window.fetch=function(b,c){var d=typeof b==='string'?b:b&&b.url||'';return d.indexOf('ipc://')!==-1||d.indexOf('ipc.localhost')!==-1?Promise.reject(new Error('forced ipc fallback')):a.call(window,b,c)}})()"#);
+            }
         }
         log_phase("phase=5 setup_agent_window", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
@@ -664,7 +688,7 @@ pub fn run() {
             app.handle().clone(),
         );
 
-        spawn_cloud_backup_worker(app.handle().clone());
+        // spawn_cloud_backup_worker(app.handle().clone());
 
         crate::sleep::spawn_last_active_tracker();
         crate::sleep::spawn_sleep_monitor(app.handle().clone());
@@ -707,14 +731,14 @@ pub fn run() {
             crate::ping::ping,
             load_desktop_settings,
             save_desktop_settings,
-            get_state,
-            test_connection,
-            backup_now,
-            restore_backup,
-            delete_backup,
-            get_key_state,
-            set_service_role_key,
-            clear_service_role_key,
+            // get_state,
+            // test_connection,
+            // backup_now,
+            // restore_backup,
+            // delete_backup,
+            // get_key_state,
+            // set_service_role_key,
+            // clear_service_role_key,
             backup_desktop_settings,
             restore_desktop_settings_backup,
             write_debug_log,
@@ -820,6 +844,7 @@ pub fn run() {
             crate::auth::get_billing_profile_cached,
             crate::auth::force_refresh_billing,
             crate::auth::finalize_subscription,
+            crate::auth::get_module_required_tier,
             // AI — Completion & streaming commands
             crate::ai::ai_complete,
             crate::ai::ai_stream,

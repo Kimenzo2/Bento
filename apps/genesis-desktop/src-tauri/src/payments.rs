@@ -35,7 +35,7 @@ fn env_or_default_many(keys: &[&str], fallback: &str) -> String {
 /// Resolve a Dodo product ID from a plan code (e.g. "pro_monthly").
 fn resolve_product_id(plan: &str) -> Option<String> {
     match plan.trim().to_lowercase().as_str() {
-        "core" | "creator" | "core_monthly" => Some(env_or_default_many(
+        "core" | "core_monthly" => Some(env_or_default_many(
             &["DODO_PRODUCT_ID_CORE", "DODO_PRODUCT_ID_CORE_MONTHLY"],
             DEFAULT_DODO_PRODUCT_CORE_MONTHLY,
         )),
@@ -43,7 +43,7 @@ fn resolve_product_id(plan: &str) -> Option<String> {
             &["DODO_PRODUCT_ID_CORE_YEARLY", "DODO_PRODUCT_ID_CORE"],
             DEFAULT_DODO_PRODUCT_CORE_YEARLY,
         )),
-        "pro" | "studio" | "pro_monthly" => Some(env_or_default_many(
+        "pro" | "pro_monthly" => Some(env_or_default_many(
             &["DODO_PRODUCT_ID_PRO", "DODO_PRODUCT_ID_PRO_MONTHLY"],
             DEFAULT_DODO_PRODUCT_PRO_MONTHLY,
         )),
@@ -51,7 +51,7 @@ fn resolve_product_id(plan: &str) -> Option<String> {
             &["DODO_PRODUCT_ID_PRO_YEARLY", "DODO_PRODUCT_ID_PRO"],
             DEFAULT_DODO_PRODUCT_PRO_YEARLY,
         )),
-        "power" | "empire" | "power_monthly" => Some(env_or_default_many(
+        "power" | "power_monthly" => Some(env_or_default_many(
             &["DODO_PRODUCT_ID_POWER", "DODO_PRODUCT_ID_POWER_MONTHLY"],
             DEFAULT_DODO_PRODUCT_POWER_MONTHLY,
         )),
@@ -66,9 +66,9 @@ fn resolve_product_id(plan: &str) -> Option<String> {
 /// Tier label inferred from a plan code.
 fn tier_from_plan(plan: &str) -> &'static str {
     match plan.trim().to_lowercase().as_str() {
-        p if p.starts_with("core") || p.starts_with("creator") => "core",
-        p if p.starts_with("pro") || p.starts_with("studio") => "pro",
-        p if p.starts_with("power") || p.starts_with("empire") => "power",
+        p if p.starts_with("core") => "core",
+        p if p.starts_with("pro") => "pro",
+        p if p.starts_with("power") => "power",
         _ => "free",
     }
 }

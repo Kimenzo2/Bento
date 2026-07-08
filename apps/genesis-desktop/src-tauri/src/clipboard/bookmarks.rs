@@ -587,6 +587,9 @@ pub fn spawn_url_enrichment(
         // Generic OpenGraph fetch
         let enrichment = fetch_opengraph(&url).await;
 
+        // Compute outcome BEFORE match (match moves enrichment)
+        let enrichment_outcome = if enrichment.is_some() { "completed" } else { "failed" };
+
         match enrichment {
             Some(mut meta) => {
                 // Platform-specific enrichment
@@ -644,7 +647,7 @@ pub fn spawn_url_enrichment(
                         body: meta.og_description.clone().unwrap_or_default(),
                         tags: vec![
                             "bookmark".to_string(),
-                            platform.unwrap_or_default(),
+                            platform.as_deref().unwrap_or_default().to_string(),
                         ],
                         projects: Vec::new(),
                         kind: Some("bookmark".to_string()),
@@ -686,6 +689,9 @@ pub fn spawn_url_enrichment(
                 }
             }
         }
+
+        // Log enrichment outcome regardless of success/failure
+        eprintln!("[bookmarks] ENRICHMENT id={:.12} outcome={enrichment_outcome} platform={:?}", clip_id, platform.as_deref());
     });
 }
 
@@ -737,6 +743,7 @@ pub async fn handle_url_save(
     .map_err(|e| e.to_string())?;
 
     if let Some((existing_id, original_created_at, og_title, og_image)) = existing {
+        eprintln!("[bookmarks] RECOPY id={:.12} kind={kind} platform={:?} orig_created={original_created_at}", existing_id, platform);
         // ── Recopy detected — update existing row ──
         let _ = sqlx::query(
             r#"UPDATE clipboard_items SET
@@ -752,9 +759,12 @@ pub async fn handle_url_save(
         .await
         .map_err(|e| e.to_string())?;
 
-        // After updating, fetch and return the existing entry
+        // After updating, fetch and return the existing entry WITH enrichment fields.
+        // Previous query omitted og_title, og_image, platform, recopy_count etc.,
+        // causing from_row() to return a stripped ClipEntry where recopy_count
+        // appeared as 0 even though it was just incremented in the DB.
         let row = sqlx::query(
-            "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+            "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, og_title, og_description, og_image, og_site_name, platform, saved_timestamp_seconds, recopy_count, enrichment_status \
              FROM clipboard_items WHERE id = ?"
         )
         .bind(&existing_id)
@@ -782,6 +792,7 @@ pub async fn handle_url_save(
     }
 
     // ── New URL save ──
+    eprintln!("[bookmarks] NEW-SAVE id={:.12} kind={kind} platform={:?} is_known={is_known} url={}", id, platform, trimmed);
     let byte_size = content.len() as i64;
     let classification_json = serde_json::to_string(&classification).unwrap_or_default();
     // Use the normalized URL (without tracking params) for the preview,
@@ -795,6 +806,7 @@ pub async fn handle_url_save(
     };
 
     // Insert with normalized hash in the content_hash field for dedup,
+    eprintln!("[bookmarks] INSERT id={:.12} kind={kind} platform={:?} norm_hash={:.12}", id, platform, norm_hash);
     // but store both the original URL in content and track enrichment
     let _ = sqlx::query(
         r#"INSERT INTO clipboard_items
@@ -818,6 +830,10 @@ pub async fn handle_url_save(
     .await
     .map_err(|e| e.to_string())?;
 
+    // Build ClipEntry with REAL platform + enrichment_status so the frontend
+    // immediately shows the platform badge and knows enrichment is pending.
+    // Previously these were hardcoded to None / "none" which hid the platform
+    // badge on the initial card and confused the frontend state machine.
     let entry = crate::clipboard::ClipEntry {
         id: id.clone(),
         kind: crate::clipboard::ClipKind::from_str(&kind),
@@ -831,24 +847,25 @@ pub async fn handle_url_save(
         is_sensitive: false,
         timestamp: now,
         external_content: None,
-            og_title: None,
-            og_description: None,
-            og_image: None,
-            og_site_name: None,
-            platform: None,
-            saved_timestamp_seconds: None,
-            recopy_count: 0,
-            enrichment_status: "none".to_string(),
+        og_title: None,
+        og_description: None,
+        og_image: None,
+        og_site_name: None,
+        platform: platform.clone(),       // ← real platform, not None
+        saved_timestamp_seconds: None,
+        recopy_count: 0,
+        enrichment_status: "pending".to_string(),  // ← real status, not "none"
     };
 
     // Index in Tantivy
     crate::clipboard::index_clip_entry(app, &entry).await;
 
-    // Notify frontend
+    // Notify frontend with the correct ClipEntry
     let _ = app.emit("clipboard://new-entry", entry.clone());
 
     // Spawn async enrichment (fire-and-forget, never blocks the save)
     if is_known {
+        eprintln!("[bookmarks] SPAWN-ENRICHMENT id={:.12} platform={:?}", id, platform);
         spawn_url_enrichment(app.clone(), id, content.to_string(), platform.clone());
     } else {
         // For unknown platforms, still mark enrichment as failed immediately
