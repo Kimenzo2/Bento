@@ -42,7 +42,7 @@ pub mod window_effects;
 
 use chrono::Utc;
 use serde::Serialize;
-use std::{env, fs, panic::PanicHookInfo, sync::Arc, thread, time::{Duration, Instant}};
+use std::{env, fs, panic::PanicHookInfo, path::PathBuf, sync::Arc, thread, time::{Duration, Instant}};
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 
@@ -81,6 +81,39 @@ use crate::notes::NoteFullCache;
 use crate::runtime::DesktopRuntime;
 use crate::search::SearchService;
 use crate::session::ManagedTabSession;
+use std::sync::atomic::AtomicBool;
+
+/// Tracks whether the app started in degraded mode (e.g., in-memory DB fallback).
+/// Frontend queries this on mount to show appropriate warnings.
+struct StartupDegraded {
+    is_degraded: AtomicBool,
+    reason: std::sync::Mutex<String>,
+}
+
+impl StartupDegraded {
+    fn new() -> Self {
+        Self {
+            is_degraded: AtomicBool::new(false),
+            reason: std::sync::Mutex::new(String::new()),
+        }
+    }
+
+    fn mark(&self, reason: String) {
+        self.is_degraded.store(true, std::sync::atomic::Ordering::Release);
+        if let Ok(mut r) = self.reason.lock() {
+            *r = reason;
+        }
+    }
+}
+
+#[tauri::command]
+fn get_startup_degraded_state(state: tauri::State<'_, StartupDegraded>) -> Result<Option<String>, String> {
+    if state.is_degraded.load(std::sync::atomic::Ordering::Acquire) {
+        Ok(state.reason.lock().ok().map(|r| r.clone()))
+    } else {
+        Ok(None)
+    }
+}
 
 #[derive(Clone, Serialize)]
 struct CrashPayload {
@@ -225,16 +258,54 @@ fn queue_deep_link(app: &AppHandle, pending: &PendingDeepLink, url: String) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 #[allow(dependency_on_unit_never_type_fallback)]
+/// Maximum size for the startup log before truncation (1 MB).
+const STARTUP_LOG_MAX_BYTES: u64 = 1_048_576;
+
+/// Write a startup log line to a file in the temp directory.
+/// This survives crashes because it doesn't depend on app_data_dir.
+/// In production (no console), this is the only way to diagnose startup failures.
+/// Log is capped at 1 MB; head is truncated (tail preserved) when limit exceeded.
+fn write_startup_log(line: &str) {
+    let log_dir = std::env::temp_dir().join("bento-desktop");
+    let _ = std::fs::create_dir_all(&log_dir);
+    let log_path = log_dir.join("startup.log");
+    let ts = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S%.3f");
+
+    // Truncate if log exceeds 1 MB (keep last 512 KB)
+    if let Ok(meta) = std::fs::metadata(&log_path) {
+        if meta.len() > STARTUP_LOG_MAX_BYTES {
+            let half = STARTUP_LOG_MAX_BYTES / 2;
+            if let Ok(content) = std::fs::read_to_string(&log_path) {
+                let chars: std::vec::Vec<char> = content.chars().collect();
+                let start = chars.len().saturating_sub(half as usize);
+                let trimmed: String = chars[start..].iter().collect();
+                let _ = std::fs::write(&log_path, &trimmed);
+            }
+        }
+    }
+
+    let _ = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_path)
+        .and_then(|mut f| {
+            use std::io::Write;
+            writeln!(f, "[{ts}] {line}")
+        });
+}
+
 pub fn run() {
     configure_webview2_user_data_folder();
     load_desktop_env();
+    write_startup_log("Bento Desktop starting...");
 
     let mut builder = tauri::Builder::default()
         .manage(PendingDeepLink::default())
         .manage(DashboardCache::new())
         .manage(Arc::new(NoteFullCache::new()))
         .manage(Arc::new(HistoryRegistry::new()))
-        .manage(ManagedTabSession::new());
+        .manage(ManagedTabSession::new())
+        .manage(StartupDegraded::new());
 
     #[cfg(not(debug_assertions))]
     {
@@ -277,22 +348,37 @@ pub fn run() {
         builder = builder.plugin(tauri_plugin_deep_link::init());
     }
 
-    builder = builder.setup(|app| {
-        let mut t0 = Instant::now();
-        install_runtime_panic_hook(app.handle().clone());
-        eprintln!("[init] phase=0 install_runtime_panic_hook  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
-
-        t0 = Instant::now();
-        let data_dir = match app.path().app_data_dir() {
+    fn setup_data_dir(app: &AppHandle) -> PathBuf {
+        match app.path().app_data_dir() {
             Ok(d) => d,
             Err(e) => {
-                eprintln!("[init] FATAL: cannot resolve app_data_dir: {e}");
-                return Err(std::io::Error::other(e).into());
+                let fallback = std::env::temp_dir().join("bento-desktop").join("data");
+                eprintln!("[init] WARN: app_data_dir failed ({e}), using {}", fallback.display());
+                write_startup_log(&format!("app_data_dir failed, fallback: {}", fallback.display()));
+                let _ = std::fs::create_dir_all(&fallback);
+                fallback
             }
-        };
-        eprintln!("[init] phase=1 app_data_dir  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+        }
+    }
 
-        // ── Pending restore: run on background thread so it never blocks startup ──
+    builder = builder.setup(|app| {
+        // ── Phase 0: Panic hook (always first) ──────────────────────────
+        let mut t0 = Instant::now();
+        install_runtime_panic_hook(app.handle().clone());
+        let log_phase = |phase: &str, elapsed: &str| {
+            let msg = format!("[init] {phase}  +{elapsed}ms");
+            eprintln!("{msg}");
+            write_startup_log(&msg);
+        };
+        log_phase("phase=0 install_runtime_panic_hook", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
+
+        // ── Phase 1: App data directory (non-fatal — temp dir fallback) ─
+        t0 = Instant::now();
+        let data_dir = setup_data_dir(app.handle());
+        write_startup_log(&format!("app_data_dir: {}", data_dir.display()));
+        log_phase("phase=1 app_data_dir", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
+
+        // ── Phase 2: Pending restore (background, never blocks) ────────
         t0 = Instant::now();
         let restore_handle = app.handle().clone();
         std::thread::spawn(move || {
@@ -300,59 +386,56 @@ pub fn run() {
                 eprintln!("[cloud-backup] pending restore skipped: {error}");
             }
         });
-        eprintln!("[init] phase=2 spawn_apply_pending_restore  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+        log_phase("phase=2 spawn_apply_pending_restore", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
+        // ── Phase 3: Load desktop settings + register shortcuts ────────
         t0 = Instant::now();
         let settings = settings::load_desktop_settings(app.handle());
         app.manage(DesktopRuntime::new(settings.clone()));
         if let Err(e) = settings::apply_configured_shortcuts(app.handle(), &settings) {
             eprintln!("[init] apply_configured_shortcuts failed: {e}");
+            write_startup_log(&format!("apply_configured_shortcuts failed: {e}"));
         }
-        eprintln!("[init] phase=3 load_desktop_settings  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+        log_phase("phase=3 load_desktop_settings", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
-        // ── Native window frame (border + shadow, custom titlebar) ──────
-        // TEST: commenting out configure_native_frame to isolate input death
-        // t0 = Instant::now();
-        // if let Some(_ww) = app.get_webview_window("main") {
-        //     #[cfg(target_os = "windows")]
-        //     if let Err(e) = crate::window_effects::configure_native_frame(&_ww) {
-        //         eprintln!("[window] native frame setup failed: {e}");
-        //     }
-        //
-        //     #[cfg(target_os = "macos")]
-        //     crate::window_effects::configure_macos_titlebar(&_ww).unwrap_or_else(|e| {
-        //         eprintln!("[window] macOS titlebar setup failed: {e}");
-        //     });
-        // }
-        // eprintln!("[init] phase=4 native_window_frame  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
-
-        // ── Show main window early for perceived launch speed ─────────
-        // Before DB init (phase 9) which may take seconds, show the window
-        // so the user sees the app launching. Respect start_hidden setting.
+        // ── Show main window early (before DB init, for perceived speed) ─
+        // Uses set_resizable toggle as Tauri #11856 workaround for Windows
+        // input death after showing a hidden window.
         if let Some(window) = app.get_webview_window("main") {
             if !settings.window.start_hidden {
                 if let Err(e) = window.set_background_color(Some(tauri::webview::Color(23, 23, 23, 255))) {
                     eprintln!("[window] set_background_color failed: {e}");
                 }
-                let _ = window.show();
-                // Workaround for Tauri #11856: visible(false) + show() kills
-                // all input on Windows. Toggling resizable re-enables it.
-                let _ = window.set_resizable(false);
-                let _ = window.set_resizable(true);
-                eprintln!("[init] main window shown early (start_hidden=false)");
+                // Tauri #11856 workaround: toggle resizable AFTER show() to
+                // prevent input death on Windows. Must happen before any IPC.
+                if let Err(e) = window.show() {
+                    eprintln!("[window] show() failed: {e}");
+                    write_startup_log(&format!("window.show() failed: {e}"));
+                } else {
+                    // Tauri #11856: visible(false) + show() kills input on Windows.
+                    // Toggling resizable re-enables it. Log failures for diagnostics.
+                    if let Err(e) = window.set_resizable(false) {
+                        eprintln!("[window] set_resizable(false) failed: {e}");
+                        write_startup_log(&format!("set_resizable(false) failed: {e}"));
+                    }
+                    if let Err(e) = window.set_resizable(true) {
+                        eprintln!("[window] set_resizable(true) failed: {e}");
+                        write_startup_log(&format!("set_resizable(true) failed: {e}"));
+                    }
+                    eprintln!("[init] main window shown early (start_hidden=false)");
+                }
             } else {
                 eprintln!("[init] start_hidden=true, deferring main window show");
             }
-
-
         }
 
         // ── Dynamic Island overlay window ────────────────────────────
         t0 = Instant::now();
         if let Err(e) = crate::island::setup_island_window(app) {
             eprintln!("[island] failed to setup island window (non-fatal): {e}");
+            write_startup_log(&format!("setup_island_window failed: {e}"));
         }
-        eprintln!("[init] phase=4 setup_island_window  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+        log_phase("phase=4 setup_island_window", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
         // ── Agent dock window (always pre-created so set_agent_dock_enabled
         //     never triggers WebviewWindowBuilder::build() on a background
@@ -362,19 +445,21 @@ pub fn run() {
         t0 = Instant::now();
         if let Err(e) = crate::agent::setup_agent_window(app) {
             eprintln!("[agent] failed to setup agent window (non-fatal): {e}");
+            write_startup_log(&format!("setup_agent_window failed: {e}"));
         }
-        eprintln!("[init] phase=5 setup_agent_window  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+        log_phase("phase=5 setup_agent_window", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
         // ── System tray icon ─────────────────────────────────────────
         t0 = Instant::now();
         if settings.agent_dock_enabled {
             if let Err(e) = crate::agent::setup_tray(app) {
                 eprintln!("[agent] failed to setup tray icon (non-fatal): {e}");
+                write_startup_log(&format!("setup_tray failed: {e}"));
             }
         } else {
             eprintln!("[agent] tray disabled via settings, skipping");
         }
-        eprintln!("[init] phase=6 setup_tray  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+        log_phase("phase=6 setup_tray", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
         // ── Global shortcut: Ctrl+Shift+A → toggle agent ──
         // Registered even when agent dock is disabled so the shortcut always works.
@@ -393,21 +478,47 @@ pub fn run() {
                 },
             ) {
                 Ok(_) => eprintln!("[shortcut] registered Ctrl+Shift+A for agent toggle"),
-                Err(e) => eprintln!("[shortcut] failed to register agent shortcut: {e}"),
+                Err(e) => {
+                    eprintln!("[shortcut] failed to register agent shortcut: {e}");
+                    write_startup_log(&format!("register agent shortcut failed: {e}"));
+                }
             }
         }
-        eprintln!("[init] phase=7 register_shortcut_agent_toggle  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+        log_phase("phase=7 register_shortcut_agent_toggle", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
-        // ── Database ──────────────────────────────────────────────────
+        // ── Database (always succeeds — in-memory fallback on fatal error) ─
         t0 = Instant::now();
         let db = match tauri::async_runtime::block_on(db::init_db(app.handle())) {
             Ok(db) => {
-                eprintln!("[init] phase=8 init_db  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+                eprintln!("[init] phase=8 init_db OK  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+                write_startup_log(&format!("init_db OK"));
                 db
             }
             Err(error) => {
-                eprintln!("[init] phase=8 db_init_failed after {:.2}ms: {error}", t0.elapsed().as_secs_f64() * 1000.0);
-                return Err(std::io::Error::other(error).into());
+                let elapsed = t0.elapsed().as_secs_f64() * 1000.0;
+                let msg = format!("init_db FAILED after {elapsed:.2}ms: {error}");
+                eprintln!("[init] {msg}");
+                write_startup_log(&msg);
+                // In-memory fallback: BentoAppState always needs a valid pool
+                eprintln!("[init] using in-memory DB fallback (degraded mode)");
+                write_startup_log("using in-memory DB fallback (degraded mode)");
+                let _ = app.emit("bento://startup-degraded", serde_json::json!({
+                    "reason": "db_init_failed",
+                    "detail": &msg,
+                }));
+                if let Some(degraded) = app.try_state::<StartupDegraded>() {
+                    degraded.mark(format!("DB init failed: {}", msg.lines().next().unwrap_or(&msg)));
+                }
+                match tauri::async_runtime::block_on(db::init_in_memory_db()) {
+                    Ok(fallback) => {
+                        fallback
+                    }
+                    Err(fatal) => {
+                        eprintln!("[init] FATAL: in-memory DB also failed: {fatal}");
+                        write_startup_log(&format!("FATAL: in-memory DB also failed: {fatal}"));
+                        return Err(std::io::Error::other(fatal).into());
+                    }
+                }
             }
         };
         app.manage(BentoAppState::new(db));
@@ -416,7 +527,7 @@ pub fn run() {
         t0 = Instant::now();
         let crypto = CryptoService::new(data_dir.clone());
         app.manage(crypto.clone());
-        eprintln!("[init] phase=9 crypto_service  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+        log_phase("phase=9 crypto_service", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
         // ── Voice Engine audio state ────────────────────────────────
         t0 = Instant::now();
@@ -428,13 +539,13 @@ pub fn run() {
             );
             app.manage(audio_state);
         }
-        eprintln!("[init] phase=10 audio_state  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+        log_phase("phase=10 audio_state", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
         // ── Media player audio state ────────────────────────────────
         t0 = Instant::now();
         crate::media_player::init_audio_state();
         crate::media_player::setup_audio_monitoring(app.handle().clone());
-        eprintln!("[init] phase=11 media_player  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+        log_phase("phase=11 media_player", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
         // ── Global shortcut: Ctrl+Shift+D → toggle island ──
         t0 = Instant::now();
@@ -449,34 +560,73 @@ pub fn run() {
                     }
                 }) {
                 Ok(_) => eprintln!("[shortcut] registered Ctrl+Shift+D for island toggle"),
-                Err(e) => eprintln!("[shortcut] failed to register island shortcut: {e}"),
+                Err(e) => {
+                    eprintln!("[shortcut] failed to register island shortcut: {e}");
+                    write_startup_log(&format!("register island shortcut failed: {e}"));
+                }
             }
         }
-        eprintln!("[init] phase=12 register_shortcut_island_toggle  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+        log_phase("phase=12 register_shortcut_island_toggle", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
+        // ── Search service (non-fatal — temp dir fallback) ──────────
         t0 = Instant::now();
         let search_base_dir = match app.path().app_data_dir() {
             Ok(d) => d,
             Err(e) => {
-                eprintln!("[init] FATAL: cannot resolve app_data_dir for search: {e}");
-                return Err(std::io::Error::other(e).into());
+                eprintln!("[init] WARN: app_data_dir unavailable for search, using temp fallback: {e}");
+                write_startup_log(&format!("search fallback: {e}"));
+                std::env::temp_dir().join("bento-desktop").join("search")
             }
         };
-        let search_service =
-            SearchService::new(search_base_dir).map_err(|error| std::io::Error::other(error))?;
-        app.manage(search_service);
-        eprintln!("[init] phase=13 search_service  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
-
-        t0 = Instant::now();
-        let auth_manager = match AuthManager::new(data_dir.clone()) {
-            Ok(am) => am,
+        match SearchService::new(search_base_dir) {
+            Ok(service) => {
+                app.manage(service);
+                log_phase("phase=13 search_service OK", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
+            }
             Err(e) => {
-                eprintln!("[init] auth_manager failed: {e}");
-                return Err(std::io::Error::other(e).into());
+                let msg = format!("search_service FAILED on primary dir: {e}");
+                eprintln!("[init] {msg}");
+                write_startup_log(&msg);
+                // Retry with temp dir fallback so State<SearchService> never panics
+                eprintln!("[init] search_service degraded (using temp fallback)");
+                write_startup_log("search_service degraded (using temp fallback)");
+                let _ = app.emit("bento://startup-degraded", serde_json::json!({
+                    "reason": "search_fallback",
+                    "detail": &msg,
+                }));
+                if let Some(degraded) = app.try_state::<StartupDegraded>() {
+                    degraded.mark(format!("Search init failed: {}", msg.lines().next().unwrap_or(&msg)));
+                }
+                let fallback = std::env::temp_dir().join("bento-desktop").join("search-fallback");
+                match SearchService::new(fallback) {
+                    Ok(service) => {
+                        eprintln!("[init] search_service OK on temp fallback");
+                        write_startup_log("search_service OK on temp fallback");
+                        app.manage(service);
+                    }
+                    Err(e2) => {
+                        eprintln!("[init] search_service ALSO failed on temp fallback: {e2}");
+                        write_startup_log(&format!("search_service fallback also failed: {e2}"));
+                    }
+                }
+                log_phase("phase=13 search_service fallback", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
             }
-        };
-        app.manage(auth_manager);
-        eprintln!("[init] phase=14 auth_manager  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+        }
+
+        // ── Auth manager (non-fatal — bundled fallback should always work) ─
+        t0 = Instant::now();
+        match AuthManager::new(data_dir.clone()) {
+            Ok(am) => {
+                app.manage(am);
+                log_phase("phase=14 auth_manager OK", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
+            }
+            Err(e) => {
+                let msg = format!("auth_manager FAILED: {e}");
+                eprintln!("[init] {msg}");
+                write_startup_log(&msg);
+                log_phase("phase=14 auth_manager FAILED (skipped)", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
+            }
+        }
 
         t0 = Instant::now();
         #[cfg(not(debug_assertions))]
@@ -506,7 +656,7 @@ pub fn run() {
                 queue_deep_link(app.handle(), &pending, url);
             }
         }
-        eprintln!("[init] phase=15 production_deep_link_setup  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+        log_phase("phase=15 production_deep_link_setup", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
         t0 = Instant::now();
         crate::scheduler::spawn_scheduler_worker(
@@ -544,8 +694,9 @@ pub fn run() {
                 }
             });
         }
-        eprintln!("[init] phase=16 background_workers  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+        log_phase("phase=16 background_workers", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
+        write_startup_log("setup complete — app is running");
         eprintln!("[init] phase=17 setup_complete");
 
         Ok(())
@@ -1033,10 +1184,13 @@ pub fn run() {
             crate::agent::set_agent_dock_enabled,
             crate::island::focus_main_window,
             crate::island::voice_set_island_state,
+            get_startup_degraded_state,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|error| {
-            eprintln!("[startup] error while running tauri application: {error}");
+            let msg = format!("FATAL: Tauri run failed: {error}");
+            eprintln!("[startup] {msg}");
+            write_startup_log(&msg);
             std::process::exit(1);
         });
 }

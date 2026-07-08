@@ -23,6 +23,7 @@ import { time } from "$lib/utils/time";
   import Link2Icon         from "@lucide/svelte/icons/link-2";
   import CodeIcon          from "@lucide/svelte/icons/code";
   import TypeIcon          from "@lucide/svelte/icons/type";
+  import BookmarkIcon       from "@lucide/svelte/icons/bookmark";
   import StarIcon          from "@lucide/svelte/icons/star";
   import XIcon             from "@lucide/svelte/icons/x";
   import ZoomInIcon        from "@lucide/svelte/icons/zoom-in";
@@ -32,11 +33,11 @@ import { time } from "$lib/utils/time";
 
 
   const moduleId = "clipboard";
-  const sectionLabels = ["History", "Pinned", "Snippets", "Images", "Sensitive", "Settings"] as const;
+  const sectionLabels = ["History", "Pinned", "Bookmarks", "Snippets", "Images", "Sensitive", "Settings"] as const;
   let selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
 
   // ── Types ─────────────────────────────────────────────────────────
-  type ClipKind = "text" | "code" | "link" | "image" | "sensitive" | "html";
+  type ClipKind = "text" | "code" | "link" | "bookmark" | "image" | "sensitive" | "html";
 
   interface ClipEntry {
     id: string;
@@ -51,6 +52,15 @@ import { time } from "$lib/utils/time";
     revealed: boolean;
     source?: string;
     byteSize?: number;
+    // ── Bookmark enrichment fields ──
+    ogTitle?: string;
+    ogDescription?: string;
+    ogImage?: string;
+    ogSiteName?: string;
+    platform?: string;
+    savedTimestampSeconds?: number;
+    recopyCount?: number;
+    enrichmentStatus?: string;
   }
 
   // ── State ─────────────────────────────────────────────────────────
@@ -79,6 +89,7 @@ import { time } from "$lib/utils/time";
     const pool = searchResults ?? clips;
     let filtered = pool;
     if (selectedSection === "Pinned")   filtered = filtered.filter(c => c.pinned);
+    else if (selectedSection === "Bookmarks") filtered = filtered.filter(c => c.kind === "bookmark");
     else if (selectedSection === "Images")   filtered = filtered.filter(c => c.kind === "image");
     else if (selectedSection === "Snippets") filtered = filtered.filter(c => c.kind === "text" || c.kind === "code" || c.kind === "html");
     else if (selectedSection === "Sensitive") filtered = filtered.filter(c => c.isSensitive);
@@ -132,7 +143,7 @@ import { time } from "$lib/utils/time";
   function kindColor(kind: ClipKind): string {
     const map: Record<ClipKind, string> = {
       text: "var(--cb-ink)", code: "var(--cb-code)", link: "var(--cb-link)",
-      image: "var(--cb-image)", sensitive: "var(--cb-sensitive)", html: "var(--cb-code)",
+      bookmark: "#774fc4", image: "var(--cb-image)", sensitive: "var(--cb-sensitive)", html: "var(--cb-code)",
     };
     return map[kind];
   }
@@ -140,16 +151,58 @@ import { time } from "$lib/utils/time";
   function kindIcon(kind: ClipKind) {
     const map: Record<ClipKind, any> = {
       text: TypeIcon, code: CodeIcon, link: Link2Icon,
-      image: ImageIcon, sensitive: ShieldIcon, html: CodeIcon,
+      bookmark: BookmarkIcon, image: ImageIcon, sensitive: ShieldIcon, html: CodeIcon,
     };
     return map[kind];
   }
 
   function kindLabel(kind: ClipKind): string {
     const map: Record<ClipKind, string> = {
-      text: "Text", code: "Code", link: "Link", image: "Image", sensitive: "Sensitive", html: "HTML",
+      text: "Text", code: "Code", link: "Link", bookmark: "Bookmark", image: "Image", sensitive: "Sensitive", html: "HTML",
     };
     return map[kind];
+  }
+
+  // ── Platform badge helpers ────────────────────────────────────────
+  const PLATFORM_LABELS: Record<string, string> = {
+    x: "X", twitter: "X", youtube: "YouTube", reddit: "Reddit",
+    threads: "Threads", instagram: "Instagram", tiktok: "TikTok",
+    cosmos: "Cosmos", arena: "Are.na", "are.na": "Are.na",
+    linkedin: "LinkedIn", github: "GitHub", other: "",
+  };
+
+  function platformLabel(p: string | undefined): string {
+    return p ? (PLATFORM_LABELS[p] ?? p.charAt(0).toUpperCase() + p.slice(1)) : "";
+  }
+
+  function bookmarkTitle(entry: ClipEntry): string {
+    if (entry.ogTitle) return entry.ogTitle;
+    // Fallback: use preview or content as title
+    const content = entry.preview ?? entry.content;
+    return content.length > 120 ? content.slice(0, 117) + "…" : content;
+  }
+
+  function openUrl(content: string) {
+    try {
+      const url = new URL(content.trim());
+      window.open(url.href, "_blank");
+    } catch {}
+  }
+
+  function platformColor(p: string | undefined): string {
+    const colors: Record<string, string> = {
+      x: "#000", twitter: "#000", youtube: "#FF0000", reddit: "#FF4500",
+      threads: "#000", instagram: "#FF0076", tiktok: "#000",
+      cosmos: "#6C5CE7", arena: "#000", "are.na": "#000",
+      linkedin: "#0A66C2", github: "#181717",
+    };
+    return p ? (colors[p] ?? "#787873") : "#787873";
+  }
+
+  function bookmarkAlt(entry: ClipEntry): string {
+    if (entry.ogTitle) return entry.ogTitle;
+    const pf = entry.platform ? entry.platform : "the web";
+    return "Bookmark from " + pf;
   }
 
   // ── Image path cache ────────────────────────────────────────────
@@ -310,6 +363,17 @@ import { time } from "$lib/utils/time";
         if (flushTimer) clearTimeout(flushTimer);
         flushTimer = setTimeout(flushPending, 200);
       });
+      // Listen for enrichment completion to update bookmark cards in-place
+      const unlistenEnrich = await listen<ClipEntry>("clipboard://enrichment-complete", (event) => {
+        const enriched = event.payload;
+        const idx = clips.findIndex(c => c.id === enriched.id);
+        if (idx !== -1) {
+          clips[idx] = { ...clips[idx], ...enriched };
+        }
+      });
+      // Chain cleanup
+      const origUnlisten = unlisten;
+      unlisten = () => { origUnlisten?.(); unlistenEnrich(); };
     } catch { /* silent */ }
   }
 
@@ -391,6 +455,7 @@ import { time } from "$lib/utils/time";
     const map: Record<string, string> = {
       History: "Browse everything you've copied. Use ↑↓ to navigate, ↵ to copy, and search to find anything.",
       Pinned: "Your most important clips — pinned items never get cleared and are always one click away.",
+      Bookmarks: "Posts, articles, and links saved from across the web — with rich previews from X, YouTube, Reddit, and more.",
       Snippets: "Reusable text and code snippets. Perfect for templates, signatures, and common patterns.",
       Images: "Every image you've copied, displayed in a beautiful grid for quick visual browsing.",
       Sensitive: "Credentials, keys, and sensitive content — hidden by default, revealed on demand.",
@@ -414,7 +479,7 @@ import { time } from "$lib/utils/time";
         <p>{pageDesc}</p>
       </div>
       <div class="cb-shell__actions">
-        {#if selectedSection === "History" || selectedSection === "Pinned" || selectedSection === "Snippets"}
+        {#if selectedSection === "History" || selectedSection === "Pinned" || selectedSection === "Bookmarks" || selectedSection === "Snippets"}
           <div class="cb-shell__search" data-cb-search>
             <SearchIcon size={14} class="cb-shell__search-icon" />
               <input
@@ -431,7 +496,7 @@ import { time } from "$lib/utils/time";
             {/if}
           </div>
         {/if}
-        {#if selectedSection === "History" || selectedSection === "Pinned" || selectedSection === "Snippets"}
+        {#if selectedSection === "History" || selectedSection === "Pinned" || selectedSection === "Bookmarks" || selectedSection === "Snippets"}
           <Button variant="outline" onclick={clearAll} disabled={loading}>
             <Trash2Icon data-icon="inline-start" size={14} />
             Clear
@@ -662,6 +727,82 @@ import { time } from "$lib/utils/time";
             <ImageIcon size={32} />
             <p>No images in clipboard history</p>
             <span>Copy an image to your clipboard and it will appear here.</span>
+          </div>
+        {/if}
+
+      {:else if selectedSection === "Bookmarks"}
+        <!-- ─── BOOKMARKS (Pinterest masonry) ─── -->
+        {#if filtered.length > 0}
+          <div class="cb-bookmark-grid" onscroll={onListScroll}>
+            {#each filtered as clip (clip.id)}
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <div
+                class="cb-pin-card"
+                onclick={() => openUrl(clip.content)}
+                role="button"
+                tabindex="0"
+                onkeydown={(e) => { if (e.key === 'Enter') openUrl(clip.content); }}
+              >
+                <div class="cb-pin-card__image-wrapper" style="background:{platformColor(clip.platform)}">
+                  {#if clip.ogImage}
+                    <img
+                      src={clip.ogImage}                        alt={bookmarkAlt(clip)}
+                      loading="lazy"
+                      draggable="false"
+                      onerror={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  {:else}
+                    <div class="cb-pin-card__img-placeholder">
+                      <BookmarkIcon size={28} />
+                    </div>
+                  {/if}
+                  <!-- Platform badge overlay (top-left, like Pinterest pin badge) -->
+                  {#if clip.platform && clip.platform !== "other"}
+                    <div class="cb-pin-card__badge" data-platform={clip.platform}>
+                      {platformLabel(clip.platform)}
+                    </div>
+                  {/if}
+                  <!-- Hover actions -->
+                  <div class="cb-pin-card__actions">
+                    <button
+                      class="cb-pin-card__action"
+                      onclick={(e) => { e.stopPropagation(); void deleteClip(clip.id); }}
+                      aria-label="Delete bookmark"
+                      title="Delete"
+                    >
+                      <Trash2Icon size={12} />
+                    </button>
+                  </div>
+                </div>
+                <div class="cb-pin-card__footer">
+                  <h2 class="cb-pin-card__title" title={bookmarkTitle(clip)}>
+                    {bookmarkTitle(clip)}
+                  </h2>
+                  <div class="cb-pin-card__meta">
+                    <span>
+                      {#if clip.platform && clip.platform !== "other"}
+                        From {platformLabel(clip.platform)}
+                      {/if}
+                      · {time.elapsed(Date.now() - clip.timestamp)}
+                    </span>
+                    {#if clip.recopyCount && clip.recopyCount > 1}
+                      <span class="cb-pin-card__recopy">Recopied {clip.recopyCount}×</span>
+                    {/if}
+                  </div>
+                </div>
+              </div>
+            {/each}
+            {#if loadingMore}
+              <p class="cb-muted" style="grid-column:1/-1;padding:20px;text-align:center">Loading more…</p>
+            {:else if !hasMore && filtered.length >= 200}
+              <p class="cb-muted" style="grid-column:1/-1;padding:20px;text-align:center;opacity:0.5">All bookmarks loaded</p>
+            {/if}
+          </div>
+        {:else}
+          <div class="cb-bookmark-empty">
+            <BookmarkIcon size={32} />
+            <p>No bookmarks yet</p>
+            <span>Copy a link from X, YouTube, Reddit, or any supported platform and it will appear here automatically as a rich bookmark card with preview thumbnail.</span>
           </div>
         {/if}
 

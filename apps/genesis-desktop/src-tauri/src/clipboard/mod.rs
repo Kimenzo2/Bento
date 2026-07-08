@@ -30,6 +30,8 @@ use crate::db::BentoAppState;
 use crate::search::{SearchDocument, SearchService};
 use crate::util::time;
 
+pub mod bookmarks;
+
 // ─── Instrumentation ─────────────────────────────────────────────────────────
 fn log_timing(category: &str, op: &str, start: Instant, detail: impl std::fmt::Display) {
     let ms = start.elapsed().as_secs_f64() * 1000.0;
@@ -229,6 +231,7 @@ pub enum ClipKind {
     Text,
     Code,
     Link,
+    Bookmark,
     Image,
     Html,
     Sensitive,
@@ -240,6 +243,7 @@ impl ClipKind {
             ClipKind::Text => "text",
             ClipKind::Code => "code",
             ClipKind::Link => "link",
+            ClipKind::Bookmark => "bookmark",
             ClipKind::Image => "image",
             ClipKind::Html => "html",
             ClipKind::Sensitive => "sensitive",
@@ -250,6 +254,7 @@ impl ClipKind {
         match s {
             "code" => ClipKind::Code,
             "link" => ClipKind::Link,
+            "bookmark" => ClipKind::Bookmark,
             "image" => ClipKind::Image,
             "html" => ClipKind::Html,
             "sensitive" => ClipKind::Sensitive,
@@ -277,6 +282,23 @@ pub struct ClipEntry {
     pub timestamp: i64,
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub external_content: Option<bool>,
+    // ── Bookmark enrichment fields ──
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub og_title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub og_description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub og_image: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub og_site_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub platform: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub saved_timestamp_seconds: Option<i64>,
+    #[serde(default)]
+    pub recopy_count: i64,
+    #[serde(default)]
+    pub enrichment_status: String,
 }
 
 impl ClipEntry {
@@ -304,6 +326,14 @@ impl ClipEntry {
             is_sensitive: row.try_get::<i64, _>("is_sensitive").unwrap_or(0) == 1,
             timestamp: row.try_get("created_at").unwrap_or(0),
             external_content: None,
+            og_title: row.try_get("og_title").ok().filter(|s: &String| !s.is_empty()),
+            og_description: row.try_get("og_description").ok().filter(|s: &String| !s.is_empty()),
+            og_image: row.try_get("og_image").ok().filter(|s: &String| !s.is_empty()),
+            og_site_name: row.try_get("og_site_name").ok().filter(|s: &String| !s.is_empty()),
+            platform: row.try_get("platform").ok().filter(|s: &String| !s.is_empty()),
+            saved_timestamp_seconds: row.try_get("saved_timestamp_seconds").ok(),
+            recopy_count: row.try_get("recopy_count").unwrap_or(0),
+            enrichment_status: row.try_get("enrichment_status").unwrap_or_else(|_| "none".to_string()),
         }
     }
 }
@@ -353,6 +383,17 @@ pub async fn ensure_clipboard_tables(pool: &sqlx::SqlitePool) -> Result<(), Stri
         // Column migrations for schema upgrades (safe to ignore errors)
         r#"ALTER TABLE clipboard_items ADD COLUMN content_hash TEXT NOT NULL DEFAULT ''"#,
         r#"ALTER TABLE clipboard_items ADD COLUMN content_path TEXT"#,
+        // Bookmarking Layer columns
+        r#"ALTER TABLE clipboard_items ADD COLUMN url_classification TEXT NOT NULL DEFAULT '{}'"#,
+        r#"ALTER TABLE clipboard_items ADD COLUMN enrichment_status TEXT NOT NULL DEFAULT 'none'"#,
+        r#"ALTER TABLE clipboard_items ADD COLUMN og_title TEXT"#,
+        r#"ALTER TABLE clipboard_items ADD COLUMN og_description TEXT"#,
+        r#"ALTER TABLE clipboard_items ADD COLUMN og_image TEXT"#,
+        r#"ALTER TABLE clipboard_items ADD COLUMN og_site_name TEXT"#,
+        r#"ALTER TABLE clipboard_items ADD COLUMN recopy_count INTEGER NOT NULL DEFAULT 0"#,
+        r#"ALTER TABLE clipboard_items ADD COLUMN last_recopied_at INTEGER"#,
+        r#"ALTER TABLE clipboard_items ADD COLUMN saved_timestamp_seconds INTEGER"#,
+        r#"ALTER TABLE clipboard_items ADD COLUMN platform TEXT"#,
     ];
 
     for migration in &migrations {
@@ -518,7 +559,7 @@ fn is_sensitive_content(content: &str) -> bool {
     SENSITIVE_PATTERNS.iter().any(|re| re.is_match(content))
 }
 
-/// Generate a preview string from full content.
+// ─── Generate a preview string from full content.
 /// Uses char-boundary safe truncation to avoid UTF-8 panics.
 fn make_preview(content: &str, kind: &ClipKind) -> String {
     match kind {
@@ -651,7 +692,7 @@ pub async fn clipboard_list(
     let offset = offset.unwrap_or(0) as i64;
 
     let mut qb = sqlx::query_builder::QueryBuilder::new(
-        "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+        "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, og_title, og_description, og_image, og_site_name, platform, saved_timestamp_seconds, recopy_count, enrichment_status \
          FROM clipboard_items WHERE 1=1"
     );
 
@@ -702,7 +743,7 @@ pub async fn clipboard_get(
 ) -> Result<Option<ClipEntry>, String> {
     let pool = state.db();
     let row = sqlx::query(
-        "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+        "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, og_title, og_description, og_image, og_site_name, platform, saved_timestamp_seconds, recopy_count, enrichment_status \
          FROM clipboard_items WHERE id = ?"
     )
     .bind(&id)
@@ -789,7 +830,7 @@ pub async fn clipboard_save(
             .map_err(|e| e.to_string())?;
 
         let row = sqlx::query(
-            "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+            "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, og_title, og_description, og_image, og_site_name, platform, saved_timestamp_seconds, recopy_count, enrichment_status \
              FROM clipboard_items WHERE content_hash = ?"
         )
         .bind(&hash)
@@ -817,6 +858,14 @@ pub async fn clipboard_save(
         is_sensitive: is_sensitive == 1,
         timestamp: now,
         external_content: None,
+        og_title: None,
+        og_description: None,
+        og_image: None,
+        og_site_name: None,
+        platform: None,
+        saved_timestamp_seconds: None,
+        recopy_count: 0,
+        enrichment_status: "none".to_string(),
     };
 
     // Index in Tantivy
@@ -847,7 +896,7 @@ pub async fn clipboard_pin(
         .map_err(|e| e.to_string())?;
 
     let row = sqlx::query(
-        "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+        "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, og_title, og_description, og_image, og_site_name, platform, saved_timestamp_seconds, recopy_count, enrichment_status \
          FROM clipboard_items WHERE id = ?"
     )
     .bind(&id)
@@ -888,7 +937,7 @@ pub async fn clipboard_toggle_pin(
 
             // Re-index to update pinned status in Tantivy
             let row = sqlx::query(
-                "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+                "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, og_title, og_description, og_image, og_site_name, platform, saved_timestamp_seconds, recopy_count, enrichment_status \
                  FROM clipboard_items WHERE id = ?"
             )
             .bind(&id)
@@ -922,7 +971,7 @@ pub async fn clipboard_favorite(
         .map_err(|e| e.to_string())?;
 
     let row = sqlx::query(
-        "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+        "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, og_title, og_description, og_image, og_site_name, platform, saved_timestamp_seconds, recopy_count, enrichment_status \
          FROM clipboard_items WHERE id = ?"
     )
     .bind(&id)
@@ -962,7 +1011,7 @@ pub async fn clipboard_toggle_favorite(
                 .map_err(|e| e.to_string())?;
 
             let row = sqlx::query(
-                "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+                "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, og_title, og_description, og_image, og_site_name, platform, saved_timestamp_seconds, recopy_count, enrichment_status \
                  FROM clipboard_items WHERE id = ?"
             )
             .bind(&id)
@@ -1182,7 +1231,7 @@ pub async fn clipboard_search(
                     let mut entries = Vec::with_capacity(ids.len());
                     for id in &ids {
                         if let Ok(row) = sqlx::query(
-                            "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+                            "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, og_title, og_description, og_image, og_site_name, platform, saved_timestamp_seconds, recopy_count, enrichment_status \
                              FROM clipboard_items WHERE id = ?"
                         )
                         .bind(id)
@@ -1209,7 +1258,7 @@ pub async fn clipboard_search(
     let search_pattern = format!("%{}%", query.trim());
 
     let rows = sqlx::query(
-        "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+        "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, og_title, og_description, og_image, og_site_name, platform, saved_timestamp_seconds, recopy_count, enrichment_status \
          FROM clipboard_items \
          WHERE content LIKE ? OR preview LIKE ? \
          ORDER BY pinned DESC, created_at DESC LIMIT ?"
@@ -1309,6 +1358,14 @@ async fn save_clipboard_image_entry(
             is_sensitive: false,
             timestamp: now,
             external_content: Some(true),
+            og_title: None,
+            og_description: None,
+            og_image: None,
+            og_site_name: None,
+            platform: None,
+            saved_timestamp_seconds: None,
+            recopy_count: 0,
+            enrichment_status: "none".to_string(),
         };
 
         // Index in Tantivy
@@ -1359,7 +1416,7 @@ pub async fn clipboard_copy(
     let _start = Instant::now();
     let pool = state.db();
     let row = sqlx::query(
-        "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at \
+        "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, og_title, og_description, og_image, og_site_name, platform, saved_timestamp_seconds, recopy_count, enrichment_status \
          FROM clipboard_items WHERE id = ?"
     )
     .bind(&id)
@@ -2370,6 +2427,15 @@ async fn save_clipboard_entry(
     let hash = content_hash(content.as_bytes());
     let now = time::now_ms();
     let id = uuid::Uuid::new_v4().to_string();
+    // If content is a URL for a known platform, route through bookmark enrichment
+    let classification = bookmarks::classify_content(content);
+    // classification.platform is already the as_str() form (e.g. "youtube"),
+    // not a raw hostname. Check directly against "other" instead of
+    // re-running KnownPlatform::from_hostname() which expects hostnames.
+    if classification.is_url && classification.platform.as_deref().map(|p| p != "other").unwrap_or(false) {
+        let _ = bookmarks::handle_url_save(app, state, content).await?;
+        return Ok(());
+    }
     let kind = detect_kind(content);
     let preview = if kind != ClipKind::Image {
         make_preview(content, &kind)
@@ -2428,6 +2494,14 @@ async fn save_clipboard_entry(
             is_sensitive: is_sensitive == 1,
             timestamp: now,
             external_content: None,
+            og_title: None,
+            og_description: None,
+            og_image: None,
+            og_site_name: None,
+            platform: None,
+            saved_timestamp_seconds: None,
+            recopy_count: 0,
+            enrichment_status: "none".to_string(),
         };
 
         // Index in Tantivy
@@ -2598,6 +2672,14 @@ impl Default for ClipEntry {
             is_sensitive: false,
             timestamp: 0,
             external_content: None,
+            og_title: None,
+            og_description: None,
+            og_image: None,
+            og_site_name: None,
+            platform: None,
+            saved_timestamp_seconds: None,
+            recopy_count: 0,
+            enrichment_status: "none".to_string(),
         }
     }
 }
@@ -2708,3 +2790,8 @@ mod tests {
         assert!(small.len() <= EXTERNAL_STORE_THRESHOLD);
     }
 }
+
+
+
+
+

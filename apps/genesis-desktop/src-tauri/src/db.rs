@@ -367,7 +367,6 @@ pub async fn enforce_auth_user_boundary(
     app: AppHandle,
     auth: State<'_, AuthManager>,
     cache: State<'_, DashboardCache>,
-    search: State<'_, SearchService>,
     state: State<'_, BentoAppState>,
 ) -> Result<(), String> {
     let session = auth
@@ -390,7 +389,13 @@ pub async fn enforce_auth_user_boundary(
 
     if should_purge {
         purge_local_user_content(&pool).await?;
-        search.clear_all_user_indexes().await?;
+        // SearchService may not be available if both primary and temp fallback failed.
+        // Use try_state to avoid panicking — index clear is best-effort.
+        if let Some(search_svc) = app.try_state::<SearchService>() {
+            if let Err(e) = search_svc.clear_all_user_indexes().await {
+                eprintln!("[auth] failed to clear search indexes: {e}");
+            }
+        }
         cache.invalidate();
         state.set_active_module(ModuleId::Dashboard.as_str());
         let _ = emit_main_window_event(
@@ -471,16 +476,14 @@ pub async fn init_db(app: &AppHandle) -> Result<SqlitePool, String> {
                     let options = SqliteConnectOptions::new()
                         .filename(":memory:")
                         .journal_mode(SqliteJournalMode::Memory)
-                        .foreign_keys(true);
+                        .foreign_keys(true);    let pool = SqlitePoolOptions::new()
+        .max_connections(5) // Match the real pool; prevents command queuing in degraded mode
+        .connect_with(options)
+        .await
+        .map_err(|error| error.to_string())?;
 
-                    let pool = SqlitePoolOptions::new()
-                        .max_connections(1)
-                        .connect_with(options)
-                        .await
-                        .map_err(|error| error.to_string())?;
-
-                    run_migrations(&pool).await?;
-                    return Ok(pool);
+    run_migrations(&pool).await?;
+    return Ok(pool);
                 }
             }
         }
@@ -501,6 +504,25 @@ pub async fn init_db(app: &AppHandle) -> Result<SqlitePool, String> {
         .map_err(|error| error.to_string())?;
 
     run_encrypted_migrations(&pool).await?;
+    Ok(pool)
+}
+
+/// Fallback: create an in-memory SQLite pool with all migrations applied.
+/// Used when `init_db` fails so the app can always show its window.
+/// Data in this pool is lost when the app exits.
+pub async fn init_in_memory_db() -> Result<SqlitePool, String> {
+    let options = SqliteConnectOptions::new()
+        .filename(":memory:")
+        .journal_mode(SqliteJournalMode::Memory)
+        .foreign_keys(true);
+
+    let pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect_with(options)
+        .await
+        .map_err(|error| error.to_string())?;
+
+    run_migrations(&pool).await?;
     Ok(pool)
 }
 

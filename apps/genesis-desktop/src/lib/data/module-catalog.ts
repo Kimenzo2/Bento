@@ -297,6 +297,7 @@ const starterSidebarSpecs = {
     items: [
       { label: "History", icon: "history" },
       { label: "Pinned", icon: "pin" },
+      { label: "Bookmarks", icon: "bookmark" },
       { label: "Snippets", icon: "scissors" },
       { label: "Images", icon: "image" },
       { label: "Sensitive", icon: "shield" },
