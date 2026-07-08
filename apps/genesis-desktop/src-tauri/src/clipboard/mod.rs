@@ -1692,11 +1692,20 @@ pub async fn clipboard_get_image_path(auth: State<'_, crate::auth::AuthManager>,
                 );
                 Ok(Some(full_path.to_string_lossy().to_string()))
             } else {
+                // Stale content_path — the file was deleted but the DB
+                // wasn't cleaned up. Clear it so future lookups skip the
+                // DB path check and go straight to db-miss (fast).
+                let _ = sqlx::query(
+                    "UPDATE clipboard_items SET content_path = NULL WHERE content_hash = ?",
+                )
+                .bind(&hash)
+                .execute(&pool)
+                .await;
                 log_timing(
                     "Clipboard::ImagePath",
                     "lookup",
                     _start,
-                    format_args!("hash={:.12} db-path-not-found", hash),
+                    format_args!("hash={:.12} db-path-cleared-stale", hash),
                 );
                 Ok(None)
             }
@@ -1820,6 +1829,13 @@ pub async fn clipboard_get_image_data(auth: State<'_, crate::auth::AuthManager>,
                 let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
                 Ok(format!("data:image/png;base64,{b64}"))
             } else {
+                // Clear stale content_path so future calls don't repeat this miss
+                let _ = sqlx::query(
+                    "UPDATE clipboard_items SET content_path = NULL WHERE content_hash = ?",
+                )
+                .bind(&hash)
+                .execute(&pool)
+                .await;
                 Err("Image file not found on disk.".to_string())
             }
         }

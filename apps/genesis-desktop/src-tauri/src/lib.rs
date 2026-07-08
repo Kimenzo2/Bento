@@ -82,7 +82,13 @@ use crate::notes::NoteFullCache;
 use crate::runtime::DesktopRuntime;
 use crate::search::SearchService;
 use crate::session::ManagedTabSession;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
+use sysinfo::System;
+
+/// Set by `recover_from_startup_crash()` when it performs a WebView2
+/// profile reset. Checked in `setup()` to notify the frontend via the
+/// `StartupDegraded` mechanism.
+static RECOVERY_PERFORMED: AtomicBool = AtomicBool::new(false);
 
 /// Tracks whether the app started in degraded mode (e.g., in-memory DB fallback).
 /// Frontend queries this on mount to show appropriate warnings.
@@ -295,7 +301,159 @@ fn write_startup_log(line: &str) {
         });
 }
 
+// ────────────────────────────────────────────────────────────────────
+// Startup Crash Recovery — Sentinel-based WebView2 profile recovery
+// ────────────────────────────────────────────────────────────────────
+//
+// Pattern (used by Chrome, VS Code, Electron apps):
+//   1. Write a sentinel file BEFORE WebView2 initialization
+//   2. Delete the sentinel AFTER successful setup completes
+//   3. On next launch, if sentinel exists → previous session crashed
+//   4. Escalate recovery: delete WebView2 profile → nuke on loop
+//
+// This recovers from corrupted WebView2 user data, silent WebView2 init
+// failures, and deadlock-on-start that bypass Rust's panic hook.
+
+/// Startup sentinel written before WebView2 init, deleted after setup.
+/// Existence on next launch = previous startup crashed.
+const STARTUP_SENTINEL: &str = ".bento-startup-sentinel";
+
+/// Consecutive crash counter file. Keeps track so we don't infinitely
+/// attempt recovery. Reset to 0 on successful startup.
+const CRASH_COUNTER: &str = ".bento-crash-count";
+
+/// After this many consecutive crash detections, nuke the entire
+/// WebView2 profile instead of just deleting the User Data folder.
+const MAX_CRASH_LOOP: u32 = 3;
+
+fn sentinel_path() -> PathBuf {
+    std::env::temp_dir().join("bento-desktop").join(STARTUP_SENTINEL)
+}
+
+fn crash_counter_path() -> PathBuf {
+    std::env::temp_dir().join("bento-desktop").join(CRASH_COUNTER)
+}
+
+fn read_crash_count() -> u32 {
+    std::fs::read_to_string(crash_counter_path())
+        .ok()
+        .and_then(|s| s.trim().parse().ok())
+        .unwrap_or(0)
+}
+
+fn write_crash_count(n: u32) {
+    let p = crash_counter_path();
+    let _ = std::fs::create_dir_all(
+        p.parent().expect("crash counter path must have a parent dir"),
+    );
+    let _ = std::fs::write(&p, n.to_string());
+}
+
+fn reset_crash_count() {
+    write_crash_count(0);
+}
+
+/// Delete the WebView2 User Data folder. The folder is recreated
+/// automatically by WebView2 on the next environment creation.
+#[cfg(windows)]
+fn delete_webview2_profile() {
+    let base = env::var_os("LOCALAPPDATA")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| env::temp_dir());
+    let folder = base.join("Bento").join("WebView2").join("User Data");
+
+    if folder.exists() {
+        eprintln!("[startup] removing corrupt WebView2 profile: {}", folder.display());
+        write_startup_log(&format!("removing WebView2 profile: {}", folder.display()));
+        if let Err(e) = std::fs::remove_dir_all(&folder) {
+            eprintln!("[startup] WARN: failed to remove WebView2 profile: {e}");
+            write_startup_log(&format!("WARN: remove_dir_all failed: {e}"));
+        } else {
+            write_startup_log("WebView2 profile removed successfully");
+        }
+    }
+}
+
+#[cfg(not(windows))]
+fn delete_webview2_profile() {}
+
+/// Called at the very start of `run()`, before WebView2 init.
+/// Checks the sentinel to detect previous startup crashes and
+/// recovers by deleting the corrupt WebView2 profile.
+fn recover_from_startup_crash() {
+    let sentinel = sentinel_path();
+
+    if sentinel.exists() {
+        let count = read_crash_count() + 1;
+        write_crash_count(count);
+
+        eprintln!(
+            "[startup] sentinel found — previous launch crashed (crash #{count})"
+        );
+        write_startup_log(&format!("crash sentinel found (#{count})"));
+
+        if count >= MAX_CRASH_LOOP {
+            // Nuclear: nuke whole profile
+            eprintln!("[startup] crash loop detected ({count}+), nuking WebView2 profile");
+            write_startup_log("crash loop — nuking WebView2 profile");
+            delete_webview2_profile();
+            RECOVERY_PERFORMED.store(true, Ordering::Release);
+            reset_crash_count();
+        } else if count > 1 {
+            // Escalating: delete user data folder
+            eprintln!("[startup] deleting WebView2 profile for recovery (crash #{count})");
+            write_startup_log(&format!("deleting WebView2 profile (crash #{count})"));
+            delete_webview2_profile();
+            RECOVERY_PERFORMED.store(true, Ordering::Release);
+        }
+        // First crash (count == 1): log only, no action yet.
+        // The sentinel is from the previous attempt; the next init
+        // may succeed as a transient failure.
+    } else {
+        reset_crash_count();
+    }
+
+    // Write current sentinel — will be deleted by clear_startup_sentinel()
+    // after setup completes successfully.
+    // Ensure the parent temp dir exists (write_startup_log creates it later,
+    // but we need it now for the sentinel file).
+    if let Some(parent) = sentinel.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let _ = std::fs::write(&sentinel, std::process::id().to_string());
+}
+
+/// Called after setup completes successfully to clear the sentinel
+/// and mark this startup as clean.
+fn clear_startup_sentinel() {
+    let _ = std::fs::remove_file(sentinel_path());
+    reset_crash_count();
+    write_startup_log("startup sentinel cleared");
+}
+
+/// Kill any stale bento-desktop processes from previous sessions that
+/// were left running but invisible (zombie instances). Prevents the
+/// single-instance plugin from silently blocking new launches.
+fn cleanup_stale_processes() {
+    let current_pid = std::process::id();
+    let system = System::new_all();
+    for (pid, process) in system.processes() {
+        let pid_u32 = pid.as_u32();
+        if pid_u32 == current_pid {
+            continue;
+        }
+        let name = process.name().to_string_lossy().to_lowercase();
+        if name.contains("bento-desktop") || name.contains("bento_desktop") {
+            eprintln!("[startup] killing stale process PID={pid_u32} name={name}");
+            write_startup_log(&format!("killing stale process PID={pid_u32}"));
+            process.kill();
+        }
+    }
+}
+
 pub fn run() {
+    cleanup_stale_processes();
+    recover_from_startup_crash();
     configure_webview2_user_data_folder();
     load_desktop_env();
     write_startup_log("Bento Desktop starting...");
@@ -322,6 +480,16 @@ pub fn run() {
     #[cfg(all(desktop, not(debug_assertions)))]
     {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            // Focus and show the existing main window — handles the case where
+            // the user double-clicks the exe but the first instance is already
+            // running but invisible (e.g., hiding in background after a crash
+            // or a start_hidden=true session).
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.center();
+                let _ = window.set_focus();
+                let _ = window.unminimize();
+            }
             let pending = app.state::<PendingDeepLink>().inner().clone();
             if let Some(url) = extract_deep_link(argv) {
                 queue_deep_link(app, &pending, url);
@@ -420,11 +588,18 @@ pub fn run() {
                     // session left it off-screen or corrupt.
                     if let Err(e) = window.center() {
                         eprintln!("[window] center() failed: {e}");
+                        write_startup_log(&format!("window.center() failed: {e}"));
+                    } else {
+                        write_startup_log("window.center() OK");
                     }
                     if let Err(e) = window.set_focus() {
                         eprintln!("[window] set_focus() failed: {e}");
+                        write_startup_log(&format!("window.set_focus() failed: {e}"));
+                    } else {
+                        write_startup_log("window.set_focus() OK");
                     }
                     eprintln!("[init] main window shown early (start_hidden=false)");
+                    write_startup_log("window.show() + center + focus OK");
 
                     // ── Force IPC postMessage fallback (release only) ──
                     // Workaround for Tauri #15216: on some WebView2 versions,
@@ -722,6 +897,32 @@ pub fn run() {
 
         write_startup_log("setup complete — app is running");
         eprintln!("[init] phase=17 setup_complete");
+
+        // Startup sentinel: mark as clean so crash recovery knows
+        // the next boot wasn't a crash.
+        clear_startup_sentinel();
+
+        // If we recovered from a startup crash, notify the frontend
+        // via the existing StartupDegraded mechanism so it can show
+        // a toast or notification to the user.
+        if RECOVERY_PERFORMED.swap(false, Ordering::AcqRel) {
+            eprintln!("[init] startup crash recovery was performed");
+            write_startup_log("startup crash recovery was performed — WebView2 profile reset");
+            if let Some(degraded) = app.try_state::<StartupDegraded>() {
+                degraded.mark(
+                    "WebView2 profile was reset due to a startup crash. Some site data may have been lost."
+                        .to_string(),
+                );
+            }
+            // Emit event for frontend to show a toast/notification
+            let _ = app.emit(
+                "bento://startup-degraded",
+                serde_json::json!({
+                    "reason": "webview2_crash_recovery",
+                    "detail": "WebView2 profile was reset due to a startup crash. Some site data may have been lost.",
+                }),
+            );
+        }
 
         Ok(())
     });
