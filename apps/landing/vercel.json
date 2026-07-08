@@ -1,7 +1,7 @@
 {
   "framework": "nextjs",
   "buildCommand": "bun run build",
-  "installCommand": "npm install",
+  "installCommand": "bun install",
   "outputDirectory": ".next",
   "trailingSlash": false,
   "headers": [
