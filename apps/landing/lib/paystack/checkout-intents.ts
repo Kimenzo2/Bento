@@ -3,6 +3,8 @@ import type { PaystackMethodKey } from './payment-methods';
 
 export type CheckoutIntentSource = 'web' | 'desktop' | 'manual';
 
+export const INTENT_TTL_MS = 30 * 60 * 1000;
+
 export type CheckoutIntentRecord = {
   reference: string;
   profileId: string;
@@ -31,6 +33,7 @@ export type CheckoutIntentRecord = {
   processedAt: string | null;
   expectedCurrency: string;
   expectedAmountSmallestUnit: number;
+  expiresAt: string;
 };
 
 export function buildCheckoutIntentRecord(input: {
@@ -50,6 +53,7 @@ export function buildCheckoutIntentRecord(input: {
   payload?: Record<string, unknown>;
   expectedCurrency?: string;
   expectedAmountSmallestUnit?: number;
+  expiresAt?: string;
 }): CheckoutIntentRecord {
   return {
     reference: input.reference,
@@ -71,6 +75,7 @@ export function buildCheckoutIntentRecord(input: {
     processedAt: null,
     expectedCurrency: input.expectedCurrency ?? 'USD',
     expectedAmountSmallestUnit: input.expectedAmountSmallestUnit ?? 0,
+    expiresAt: input.expiresAt ?? new Date(Date.now() + INTENT_TTL_MS).toISOString(),
   };
 }
 
@@ -96,6 +101,7 @@ export async function persistCheckoutIntent(supabase: any, intent: CheckoutInten
       processed_at: intent.processedAt,
       expected_currency: intent.expectedCurrency,
       expected_amount_smallest_unit: intent.expectedAmountSmallestUnit,
+      expires_at: intent.expiresAt,
     },
     { onConflict: 'reference' }
   );

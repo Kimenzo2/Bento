@@ -12,6 +12,7 @@ import {
   selectPreferredPaystackMethod,
 } from '../../../../lib/paystack/payment-methods';
 import { convertUsdToLocal, parseUsdPrice } from '../../../../lib/paystack/currency';
+import { INTENT_TTL_MS } from '../../../../lib/paystack/checkout-intents';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -228,7 +229,9 @@ export async function POST(request: Request) {
       shippingCountry: shippingCountry || resolvedProfile.shipping_country || null,
     });
     const selection = selectPreferredPaystackMethod(detectedCountry, rules, preferredMethod);
-    const channels = getPaystackChannelsForCountry(detectedCountry, rules);
+    const channels = getPaystackChannelsForCountry(detectedCountry, rules).filter(
+      (ch) => ch !== 'apple_pay'
+    );
     const reference = `bento_${plan.key}_${period}_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 
     const usdPriceString = plan.price[period];
@@ -279,6 +282,16 @@ export async function POST(request: Request) {
 
     await persistCheckoutIntent(supabase, checkoutIntent);
 
+    const now = new Date();
+    const ttlCutoff = new Date(now.getTime() - INTENT_TTL_MS);
+
+    await supabase
+      .from('paystack_checkout_intents')
+      .update({ payment_status: 'failed' })
+      .eq('profile_id', resolvedProfile.id)
+      .eq('payment_status', 'pending')
+      .lt('created_at', ttlCutoff.toISOString());
+
     const { data: existingIntent } = await supabase
       .from('paystack_checkout_intents')
       .select('paystack_authorization_url')
@@ -288,6 +301,7 @@ export async function POST(request: Request) {
       .eq('payment_status', 'pending')
       .neq('reference', reference)
       .not('paystack_authorization_url', 'is', null)
+      .gt('expires_at', now.toISOString())
       .maybeSingle();
 
     if (existingIntent?.paystack_authorization_url) {
