@@ -2,20 +2,34 @@
 
 import { useEffect, useState } from 'react';
 
+function readThemeCookie(): 'light' | 'dark' | null {
+  try {
+    const m = document.cookie.match(/(?:^|;\s*)theme=(dark|light)(?:;|$)/);
+    return m ? (m[1] as 'light' | 'dark') : null;
+  } catch {
+    return null;
+  }
+}
+
+function getSystemTheme(): 'light' | 'dark' {
+  if (typeof window === 'undefined') return 'light';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<'light' | 'dark' | null>(null);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof window === 'undefined') return 'light';
+    return readThemeCookie() ?? getSystemTheme();
+  });
 
   useEffect(() => {
-    // Read the active theme from <html> data-theme (set by inline script)
-    const attr = document.documentElement.getAttribute('data-theme');
-    setTheme(attr === 'dark' ? 'dark' : 'light');
-
-    // Listen for system preference changes and auto-switch
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = (e: MediaQueryListEvent) => {
-      const next = e.matches ? 'dark' : 'light';
-      setTheme(next);
-      document.documentElement.setAttribute('data-theme', next);
+      if (!readThemeCookie()) {
+        const next = e.matches ? 'dark' : 'light';
+        setTheme(next);
+        document.documentElement.setAttribute('data-theme', next);
+      }
     };
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
@@ -25,9 +39,12 @@ export default function ThemeToggle() {
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
     document.documentElement.setAttribute('data-theme', next);
+    try {
+      const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+      document.cookie = `theme=${next}; path=/; max-age=31536000; SameSite=Lax${secure}`;
+    } catch {}
   }
 
-  if (!theme) return <div aria-hidden="true" style={{ width: '36px', height: '36px' }} />;
   const dark = theme === 'dark';
 
   return (
@@ -36,6 +53,7 @@ export default function ThemeToggle() {
       onClick={toggle}
       aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
       aria-pressed={dark}
+      className="theme-toggle"
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -47,15 +65,9 @@ export default function ThemeToggle() {
         color: 'var(--color-ink)',
         border: '1px solid var(--color-border)',
         cursor: 'pointer',
-        transition: 'background 0.15s ease, color 0.15s ease, transform 0.15s ease',
+        transition: 'background 0.15s ease, color 0.15s ease',
         fontSize: '1rem',
         lineHeight: 1,
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'scale(1.08)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'scale(1)';
       }}
     >
       {dark ? (

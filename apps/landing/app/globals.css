@@ -1,8 +1,9 @@
 /* ──────────────────────────────────────────────────────────────
    LANDING PAGE — Theme system
    Contrast-based, monochromatic. The accent IS the foreground.
-   System preference detected by JS in <head>, stored as
-   data-theme="dark" on <html>. No attribute = light mode.
+   Theme detected by inline <script> in layout: reads cookie first,
+   then falls back to prefers-color-scheme. data-theme="dark" on
+   <html> = dark mode. No attribute = light mode.
    ────────────────────────────────────────────────────────────── */
 
 *,
@@ -119,6 +120,14 @@ button {
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.08);
+}
+
+.theme-toggle {
+  transition: transform 0.15s ease;
 }
 
 :focus:not(:focus-visible) {
