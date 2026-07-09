@@ -10,15 +10,12 @@ export default function ThemeToggle() {
     const attr = document.documentElement.getAttribute('data-theme');
     setTheme(attr === 'dark' ? 'dark' : 'light');
 
-    // Listen for system preference changes
+    // Listen for system preference changes and auto-switch
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = (e: MediaQueryListEvent) => {
-      // Only auto-switch if user hasn't saved a manual preference
-      if (!localStorage.getItem('theme')) {
-        const next = e.matches ? 'dark' : 'light';
-        setTheme(next);
-        document.documentElement.setAttribute('data-theme', next);
-      }
+      const next = e.matches ? 'dark' : 'light';
+      setTheme(next);
+      document.documentElement.setAttribute('data-theme', next);
     };
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
@@ -28,7 +25,6 @@ export default function ThemeToggle() {
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
     document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('theme', next);
   }
 
   if (!theme) return <div aria-hidden="true" style={{ width: '36px', height: '36px' }} />;
