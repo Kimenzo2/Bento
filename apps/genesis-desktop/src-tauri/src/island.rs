@@ -2,7 +2,6 @@ use crate::spawn_timeout;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
 
-#[cfg(target_os = "windows")]
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 
 const EXPANDED_W: f64 = 560.0;
@@ -14,9 +13,11 @@ const COMPACT_W: f64 = 260.0;
 const COMPACT_H: f64 = 40.0;
 
 /// Tracks whether the frontend island is currently expanded.
-/// Used by the mouse monitor to compute the correct hit bounds
-/// (compact: 260x40 centered in the 320x480 window).
-#[cfg(target_os = "windows")]
+/// Used by:
+/// - Windows mouse monitor to compute correct hit bounds
+///   (compact: 260x40 centered in the window).
+/// - Resize guard: prevents delayed compact resize from firing
+///   if the user re-expanded within the delay window.
 static ISLAND_EXPANDED: AtomicBool = AtomicBool::new(false);
 
 #[cfg(target_os = "windows")]
@@ -388,60 +389,85 @@ pub fn island_set_ignore_cursor_events(
     Ok(())
 }
 
-#[tauri::command]
-pub fn island_compact() -> Result<(), String> {
-    eprintln!("[island] island_compact() called");
-    #[cfg(target_os = "windows")]
-    {
-        let prev = ISLAND_EXPANDED.swap(false, Ordering::SeqCst);
-        LAST_EXPAND_CHANGE_MS.store(
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis() as u64,
-            Ordering::Relaxed,
-        );
-        eprintln!("[island] compact() -- ISLAND_EXPANDED: {prev} -> false");
+/// Resize and reposition the island window.
+/// Compact: 260x50 — just the notch, no dead zone.
+/// Expanded: 560x520 — enough for any widget panel or overlay.
+fn resize_island(window: &tauri::WebviewWindow, compact: bool) {
+    let (w, h) = if compact { (260.0, 50.0) } else { (560.0, 520.0) };
+    let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize { width: w, height: h }));
+
+    // Re-center horizontally at the top of the primary monitor.
+    if let Ok(Some(monitor)) = window.app_handle().primary_monitor() {
+        let scale = monitor.scale_factor();
+        let screen_w = monitor.size().width as f64;
+        let phys_w = w * scale;
+        let x = (monitor.position().x as f64) + ((screen_w - phys_w) / 2.0).max(0.0);
+        let _ = window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
+            x: x as i32,
+            y: 0,
+        }));
     }
+}
+
+#[tauri::command]
+pub fn island_compact(window: tauri::WebviewWindow) -> Result<(), String> {
+    eprintln!("[island] island_compact() called");
+    let prev = ISLAND_EXPANDED.swap(false, Ordering::SeqCst);
+    #[cfg(target_os = "windows")]
+    LAST_EXPAND_CHANGE_MS.store(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64,
+        Ordering::Relaxed,
+    );
+    eprintln!("[island] compact() -- ISLAND_EXPANDED: {prev} -> false");
+    // Delay window resize by 600ms so the CSS shell animation (550ms)
+    // finishes shrinking first — prevents clipping the still-animating shell.
+    // Guard: skip if the user expanded again within the delay window.
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(600));
+        if !ISLAND_EXPANDED.load(Ordering::Relaxed) {
+            resize_island(&window, true);
+        }
+    });
     Ok(())
 }
 
 #[tauri::command]
-pub fn island_expand() -> Result<(), String> {
+pub fn island_expand(window: tauri::WebviewWindow) -> Result<(), String> {
     eprintln!("[island] island_expand() called");
+    resize_island(&window, false);
+    let prev = ISLAND_EXPANDED.swap(true, Ordering::SeqCst);
     #[cfg(target_os = "windows")]
-    {
-        let prev = ISLAND_EXPANDED.swap(true, Ordering::SeqCst);
-        LAST_EXPAND_CHANGE_MS.store(
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis() as u64,
-            Ordering::Relaxed,
-        );
-        eprintln!("[island] expand() -- ISLAND_EXPANDED: {prev} -> true");
-    }
+    LAST_EXPAND_CHANGE_MS.store(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64,
+        Ordering::Relaxed,
+    );
+    eprintln!("[island] expand() -- ISLAND_EXPANDED: {prev} -> true");
     Ok(())
 }
 
 /// Diagnostics command -- dumps current island state.
 #[tauri::command]
 pub fn island_dump_state() -> Result<serde_json::Value, String> {
+    let expanded = ISLAND_EXPANDED.load(Ordering::Relaxed);
     #[cfg(target_os = "windows")]
     {
-        let expanded = ISLAND_EXPANDED.load(Ordering::Relaxed);
         let toggle_secs = seconds_since_last_toggle();
-        Ok(serde_json::json!({
+        return Ok(serde_json::json!({
             "expanded": expanded,
             "seconds_since_last_toggle": toggle_secs,
             "stuck_warning": expanded && toggle_secs > 10.0,
-        }))
+        }));
     }
     #[cfg(not(target_os = "windows"))]
     {
         Ok(serde_json::json!({
-            "expanded": null,
-            "note": "ISLAND_EXPANDED only tracked on Windows"
+            "expanded": expanded,
         }))
     }
 }
@@ -537,29 +563,33 @@ pub async fn voice_set_island_state(
 }
 
 /// Enable or disable the Dynamic Island at runtime.
+///
 /// When disabled, the island window is hidden. When re-enabled, it's shown again
 /// with proper positioning and transparency.
+///
+/// Non-fatal when the island window doesn't exist yet (e.g., settings hydration
+/// fires before setup completes). Logs the miss and returns Ok — the window
+/// will be created and shown during the next setup cycle.
 #[tauri::command]
 pub async fn set_island_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
     let Some(window) = app.get_webview_window("island") else {
-        return Err("island window not found".into());
+        eprintln!("[island] set_island_enabled({enabled}): island window not found yet (non-fatal)");
+        return Ok(());
     };
 
     spawn_timeout!(10, {
         eprintln!("[island] set_island_enabled({enabled}) called");
 
         if enabled {
+            ISLAND_EXPANDED.store(false, Ordering::SeqCst);
             #[cfg(target_os = "windows")]
-            {
-                ISLAND_EXPANDED.store(false, Ordering::SeqCst);
-                LAST_EXPAND_CHANGE_MS.store(
-                    std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap_or_default()
-                        .as_millis() as u64,
-                    Ordering::Relaxed,
-                );
-            }
+            LAST_EXPAND_CHANGE_MS.store(
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis() as u64,
+                Ordering::Relaxed,
+            );
 
             if let Err(e) = window.set_background_color(Some(tauri::webview::Color(0, 0, 0, 0))) {
                 eprintln!("[island] set_background_color on re-enable failed: {e}");
