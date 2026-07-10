@@ -149,7 +149,7 @@
     const updateClip = () => {
       if (!taskIslandEl) return;
       const rect = taskIslandEl.getBoundingClientRect();
-      const topRadius = Math.min(36, Math.min(rect.width, rect.height) / 2);
+      const topRadius = Math.min(52, Math.min(rect.width, rect.height) / 2);
       const bottomRadius = Math.min(52, Math.min(rect.width, rect.height) / 2);
       taskIslandClip = `path("${appleCornerPath({ width: rect.width, height: rect.height, topRadius, bottomRadius, smoothing: 60 })}")`;
     };
