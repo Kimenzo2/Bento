@@ -180,7 +180,6 @@ const ISLAND_EXCLUDED_IDS = new Set([
   "settings",
   "dashboard",
   "flashcards",
-  "telemetry",
   "ai",
   "grocery",
 ]);

@@ -505,6 +505,21 @@ pub async fn list_tasks(auth: State<'_, crate::auth::AuthManager>,
     Ok(rows.into_iter().map(row_to_task).collect())
 }
 
+/// Lightweight task count for the notification badge.
+/// No auth required — just counts non-archived, non-done tasks.
+#[tauri::command]
+pub async fn get_task_count(state: State<'_, BentoAppState>) -> Result<i64, String> {
+    let db = state.db();
+
+    let row = sqlx::query("SELECT COUNT(*) as cnt FROM tasks WHERE done = 0 AND archived = 0")
+        .fetch_one(&db)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let cnt: i64 = row.try_get("cnt").unwrap_or(0);
+    Ok(cnt)
+}
+
 /// Log an activity entry for a task.
 #[tauri::command]
 pub async fn log_activity_entry(auth: State<'_, crate::auth::AuthManager>, 

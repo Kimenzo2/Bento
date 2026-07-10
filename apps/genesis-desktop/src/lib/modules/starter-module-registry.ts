@@ -32,8 +32,6 @@ export const starterModuleLoaders = {
     import("../../modules/voice-memos/App.svelte") as unknown as Promise<StarterModule>,
   countdown: () =>
     import("../../modules/countdown/App.svelte") as unknown as Promise<StarterModule>,
-  telemetry: () =>
-    import("../../modules/telemetry/App.svelte") as unknown as Promise<StarterModule>,
 };
 
 const starterModuleIdSet = new Set<string>(starterModuleIds);

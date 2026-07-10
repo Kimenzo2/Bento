@@ -3,8 +3,21 @@ import NotesWidget from "./NotesWidget.svelte";
 import SessionWidget from "./SessionWidget.svelte";
 import TimerWidget from "./TimerWidget.svelte";
 import MediaPlayerWidget from "./MediaPlayerWidget.svelte";
+import TaskWidget from "./TaskWidget.svelte";
 
 export function loadBuiltinWidgets(): void {
+  registerWidget({
+    id: "tasks",
+    name: "Tasks",
+    description: "Today's pending tasks",
+    icon: "clipboard-list",
+    ExpandedComponent: TaskWidget,
+    defaultEnabled: true,
+    category: "productivity",
+    minWidth: 260,
+    hasCompactMode: false,
+  });
+
   registerWidget({
     id: "notes",
     name: "Notes",

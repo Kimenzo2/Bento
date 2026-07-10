@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { fade, fly } from "svelte/transition";
-  import { goto } from "@mateothegreat/svelte5-router";
+  import { goto } from "$app/navigation";
   import BellIcon from "@lucide/svelte/icons/bell";
   import CheckIcon from "@lucide/svelte/icons/check";
   import CommandIcon from "@lucide/svelte/icons/command";
@@ -164,7 +164,6 @@
     { id: "breathing", label: "Breathing" },
     { id: "voice-memos", label: "Voice Memos" },
     { id: "countdown", label: "Countdown" },
-    { id: "telemetry", label: "Telemetry" },
     { id: "ai", label: "AI" },
   ];
 

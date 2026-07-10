@@ -2,14 +2,17 @@
   import { onMount } from "svelte";
   import { fade } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
-  import { invoke } from "@tauri-apps/api/core";
+  import { invokeWithTimeout } from "$lib/ipc";
   import { islandStore } from "$lib/stores/island.store.svelte";
   import type { IslandItem } from "$lib/data/island-catalog";
   import { islandItems } from "$lib/data/island-catalog";
   import { getIcon } from "./island-icons";
   import { loadBuiltinWidgets } from "./widgets/widget-config";
   import { widgetStore } from "$lib/stores/widget.store.svelte";
-  import { getLiveWidget, initWidgetData } from "$lib/stores/widget-data.svelte";
+  import { initWidgetData } from "$lib/stores/widget-data.svelte";
+  import NotesWidget from "./widgets/NotesWidget.svelte";
+  import MediaPlayerWidget from "./widgets/MediaPlayerWidget.svelte";
+  import TaskWidget from "./widgets/TaskWidget.svelte";
   import ModuleActive from "./ModuleActive.svelte";
 
   // ── Diagnostics (DEV only — tree-shaken in production) ──
@@ -29,14 +32,17 @@
   let diagTransitionInterruptions = 0;
   let diagTransitionStartTime = 0;
   let diagLastTransitionProperty = "";
-  let diagInvokeTimeout = 5000; // 5s timeout for Rust invokes
+  let diagInvokeTimeout = 5000;
   let diagInvokeTimedOut = false;
   let diagVisibilityHiddenCount = 0;
 
+  // ── Three-phase choreography state ──
+  let choreoClass = $state<"choreo-expand" | "choreo-collapse" | "">("");
+  // Track whether the current expand used choreography (for matching collapse)
+  let usedChoreography = $state(false);
+  let isIslandExpanded = $derived(islandStore.mode === "expanded" || choreoClass !== "");
+
   if (DIAG) {
-    // Check for pre-existing document listeners (leak detection)
-    // Svelte 5 onMount fires once; if onDestroy fires and re-mounts,
-    // the old listeners should be gone. We track expected listener count.
     console.log("[island-diag] Island.svelte mounted at", new Date().toISOString());
   }
 
@@ -85,6 +91,89 @@
     return () => clearInterval(interval);
   });
 
+  // ── Live clock for compact idle state (no active module) ──
+  let compactClock = $state("");
+
+  $effect(() => {
+    const showClock = !islandStore.activeModule;
+    if (!showClock) {
+      compactClock = "";
+      return;
+    }
+    function updateClock() {
+      const now = new Date();
+      compactClock = now.toLocaleTimeString(undefined, {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    }
+    updateClock();
+    const interval = setInterval(updateClock, 30_000);
+    return () => clearInterval(interval);
+  });
+
+  // ── Task notification for compact notch ──
+  let taskCount = $state(0);
+  let taskNotificationDismissed = $state(false);
+  let taskFetchInProgress = $state(false);
+
+  async function fetchTaskCount() {
+    // Guard against concurrent fetches
+    if (taskFetchInProgress) return;
+    taskFetchInProgress = true;
+    try {
+      // Lightweight count — no auth required, just a COUNT(*) query
+      const cnt = await invokeWithTimeout<number>("get_task_count", undefined, 3_000);
+      taskCount = cnt ?? 0;
+      // Reset dismiss flag when count changes
+      if (taskCount > 0) {
+        taskNotificationDismissed = false;
+      }
+    } catch (e) {
+      // Silently fail - don't spam console during IPC congestion
+      taskCount = 0;
+    } finally {
+      taskFetchInProgress = false;
+    }
+  }
+
+  function dismissTaskNotification() {
+    taskNotificationDismissed = true;
+    taskCount = 0;
+  }
+
+  // Fetch task count on mount and refresh every 10 minutes (not 5)
+  // This avoids competing with get_dashboard_data for database connections
+  $effect(() => {
+    // Delay initial fetch by 3s to let other IPC calls settle
+    const initTimer = setTimeout(fetchTaskCount, 3000);
+    const interval = setInterval(fetchTaskCount, 10 * 60 * 1000);
+    return () => {
+      clearTimeout(initTimer);
+      clearInterval(interval);
+    };
+  });
+
+  // ── Notification click handler (triggers choreography) ──
+  function onNotificationClick() {
+    if (taskCount > 0 && !taskNotificationDismissed) {
+      // Notification present → choreography expand into the task island
+      expandWithChoreography();
+      // Set active module to tasks for display
+      islandStore.activateModule({
+        id: "tasks",
+        label: "Tasks",
+        icon: "clipboard-list",
+        status: `${taskCount} pending`,
+      });
+      // Dismiss notification after viewing
+      dismissTaskNotification();
+    } else {
+      // No notification → normal expand to widget panel
+      expandNormal();
+    }
+  }
+
   function formatClock(seconds: number): string {
     const s = Math.max(0, seconds);
     const m = Math.floor(s / 60);
@@ -92,7 +181,6 @@
     return `${m}:${sec.toString().padStart(2, "0")}`;
   }
 
-  // Lazy color cache to avoid repeated lookups
   const accentColorCache = new Map<string, string>();
   function getAccentColor(id: string): string {
     let c = accentColorCache.get(id);
@@ -109,12 +197,71 @@
     islandStore.searchQuery = "";
   }
 
+  /**
+   * Normal expand — uses the original spring CSS transition only.
+   * Called by: compact body click, Escape, click-outside, close button.
+   */
+  function expandNormal() {
+    if (islandStore.mode === "expanded") return;
+    usedChoreography = false;
+    choreoClass = "";
+    islandStore.expand();
+  }
+
+  /**
+   * Collapse after a normal expand — original spring, no choreography.
+   */
+  function collapseNormal() {
+    if (islandStore.mode === "compact") return;
+    usedChoreography = false;
+    choreoClass = "";
+    islandStore.collapse();
+  }
+
+  /**
+   * Expand with three-phase choreography overlay.
+   * Reserved for: specific widget/notification taps inside the notch.
+   */
+  function expandWithChoreography() {
+    if (islandStore.mode === "expanded") return;
+    usedChoreography = true;
+    choreoClass = "choreo-expand";
+    islandStore.expand();
+    // The task island morph is intentionally brief. It originates at the notch
+    // and settles below it before the user can perceive a separate panel swap.
+    setTimeout(() => { choreoClass = ""; }, 300);
+  }
+
+  /**
+   * Collapse with reverse choreography (70% speed, less overshoot).
+   * Used when the current expand used choreography.
+   */
+  function collapseWithChoreography() {
+    if (islandStore.mode === "compact") return;
+    choreoClass = "choreo-collapse";
+    // Keep the task surface mounted for the full return path.
+    setTimeout(() => {
+      choreoClass = "";
+      islandStore.collapse();
+      usedChoreography = false;
+    }, 240);
+  }
+
+  /** Collapse — dispatches to choreography or normal based on how we expanded. */
+  function triggerCollapse() {
+    if (usedChoreography) {
+      collapseWithChoreography();
+    } else {
+      collapseNormal();
+    }
+  }
+
   function onLaunch(item: IslandItem) {
     if (DIAG) console.log(`[island-diag] onLaunch(${item.id})`);
     closeSearch();
     islandStore.pushRecent(item.id);
     handleLaunch(item);
-    islandStore.collapse();
+    triggerCollapse();
   }
 
   function onQuickAction(action: string, item: IslandItem) {
@@ -145,7 +292,7 @@
         return;
       }
       if (DIAG) console.log("[island-diag] Escape collapses island");
-      islandStore.collapse();
+      triggerCollapse();
     }
   }
 
@@ -166,31 +313,15 @@
     if (islandStore.mode === "expanded") {
       if (!insideIsland) {
         if (DIAG) console.log(`[island-diag] click outside island — collapsing (click #${diagClickListenerCount})`);
-        islandStore.collapse();
+        triggerCollapse();
       }
     }
   }
 
-  // ── Diagnostics: invoke with timeout ──
-  async function invokeWithTimeout<T>(cmd: string, args?: Record<string, unknown>, timeoutMs = diagInvokeTimeout): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        diagInvokeTimedOut = true;
-        const err = new Error(`[island-diag] INVOKE TIMEOUT: ${cmd} > ${timeoutMs}ms`);
-        if (DIAG) console.error(err.message);
-        reject(err);
-      }, timeoutMs);
-      invoke<T>(cmd, args)
-        .then((result) => {
-          clearTimeout(timer);
-          resolve(result);
-        })
-        .catch((e) => {
-          clearTimeout(timer);
-          reject(e);
-        });
-    });
-  }
+  // ── Diagnostics: invoke timeout tracking ──
+  // Uses imported invokeWithTimeout from $lib/ipc. The diagInvokeTimedOut
+  // flag is set by the watchdog interval below when a timeout is detected.
+  // (The local function was removed because it shadowed the import.)
 
   // ── Diagnostics: transitionend handler ──
   function onTransitionEnd(e: TransitionEvent) {
@@ -204,7 +335,6 @@
 
   // ── Diagnostics: track animation interruptions ──
   function onTransitionRun(e: TransitionEvent) {
-    // If a transition starts while another is in progress, it's an interruption
     if (diagTransitionStartTime > 0) {
       diagTransitionInterruptions++;
       if (DIAG) console.warn(`[island-diag] TRANSITION INTERRUPTION #${diagTransitionInterruptions}: ${diagLastTransitionProperty} interrupted by ${e.propertyName}`);
@@ -229,7 +359,6 @@
     const cols = getGridColumns();
     const currentIndex = Array.from(buttons).findIndex((b) => b === document.activeElement);
 
-    // Enter always launches the focused item
     if (e.key === "Enter") {
       e.preventDefault();
       const btn = buttons[currentIndex];
@@ -259,12 +388,10 @@
     initWidgetData();
     document.addEventListener("keydown", onKeydown);
     document.addEventListener("mousedown", onClickOutside);
-    // Transition tracking on island element
     if (islandEl) {
       islandEl.addEventListener("transitionend", onTransitionEnd);
       islandEl.addEventListener("transitionrun", onTransitionRun);
     }
-    // Visibility change — detect tab switches mid-animation
     const onVisibilityChange = () => {
       if (document.hidden) {
         diagVisibilityHiddenCount++;
@@ -275,29 +402,21 @@
     };
     document.addEventListener("visibilitychange", onVisibilityChange);
 
-    // Initial listener leak baseline
     diagListenerLeakCheck = true;
     if (DIAG) console.log(`[island-diag] onMount complete — listeners registered, islandEl=${!!islandEl}`);
 
-    // ── Watchdog: periodic health check every 10s (DEV only) ──
     if (DIAG) {
       diagWatchdogInterval = setInterval(() => {
         const warnings = islandStore.healthCheck();
-
-        // Check for stuck transitions
         if (diagTransitionStartTime > 0 && Date.now() - diagTransitionStartTime > 6000) {
           const stuck = `[island-diag] TRANSITION STUCK for ${((Date.now() - diagTransitionStartTime) / 1000).toFixed(1)}s on ${diagLastTransitionProperty}`;
           console.warn(stuck);
           warnings.push(stuck);
-          // Reset to avoid repeated warnings
           diagTransitionStartTime = 0;
         }
-
-        // Check invoke timeout
         if (diagInvokeTimedOut) {
           warnings.push("[island-diag] Invoke timeout detected — Rust command may be stuck");
         }
-
         if (warnings.length > 0) {
           console.warn(`[island-diag] Watchdog health check FAILED:`);
           warnings.forEach((w) => console.warn(`  ${w}`));
@@ -327,11 +446,14 @@
   if (DIAG && typeof window !== "undefined") {
     (window as any).__islandDiagnostics = {
       store: islandStore,
-      expand: () => islandStore.expand(),
-      collapse: () => islandStore.collapse(),
-      toggle: () => islandStore.toggle(),
+      expand: () => expandNormal(),
+      collapse: () => collapseNormal(),
+      toggle: () => islandStore.mode === "compact" ? expandNormal() : collapseNormal(),
       healthCheck: () => islandStore.healthCheck(),
       runHealthCheck: () => islandStore.runHealthCheck(),
+      // Expose choreography variants for testing
+      expandChoreo: () => expandWithChoreography(),
+      collapseChoreo: () => collapseWithChoreography(),
     };
     (window as any).__stressIsland = async function(options?: {
       iterations?: number;
@@ -351,9 +473,9 @@
 
         try {
           if (action === "expand") {
-            islandStore.expand();
+            expandNormal();
           } else {
-            islandStore.collapse();
+            collapseNormal();
           }
           const elapsed = performance.now() - start;
           results.push({ action, time: elapsed, ok: true });
@@ -380,7 +502,6 @@
       return { results, finalHealth };
     };
 
-    // ── Aggressive stress: rapid open/close with random timing ──
     (window as any).__stressIslandRapid = async function(options?: {
       bursts?: number;
       perBurst?: number;
@@ -401,8 +522,8 @@
         for (let i = 0; i < perBurst; i++) {
           const expand = Math.random() > 0.5;
           try {
-            if (expand) islandStore.expand();
-            else islandStore.collapse();
+            if (expand) expandNormal();
+            else collapseNormal();
             totalOps++;
           } catch (e) {
             failures++;
@@ -410,12 +531,10 @@
           }
           await new Promise((r) => setTimeout(r, minDelay + Math.random() * (maxDelay - minDelay)));
         }
-        // Between bursts, wait longer to let animations settle
         console.log(`[stress-rapid] Burst ${b + 1} complete. Waiting 500ms for settle...`);
         await new Promise((r) => setTimeout(r, 500));
       }
 
-      // Final health check after settling
       await new Promise((r) => setTimeout(r, 2000));
       const finalHealth = islandStore.healthCheck();
       if (finalHealth.length > 0) {
@@ -430,226 +549,109 @@
 
 <div
   class="island-overlay"
-  class:island-overlay--expanded={islandStore.mode === "expanded"}
+  class:island-overlay--expanded={isIslandExpanded}
 >
   <div
-    class="island"
-    class:island--compact={islandStore.mode === "compact"}
-    class:island--expanded={islandStore.mode === "expanded"}
-    onmousedown={(e) => { if (islandStore.mode === "expanded") e.stopPropagation(); }}
+    class="island-shell"
+    class:island-shell--normal={!islandStore.activeModule}
+    class:island-shell--active={!!islandStore.activeModule}
+    class:island-shell--shell={islandStore.mode === "expanded" && !islandStore.activeModule}
+    class:island-shell--widget={islandStore.mode === "expanded" && !!islandStore.activeModule}
+    class:island-shell--task={islandStore.mode === "expanded" && islandStore.activeModule?.id === "tasks"}
+    class:island-shell--expanded={isIslandExpanded}
     bind:this={islandEl}
   >
-    {#if islandStore.mode === "compact"}
+    <div
+      class="island-notch"
+      class:island-notch--normal={!islandStore.activeModule}
+      class:island-notch--hidden={!!islandStore.activeModule}
+      class:island-notch--compact={islandStore.mode === "compact"}
+    >
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="compact-body"
         class:compact-body--live={!!islandStore.activeModule}
+        class:compact-body--notification={taskCount > 0 && !taskNotificationDismissed && !islandStore.activeModule}
         in:fade={{ duration: 350, easing: cubicOut }}
         out:fade={{ duration: 120 }}
         onclick={(e: MouseEvent) => {
           e.stopPropagation();
           if (DIAG) console.log(`[island-diag] compact-body click — expanding, activeModule=${!!islandStore.activeModule}`);
-          islandStore.expand();
+          onNotificationClick();
         }}
         role="button"
         tabindex="0"
-        aria-label={islandStore.activeModule ? `Show ${islandStore.activeModule.label}` : "Expand Bento launcher"}
+        aria-label={islandStore.activeModule ? `Show ${islandStore.activeModule.label}` : taskCount > 0 && !taskNotificationDismissed ? `${taskCount} tasks due` : "Open Bento notes and media"}
         onkeydown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             if (DIAG) console.log(`[island-diag] compact-body keydown(${e.key}) — expanding`);
-            islandStore.expand();
+            onNotificationClick();
           }
         }}
-      >          {#if islandStore.activeModule}
-            {const CompactActiveIcon = getIcon(islandStore.activeModule.icon)}
-            <div class="compact-live">
-              <span class="compact-live-icon" style="color: {getAccentColor(islandStore.activeModule.id)}">
-                <CompactActiveIcon size={12} strokeWidth={2.2} />
-              </span>
-              <span class="compact-live-label">{islandStore.activeModule.label}</span>
-              <span class="compact-live-status">
-                {#if islandStore.activeModule.activityType === "recording"}
-                  {formatClock(compactElapsed)}
-                  <span class="compact-live-dot"></span>
-                {:else}
-                  {islandStore.activeModule.status}
-                {/if}
-              </span>
-            </div>
-        {/if}
-      </div>
-    {/if}
-    {#if islandStore.mode === "expanded"}
-      <div class="expanded-body" onclick={(e) => e.stopPropagation()} in:fade={{ duration: 300, easing: cubicOut, delay: 80 }} out:fade={{ duration: 120 }}>
-        <div class="expanded-header">
-          <div class="header-tabs" role="tablist" aria-label="Bento sections">
-            <div class="tab-track">
-              <div
-                class="tab-indicator"
-                style="transform: translateX({islandStore.page === "apps" ? 0 : islandStore.page === "actions" ? 100 : 200}%)"
-              ></div>
-              <button
-                class="tab-btn"
-                class:tab-btn--active={islandStore.page === "apps"}
-                onclick={() => islandStore.setPage("apps")}
-                role="tab"
-                aria-selected={islandStore.page === "apps"}
-                aria-controls="bento-panel-apps"
-                aria-label="Apps"
-              >
-                <layoutGridIcon size={12} strokeWidth={1.8}></layoutGridIcon>
-                <span class="tab-label">Apps</span>
-              </button>
-              <button
-                class="tab-btn"
-                class:tab-btn--active={islandStore.page === "actions"}
-                onclick={() => islandStore.setPage("actions")}
-                role="tab"
-                aria-selected={islandStore.page === "actions"}
-                aria-controls="bento-panel-recent"
-                aria-label="Recent"
-              >
-                <clockIcon size={12} strokeWidth={1.8}></clockIcon>
-                <span class="tab-label">Recent</span>
-              </button>
-              <button
-                class="tab-btn"
-                class:tab-btn--active={islandStore.page === "widgets"}
-                onclick={() => islandStore.setPage("widgets")}
-                role="tab"
-                aria-selected={islandStore.page === "widgets"}
-                aria-controls="bento-panel-widgets"
-                aria-label="Widgets"
-              >
-                <layoutDashboardIcon size={12} strokeWidth={1.8}></layoutDashboardIcon>
-                <span class="tab-label">Widgets</span>
-              </button>
-            </div>
-          </div>
-          <div class="header-actions">
-            <button
-              class="search-icon-btn"
-              class:search-icon-btn--active={searchActive}
-              onclick={toggleSearch}
-              aria-label="Search widgets"
-            >
-              <searchIcon size={14} strokeWidth={1.8}></searchIcon>
-            </button>
-            <button
-              class="close-btn"
-              onclick={() => {
-                if (DIAG) console.log(`[island-diag] close button clicked — collapsing`);
-                islandStore.collapse();
-              }}
-              aria-label="Close"
-            >
-              <xIcon size={14} strokeWidth={1.8}></xIcon>
-            </button>
-          </div>
-        </div>
-
-        {#if searchActive}
-          <div class="search-active" in:fade={{ duration: 150 }}>
-            <searchIcon size={11} color="rgba(255,255,255,0.25)" strokeWidth={2}></searchIcon>
-            <input
-              class="search-active-input"
-              type="text"
-              placeholder="Find widget…"
-              aria-label="Search widgets"
-              bind:value={islandStore.searchQuery}
-              bind:this={searchInputEl}
-              onkeydown={(e) => { if (e.key === "Escape") { e.stopPropagation(); searchActive = false; islandStore.searchQuery = ""; }}}
-            />
-          </div>
-        {/if}
+      >
         {#if islandStore.activeModule}
-          <!-- ── Module Active View ── -->
-          <ModuleActive activeModule={islandStore.activeModule} />
-        {:else if islandStore.page === "apps"}
-          <div class="w-grid" bind:this={appGridEl} onkeydown={handleGridKeydown} role="listbox" tabindex="-1">
-            {#each islandStore.filteredItems as item (item.id)}
-              {const w = getLiveWidget(item.id) ?? item.widget}
-              {const ItemIcon = getIcon(item.icon)}
-              <button
-                class="widget-card"
-                class:w-sm={w.width === "sm"}
-                class:w-md={w.width === "md"}
-                class:widget-card--selected={islandStore.selectedItemId === item.id}
-                data-item-id={item.id}
-                onclick={() => islandStore.selectItem(item.id)}
-                ondblclick={() => onLaunch(item)}
-                role="option"
-                aria-selected={islandStore.selectedItemId === item.id}
-              >
-                <div class="widget-body">
-                  <div class="widget-row">
-                    <span class="w-icon" style="color: {item.accentColor}">
-                      <ItemIcon size={13} strokeWidth={1.5} />
-                    </span>
-                    <span class="w-value">{w.primary}</span>
-                    {#if w.unit}<span class="w-unit">{w.unit}</span>{/if}
-                    <span class="w-secondary">{w.secondary}</span>
-                  </div>
-                  <div class="widget-footer">
-                    <span class="widget-name">{item.name}</span>
-                  </div>
-                </div>
-              </button>
-            {/each}
+          {const CompactActiveIcon = getIcon(islandStore.activeModule.icon)}
+          <div class="compact-live">
+            <span class="compact-live-icon" style="color: {getAccentColor(islandStore.activeModule.id)}">
+              <CompactActiveIcon size={12} strokeWidth={2.2} />
+            </span>
+            <span class="compact-live-label">{islandStore.activeModule.label}</span>
+            <span class="compact-live-status">
+              {#if islandStore.activeModule.activityType === "recording"}
+                {formatClock(compactElapsed)}
+                <span class="compact-live-dot"></span>
+              {:else}
+                {islandStore.activeModule.status}
+              {/if}
+            </span>
           </div>
-
-          {#if islandStore.selectedItem}
-            {const item = islandStore.selectedItem}
-            {#if item.quickActions.length}
-              <div class="quick-actions">
-                <div class="qa-label">Quick Actions</div>
-                <div class="qa-grid">
-                  {#each item.quickActions as action}
-                    {const ActionIcon = getIcon(action.icon)}
-                    <button class="qa-btn" onclick={() => onQuickAction(action.action, item)}>
-                      <ActionIcon size={11} strokeWidth={2} />
-                      {action.label}
-                    </button>
-                  {/each}
-                </div>
-              </div>
-            {/if}
-          {/if}
-        {:else if islandStore.page === "widgets"}
-          <div class="w-scroll">
-            {#each widgetStore.enabledWidgets as w (w.id)}
-              <div class="widget-card-w">
-                <w.ExpandedComponent />
-              </div>
-            {/each}
-            {#if widgetStore.enabledWidgets.length === 0}
-              <div class="w-empty">
-                <span>No widgets enabled</span>
-                <button class="w-empty-btn" onclick={() => islandStore.setPage("apps")}>
-                  Browse Apps
-                </button>
-              </div>
-            {/if}
+        {:else if taskCount > 0 && !taskNotificationDismissed}
+          <div class="compact-notification">
+            <span class="compact-notification-icon">
+              <layoutGridIcon size={11} strokeWidth={2.1}></layoutGridIcon>
+            </span>
+            <span class="compact-notification-text">{taskCount} tasks today</span>
           </div>
         {:else}
-          <div class="r-list">
-            {#each islandStore.recentItems as item (item.id)}
-              {const RecentIcon = getIcon(item.icon)}
-              <button class="r-item" onclick={() => onLaunch(item)}>
-                <div class="r-item-icon" style="background: {item.accentColor}18; color: {item.accentColor}">
-                  <RecentIcon size={14} strokeWidth={1.6} />
-                </div>
-                <div class="r-info">
-                  <span class="r-name">{item.name}</span>
-                  <span class="r-tagline">{item.tagline}</span>
-                </div>
-                <chevronDownIcon size={11} color="rgba(255,255,255,0.2)" strokeWidth={2.2} class="r-arrow"></chevronDownIcon>
-              </button>
-            {/each}
+          <div class="compact-clock">
+            <span class="compact-clock-time">{compactClock}</span>
           </div>
         {/if}
       </div>
+    </div>
+    {#if isIslandExpanded}
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        class="island-panel"
+        class:island-panel--widget={!!islandStore.activeModule}
+        class:island-panel--task={islandStore.activeModule?.id === "tasks"}
+        class:island-panel--shell={!islandStore.activeModule}
+        class:choreo-expand={choreoClass === "choreo-expand"}
+        class:choreo-collapse={choreoClass === "choreo-collapse"}
+        onclick={(e) => e.stopPropagation()}
+      >
+          {#if islandStore.activeModule}
+            {#if islandStore.activeModule.id === "tasks"}
+              <TaskWidget />
+            {:else}
+              <!-- ── Module Active View ── -->
+              <ModuleActive activeModule={islandStore.activeModule} />
+            {/if}
+          {:else}
+            <!-- ── Notch Expanded Shell: Notes + Media only ── -->
+            <div class="shell-body" in:fade={{ duration: 260, easing: cubicOut, delay: 60 }} out:fade={{ duration: 120 }}>
+              <div class="shell-grid">
+                <div class="shell-column">
+                  <NotesWidget />
+                </div>
+                <div class="shell-column">
+                  <MediaPlayerWidget />
+                </div>
+              </div>
+            </div>
+          {/if}
+        </div>
     {/if}
   </div>
 </div>
@@ -721,14 +723,14 @@
     z-index: 10000;
   }
 
-  .island {
+  .island-shell {
     position: relative;
     background: #0d0d0d;
     border: 0.5px solid rgba(255, 255, 255, 0.08);
     overflow: visible;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
+    width: 260px;
+    height: 40px;
     color: rgba(255, 255, 255, 0.85);
     transition:
       width 0.55s cubic-bezier(0.34, 1.3, 0.64, 1),
@@ -736,7 +738,7 @@
   }
 
   @supports (animation-timing-function: linear(0, 1)) {
-    .island {
+    .island-shell {
       transition:
         width 0.55s linear(0, 0.09 10%, 0.26 20%, 0.5 33%, 0.74 46%, 0.9 58%, 1.02 76%, 1 88%, 1),
         height 0.55s linear(0, 0.09 10%, 0.26 20%, 0.5 33%, 0.74 46%, 0.9 58%, 1.02 76%, 1 88%, 1);
@@ -744,16 +746,114 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .island {
+    .island-shell {
       transition: none;
     }
     .compact-body,
+    .island-panel,
     .expanded-body {
       animation: none;
     }
   }
 
-  .island::before {
+  .island-shell--expanded {
+    width: 560px;
+    height: 520px;
+  }
+
+  .island-shell--shell {
+    width: 560px;
+    height: 480px;
+    border-radius: 0 0 18px 18px;
+    overflow: hidden;
+    border-top: none;
+  }
+
+  .island-shell--normal:not(.island-shell--shell) {
+    border-top: none;
+    border-radius: 0 0 14px 14px;
+  }
+
+  .island-shell--widget {
+    width: 440px;
+    height: 244px;
+  }
+
+  .island-shell--active {
+    background: transparent;
+    border: none;
+  }
+
+  /* A notification island is detached from the notch, so its host keeps the
+     notch footprint while the card animates independently below it. */
+  .island-shell--task {
+    width: 440px;
+    height: 200px;
+    transition:
+      width 0.55s cubic-bezier(0.34, 1.3, 0.64, 1),
+      height 0.55s cubic-bezier(0.34, 1.3, 0.64, 1);
+  }
+
+  .island-notch {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 260px;
+    height: 40px;
+    background: #0d0d0d;
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-top: none;
+    border-radius: 0 0 14px 14px;
+    overflow: visible;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    z-index: 2;
+    transition:
+      opacity 120ms cubic-bezier(0.23, 1, 0.32, 1),
+      transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .island-notch--hidden {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-8px) scale(0.98);
+    pointer-events: none;
+  }
+
+  /* The normal state is the original single, attached notch surface. Its
+     parent owns the spring resize; this inner element only carries the click
+     target while compact. */
+  .island-notch--normal {
+    position: static;
+    width: 100%;
+    height: 100%;
+    transform: none;
+    background: transparent;
+    border: none;
+    border-radius: inherit;
+  }
+
+  .island-notch--normal::before,
+  .island-notch--normal::after {
+    display: none;
+  }
+
+  .island-shell--shell .island-notch--normal {
+    display: none;
+  }
+
+  .island-notch:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .island-notch:active {
+    background: #111;
+  }
+
+  .island-notch::before {
     content: '';
     position: absolute;
     top: -1px;
@@ -765,7 +865,7 @@
     background: radial-gradient(circle at 0 100%, transparent 7px, #0d0d0d 7px);
   }
 
-  .island::after {
+  .island-notch::after {
     content: '';
     position: absolute;
     top: -1px;
@@ -777,40 +877,120 @@
     background: radial-gradient(circle at 100% 100%, transparent 7px, #0d0d0d 7px);
   }
 
-  .island--compact {
-    width: 260px;
-    height: 40px;
-    border-radius: 0 0 14px 14px;
-    cursor: pointer;
-    border-top: none;
-  }
-
-  .island--compact::before,
-  .island--compact::after {
-    top: 0;
-  }
-
-  .island--compact:hover {
-    border-color: rgba(255, 255, 255, 0.12);
-  }
-
-  .island--compact:active {
-    background: #111;
-  }
-
-  .island--expanded {
+  .island-panel {
+    position: absolute;
+    top: 40px;
+    left: 50%;
     width: 560px;
     height: 480px;
-    border-radius: 0 0 18px 18px;
+    transform: translateX(-50%) translateY(0);
+    transform-origin: top center;
+    background: #0d0d0d;
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0 0 28px 28px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     border-top: none;
+    color: rgba(255, 255, 255, 0.85);
+    z-index: 1;
   }
 
-  .island--expanded::before,
-  .island--expanded::after {
-    top: 0;
+  .island-panel--widget {
+    width: 440px;
+    height: 184px;
+    top: 52px;
+    border-radius: 42px;
+    background: transparent;
+    border: none;
+    overflow: visible;
+  }
+
+  .island-panel--task {
+    position: absolute;
+    top: 44px;
+    left: 0;
+    width: 100%;
+    height: calc(100% - 44px);
+    transform: none;
+    overflow: visible;
+    z-index: 3;
+  }
+
+  .island-panel--shell {
+    position: static;
+    width: 100%;
+    height: 100%;
+    flex: 1;
+    transform: none;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════
+     THREE-PHASE CHOREOGRAPHY — transform-only overlay
+     The shell width/height resize is handled by the CSS transition above.
+     These keyframes ONLY animate the detached panel (translateY + scale),
+     layering the detach/drop/settle physics on top of the resize.
+
+     KEY: The expanded panel must appear to DETACH from the notch
+     and FLOAT DOWN — not just expand in place.
+     ════════════════════════════════════════════════════════════════════ */
+
+  /* ── EXPAND: Phase 1 (Detach) → Phase 2 (Drop) → Phase 3 (Settle) ── */
+  @keyframes choreo-expand-keyframes {
+    0% {
+      transform: translateX(-50%) translateY(-64px) scale(0.59, 0.18);
+      opacity: 0;
+    }
+    34% {
+      transform: translateX(-50%) translateY(-42px) scale(0.74, 0.42);
+      opacity: 0;
+    }
+    58% {
+      transform: translateX(-50%) translateY(-14px) scale(0.94, 0.9);
+      opacity: 0.82;
+    }
+    82% {
+      transform: translateX(-50%) translateY(1px) scale(1.003, 1.006);
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(-50%) translateY(0) scale(1);
+      opacity: 1;
+    }
+  }
+
+  .choreo-expand {
+    animation: choreo-expand-keyframes 280ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+
+  /* ── COLLAPSE: reverse — 70% speed, calmer overshoot ── */
+  @keyframes choreo-collapse-keyframes {
+    0% {
+      transform: translateX(-50%) translateY(0) scale(1);
+      opacity: 1;
+    }
+    22% {
+      transform: translateX(-50%) translateY(-2px) scale(0.99, 0.985);
+    }
+    52% {
+      transform: translateX(-50%) translateY(-18px) scale(0.9, 0.8);
+      opacity: 0.7;
+    }
+    74% {
+      transform: translateX(-50%) translateY(-42px) scale(0.72, 0.4);
+      opacity: 0;
+    }
+    100% {
+      transform: translateX(-50%) translateY(-64px) scale(0.59, 0.18);
+      opacity: 0;
+    }
+  }
+
+  .choreo-collapse {
+    animation: choreo-collapse-keyframes 240ms cubic-bezier(0.55, 0, 0.67, 1) both;
   }
 
   .compact-body {
@@ -876,6 +1056,53 @@
     animation: live-pulse 1s ease-in-out infinite;
   }
 
+  /* ── Compact idle clock ── */
+  .compact-clock {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  .compact-clock-time {
+    font-size: 12px;
+    font-weight: 450;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  /* ── Compact notification ── */
+  .compact-body--notification {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .compact-body--notification:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .compact-notification {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .compact-notification-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .compact-notification-text {
+    font-size: 12px;
+    font-weight: 450;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
   @keyframes live-pulse {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.3; transform: scale(0.7); }
@@ -909,14 +1136,14 @@
     border-radius: 18px;
     padding: 4px 2px 2px;
     height: 38px;
-    width: 96px;
+    width: 72px;
   }
 
   .tab-indicator {
     position: absolute;
     top: 4px;
     left: 2px;
-    width: calc(33.33% - 3px);
+    width: calc(50% - 2px);
     height: calc(100% - 6px);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     background: #2b2b2b;
@@ -1020,261 +1247,34 @@
     color: rgba(255, 255, 255, 0.2);
   }
 
-  .w-grid {
+  .shell-body {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 0 12px 8px;
-    overflow-y: auto;
     flex: 1;
-    justify-content: center;
-    align-content: start;
+    min-height: 0;
+    padding: 10px 12px 12px;
   }
 
-  .widget-card {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    height: 124px;
-    border-radius: 12px;
-    background: #141416;
-    cursor: pointer;
-    text-align: left;
-    font-family: inherit;
-    color: rgba(255, 255, 255, 0.75);
-    overflow: hidden;
-    padding: 0;
-  }
-
-  .widget-card.w-sm {
-    width: calc(33.33% - 6px);
-    min-width: 140px;
-    flex: 1 1 calc(33.33% - 6px);
-  }
-
-  .widget-card.w-md {
-    width: calc(50% - 4px);
-    flex: 1 1 calc(50% - 4px);
-  }
-
-  .widget-card--selected {
-    background: rgba(255, 255, 255, 0.06);
-  }
-
-  .widget-card:hover {
-    background: #19191c;
-  }
-
-  .widget-card:active {
-    background: #1c1c20;
-  }
-
-  .widget-body {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    padding: 14px 14px 10px;
-    justify-content: space-between;
-  }
-
-  .widget-row {
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-
-  .w-icon {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-    margin-right: 2px;
-  }
-
-  .w-value {
-    font-size: 22px;
-    font-weight: 400;
-    letter-spacing: -0.02em;
-    color: rgba(255, 255, 255, 0.9);
-    line-height: 1;
-  }
-
-  .w-unit {
-    font-size: 13px;
-    font-weight: 400;
-    color: rgba(255, 255, 255, 0.25);
-  }
-
-  .w-secondary {
-    font-size: 11px;
-    font-weight: 400;
-    color: rgba(255, 255, 255, 0.35);
-    flex: 1;
-    text-align: right;
-  }
-
-  .widget-footer {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-  }
-
-  .widget-name {
-    font-size: 10px;
-    font-weight: 400;
-    color: rgba(255, 255, 255, 0.18);
-  }
-
-  .quick-actions {
-    border-top: 0.5px solid rgba(255, 255, 255, 0.06);
-    padding: 8px 12px 10px;
-    flex-shrink: 0;
-  }
-
-  .qa-label {
-    font-size: 9px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.2);
-    margin-bottom: 6px;
-  }
-
-  .qa-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-
-  .qa-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 10px;
-    font-weight: 400;
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.4);
-    cursor: pointer;
-    font-family: inherit;
-  }
-
-  .qa-btn:hover {
-    color: rgba(255, 255, 255, 0.7);
-    background: rgba(255, 255, 255, 0.04);
-  }
-
-  .w-scroll {
-    display: flex;
-    flex-direction: row;
+  .shell-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 10px;
-    padding: 4px 12px 10px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    flex: 1;
-    align-items: stretch;
-  }
-
-  .widget-card-w {
-    flex: 1;
-    min-width: 260px;
-    max-width: 380px;
-  }
-
-  .w-empty {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    color: rgba(255, 255, 255, 0.15);
-    font-size: 12px;
-  }
-
-  .w-empty-btn {
-    padding: 6px 16px;
-    border-radius: 8px;
-    border: 0.5px solid rgba(255, 255, 255, 0.1);
-    background: transparent;
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 11px;
-    cursor: pointer;
-    font-family: inherit;
-  }
-
-  .w-empty-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: rgba(255, 255, 255, 0.7);
-  }
-
-  .r-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 4px 12px 10px;
-    overflow-y: auto;
-    flex: 1;
-  }
-
-  .r-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    background: #141416;
-    color: rgba(255, 255, 255, 0.7);
-    cursor: pointer;
-    text-align: left;
     width: 100%;
-    font-family: inherit;
-    border: none;
+    min-height: 0;
   }
 
-  .r-item:hover {
-    background: #19191c;
-  }
-
-  .r-item:active {
-    background: #1c1c20;
-  }
-
-  .r-item-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 7px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .r-info {
-    flex: 1;
+  .shell-column {
     min-width: 0;
+    min-height: 0;
+    display: flex;
   }
 
-  .r-name {
-    font-size: 12px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.85);
+  .shell-column :global(.widget-wrapper) {
+    width: 100%;
   }
 
-  .r-tagline {
-    font-size: 10px;
-    font-weight: 400;
-    color: rgba(255, 255, 255, 0.3);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  @media (max-width: 620px) {
+    .shell-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
-
-  :global(.r-arrow) {
-    flex-shrink: 0;
-    transform: rotate(-90deg);
-  }
-
-  /* Module Active styles now live in ModuleActive.svelte */
-  /* (scoped styles kept there, nothing unused here) */
 </style>

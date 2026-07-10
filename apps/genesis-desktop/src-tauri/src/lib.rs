@@ -35,7 +35,6 @@ pub mod session;
 pub mod settings;
 pub mod share;
 pub mod sleep;
-pub mod telemetry;
 pub mod util;
 pub mod window_bounds;
 pub mod window_effects;
@@ -600,20 +599,20 @@ pub fn run() {
                     }
                     eprintln!("[init] main window shown early (start_hidden=false)");
                     write_startup_log("window.show() + center + focus OK");
-
-                    // ── Force IPC postMessage fallback (release only) ──
-                    // Workaround for Tauri #15216: on some WebView2 versions,
-                    // fetch(ipc://...) hangs silently without triggering the
-                    // postMessage fallback. This interceptor makes the fetch
-                    // reject immediately so the built-in fallback kicks in.
-                    #[cfg(not(debug_assertions))]
-                    {
-                        let _ = window.eval(r#"(function(){var a=window.fetch;window.fetch=function(b,c){var d=typeof b==='string'?b:b&&b.url||'';return d.indexOf('ipc://')!==-1||d.indexOf('ipc.localhost')!==-1?Promise.reject(new Error('forced ipc fallback')):a.call(window,b,c)}})()"#);
-                    }
                 }
             } else {
                 eprintln!("[init] start_hidden=true, deferring main window show");
             }
+
+            // ── IPC custom protocol fallback ──
+            // Tauri 2.x uses a custom protocol (ipc://) for invoke calls.
+            // On some WebView2 versions, fetch(ipc://...) hangs silently.
+            // We rely on Tauri's built-in postMessage fallback (which activates
+            // automatically when the custom protocol fails) — no need to
+            // force-reject via eval interceptors.
+            //
+            // Note: the "forced ipc fallback" console warnings are harmless
+            // diagnostics from Tauri internals during the fallback handshake.
         }
 
         // ── Dynamic Island overlay window ────────────────────────────
@@ -621,12 +620,6 @@ pub fn run() {
         if let Err(e) = crate::island::setup_island_window(app) {
             eprintln!("[island] failed to setup island window (non-fatal): {e}");
             write_startup_log(&format!("setup_island_window failed: {e}"));
-        }
-        #[cfg(not(debug_assertions))]
-        {
-            if let Some(island) = app.get_webview_window("island") {
-                let _ = island.eval(r#"(function(){var a=window.fetch;window.fetch=function(b,c){var d=typeof b==='string'?b:b&&b.url||'';return d.indexOf('ipc://')!==-1||d.indexOf('ipc.localhost')!==-1?Promise.reject(new Error('forced ipc fallback')):a.call(window,b,c)}})()"#);
-            }
         }
         log_phase("phase=4 setup_island_window", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
@@ -639,12 +632,6 @@ pub fn run() {
         if let Err(e) = crate::agent::setup_agent_window(app) {
             eprintln!("[agent] failed to setup agent window (non-fatal): {e}");
             write_startup_log(&format!("setup_agent_window failed: {e}"));
-        }
-        #[cfg(not(debug_assertions))]
-        {
-            if let Some(agent) = app.get_webview_window("agent") {
-                let _ = agent.eval(r#"(function(){var a=window.fetch;window.fetch=function(b,c){var d=typeof b==='string'?b:b&&b.url||'';return d.indexOf('ipc://')!==-1||d.indexOf('ipc.localhost')!==-1?Promise.reject(new Error('forced ipc fallback')):a.call(window,b,c)}})()"#);
-            }
         }
         log_phase("phase=5 setup_agent_window", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
@@ -687,18 +674,18 @@ pub fn run() {
 
         // ── Database (always succeeds — in-memory fallback on fatal error) ─
         t0 = Instant::now();
-        let db = match tauri::async_runtime::block_on(db::init_db(app.handle())) {
-            Ok(db) => {
-                eprintln!("[init] phase=8 init_db OK  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
-                write_startup_log(&format!("init_db OK"));
-                db
+        let (db_writer, db_reader) = match tauri::async_runtime::block_on(db::init_db(app.handle())) {
+            Ok((writer, reader)) => {
+                eprintln!("[init] phase=8 init_db OK (writer=1, reader=4)  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+                write_startup_log(&format!("init_db OK (writer=1, reader=4)"));
+                (writer, reader)
             }
             Err(error) => {
                 let elapsed = t0.elapsed().as_secs_f64() * 1000.0;
                 let msg = format!("init_db FAILED after {elapsed:.2}ms: {error}");
                 eprintln!("[init] {msg}");
                 write_startup_log(&msg);
-                // In-memory fallback: BentoAppState always needs a valid pool
+                // In-memory fallback: BentoAppState always needs a valid pool pair
                 eprintln!("[init] using in-memory DB fallback (degraded mode)");
                 write_startup_log("using in-memory DB fallback (degraded mode)");
                 let _ = app.emit("bento://startup-degraded", serde_json::json!({
@@ -709,9 +696,7 @@ pub fn run() {
                     degraded.mark(format!("DB init failed: {}", msg.lines().next().unwrap_or(&msg)));
                 }
                 match tauri::async_runtime::block_on(db::init_in_memory_db()) {
-                    Ok(fallback) => {
-                        fallback
-                    }
+                    Ok((w, r)) => (w, r),
                     Err(fatal) => {
                         eprintln!("[init] FATAL: in-memory DB also failed: {fatal}");
                         write_startup_log(&format!("FATAL: in-memory DB also failed: {fatal}"));
@@ -720,7 +705,7 @@ pub fn run() {
                 }
             }
         };
-        app.manage(BentoAppState::new(db));
+        app.manage(BentoAppState::new(db_writer, db_reader));
 
         // ── Encryption service ────────────────────────────────────────
         t0 = Instant::now();
@@ -747,15 +732,34 @@ pub fn run() {
         log_phase("phase=11 media_player", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
         // ── Global shortcut: Ctrl+Shift+D → toggle island ──
+        // Matches the AgentDock pattern: only fires on Pressed (not Released),
+        // and toggles window visibility at the Rust level so the shortcut always
+        // works even when the island was hidden (e.g., via settings toggle).
         t0 = Instant::now();
         {
             let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyD);
             match app
                 .global_shortcut()
-                .on_shortcut(shortcut, |handle, _event, _shortcut| {
+                .on_shortcut(shortcut, |handle: &AppHandle,
+                 _shortcut: &Shortcut,
+                 event: tauri_plugin_global_shortcut::ShortcutEvent| {
+                    if event.state != tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                        return;
+                    }
                     if let Some(window) = handle.get_webview_window("island") {
-                        let _ = crate::island::position_top_center(&window);
-                        let _ = window.emit("island:toggle", ());
+                        // Show/hide toggle like toggle_agent, not compact↔expanded
+                        let is_visible = window.is_visible().unwrap_or(false);
+                        // Persist the setting so the island state survives restarts
+                        let _ = crate::settings::update_desktop_settings(handle, |s| {
+                            s.dynamic_island_enabled = !is_visible;
+                        });
+                        if is_visible {
+                            let _ = window.hide();
+                        } else {
+                            let _ = window.show();
+                            let _ = crate::island::position_top_center(&window);
+                            let _ = window.emit("island:hide", ());
+                        }
                     }
                 }) {
                 Ok(_) => eprintln!("[shortcut] registered Ctrl+Shift+D for island toggle"),
@@ -1332,6 +1336,7 @@ pub fn run() {
             crate::commands::tasks::toggle_task,
             crate::commands::tasks::get_task,
             crate::commands::tasks::list_tasks,
+            crate::commands::tasks::get_task_count,
             crate::commands::tasks::delete_task,
             crate::commands::tasks::log_activity_entry,
             crate::commands::tasks::list_activity_for_task,

@@ -357,16 +357,46 @@ const ALL_LOADERS: Record<string, () => Promise<void>> = {
 let initialized = false;
 
 /**
+ * Run a single widget loader with retry logic.
+ *
+ * Loaders use `tryInvoke()` which catches all invoke errors and returns null.
+ * The loaders then silently exit without throwing. To detect failure, we check
+ * whether the `loaded[id]` flag was set after each attempt.
+ *
+ * Retries up to `maxRetries` times with linear backoff to handle transient
+ * failures (Rust command timeout, DB not ready on first launch). After
+ * exhausting retries, `loaded[id]` stays false and the Island falls back
+ * to static default data from island-catalog.ts.
+ */
+async function runLoaderWithRetry(
+  loader: () => Promise<void>,
+  moduleId: string,
+  maxRetries: number = 2,
+): Promise<void> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    await loader();
+    if (loaded[moduleId]) return; // data loaded successfully
+    if (attempt < maxRetries) {
+      const delay = (attempt + 1) * 1500; // 1.5s, 3s
+      console.warn(
+        `[widget-data] ${moduleId} failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms`,
+      );
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+}
+
+/**
  * Initialize all widget data loaders. Call this once on mount.
  * Each loader invokes its Tauri command and updates the reactive store.
+ * On transient failure, retries with linear backoff before falling back.
  */
 export function initWidgetData(): void {
   if (initialized) return;
   initialized = true;
-  for (const [, loader] of Object.entries(ALL_LOADERS)) {
-    loader().catch(() => {
-      /* silent — falls back to hardcoded data */
-    });
+  for (const [id, loader] of Object.entries(ALL_LOADERS)) {
+    // runLoaderWithRetry never throws — all errors are caught internally
+    runLoaderWithRetry(loader, id);
   }
 }
 

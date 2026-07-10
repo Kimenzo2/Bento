@@ -4,6 +4,7 @@
   import { getIslandItem } from "$lib/data/island-catalog";
   import { getIcon } from "./island-icons";
   import { islandStore } from "$lib/stores/island.store.svelte";
+  import TaskWidget from "./widgets/TaskWidget.svelte";
 
   /** Waveform bar count — constant to avoid array allocation on every render. */
   const WAVEFORM_INDICES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -68,40 +69,47 @@
   </div>
 
   <div class="ma-body">
-    <div class="ma-card">
-      {#if activeModule.activityType === "recording"}
-        <div class="ma-recording">
-          <!-- Live waveform bars (decorative animation) -->
-          <div class="mar-waveform">
-            {#each WAVEFORM_INDICES as i}
-              <div
-                class="mar-bar"
-                style="animation-delay: {i * 0.08}s; height: {20 + Math.sin(i * 1.2) * 12}px"
-              ></div>
-            {/each}
+    {#if activeModule.id === "tasks"}
+      <!-- Tasks widget view -->
+      <div class="ma-tasks-container">
+        <TaskWidget />
+      </div>
+    {:else}
+      <div class="ma-card">
+        {#if activeModule.activityType === "recording"}
+          <div class="ma-recording">
+            <!-- Live waveform bars (decorative animation) -->
+            <div class="mar-waveform">
+              {#each WAVEFORM_INDICES as i}
+                <div
+                  class="mar-bar"
+                  style="animation-delay: {i * 0.08}s; height: {20 + Math.sin(i * 1.2) * 12}px"
+                ></div>
+              {/each}
+            </div>
+            <div class="mar-label">
+              <span class="mar-dot"></span>
+              <span class="mar-time">{formatTime(elapsed)}</span>
+            </div>
+            <!-- Dismiss to background — the full recording UI is in the main window -->
+            <button class="ma-back-btn" onclick={goBack} aria-label="Dismiss recording">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+              Back to apps
+            </button>
           </div>
-          <div class="mar-label">
-            <span class="mar-dot"></span>
-            <span class="mar-time">{formatTime(elapsed)}</span>
+        {:else}
+          <div class="ma-default">
+            <span class="mad-icon">
+              <ActiveIcon size={24} strokeWidth={1.5} />
+            </span>
+            <span class="mad-label">{activeModule.status}</span>
           </div>
-          <!-- Dismiss to background — the full recording UI is in the main window -->
-          <button class="ma-back-btn" onclick={goBack} aria-label="Dismiss recording">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
-            Back to apps
-          </button>
-        </div>
-      {:else}
-        <div class="ma-default">
-          <span class="mad-icon">
-            <ActiveIcon size={24} strokeWidth={1.5} />
-          </span>
-          <span class="mad-label">{activeModule.status}</span>
-        </div>
-      {/if}
-      <span class="ma-hint">
-        Open in main window for full controls
-      </span>
-    </div>
+        {/if}
+        <span class="ma-hint">
+          Open in main window for full controls
+        </span>
+      </div>
+    {/if}
   </div>
 </div>
 
@@ -183,6 +191,14 @@
     justify-content: center;
     align-items: center;
     min-height: 0;
+  }
+
+  .ma-tasks-container {
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   .ma-card {

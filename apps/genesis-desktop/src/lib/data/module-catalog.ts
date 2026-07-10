@@ -47,7 +47,6 @@ export const starterModuleIds = [
   "breathing",
   "voice-memos",
   "countdown",
-  "telemetry",
 ] as const;
 
 export const moduleIdValues = [
@@ -72,7 +71,6 @@ export const moduleIdValues = [
   "breathing",
   "voice-memos",
   "countdown",
-  "telemetry",
   "ai",
   "settings",
 ] as const;
@@ -83,7 +81,6 @@ export const hiddenModuleIds = new Set<string>([
   "time",
   "grocery",
   "flashcards",
-  "telemetry",
   "ai",
   "breathing",
 ]);
@@ -334,14 +331,6 @@ const starterSidebarSpecs = {
       { label: "Birthdays", icon: "cake" },
       { label: "Since", icon: "history" },
       { label: "Export", icon: "download" },
-    ],
-  },
-  telemetry: {
-    sectionLabel: "Telemetry",
-    items: [
-      { label: "Brain Overview", icon: "brain" },
-      { label: "Module Detail", icon: "layout-grid" },
-      { label: "Insights", icon: "chart-line" },
     ],
   },
 } as const satisfies Record<StarterModuleId, SidebarSpec>;
@@ -764,24 +753,6 @@ const starterModules = [
       launchBg: "#831843",
     },
     sidebar: starterSidebarSpecs.countdown,
-  },
-  {
-    id: "telemetry",
-    name: "Personal Telemetry",
-    navLabel: "Telemetry",
-    subtitle: "On-device health, anomaly detection, and self-healing system intelligence.",
-    route: "/apps/telemetry",
-    host: "starter",
-    installKind: "builtin",
-    launch: {
-      id: "telemetry",
-      name: "Telemetry",
-      tagline: "System intelligence",
-      icon: "gauge",
-      accentColor: "#38bdf8",
-      launchBg: "#0c2340",
-    },
-    sidebar: starterSidebarSpecs.telemetry,
   },
 ] as const satisfies readonly ModuleCatalogEntry[];
 

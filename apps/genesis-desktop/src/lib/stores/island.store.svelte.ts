@@ -1,8 +1,8 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invokeWithTimeout } from "$lib/ipc";
 import { islandItems, type IslandItem } from "$lib/data/island-catalog";
 
 export type IslandMode = "compact" | "expanded";
-export type IslandPage = "apps" | "actions" | "agenda" | "widgets";
+export type IslandPage = "actions" | "widgets";
 
 export type ActiveModuleState = {
   id: string;
@@ -21,7 +21,7 @@ class IslandStore {
   #diagnostics = true;
 
   mode = $state<IslandMode>("compact");
-  page = $state<IslandPage>("apps");
+  page = $state<IslandPage>("widgets");
   selectedItemId = $state<string | null>(null);
   searchQuery = $state("");
   recentCache = $state<IslandItem[]>(this.loadRecent());
@@ -57,7 +57,7 @@ class IslandStore {
     return warnings;
   }
 
-  expand(page: IslandPage = "apps") {
+  expand(page: IslandPage = "widgets") {
     const prevMode = this.mode;
     this.#transitionStart = Date.now();
     this.mode = "expanded";
@@ -68,7 +68,7 @@ class IslandStore {
     if (prevMode === "expanded") {
       console.warn(`[island-store] WARN: expand() called while already expanded`);
     }
-    invoke("island_expand").catch((e) => {
+    invokeWithTimeout("island_expand", undefined, 5_000).catch((e) => {
       console.error("[island] expand invoke failed:", e);
       // DESYNC WARNING: store says expanded, but Rust ISLAND_EXPANDED may still be false
       console.warn(
@@ -77,20 +77,37 @@ class IslandStore {
     });
   }
 
+  /**
+   * Collapse the island to compact state.
+   *
+   * Preserves `activeModule` when there's a live activity (recording/playback/timer)
+   * so the compact status indicator doesn't disappear mid-session.
+   * Non-live module states (quick action triggers, one-shot status) are cleared.
+   */
   collapse() {
     const prevMode = this.mode;
     this.#transitionStart = Date.now();
     this.mode = "compact";
-    this.page = "apps";
+    this.page = "widgets";
     this.selectedItemId = null;
     this.searchQuery = "";
-    this.activeModule = null;
+
+    // Preserve activeModule for live activities — don't kill the compact indicator.
+    // Non-live module states (quick-action triggers, one-shot statuses) are ephemeral
+    // and should be cleared on collapse so the bar doesn't show stale info.
+    const isLive = this.activeModule?.activityType === "recording"
+      || this.activeModule?.activityType === "playback"
+      || this.activeModule?.activityType === "timer";
+    if (!isLive) {
+      this.activeModule = null;
+    }
+
     const elapsed = Date.now() - this.#transitionStart;
-    console.log(`[island-store] collapse() ${prevMode} -> compact [${elapsed}ms]`);
+    console.log(`[island-store] collapse() ${prevMode} -> compact [${elapsed}ms]${isLive ? ' (preserved activeModule)' : ''}`);
     if (prevMode === "compact") {
       console.warn(`[island-store] WARN: collapse() called while already compact`);
     }
-    invoke("island_compact").catch((e) => {
+    invokeWithTimeout("island_compact", undefined, 5_000).catch((e) => {
       console.error("[island] collapse invoke failed:", e);
       // DESYNC WARNING: store says compact, but Rust ISLAND_EXPANDED may still be true
       console.warn(
