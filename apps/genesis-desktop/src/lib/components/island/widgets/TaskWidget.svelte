@@ -25,33 +25,31 @@
   function appleCornerPath({
     width,
     height,
-    radius,
+    topRadius,
+    bottomRadius,
     smoothing = 60,
   }: {
     width: number;
     height: number;
-    radius: number;
+    topRadius: number;
+    bottomRadius: number;
     smoothing?: number;
   }): string {
     const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
     const w = Math.max(0, width);
     const h = Math.max(0, height);
-    const r = clamp(radius, 0, Math.min(w, h) / 2);
+    const rt = clamp(topRadius, 0, Math.min(w, h) / 2);
+    const rb = clamp(bottomRadius, 0, Math.min(w, h) / 2);
     const s = clamp(smoothing, 0, 100) / 100;
 
     if (!w || !h) return "";
-    if (!r) return `M0 0H${w}V${h}H0Z`;
-
-    if (s <= 0.001) {
-      const c = r * 0.5522847498307936;
-      return `M${r} 0H${w - r}C${w - r + c} 0 ${w} ${r - c} ${w} ${r}V${h - r}C${w} ${h - r + c} ${w - r + c} ${h} ${w - r} ${h}H${r}C${r - c} ${h} 0 ${h - r + c} 0 ${h - r}V${r}C0 ${r - c} ${r - c} 0 ${r} 0Z`;
-    }
+    if (!rt && !rb) return `M0 0H${w}V${h}H0Z`;
 
     const exponent = 2 + s * 3.35;
     const steps = 24;
     const points: [number, number][] = [];
 
-    const corner = (cx: number, cy: number, a0: number, a1: number) => {
+    const corner = (cx: number, cy: number, a0: number, a1: number, r: number) => {
       for (let i = 0; i <= steps; i += 1) {
         const a = a0 + (a1 - a0) * (i / steps);
         const cos = Math.cos(a);
@@ -62,14 +60,14 @@
       }
     };
 
-    points.push([r, 0], [w - r, 0]);
-    corner(w - r, r, -Math.PI / 2, 0);
-    points.push([w, h - r]);
-    corner(w - r, h - r, 0, Math.PI / 2);
-    points.push([r, h]);
-    corner(r, h - r, Math.PI / 2, Math.PI);
-    points.push([0, r]);
-    corner(r, r, Math.PI, Math.PI * 1.5);
+    points.push([rt, 0], [w - rt, 0]);
+    corner(w - rt, rt, -Math.PI / 2, 0, rt);
+    points.push([w, h - rb]);
+    corner(w - rb, h - rb, 0, Math.PI / 2, rb);
+    points.push([rb, h]);
+    corner(rb, h - rb, Math.PI / 2, Math.PI, rb);
+    points.push([0, rt]);
+    corner(rt, rt, Math.PI, Math.PI * 1.5, rt);
 
     const deduped = points.filter((point, index, all) => {
       if (index === 0) return true;
@@ -151,8 +149,9 @@
     const updateClip = () => {
       if (!taskIslandEl) return;
       const rect = taskIslandEl.getBoundingClientRect();
-      const radius = Math.min(52, Math.min(rect.width, rect.height) / 2);
-      taskIslandClip = `path("${appleCornerPath({ width: rect.width, height: rect.height, radius, smoothing: 60 })}")`;
+      const topRadius = Math.min(36, Math.min(rect.width, rect.height) / 2);
+      const bottomRadius = Math.min(52, Math.min(rect.width, rect.height) / 2);
+      taskIslandClip = `path("${appleCornerPath({ width: rect.width, height: rect.height, topRadius, bottomRadius, smoothing: 60 })}")`;
     };
 
     updateClip();
