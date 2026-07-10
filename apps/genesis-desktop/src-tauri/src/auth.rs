@@ -1,13 +1,19 @@
-use std::{env, path::PathBuf, sync::Arc, sync::atomic::{AtomicU8, Ordering}};
+use std::{
+    env,
+    path::PathBuf,
+    sync::atomic::{AtomicU8, Ordering},
+    sync::Arc,
+};
 
+use crate::spawn_timeout;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use chrono::{DateTime, Utc};
 use keyring::Entry;
+use once_cell::sync::Lazy;
 use rand::{thread_rng, RngCore};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use once_cell::sync::Lazy;
 use sha2::{Digest, Sha256};
 use std::time::Instant;
 use tauri::{AppHandle, Emitter, State, WebviewWindow};
@@ -18,7 +24,6 @@ use tokio::{
     time::{sleep, Duration},
 };
 use url::Url;
-use crate::spawn_timeout;
 
 // ── Compile-time build floor (clock rollback protection) ──
 // Embedded at compile time so rolling the system clock back before
@@ -41,7 +46,11 @@ struct GateDenialCounter {
 }
 
 impl GateDenialCounter {
-    fn new() -> Self { Self { count: AtomicU8::new(0) } }
+    fn new() -> Self {
+        Self {
+            count: AtomicU8::new(0),
+        }
+    }
 
     fn hit(&self) -> u8 {
         let prev = self.count.fetch_add(1, Ordering::AcqRel);
@@ -112,7 +121,9 @@ async fn open_url_in_browser(app: &AppHandle, url: &str) -> Result<(), String> {
             }
         }
 
-        Err(format!("Failed to open browser after {max_attempts} attempts: {last_err}"))
+        Err(format!(
+            "Failed to open browser after {max_attempts} attempts: {last_err}"
+        ))
     })
 }
 
@@ -423,7 +434,9 @@ impl ModuleGateCache {
         }
         match std::fs::read_to_string(&path) {
             Ok(raw) => {
-                match serde_json::from_str::<std::collections::HashMap<String, ModuleGateEntry>>(&raw) {
+                match serde_json::from_str::<std::collections::HashMap<String, ModuleGateEntry>>(
+                    &raw,
+                ) {
                     Ok(entries) => {
                         eprintln!("[gate_cache] loaded {} decisions from disk", entries.len());
                         self.entries = entries;
@@ -766,7 +779,7 @@ struct AuthInner {
     module_gate_cache: Mutex<ModuleGateCache>, // cached gating decisions per module
     data_dir: PathBuf,                  // app data directory — used for file-based session fallback
     app_handle: Mutex<Option<AppHandle>>,
-    gate_denials: GateDenialCounter,    // rate limiter for billing gate (clock rollback / brute force)
+    gate_denials: GateDenialCounter, // rate limiter for billing gate (clock rollback / brute force)
 }
 
 #[derive(Clone)]
@@ -781,8 +794,12 @@ impl AuthManager {
             inner: Arc::new(AuthInner {
                 config: AuthConfig::from_env()?,
                 state: Mutex::new(AuthRuntimeState::default()),
-                billing_cache: Mutex::new(BillingCache::new(Some(data_dir.join(BILLING_CACHE_FILENAME)))),
-                module_gate_cache: Mutex::new(ModuleGateCache::new(Some(data_dir.join(MODULE_GATE_CACHE_FILENAME)))),
+                billing_cache: Mutex::new(BillingCache::new(Some(
+                    data_dir.join(BILLING_CACHE_FILENAME),
+                ))),
+                module_gate_cache: Mutex::new(ModuleGateCache::new(Some(
+                    data_dir.join(MODULE_GATE_CACHE_FILENAME),
+                ))),
                 refresh_controller: Mutex::new(None),
                 gate_denials: GateDenialCounter::new(),
                 data_dir,
@@ -992,10 +1009,7 @@ impl AuthManager {
                 // stays usable offline. Only error if there's NO cache at all.
                 eprintln!("[gate] billing fetch failed ({e}), falling back to stale cache");
                 let cache = self.inner.billing_cache.lock().await;
-                return cache
-                    .get_stale()
-                    .cloned()
-                    .ok_or_else(|| e); // Return the original error if no stale data
+                return cache.get_stale().cloned().ok_or_else(|| e); // Return the original error if no stale data
             }
         };
 
@@ -1005,10 +1019,7 @@ impl AuthManager {
                 // API error — same offline fallback
                 eprintln!("[gate] billing API fetch failed ({e}), falling back to stale cache");
                 let cache = self.inner.billing_cache.lock().await;
-                return cache
-                    .get_stale()
-                    .cloned()
-                    .ok_or_else(|| e);
+                return cache.get_stale().cloned().ok_or_else(|| e);
             }
         };
 
@@ -1532,9 +1543,12 @@ impl AuthManager {
             if let Err(error) = manager.sync_profile_to_supabase(&session).await {
                 eprintln!("[Auth] Failed to sync profile to Supabase: {error}");
                 if let Some(ref handle) = *manager.inner.app_handle.lock().await {
-                    let _ = handle.emit("auth:error", serde_json::json!({
-                        "message": format!("Profile sync failed: {error}")
-                    }));
+                    let _ = handle.emit(
+                        "auth:error",
+                        serde_json::json!({
+                            "message": format!("Profile sync failed: {error}")
+                        }),
+                    );
                 }
             }
         });
@@ -1958,7 +1972,17 @@ fn resolve_active_plan_code(
     let plan_code = subscription_plan_code?.trim().to_lowercase();
     match plan_code.as_str() {
         // Accept legacy Paystack-era codes for backward compat with existing Supabase rows.
-        "core" | "creator" | "pro" | "studio" | "power" | "empire" => Some(if plan_code == "creator" { "core".to_string() } else if plan_code == "studio" { "pro".to_string() } else if plan_code == "empire" { "power".to_string() } else { plan_code }),
+        "core" | "creator" | "pro" | "studio" | "power" | "empire" => {
+            Some(if plan_code == "creator" {
+                "core".to_string()
+            } else if plan_code == "studio" {
+                "pro".to_string()
+            } else if plan_code == "empire" {
+                "power".to_string()
+            } else {
+                plan_code
+            })
+        }
         _ => None,
     }
 }
@@ -2106,7 +2130,8 @@ pub(crate) async fn require_billing_tier(
         // Only log as SUSPICIOUS if the user IS signed in but billing fetch
         // still failed (network error, API failure). "Sign in before continuing"
         // is a normal auth state — no need to flag it.
-        if !e.contains("Sign in before continuing") && !e.contains("Sign in to")
+        if !e.contains("Sign in before continuing")
+            && !e.contains("Sign in to")
             && !e.contains("Session expired")
         {
             emit_suspicious_event("billing_fetch_failed", &format!("{module_id}: {e}"));
@@ -2122,13 +2147,19 @@ pub(crate) async fn require_billing_tier(
         if let Some(cached) = gate_cache.get(module_id, billing_profile.cache_version) {
             if cached.allowed {
                 auth.inner.gate_denials.reset();
-                emit_gate_event(module_id, "allowed_cached",
-                    &format!("user_tier_rank={}", cached.user_tier_rank));
+                emit_gate_event(
+                    module_id,
+                    "allowed_cached",
+                    &format!("user_tier_rank={}", cached.user_tier_rank),
+                );
                 return Ok(());
             } else {
                 auth.inner.gate_denials.hit();
-                emit_gate_event(module_id, "denied_cached",
-                    &format!("user_tier_rank={}", cached.user_tier_rank));
+                emit_gate_event(
+                    module_id,
+                    "denied_cached",
+                    &format!("user_tier_rank={}", cached.user_tier_rank),
+                );
                 return Err(format!("Upgrade required to use {module_id}."));
             }
         }
@@ -2162,7 +2193,11 @@ pub(crate) async fn require_billing_tier(
     if allowed {
         // Allowed — reset the denial counter so the user isn't stuck throttled
         auth.inner.gate_denials.reset();
-        emit_gate_event(module_id, "allowed", &format!("tier={:?} required={:?}", tier, required));
+        emit_gate_event(
+            module_id,
+            "allowed",
+            &format!("tier={:?} required={:?}", tier, required),
+        );
         Ok(())
     } else {
         auth.inner.gate_denials.hit();
@@ -2170,7 +2205,8 @@ pub(crate) async fn require_billing_tier(
             "gate_denied",
             &format!("module={module_id} tier={tier:?} required={required:?}"),
         );
-        Err(format!("Upgrade required to use {module_id}. Current plan: {}. Required: {}.",
+        Err(format!(
+            "Upgrade required to use {module_id}. Current plan: {}. Required: {}.",
             tier.display_label(),
             required.display_label(),
         ))
@@ -2220,7 +2256,10 @@ fn subscription_is_access_active(
     if let Some(end_str) = subscription_end_date {
         if let Some(end) = parse_rfc3339_to_utc(end_str) {
             if end < *BUILD_TIME_FLOOR {
-                eprintln!("[gate] CLOCK ROLLBACK DETECTED: end_date={end:?} < build_floor={:?}", *BUILD_TIME_FLOOR);
+                eprintln!(
+                    "[gate] CLOCK ROLLBACK DETECTED: end_date={end:?} < build_floor={:?}",
+                    *BUILD_TIME_FLOOR
+                );
                 emit_suspicious_event(
                     "clock_rollback",
                     &format!("end_date={end:?} build_floor={:?}", *BUILD_TIME_FLOOR),

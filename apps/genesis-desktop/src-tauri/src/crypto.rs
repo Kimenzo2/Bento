@@ -344,6 +344,30 @@ impl CryptoService {
         self.pool("main").await
     }
 
+    /// Create a dedicated reader pool for the main database.
+    ///
+    /// Returns a **second**, independent pool pointing at the same encrypted
+    /// main database but with `.max_connections(4)` and its own connection
+    /// lifecycle. Read-heavy background workers (scheduler, dashboard,
+    /// clipboard) use this pool so they never compete with user-facing IPC
+    /// writes for the main pool's connections or its 3-second acquire_timeout.
+    ///
+    /// Falls back to `main_pool().clone()` if the reader-specific pool cannot
+    /// be created (caller handles the fallback).
+    pub async fn reader_main_pool(&self) -> Result<SqlitePool, String> {
+        let inner = self.0.read().await;
+        let key = inner
+            .key
+            .as_ref()
+            .ok_or_else(|| "Database is locked — no reader pool available.".to_string())
+            .cloned()?;
+        let data_dir = inner.data_dir.clone();
+        drop(inner);
+
+        let path = module_db_path("main", &data_dir)?;
+        open_encrypted_pool(&path, &key, 4).await
+    }
+
     /// Migrate an existing unencrypted DB to encrypted.
     /// Only called once per file, guarded by the migration flag in settings.
     pub async fn migrate_unencrypted(

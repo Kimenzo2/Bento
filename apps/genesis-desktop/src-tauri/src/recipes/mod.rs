@@ -458,7 +458,10 @@ pub async fn ensure_recipes_tables(pool: &sqlx::SqlitePool) -> Result<(), String
 // ═══ RECIPES CRUD ════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn recipes_list(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<Vec<RecipeRow>, String> {
+pub async fn recipes_list(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+) -> Result<Vec<RecipeRow>, String> {
     crate::auth::require_billing_tier(&auth, "recipes").await?;
 
     ensure_recipes_tables(&state.db()).await?;
@@ -629,7 +632,8 @@ pub async fn recipe_save_internal(
 }
 
 #[tauri::command]
-pub async fn recipe_save(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn recipe_save(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     search: State<'_, SearchService>,
     payload: NewRecipePayload,
@@ -640,7 +644,8 @@ pub async fn recipe_save(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn recipe_delete(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn recipe_delete(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     search: State<'_, SearchService>,
     recipe_id: String,
@@ -663,7 +668,8 @@ pub async fn recipe_delete(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn recipe_toggle_favorite(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn recipe_toggle_favorite(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     recipe_id: String,
 ) -> Result<bool, String> {
@@ -689,7 +695,8 @@ pub async fn recipe_toggle_favorite(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn recipe_rate(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn recipe_rate(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     recipe_id: String,
     rating: i64,
@@ -708,7 +715,8 @@ pub async fn recipe_rate(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn recipe_add_to_collection(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn recipe_add_to_collection(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     search: State<'_, SearchService>,
     recipe_id: String,
@@ -747,7 +755,8 @@ pub async fn recipe_add_to_collection(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn recipe_toggle_ingredient(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn recipe_toggle_ingredient(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     ingredient_id: String,
 ) -> Result<bool, String> {
@@ -774,7 +783,8 @@ pub async fn recipe_toggle_ingredient(auth: State<'_, crate::auth::AuthManager>,
 // ═══ COLLECTIONS ══════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn collections_list(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn collections_list(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<CollectionRow>, String> {
     crate::auth::require_billing_tier(&auth, "recipes").await?;
@@ -800,7 +810,8 @@ pub async fn collections_list(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn collection_create(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn collection_create(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     name: String,
     emoji: String,
@@ -828,7 +839,8 @@ pub async fn collection_create(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn collection_delete(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn collection_delete(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     collection_id: String,
 ) -> Result<(), String> {
@@ -846,7 +858,10 @@ pub async fn collection_delete(auth: State<'_, crate::auth::AuthManager>,
 // ═══ PANTRY ═══════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn pantry_list(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<Vec<PantryItemRow>, String> {
+pub async fn pantry_list(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+) -> Result<Vec<PantryItemRow>, String> {
     crate::auth::require_billing_tier(&auth, "recipes").await?;
 
     ensure_recipes_tables(&state.db()).await?;
@@ -869,7 +884,8 @@ pub async fn pantry_list(auth: State<'_, crate::auth::AuthManager>, state: State
 }
 
 #[tauri::command]
-pub async fn pantry_upsert(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn pantry_upsert(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     name: String,
     category: String,
@@ -922,7 +938,8 @@ pub async fn pantry_upsert(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn pantry_toggle(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn pantry_toggle(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     item_id: String,
 ) -> Result<PantryItemRow, String> {
@@ -958,7 +975,8 @@ pub async fn pantry_toggle(auth: State<'_, crate::auth::AuthManager>,
 // ═══ SHOPPING LIST ════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn shopping_list(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn shopping_list(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<ShoppingItemRow>, String> {
     crate::auth::require_billing_tier(&auth, "recipes").await?;
@@ -987,7 +1005,8 @@ pub async fn shopping_list(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn shopping_add(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn shopping_add(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     name: String,
     amount: String,
@@ -1017,7 +1036,8 @@ pub async fn shopping_add(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn shopping_toggle(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn shopping_toggle(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     item_id: String,
 ) -> Result<bool, String> {
@@ -1042,7 +1062,8 @@ pub async fn shopping_toggle(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn shopping_delete(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn shopping_delete(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     item_id: String,
 ) -> Result<(), String> {
@@ -1058,7 +1079,10 @@ pub async fn shopping_delete(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn shopping_clear_checked(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<(), String> {
+pub async fn shopping_clear_checked(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "recipes").await?;
 
     ensure_recipes_tables(&state.db()).await?;
@@ -1070,7 +1094,8 @@ pub async fn shopping_clear_checked(auth: State<'_, crate::auth::AuthManager>, s
 }
 
 #[tauri::command]
-pub async fn shopping_add_from_recipe(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn shopping_add_from_recipe(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     recipe_id: String,
 ) -> Result<Vec<ShoppingItemRow>, String> {
@@ -1118,7 +1143,10 @@ pub async fn shopping_add_from_recipe(auth: State<'_, crate::auth::AuthManager>,
 // ═══ MEAL PLAN ════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn meal_plan_get(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<Vec<MealPlanRow>, String> {
+pub async fn meal_plan_get(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+) -> Result<Vec<MealPlanRow>, String> {
     crate::auth::require_billing_tier(&auth, "recipes").await?;
 
     ensure_recipes_tables(&state.db()).await?;
@@ -1146,7 +1174,8 @@ pub async fn meal_plan_get(auth: State<'_, crate::auth::AuthManager>, state: Sta
 }
 
 #[tauri::command]
-pub async fn meal_plan_set(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn meal_plan_set(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     day_index: i64,
     meal_type: String,
@@ -1184,7 +1213,8 @@ pub async fn meal_plan_set(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn meal_plan_clear_slot(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn meal_plan_clear_slot(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     day_index: i64,
     meal_type: String,
@@ -1206,7 +1236,10 @@ pub async fn meal_plan_clear_slot(auth: State<'_, crate::auth::AuthManager>,
 // ═══ DIET PROFILE ══════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn diet_profile_get(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<DietProfileRow, String> {
+pub async fn diet_profile_get(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+) -> Result<DietProfileRow, String> {
     crate::auth::require_billing_tier(&auth, "recipes").await?;
 
     ensure_recipes_tables(&state.db()).await?;
@@ -1231,7 +1264,8 @@ pub async fn diet_profile_get(auth: State<'_, crate::auth::AuthManager>, state: 
 }
 
 #[tauri::command]
-pub async fn diet_profile_save(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn diet_profile_save(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     diets: Vec<String>,
     allergens: Vec<String>,
@@ -1268,7 +1302,8 @@ pub async fn diet_profile_save(auth: State<'_, crate::auth::AuthManager>,
 // ═══ COOK HISTORY ═════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn cook_history_list(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn cook_history_list(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<CookHistoryRow>, String> {
     crate::auth::require_billing_tier(&auth, "recipes").await?;
@@ -1295,7 +1330,8 @@ pub async fn cook_history_list(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn cook_history_add(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn cook_history_add(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     recipe_id: String,
     recipe_title: String,
@@ -1333,7 +1369,10 @@ pub async fn cook_history_add(auth: State<'_, crate::auth::AuthManager>,
 // ═══ SEED (first-run mock data) ═══════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn recipes_seed_if_empty(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<bool, String> {
+pub async fn recipes_seed_if_empty(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+) -> Result<bool, String> {
     crate::auth::require_billing_tier(&auth, "recipes").await?;
 
     ensure_recipes_tables(&state.db()).await?;

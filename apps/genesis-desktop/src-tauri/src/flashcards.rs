@@ -156,7 +156,8 @@ async fn fetch_cards_for_deck(
 // ═══ LIST ALL DECKS ═══════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn flashcards_list(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn flashcards_list(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<RecallDeckRow>, String> {
     crate::auth::require_billing_tier(&auth, "flashcards").await?;
@@ -192,7 +193,8 @@ pub async fn flashcards_list(auth: State<'_, crate::auth::AuthManager>,
 // ═══ CREATE DECK ══════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn flashcards_deck_create(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn flashcards_deck_create(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     payload: NewDeckPayload,
 ) -> Result<RecallDeckRow, String> {
@@ -232,7 +234,8 @@ pub async fn flashcards_deck_create(auth: State<'_, crate::auth::AuthManager>,
 // ═══ DELETE DECK ══════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn flashcards_deck_delete(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn flashcards_deck_delete(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     deck_id: String,
 ) -> Result<(), String> {
@@ -255,7 +258,8 @@ pub async fn flashcards_deck_delete(auth: State<'_, crate::auth::AuthManager>,
 // ═══ CREATE CARD ══════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn flashcards_card_create(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn flashcards_card_create(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     payload: NewCardPayload,
 ) -> Result<RecallCardRow, String> {
@@ -319,7 +323,8 @@ pub async fn flashcards_card_create(auth: State<'_, crate::auth::AuthManager>,
 // ═══ GRADE CARD (SRS update) ═════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn flashcards_card_grade(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn flashcards_card_grade(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     payload: GradeCardPayload,
 ) -> Result<RecallCardRow, String> {
@@ -377,7 +382,8 @@ pub async fn flashcards_card_grade(auth: State<'_, crate::auth::AuthManager>,
 // ═══ TOGGLE PIN ══════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn flashcards_card_toggle_pin(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn flashcards_card_toggle_pin(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     card_id: String,
 ) -> Result<RecallCardRow, String> {
@@ -434,7 +440,8 @@ pub async fn flashcards_card_toggle_pin(auth: State<'_, crate::auth::AuthManager
 // ═══ ARCHIVE / RESTORE CARD ══════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn flashcards_card_archive(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn flashcards_card_archive(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     card_id: String,
 ) -> Result<(), String> {
@@ -450,7 +457,8 @@ pub async fn flashcards_card_archive(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn flashcards_card_restore(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn flashcards_card_restore(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     card_id: String,
 ) -> Result<(), String> {
@@ -468,7 +476,8 @@ pub async fn flashcards_card_restore(auth: State<'_, crate::auth::AuthManager>,
 // ═══ SEARCH ═══════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn flashcards_search(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn flashcards_search(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     query: String,
 ) -> Result<Vec<RecallDeckRow>, String> {
@@ -516,7 +525,8 @@ pub async fn flashcards_search(auth: State<'_, crate::auth::AuthManager>,
 // ═══ REVIEW QUEUE ═════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn flashcards_review_queue(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn flashcards_review_queue(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     deck_id: Option<String>,
 ) -> Result<Vec<RecallCardRow>, String> {

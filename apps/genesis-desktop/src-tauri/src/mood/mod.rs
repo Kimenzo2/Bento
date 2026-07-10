@@ -82,7 +82,8 @@ pub struct PrivateNoteRow {
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn mood_checkin_save(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn mood_checkin_save(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     entry: CheckinEntry,
 ) -> Result<CheckinRow, String> {
@@ -127,7 +128,8 @@ pub async fn mood_checkin_save(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn mood_checkins_today(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn mood_checkins_today(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<CheckinRow>, String> {
     crate::auth::require_billing_tier(&auth, "mood").await?;
@@ -147,7 +149,8 @@ pub async fn mood_checkins_today(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn mood_checkins_month(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn mood_checkins_month(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     month: String,
 ) -> Result<Vec<CheckinRow>, String> {
@@ -169,7 +172,8 @@ pub async fn mood_checkins_month(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn mood_checkins_recent(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn mood_checkins_recent(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     limit: Option<i64>,
 ) -> Result<Vec<CheckinRow>, String> {
@@ -191,7 +195,8 @@ pub async fn mood_checkins_recent(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn mood_checkin_delete(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn mood_checkin_delete(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<(), String> {
@@ -211,7 +216,10 @@ pub async fn mood_checkin_delete(auth: State<'_, crate::auth::AuthManager>,
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn mood_stats(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<MoodStats, String> {
+pub async fn mood_stats(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+) -> Result<MoodStats, String> {
     crate::auth::require_billing_tier(&auth, "mood").await?;
 
     ensure_mood_tables(&state.db()).await?;
@@ -279,7 +287,8 @@ fn compute_streak(desc_dates: &[String]) -> u32 {
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn mood_activity_library(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn mood_activity_library(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<ActivityRow>, String> {
     crate::auth::require_billing_tier(&auth, "mood").await?;
@@ -303,7 +312,8 @@ pub async fn mood_activity_library(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn mood_activity_add(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn mood_activity_add(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     name: String,
 ) -> Result<ActivityRow, String> {
@@ -355,7 +365,8 @@ pub async fn mood_activity_add(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn mood_activity_delete(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn mood_activity_delete(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<(), String> {
@@ -375,7 +386,10 @@ pub async fn mood_activity_delete(auth: State<'_, crate::auth::AuthManager>,
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn mood_patterns(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<Vec<MoodPattern>, String> {
+pub async fn mood_patterns(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+) -> Result<Vec<MoodPattern>, String> {
     crate::auth::require_billing_tier(&auth, "mood").await?;
 
     ensure_mood_tables(&state.db()).await?;
@@ -533,7 +547,8 @@ pub async fn mood_patterns(auth: State<'_, crate::auth::AuthManager>, state: Sta
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn mood_private_note_save(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn mood_private_note_save(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     content: String,
 ) -> Result<PrivateNoteRow, String> {
@@ -563,7 +578,8 @@ pub async fn mood_private_note_save(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn mood_private_notes_list(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn mood_private_notes_list(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<PrivateNoteRow>, String> {
     crate::auth::require_billing_tier(&auth, "mood").await?;
@@ -587,7 +603,8 @@ pub async fn mood_private_notes_list(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn mood_private_note_delete(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn mood_private_note_delete(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<(), String> {

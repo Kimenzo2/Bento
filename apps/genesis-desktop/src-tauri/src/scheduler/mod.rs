@@ -371,8 +371,12 @@ pub async fn ensure_scheduler_tables(pool: &sqlx::SqlitePool) -> Result<(), Stri
 
 pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri::AppHandle) {
     tauri::async_runtime::spawn(async move {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
-        let db = state.db();
+        // Initial interval: 30s. On pool timeout, interval DOUBLES (up to 8 min)
+        // to avoid hammering an already-congested DB. Resets to 30s on success.
+        let mut poll_interval_secs = 30u64;
+        // Use the dedicated reader pool so scheduler polling never competes
+        // with user-facing IPC writes for the single writer connection slot.
+        let db = state.db_reader();
 
         // Ensure scheduler + notification tables exist before entering the loop
         if let Err(e) = ensure_scheduler_tables(&db).await {
@@ -383,15 +387,25 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
         }
 
         loop {
-            interval.tick().await;
+            tokio::time::sleep(tokio::time::Duration::from_secs(poll_interval_secs)).await;
 
             let store = ScheduleStore::new(db.clone());
 
             // Check for due schedules
             let due = match store.get_due().await {
-                Ok(schedules) => schedules,
+                Ok(schedules) => {
+                    // Reset poll interval on success
+                    if poll_interval_secs > 30 {
+                        poll_interval_secs = 30;
+                        eprintln!("[scheduler] poll interval reset to 30s after successful query");
+                    }
+                    schedules
+                }
                 Err(e) => {
                     eprintln!("[scheduler] Failed to query due schedules: {e}");
+                    // Exponential backoff: double interval up to 8 min max
+                    poll_interval_secs = (poll_interval_secs * 2).min(480);
+                    eprintln!("[scheduler] backing off — next poll in {poll_interval_secs}s");
                     continue;
                 }
             };

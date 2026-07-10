@@ -59,9 +59,7 @@ macro_rules! spawn_timeout {
                 )
             })?
             .map_err(|join_err| {
-                format!(
-                    "blocking task panicked at {_caller_file}:{_caller_line}: {join_err}"
-                )
+                format!("blocking task panicked at {_caller_file}:{_caller_line}: {join_err}")
             })?
         }
     };

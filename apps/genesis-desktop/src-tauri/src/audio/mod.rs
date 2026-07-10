@@ -21,11 +21,11 @@ use tauri::Emitter;
 pub mod classifier;
 pub mod dictation;
 pub mod live_preview;
+pub mod moonshine;
 pub mod processing;
 pub mod processing_queue;
 pub mod turns;
 pub mod validation;
-pub mod moonshine;
 
 // ─── Audio Level Payload (emitted to frontend via events) ────────────
 
@@ -535,8 +535,18 @@ impl RecordingEngine {
         drop(guard); // Release lock before potentially blocking on SQLite
 
         // Destructure to take ownership of `file` (hound::WavWriter::finalize consumes self).
-        let (sleep_detected, start_time, paused_duration, pause_start, id, file_path,
-             module_id, device_name, sample_rate, channels) = match session_data {
+        let (
+            sleep_detected,
+            start_time,
+            paused_duration,
+            pause_start,
+            id,
+            file_path,
+            module_id,
+            device_name,
+            sample_rate,
+            channels,
+        ) = match session_data {
             Some(inner) => {
                 let InnerSession {
                     file,
@@ -553,13 +563,33 @@ impl RecordingEngine {
                     start_time_ms: _,
                 } = inner;
                 let _ = file.finalize(); // Close WAV writer — file handle released
-                (sleep_detected, start_time, paused_duration, pause_start, id, file_path,
-                 module_id, device_name, sample_rate, channels)
+                (
+                    sleep_detected,
+                    start_time,
+                    paused_duration,
+                    pause_start,
+                    id,
+                    file_path,
+                    module_id,
+                    device_name,
+                    sample_rate,
+                    channels,
+                )
             }
             None => {
                 // Background thread already consumed the session (unlikely racing case)
-                (false, std::time::Instant::now(), std::time::Duration::ZERO, None,
-                 String::new(), PathBuf::new(), String::new(), String::new(), 0u32, 0u16)
+                (
+                    false,
+                    std::time::Instant::now(),
+                    std::time::Duration::ZERO,
+                    None,
+                    String::new(),
+                    PathBuf::new(),
+                    String::new(),
+                    String::new(),
+                    0u32,
+                    0u16,
+                )
             }
         };
 
@@ -575,9 +605,7 @@ impl RecordingEngine {
                 .unwrap_or(std::time::Duration::ZERO);
             let actual_dur = dur - pause_deduction;
             let start_ts = time::now_ms() - actual_dur.as_millis() as i64;
-            let size = std::fs::metadata(&file_path)
-                .map(|m| m.len())
-                .unwrap_or(0);
+            let size = std::fs::metadata(&file_path).map(|m| m.len()).unwrap_or(0);
 
             let _ = rt_handle.block_on(async {
                 sqlx::query(

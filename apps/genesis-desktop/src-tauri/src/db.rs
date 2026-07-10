@@ -21,17 +21,28 @@ const MAX_AI_PROMPT_BYTES: usize = 32 * 1024;
 
 #[derive(Clone)]
 pub struct BentoAppState {
+    /// Writer pool — `max_connections(1)`. SQLite WAL allows one writer
+    /// at a time; a single dedicated connection avoids file-level lock
+    /// contention between concurrent write transactions.
     db: Arc<Mutex<SqlitePool>>,
+    /// Reader pool — `max_connections(4)`. Dedicated connections for
+    /// background workers (scheduler, dashboard, clipboard) so read-heavy
+    /// queries never compete with writes for pool slots.
+    db_reader: Arc<Mutex<SqlitePool>>,
     active_module: Arc<Mutex<String>>,
 }
 impl BentoAppState {
-    pub fn new(db: SqlitePool) -> Self {
+    pub fn new(db: SqlitePool, db_reader: SqlitePool) -> Self {
         Self {
             db: Arc::new(Mutex::new(db)),
+            db_reader: Arc::new(Mutex::new(db_reader)),
             active_module: Arc::new(Mutex::new(ModuleId::Dashboard.as_str().to_string())),
         }
     }
 
+    /// Return the writer pool (backward compatible — most IPC commands
+    /// use this). Writes are serialized through the single writer
+    /// connection.
     pub fn db(&self) -> SqlitePool {
         self.db
             .lock()
@@ -39,7 +50,17 @@ impl BentoAppState {
             .unwrap_or_else(|e| e.into_inner().clone())
     }
 
-    /// Close the underlying pool and replace with a new one atomically.
+    /// Return the dedicated reader pool (higher concurrency).
+    /// Use for read-heavy background workers and dashboard queries
+    /// that would otherwise contend with user-facing IPC writes.
+    pub fn db_reader(&self) -> SqlitePool {
+        self.db_reader
+            .lock()
+            .map(|guard| guard.clone())
+            .unwrap_or_else(|e| e.into_inner().clone())
+    }
+
+    /// Close the writer pool and replace with a new one atomically.
     /// Used by the crypto service to close the plaintext pool before
     /// encrypting, and to hot-swap in the encrypted pool after setup.
     pub async fn close_and_replace(&self, new_pool: SqlitePool) {
@@ -56,9 +77,42 @@ impl BentoAppState {
         }
     }
 
-    /// Hot-swap the pool without closing the old one.
+    /// Close BOTH writer and reader pools and replace them atomically.
+    /// Used by crypto on full encryption unlock/change so that all
+    /// connections use the new SQLCipher key.
+    pub async fn close_and_replace_all(&self, writer: SqlitePool, reader: SqlitePool) {
+        let old_writer = {
+            if let Ok(mut guard) = self.db.lock() {
+                Some(std::mem::replace(&mut *guard, writer))
+            } else {
+                None
+            }
+        };
+        let old_reader = {
+            if let Ok(mut guard) = self.db_reader.lock() {
+                Some(std::mem::replace(&mut *guard, reader))
+            } else {
+                None
+            }
+        };
+        if let Some(old_pool) = old_writer {
+            old_pool.close().await;
+        }
+        if let Some(old_pool) = old_reader {
+            old_pool.close().await;
+        }
+    }
+
+    /// Hot-swap the writer pool without closing the old one.
     pub fn replace_pool(&self, new_pool: SqlitePool) {
         if let Ok(mut guard) = self.db.lock() {
+            *guard = new_pool;
+        }
+    }
+
+    /// Hot-swap the reader pool without closing the old one.
+    pub fn replace_reader_pool(&self, new_pool: SqlitePool) {
+        if let Ok(mut guard) = self.db_reader.lock() {
             *guard = new_pool;
         }
     }
@@ -344,8 +398,6 @@ async fn purge_local_user_content(pool: &SqlitePool) -> Result<(), String> {
         "sleep_sessions",
         "sleep_goals",
         "dashboard_events",
-        "telemetry_snapshots",
-        "anomaly_log",
         "performance_baselines",
         "clipboard_items",
     ] {
@@ -450,7 +502,23 @@ fn invalidate_dashboard(cache: &DashboardCache) {
     cache.invalidate();
 }
 
-pub async fn init_db(app: &AppHandle) -> Result<SqlitePool, String> {
+/// Create TWO SQLite pools — one writer and one reader — both pointing at
+/// the same `app.db` file (WAL mode).
+///
+/// ── Writer pool  (`max_connections(1)`) ──
+/// SQLite WAL mode allows exactly one writer at a time. A single dedicated
+/// connection avoids file-level lock contention between concurrent write
+/// transactions. All IPC commands that INSERT/UPDATE/DELETE use this pool.
+///
+/// ── Reader pool  (`max_connections(4)`) ──
+/// Dedicated connections for background workers (scheduler, dashboard,
+/// clipboard monitoring) so read-heavy queries never compete with writes
+/// for pool slots. This prevents the "pool timed out" errors when auth
+/// refresh storms, dashboard queries, and the scheduler all contend for
+/// connections simultaneously.
+///
+/// Returns `(writer_pool, reader_pool)`.
+pub async fn init_db(app: &AppHandle) -> Result<(SqlitePool, SqlitePool), String> {
     let app_data_dir = app
         .path()
         .app_data_dir()
@@ -465,25 +533,32 @@ pub async fn init_db(app: &AppHandle) -> Result<SqlitePool, String> {
     if crate::crypto::encryption_is_configured() {
         // The CryptoService should already be unlocked by this point
         // (lib.rs setup calls crypto.unlock() after loading settings).
-        // This path is a fallback — return an in-memory bootstrap pool that
+        // This path is a fallback — return in-memory bootstrap pools that
         // will be replaced once unlock() succeeds. Do not open app.db without
         // SQLCipher here: that path may already contain encrypted bytes.
         if let Some(crypto) = app.try_state::<CryptoService>() {
             match crypto.main_pool().await {
-                Ok(pool) => return Ok(pool),
+                Ok(pool) => {
+                    // Create a dedicated reader pool with its own connection pool
+                    // and acquire_timeout, so read-heavy background workers (scheduler,
+                    // dashboard, clipboard) never compete with user-facing IPC writes
+                    // for the crypto pool's connections or its 3-second timeout.
+                    let reader = match crypto.reader_main_pool().await {
+                        Ok(r) => r,
+                        Err(e) => {
+                            eprintln!(
+                                "[db] reader pool creation failed: {e} — fallback to shared pool"
+                            );
+                            pool.clone()
+                        }
+                    };
+                    return Ok((pool, reader));
+                }
                 Err(_) => {
-                    // Still locked — caller will handle unlock UI
-                    let options = SqliteConnectOptions::new()
-                        .filename(":memory:")
-                        .journal_mode(SqliteJournalMode::Memory)
-                        .foreign_keys(true);    let pool = SqlitePoolOptions::new()
-        .max_connections(5) // Match the real pool; prevents command queuing in degraded mode
-        .connect_with(options)
-        .await
-        .map_err(|error| error.to_string())?;
-
-    run_migrations(&pool).await?;
-    return Ok(pool);
+                    // Still locked — caller will handle unlock UI.
+                    // Create twin in-memory bootstrap pools.
+                    let (w, r) = create_memory_pair().await?;
+                    return Ok((w, r));
                 }
             }
         }
@@ -491,39 +566,83 @@ pub async fn init_db(app: &AppHandle) -> Result<SqlitePool, String> {
 
     // ── Unencrypted path (first launch or pre-setup) ──────────────────────
     let db_path = app_data_dir.join("app.db");
-    let options = SqliteConnectOptions::new()
-        .filename(db_path)
+    let base_options = SqliteConnectOptions::new()
+        .filename(&db_path)
         .create_if_missing(true)
         .journal_mode(SqliteJournalMode::Wal)
+        .busy_timeout(std::time::Duration::from_secs(5))
         .foreign_keys(true);
 
-    let pool = SqlitePoolOptions::new()
-        .max_connections(5)
-        .connect_with(options)
+    // Writer pool: single connection — SQLite serializes WAL writes anyway.
+    let writer = SqlitePoolOptions::new()
+        .max_connections(1)
+        .acquire_timeout(std::time::Duration::from_secs(15))
+        .acquire_slow_threshold(std::time::Duration::from_secs(2))
+        .connect_with(base_options.clone())
         .await
         .map_err(|error| error.to_string())?;
 
-    run_encrypted_migrations(&pool).await?;
-    Ok(pool)
+    // Reader pool: 4 connections — enough for background workers without
+    // competing with the writer's single slot.
+    // `read_only(true)` ensures no reader connection can accidentally acquire
+    // a write lock, even if a query misuses BEGIN DEFERRED with a write path.
+    let reader_options = SqliteConnectOptions::new()
+        .filename(&db_path)
+        .create_if_missing(true)
+        .journal_mode(SqliteJournalMode::Wal)
+        .busy_timeout(std::time::Duration::from_secs(5))
+        .foreign_keys(true)
+        .read_only(true);
+    let reader = SqlitePoolOptions::new()
+        .max_connections(4)
+        .acquire_timeout(std::time::Duration::from_secs(15))
+        .acquire_slow_threshold(std::time::Duration::from_secs(2))
+        .connect_with(reader_options)
+        .await
+        .map_err(|error| error.to_string())?;
+
+    run_encrypted_migrations(&writer).await?;
+    Ok((writer, reader))
 }
 
-/// Fallback: create an in-memory SQLite pool with all migrations applied.
-/// Used when `init_db` fails so the app can always show its window.
-/// Data in this pool is lost when the app exits.
-pub async fn init_in_memory_db() -> Result<SqlitePool, String> {
+/// Create a pair of in-memory pools (writer + reader) as placeholder during
+/// crypto bootstrap or fallback scenarios.
+///
+/// Uses `file::memory:?cache=shared` URI so all connections — even across
+/// separate pools — share the same underlying in-memory database. Without
+/// this, `:memory:` creates a separate private database for each connection,
+/// leaving the reader pool with no tables (only the writer's single
+/// connection would have the migrated schema).
+async fn create_memory_pair() -> Result<(SqlitePool, SqlitePool), String> {
     let options = SqliteConnectOptions::new()
-        .filename(":memory:")
+        .filename("file::memory:?cache=shared")
         .journal_mode(SqliteJournalMode::Memory)
         .foreign_keys(true);
 
-    let pool = SqlitePoolOptions::new()
+    let writer = SqlitePoolOptions::new()
         .max_connections(1)
+        .connect_with(options.clone())
+        .await
+        .map_err(|error| error.to_string())?;
+
+    // Run migrations on the writer first — because of `cache=shared`, the
+    // reader pool will see the same schema on its connections.
+    run_migrations(&writer).await?;
+
+    let reader = SqlitePoolOptions::new()
+        .max_connections(4)
         .connect_with(options)
         .await
         .map_err(|error| error.to_string())?;
 
-    run_migrations(&pool).await?;
-    Ok(pool)
+    Ok((writer, reader))
+}
+
+/// Create an in-memory SQLite pair (writer + reader) used when `init_db`
+/// fails so the app can always show its window.
+/// Data in this pool pair is lost when the app exits.
+pub async fn init_in_memory_db() -> Result<(SqlitePool, SqlitePool), String> {
+    create_memory_pair().await
 }
 
 /// Public migrations entry point — called by both the plain init_db
@@ -590,12 +709,9 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), String> {
         CREATE TABLE IF NOT EXISTS module_context (module TEXT PRIMARY KEY, scroll_position REAL NOT NULL DEFAULT 0, last_open_id TEXT, cursor_position INTEGER, extra TEXT NOT NULL DEFAULT '{}');
         CREATE TABLE IF NOT EXISTS module_fonts (module TEXT NOT NULL, role TEXT NOT NULL, family TEXT NOT NULL, source TEXT NOT NULL, file_path TEXT, size_scale REAL DEFAULT 1.0, PRIMARY KEY (module, role))
         "#,
-        // Batch 7: Telemetry, passwords, runtime, dashboard, journal
+        // Batch 7: Passwords, runtime, dashboard, journal
         r#"
-        CREATE TABLE IF NOT EXISTS telemetry_snapshots (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp_ms INTEGER NOT NULL, module TEXT NOT NULL, data TEXT NOT NULL, anomaly_flags TEXT);
-        CREATE TABLE IF NOT EXISTS anomaly_log (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp_ms INTEGER NOT NULL, module TEXT NOT NULL, anomaly_type TEXT NOT NULL, severity TEXT NOT NULL, data TEXT NOT NULL, resolved INTEGER NOT NULL DEFAULT 0, resolution TEXT);
         CREATE TABLE IF NOT EXISTS passwords (id TEXT PRIMARY KEY, site TEXT NOT NULL, username TEXT NOT NULL, password_encrypted TEXT NOT NULL DEFAULT '', notes_encrypted TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
-        CREATE TABLE IF NOT EXISTS performance_baselines (module TEXT PRIMARY KEY, avg_heap_mb REAL, p95_ipc_ms REAL, p95_db_ms REAL, computed_at INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS runtime_state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS dashboard_events (id INTEGER PRIMARY KEY AUTOINCREMENT, event_type TEXT NOT NULL, module_id TEXT NOT NULL, related_module_id TEXT, action TEXT NOT NULL, payload TEXT NOT NULL DEFAULT '{}', created_at INTEGER NOT NULL);
         CREATE INDEX IF NOT EXISTS idx_dashboard_events_created_at ON dashboard_events(created_at DESC);
@@ -904,45 +1020,64 @@ pub async fn set_module_fonts(
     fonts: Vec<ModuleFontPreference>,
 ) -> Result<Vec<ModuleFontPreference>, String> {
     let module = parse_module(&module)?;
-    let mut tx = state
-        .db()
-        .begin()
+    let pool = state.db();
+    let mut conn = pool
+        .acquire()
+        .await
+        .map_err(|e| format!("Transaction error: {e}"))?;
+    sqlx::query("BEGIN IMMEDIATE")
+        .execute(&mut *conn)
         .await
         .map_err(|error| error.to_string())?;
 
-    sqlx::query("DELETE FROM module_fonts WHERE module = ?")
-        .bind(module.as_str())
-        .execute(&mut *tx)
-        .await
-        .map_err(|error| error.to_string())?;
+    let tx_result: Result<Vec<ModuleFontPreference>, String> = async {
+        sqlx::query("DELETE FROM module_fonts WHERE module = ?")
+            .bind(module.as_str())
+            .execute(&mut *conn)
+            .await
+            .map_err(|error| error.to_string())?;
 
-    for font in fonts {
-        let role = font.role.trim();
-        if !matches!(role, "primary" | "secondary" | "mono") {
-            return Err(format!("Unsupported font role: {}", font.role));
+        for font in fonts {
+            let role = font.role.trim();
+            if !matches!(role, "primary" | "secondary" | "mono") {
+                return Err(format!("Unsupported font role: {}", font.role));
+            }
+
+            let source = font.source.trim();
+            if !matches!(source, "bundled" | "system" | "downloaded") {
+                return Err(format!("Unsupported font source: {}", font.source));
+            }
+
+            sqlx::query(
+                "INSERT INTO module_fonts (module, role, family, source, file_path, size_scale) VALUES (?, ?, ?, ?, ?, ?)",
+            )
+            .bind(module.as_str())
+            .bind(role)
+            .bind(font.family.trim())
+            .bind(source)
+            .bind(font.file_path)
+            .bind(font.size_scale.clamp(0.8, 1.4))
+            .execute(&mut *conn)
+            .await
+            .map_err(|error| error.to_string())?;
         }
 
-        let source = font.source.trim();
-        if !matches!(source, "bundled" | "system" | "downloaded") {
-            return Err(format!("Unsupported font source: {}", font.source));
-        }
+        get_module_fonts(state, module.as_str().to_string()).await
+    }.await;
 
-        sqlx::query(
-            "INSERT INTO module_fonts (module, role, family, source, file_path, size_scale) VALUES (?, ?, ?, ?, ?, ?)",
-        )
-        .bind(module.as_str())
-        .bind(role)
-        .bind(font.family.trim())
-        .bind(source)
-        .bind(font.file_path)
-        .bind(font.size_scale.clamp(0.8, 1.4))
-        .execute(&mut *tx)
-        .await
-        .map_err(|error| error.to_string())?;
+    match tx_result {
+        Ok(val) => {
+            sqlx::query("COMMIT")
+                .execute(&mut *conn)
+                .await
+                .map_err(|error| error.to_string())?;
+            Ok(val)
+        }
+        Err(e) => {
+            let _ = sqlx::query("ROLLBACK").execute(&mut *conn).await;
+            Err(e)
+        }
     }
-
-    tx.commit().await.map_err(|error| error.to_string())?;
-    get_module_fonts(state, module.as_str().to_string()).await
 }
 
 #[tauri::command]

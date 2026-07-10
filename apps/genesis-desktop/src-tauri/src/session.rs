@@ -17,7 +17,6 @@ use crate::db::{
     read_runtime_state, record_dashboard_event, write_runtime_state, BentoAppState, ModuleContext,
 };
 use crate::modules::is_installed;
-use crate::telemetry::{BackendTraceInput, Severity, TelemetryState};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -137,7 +136,6 @@ impl TabSessionManager {
         &mut self,
         module_id: String,
         db: &SqlitePool,
-        telemetry: Option<TelemetryState>,
         app: &AppHandle,
     ) -> Result<TabInfo, String> {
         // Gap 11: verify module is installed before creating anything
@@ -157,7 +155,7 @@ impl TabSessionManager {
         let opened_at = unix_ms();
 
         // Spawn the backend actor immediately (the moment the tab is added)
-        let actor = actors::spawn_module_actor(module_id.clone(), db.clone(), telemetry);
+        let actor = actors::spawn_module_actor(module_id.clone(), db.clone());
 
         let info = TabInfo {
             id: tab_id.clone(),
@@ -206,12 +204,10 @@ impl TabSessionManager {
     ///
     /// **Phase 1** – flush current foreground tab's context to SQLite.
     /// **Phase 2** – load incoming tab's last UI context from SQLite.
-    /// **Phase 3** – telemetry handover.
     pub async fn switch_tab(
         &mut self,
         tab_id: &str,
         db: &SqlitePool,
-        telemetry: Option<&TelemetryState>,
         _app: &AppHandle,
     ) -> Result<TabSwitchPayload, String> {
         // Resolve the module_id for the target tab
@@ -264,26 +260,6 @@ impl TabSessionManager {
             }
         }
         self.foreground_tab_id = Some(tab_id.to_string());
-
-        // ── Phase 3: telemetry handover ──────────────────────────────────
-        if let Some(telemetry) = telemetry {
-            let _ = telemetry
-                .record_backend_trace(BackendTraceInput {
-                    source: "tab_session".into(),
-                    operation: "switch_tab".into(),
-                    module_id: Some(to_module.clone()),
-                    status_code: 0,
-                    severity: Severity::Info,
-                    message: format!(
-                        "Tab switch: {} → {}",
-                        from_module.as_deref().unwrap_or("(none)"),
-                        to_module,
-                    ),
-                    path: None,
-                    details: None,
-                })
-                .await;
-        }
 
         Ok(TabSwitchPayload {
             from_tab_id,
@@ -445,12 +421,7 @@ pub async fn restore_tabs_from_db(
             continue;
         }
 
-        let telemetry: Option<TelemetryState> =
-            app.try_state::<TelemetryState>().as_deref().cloned();
-        match session
-            .open_tab(module_id.clone(), &state.db(), telemetry, app)
-            .await
-        {
+        match session.open_tab(module_id.clone(), &state.db(), app).await {
             Ok(info) => restored.push(info),
             Err(e) => {
                 eprintln!("[TabSession] Failed to restore tab for module \"{module_id}\": {e}");
@@ -483,11 +454,8 @@ pub async fn tab_open(
         ));
     }
 
-    let telemetry: Option<TelemetryState> = app.try_state::<TelemetryState>().as_deref().cloned();
     let mut manager = session.inner.lock().await;
-    let tab_info = manager
-        .open_tab(module_id, &state.db(), telemetry, &app)
-        .await?;
+    let tab_info = manager.open_tab(module_id, &state.db(), &app).await?;
     let opened_module_id = tab_info.module_id.clone();
     let opened_tab_id = tab_info.id.clone();
     let opened_module_id_json = opened_module_id.clone();
@@ -541,13 +509,10 @@ pub async fn tab_switch(
     state: tauri::State<'_, BentoAppState>,
     tab_id: String,
 ) -> Result<TabSwitchPayload, String> {
-    let telemetry = app.try_state::<TelemetryState>();
     let mut manager = session.inner.lock().await;
     // Persist active tab order after switch
     let _ = persist_open_tab_ids(&state, &manager).await;
-    let payload = manager
-        .switch_tab(&tab_id, &state.db(), telemetry.as_deref(), &app)
-        .await?;
+    let payload = manager.switch_tab(&tab_id, &state.db(), &app).await?;
     let from_module = payload.from_module.clone();
     let from_tab_id = payload.from_tab_id.clone();
     let to_tab_id = payload.to_tab_id.clone();

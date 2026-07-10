@@ -7,7 +7,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { listen, emit } from "@tauri-apps/api/event";
-  import { invoke } from "@tauri-apps/api/core";
+  import { invokeWithTimeout } from "$lib/ipc";
   import Island from "$lib/components/island/Island.svelte";
   import { islandStore } from "$lib/stores/island.store.svelte";
   import type { IslandItem } from "$lib/data/island-catalog";
@@ -39,7 +39,7 @@
     const entry = getModuleCatalogEntry(item.id);
     if (entry?.route) {
       emit("bento://navigate", { route: entry.route });
-      invoke("focus_main_window");
+      invokeWithTimeout("focus_main_window", undefined, 5_000);
     }
     islandStore.collapse();
   }
@@ -49,7 +49,7 @@
     if (action.startsWith("open:")) {
       const route = action.slice(5);
       emit("bento://navigate", { route });
-      invoke("focus_main_window");
+      invokeWithTimeout("focus_main_window", undefined, 5_000);
     }
 
     // Keep the island open and show module status
@@ -74,7 +74,7 @@
         islandStore.toggle();
       });
       const u2 = await listen("island:show", () => {
-        islandStore.expand("apps");
+        islandStore.expand("widgets");
       });
       const u3 = await listen("island:hide", () => {
         islandStore.collapse();

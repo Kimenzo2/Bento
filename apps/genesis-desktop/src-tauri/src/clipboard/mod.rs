@@ -328,14 +328,31 @@ impl ClipEntry {
             is_sensitive: row.try_get::<i64, _>("is_sensitive").unwrap_or(0) == 1,
             timestamp: row.try_get("created_at").unwrap_or(0),
             external_content: None,
-            og_title: row.try_get("og_title").ok().filter(|s: &String| !s.is_empty()),
-            og_description: row.try_get("og_description").ok().filter(|s: &String| !s.is_empty()),
-            og_image: row.try_get("og_image").ok().filter(|s: &String| !s.is_empty()),
-            og_site_name: row.try_get("og_site_name").ok().filter(|s: &String| !s.is_empty()),
-            platform: row.try_get("platform").ok().filter(|s: &String| !s.is_empty()),
+            og_title: row
+                .try_get("og_title")
+                .ok()
+                .filter(|s: &String| !s.is_empty()),
+            og_description: row
+                .try_get("og_description")
+                .ok()
+                .filter(|s: &String| !s.is_empty()),
+            og_image: row
+                .try_get("og_image")
+                .ok()
+                .filter(|s: &String| !s.is_empty()),
+            og_site_name: row
+                .try_get("og_site_name")
+                .ok()
+                .filter(|s: &String| !s.is_empty()),
+            platform: row
+                .try_get("platform")
+                .ok()
+                .filter(|s: &String| !s.is_empty()),
             saved_timestamp_seconds: row.try_get("saved_timestamp_seconds").ok(),
             recopy_count: row.try_get("recopy_count").unwrap_or(0),
-            enrichment_status: row.try_get("enrichment_status").unwrap_or_else(|_| "none".to_string()),
+            enrichment_status: row
+                .try_get("enrichment_status")
+                .unwrap_or_else(|_| "none".to_string()),
         }
     }
 }
@@ -730,7 +747,8 @@ async fn unindex_clip_entry(app: &AppHandle, id: &str) {
 
 /// List clipboard items with optional filtering.
 #[tauri::command]
-pub async fn clipboard_list(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn clipboard_list(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     limit: Option<u32>,
     kind: Option<String>,
@@ -790,7 +808,8 @@ pub async fn clipboard_list(auth: State<'_, crate::auth::AuthManager>,
 /// Get a single clipboard item by ID.
 /// Loads external content if the inline content is empty.
 #[tauri::command]
-pub async fn clipboard_get(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn clipboard_get(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
     id: String,
@@ -825,7 +844,8 @@ pub async fn clipboard_get(auth: State<'_, crate::auth::AuthManager>,
 /// Save a new clipboard item. Content-hash based dedup (O(1)).
 /// Returns the saved entry, or the existing one if a duplicate is found.
 #[tauri::command]
-pub async fn clipboard_save(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn clipboard_save(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
     content: String,
@@ -879,13 +899,15 @@ pub async fn clipboard_save(auth: State<'_, crate::auth::AuthManager>,
 
     if result.rows_affected() == 0 {
         // Duplicate — update timestamp and return existing
-        sqlx::query("UPDATE clipboard_items SET created_at = ?, updated_at = ? WHERE content_hash = ?")
-            .bind(now)
-            .bind(now)
-            .bind(&hash)
-            .execute(&pool)
-            .await
-            .map_err(|e| e.to_string())?;
+        sqlx::query(
+            "UPDATE clipboard_items SET created_at = ?, updated_at = ? WHERE content_hash = ?",
+        )
+        .bind(now)
+        .bind(now)
+        .bind(&hash)
+        .execute(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
         let row = sqlx::query(
             "SELECT id, content_hash, kind, content, content_path, preview, source, byte_size, pinned, favorite, is_sensitive, created_at, og_title, og_description, og_image, og_site_name, platform, saved_timestamp_seconds, recopy_count, enrichment_status \
@@ -938,7 +960,8 @@ pub async fn clipboard_save(auth: State<'_, crate::auth::AuthManager>,
 /// Pin or unpin a clipboard item (wrapper matching frontend API).
 /// Accepts explicit `pinned` boolean for optimistic-UI-friendly contracts.
 #[tauri::command]
-pub async fn clipboard_pin(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn clipboard_pin(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
     id: String,
@@ -971,7 +994,8 @@ pub async fn clipboard_pin(auth: State<'_, crate::auth::AuthManager>,
 
 /// Toggle the pinned state of a clipboard item.
 #[tauri::command]
-pub async fn clipboard_toggle_pin(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn clipboard_toggle_pin(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
     id: String,
@@ -1017,7 +1041,8 @@ pub async fn clipboard_toggle_pin(auth: State<'_, crate::auth::AuthManager>,
 
 /// Favorite or unfavorite a clipboard item (wrapper matching frontend API).
 #[tauri::command]
-pub async fn clipboard_favorite(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn clipboard_favorite(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
     id: String,
@@ -1050,7 +1075,8 @@ pub async fn clipboard_favorite(auth: State<'_, crate::auth::AuthManager>,
 
 /// Toggle the favorite state of a clipboard item.
 #[tauri::command]
-pub async fn clipboard_toggle_favorite(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn clipboard_toggle_favorite(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
     id: String,
@@ -1095,7 +1121,8 @@ pub async fn clipboard_toggle_favorite(auth: State<'_, crate::auth::AuthManager>
 
 /// Delete a single clipboard item.
 #[tauri::command]
-pub async fn clipboard_delete(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn clipboard_delete(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
     id: String,
@@ -1135,7 +1162,8 @@ pub async fn clipboard_delete(auth: State<'_, crate::auth::AuthManager>,
 
 /// Delete multiple clipboard items by IDs.
 #[tauri::command]
-pub async fn clipboard_delete_batch(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn clipboard_delete_batch(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
     ids: Vec<String>,
@@ -1176,7 +1204,8 @@ pub async fn clipboard_delete_batch(auth: State<'_, crate::auth::AuthManager>,
 
 /// Clear all non-pinned items. Returns the number of items deleted.
 #[tauri::command]
-pub async fn clipboard_clear_unpinned(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn clipboard_clear_unpinned(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
 ) -> Result<i64, String> {
@@ -1222,7 +1251,8 @@ pub async fn clipboard_clear_unpinned(auth: State<'_, crate::auth::AuthManager>,
 
 /// Clear all items (including pinned). Returns the number of items deleted.
 #[tauri::command]
-pub async fn clipboard_clear_all(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn clipboard_clear_all(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
 ) -> Result<i64, String> {
@@ -1264,7 +1294,8 @@ pub async fn clipboard_clear_all(auth: State<'_, crate::auth::AuthManager>,
 
 /// Search clipboard items by content or preview using Tantivy.
 #[tauri::command]
-pub async fn clipboard_search(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn clipboard_search(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
     query: String,
@@ -1351,7 +1382,10 @@ pub async fn clipboard_search(auth: State<'_, crate::auth::AuthManager>,
 
 /// Get the total count of clipboard items.
 #[tauri::command]
-pub async fn clipboard_count(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<i64, String> {
+pub async fn clipboard_count(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+) -> Result<i64, String> {
     crate::auth::require_billing_tier(&auth, "clipboard").await?;
 
     let pool = state.db();
@@ -1485,7 +1519,8 @@ async fn save_clipboard_image_entry(
 /// Supports plain text, rich text (HTML), and images.
 /// For images, reads the stored PNG bytes and writes them to the system clipboard.
 #[tauri::command]
-pub async fn clipboard_copy(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn clipboard_copy(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
     id: String,
@@ -1618,7 +1653,8 @@ pub async fn clipboard_copy(auth: State<'_, crate::auth::AuthManager>,
 /// The frontend uses `convertFileSrc()` to turn this into a webview-loadable URL.
 /// This avoids base64-encoding the entire image through IPC.
 #[tauri::command]
-pub async fn clipboard_get_image_path(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn clipboard_get_image_path(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
     hash: String,
@@ -1727,7 +1763,8 @@ pub async fn clipboard_get_image_path(auth: State<'_, crate::auth::AuthManager>,
 /// Eliminates the N+1 IPC problem where each image in the grid fires a
 /// separate invoke call.
 #[tauri::command]
-pub async fn clipboard_get_image_paths(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn clipboard_get_image_paths(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     _state: State<'_, BentoAppState>,
     hashes: Vec<String>,
@@ -1771,7 +1808,8 @@ pub async fn clipboard_get_image_paths(auth: State<'_, crate::auth::AuthManager>
 /// Retrieve image data as a base64 data URI for frontend rendering.
 /// Kept for backward compatibility — prefer `clipboard_get_image_path` for new code.
 #[tauri::command]
-pub async fn clipboard_get_image_data(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn clipboard_get_image_data(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
     hash: String,
@@ -1845,7 +1883,8 @@ pub async fn clipboard_get_image_data(auth: State<'_, crate::auth::AuthManager>,
 
 /// Auto-expire sensitive items that are older than the expiry duration.
 #[tauri::command]
-pub async fn clipboard_expire_sensitive(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn clipboard_expire_sensitive(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
 ) -> Result<i64, String> {
@@ -1897,7 +1936,11 @@ pub async fn clipboard_expire_sensitive(auth: State<'_, crate::auth::AuthManager
 /// Garbage collect orphaned content files.
 /// Removes blobs that don't correspond to any row in clipboard_items.
 #[tauri::command]
-pub async fn clipboard_gc(auth: State<'_, crate::auth::AuthManager>, app: AppHandle, state: State<'_, BentoAppState>) -> Result<i64, String> {
+pub async fn clipboard_gc(
+    auth: State<'_, crate::auth::AuthManager>,
+    app: AppHandle,
+    state: State<'_, BentoAppState>,
+) -> Result<i64, String> {
     crate::auth::require_billing_tier(&auth, "clipboard").await?;
 
     let data_dir = match app.path().app_data_dir() {
@@ -2538,7 +2581,13 @@ async fn save_clipboard_entry(
     // classification.platform is already the as_str() form (e.g. "youtube"),
     // not a raw hostname. Check directly against "other" instead of
     // re-running KnownPlatform::from_hostname() which expects hostnames.
-    if classification.is_url && classification.platform.as_deref().map(|p| p != "other").unwrap_or(false) {
+    if classification.is_url
+        && classification
+            .platform
+            .as_deref()
+            .map(|p| p != "other")
+            .unwrap_or(false)
+    {
         let _ = bookmarks::handle_url_save(app, state, content).await?;
         return Ok(());
     }
@@ -2646,7 +2695,8 @@ async fn save_clipboard_entry(
 /// - `massive_text` — save a single ~10MB text entry
 /// - `db_contention` — interleave N saves with N SELECT queries
 #[tauri::command]
-pub async fn clipboard_inject_stress(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn clipboard_inject_stress(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
     scenario: String,
@@ -2898,8 +2948,3 @@ mod tests {
         assert!(small.len() <= EXTERNAL_STORE_THRESHOLD);
     }
 }
-
-
-
-
-

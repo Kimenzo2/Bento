@@ -59,7 +59,10 @@ pub struct VaultEntry {
 ///
 /// Returns an error if the crypto service is locked or not configured.
 #[tauri::command]
-pub async fn passwords_list(auth: State<'_, crate::auth::AuthManager>, crypto: State<'_, CryptoService>) -> Result<Vec<VaultEntry>, String> {
+pub async fn passwords_list(
+    auth: State<'_, crate::auth::AuthManager>,
+    crypto: State<'_, CryptoService>,
+) -> Result<Vec<VaultEntry>, String> {
     crate::auth::require_billing_tier(&auth, "passwords").await?;
 
     let pool = crypto.pool("passwords").await?;
@@ -97,7 +100,8 @@ pub async fn passwords_list(auth: State<'_, crate::auth::AuthManager>, crypto: S
 
 /// Save (create or update) a password vault entry in the encrypted DB.
 #[tauri::command]
-pub async fn passwords_save(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn passwords_save(
+    auth: State<'_, crate::auth::AuthManager>,
     crypto: State<'_, CryptoService>,
     entry: VaultEntry,
 ) -> Result<(), String> {
@@ -133,7 +137,8 @@ pub async fn passwords_save(auth: State<'_, crate::auth::AuthManager>,
 
 /// Get a single password vault entry by ID.
 #[tauri::command]
-pub async fn passwords_get(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn passwords_get(
+    auth: State<'_, crate::auth::AuthManager>,
     crypto: State<'_, CryptoService>,
     id: String,
 ) -> Result<Option<VaultEntry>, String> {
@@ -170,7 +175,8 @@ pub async fn passwords_get(auth: State<'_, crate::auth::AuthManager>,
 
 /// Search password vault entries by site or username.
 #[tauri::command]
-pub async fn passwords_search(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn passwords_search(
+    auth: State<'_, crate::auth::AuthManager>,
     crypto: State<'_, CryptoService>,
     query: String,
 ) -> Result<Vec<VaultEntry>, String> {
@@ -215,7 +221,11 @@ pub async fn passwords_search(auth: State<'_, crate::auth::AuthManager>,
 
 /// Delete a password vault entry by ID.
 #[tauri::command]
-pub async fn passwords_delete(auth: State<'_, crate::auth::AuthManager>, crypto: State<'_, CryptoService>, id: String) -> Result<(), String> {
+pub async fn passwords_delete(
+    auth: State<'_, crate::auth::AuthManager>,
+    crypto: State<'_, CryptoService>,
+    id: String,
+) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "passwords").await?;
 
     let pool = crypto.pool("passwords").await?;
@@ -236,7 +246,8 @@ pub async fn passwords_delete(auth: State<'_, crate::auth::AuthManager>, crypto:
 /// inserts all entries that don't already exist (idempotent — safe to call
 /// multiple times). Returns the count of entries migrated.
 #[tauri::command]
-pub async fn passwords_migrate_from_storage(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn passwords_migrate_from_storage(
+    auth: State<'_, crate::auth::AuthManager>,
     crypto: State<'_, CryptoService>,
     entries_json: String,
 ) -> Result<usize, String> {

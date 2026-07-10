@@ -9,7 +9,9 @@
 //   - voice_cancel: Cancel and discard the current session
 // ═══════════════════════════════════════════════════════════════════════
 
-use crate::audio::dictation::{post_process, detect_agent_trigger, DictationProcessResult, AgentTriggerResult, DictationStyle};
+use crate::audio::dictation::{
+    detect_agent_trigger, post_process, AgentTriggerResult, DictationProcessResult, DictationStyle,
+};
 use crate::audio::AudioState;
 use serde::{Deserialize, Serialize};
 

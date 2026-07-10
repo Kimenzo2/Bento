@@ -1385,9 +1385,15 @@ impl BentoMcpServer {
         let tags_json = serde_json::to_string(&params.tags.unwrap_or_default())
             .map_err(|e| format!("Failed to serialize tags: {e}"))?;
 
-        let mut tx = self
+        let mut conn = self
             .pool
-            .begin()
+            .acquire()
+            .await
+            .map_err(|e| format!("Transaction error: {e}"))?;
+        // BEGIN IMMEDIATE prevents the read->write upgrade trap where
+        // SQLITE_BUSY ignores busy_timeout when a read tx tries to write.
+        sqlx::query("BEGIN IMMEDIATE")
+            .execute(&mut *conn)
             .await
             .map_err(|e| format!("Transaction error: {e}"))?;
 
@@ -1399,7 +1405,7 @@ impl BentoMcpServer {
         .bind(&tags_json)
         .bind(now_ms)
         .bind(now_ms)
-        .execute(&mut *tx)
+        .execute(&mut *conn)
         .await
         .map_err(|e| format!("Failed to create note object: {e}"))?;
 
@@ -1413,11 +1419,12 @@ impl BentoMcpServer {
         .bind(&block_content)
         .bind(now_ms)
         .bind(now_ms)
-        .execute(&mut *tx)
+        .execute(&mut *conn)
         .await
         .map_err(|e| format!("Failed to create note block: {e}"))?;
 
-        tx.commit()
+        sqlx::query("COMMIT")
+            .execute(&mut *conn)
             .await
             .map_err(|e| format!("Commit error: {e}"))?;
 
@@ -1642,9 +1649,15 @@ impl BentoMcpServer {
 
         let blocks = json!([{"text": content}]).to_string();
 
-        let mut tx = self
+        let mut conn = self
             .pool
-            .begin()
+            .acquire()
+            .await
+            .map_err(|e| format!("Transaction error: {e}"))?;
+        // BEGIN IMMEDIATE prevents the read->write upgrade trap where
+        // SQLITE_BUSY ignores busy_timeout when a read tx tries to write.
+        sqlx::query("BEGIN IMMEDIATE")
+            .execute(&mut *conn)
             .await
             .map_err(|e| format!("Transaction error: {e}"))?;
 
@@ -1662,7 +1675,7 @@ impl BentoMcpServer {
         .bind(params.mood.map(|m| m.to_string()))
         .bind(now_ms)
         .bind(now_ms)
-        .execute(&mut *tx)
+        .execute(&mut *conn)
         .await
         .map_err(|e| format!("Failed to create journal entry: {e}"))?;
 
@@ -1687,22 +1700,35 @@ impl BentoMcpServer {
             .bind(format!("Journal entry: {}", &today))
             .bind(now_ms)
             .bind(&date_key)
-            .execute(&mut *tx)
+            .execute(&mut *conn)
             .await
             .map_err(|e| format!("Failed to log mood alongside journal: {e}"))?;
         }
 
-        tx.commit()
-            .await
-            .map_err(|e| format!("Commit error: {e}"))?;
+        let tx_result: Result<Json<Value>, String> = async {
+            Ok(Json(json!({
+                "id": id,
+                "date": today,
+                "word_count": word_count,
+                "data_coverage": 1.0,
+                "message": format!("Journal entry written for {today}.")
+            })))
+        }
+        .await;
 
-        Ok(Json(json!({
-            "id": id,
-            "date": today,
-            "word_count": word_count,
-            "data_coverage": 1.0,
-            "message": format!("Journal entry written for {today}.")
-        })))
+        match tx_result {
+            Ok(val) => {
+                sqlx::query("COMMIT")
+                    .execute(&mut *conn)
+                    .await
+                    .map_err(|e| format!("Commit error: {e}"))?;
+                Ok(val)
+            }
+            Err(e) => {
+                let _ = sqlx::query("ROLLBACK").execute(&mut *conn).await;
+                Err(e)
+            }
+        }
     }
 
     /// Mark a habit as completed for today.
@@ -2718,7 +2744,8 @@ mod tests {
                 project: None,
             }))
             .await
-            .err().expect("empty title should fail");
+            .err()
+            .expect("empty title should fail");
         let err = to_display(err);
         assert!(err.contains("Task title is required"));
     }
@@ -3033,7 +3060,8 @@ mod tests {
                 task_id: "t1".to_string(),
             }))
             .await
-            .err().expect("already completed should fail");
+            .err()
+            .expect("already completed should fail");
         let err = to_display(err);
         assert!(err.contains("not found or already completed"));
     }
@@ -3048,7 +3076,8 @@ mod tests {
                 task_id: "nonexistent".to_string(),
             }))
             .await
-            .err().expect("not found should fail");
+            .err()
+            .expect("not found should fail");
         let err = to_display(err);
         assert!(err.contains("not found or already completed"));
     }
@@ -3119,7 +3148,8 @@ mod tests {
                 tags: None,
             }))
             .await
-            .err().expect("empty content should fail");
+            .err()
+            .expect("empty content should fail");
         let err = to_display(err);
         assert!(err.contains("Both title and content"));
     }
@@ -3189,7 +3219,8 @@ mod tests {
                 limit: None,
             }))
             .await
-            .err().expect("empty query should fail");
+            .err()
+            .expect("empty query should fail");
         let err = to_display(err);
         assert!(err.contains("Search query is required"));
     }
@@ -3244,7 +3275,8 @@ mod tests {
                 session_type: None,
             }))
             .await
-            .err().expect("zero duration should fail");
+            .err()
+            .expect("zero duration should fail");
         let err = to_display(err);
         assert!(err.contains("Duration must be between"));
 
@@ -3255,7 +3287,8 @@ mod tests {
                 session_type: None,
             }))
             .await
-            .err().expect("too-large duration should fail");
+            .err()
+            .expect("too-large duration should fail");
         let err2 = to_display(err2);
         assert!(err2.contains("Duration must be between"));
     }
@@ -3310,7 +3343,8 @@ mod tests {
                 activities: None,
             }))
             .await
-            .err().expect("mood 0 should fail");
+            .err()
+            .expect("mood 0 should fail");
         let err = to_display(err);
         assert!(err.contains("Mood must be between"));
 
@@ -3321,7 +3355,8 @@ mod tests {
                 activities: None,
             }))
             .await
-            .err().expect("mood 6 should fail");
+            .err()
+            .expect("mood 6 should fail");
         let err2 = to_display(err2);
         assert!(err2.contains("Mood must be between"));
     }
@@ -3384,7 +3419,8 @@ mod tests {
                 mood: None,
             }))
             .await
-            .err().expect("empty content should fail");
+            .err()
+            .expect("empty content should fail");
         let err = to_display(err);
         assert!(err.contains("Journal content is required"));
     }
@@ -3460,7 +3496,8 @@ mod tests {
                 habit_name: "Nonexistent habit".to_string(),
             }))
             .await
-            .err().expect("nonexistent habit should fail");
+            .err()
+            .expect("nonexistent habit should fail");
         let err = to_display(err);
         assert!(err.contains("not found"));
     }
@@ -3477,7 +3514,8 @@ mod tests {
                 habit_name: "Typing".to_string(),
             }))
             .await
-            .err().expect("non-matching name should fail");
+            .err()
+            .expect("non-matching name should fail");
         let err = to_display(err);
         assert!(err.contains("not found"));
 

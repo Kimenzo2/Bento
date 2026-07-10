@@ -4,8 +4,6 @@ use std::sync::Arc;
 use sqlx::SqlitePool;
 use tokio::sync::{oneshot, watch};
 
-use crate::telemetry::{self, TelemetryState};
-
 /// Handle to a running module actor for a tab session.
 ///
 /// The actor runs a periodic auto-save loop whose interval depends
@@ -42,19 +40,13 @@ impl ModuleActorHandle {
 /// listening for mode‑change signals and ticking at the appropriate
 /// interval.  No heavy work is done inside the actor — real modules
 /// will plug their own save logic into the tick arm later.
-pub fn spawn_module_actor(
-    module_id: String,
-    _db: SqlitePool,
-    telemetry: Option<TelemetryState>,
-) -> ModuleActorHandle {
+pub fn spawn_module_actor(_module_id: String, _db: SqlitePool) -> ModuleActorHandle {
     let (shutdown_tx, mut shutdown_rx) = oneshot::channel::<()>();
     let (mode_tx, mut mode_rx) = watch::channel(false); // starts as background
     let heartbeat_ok: Arc<AtomicBool> = Arc::new(AtomicBool::new(true));
     let ok = heartbeat_ok.clone();
 
     tokio::spawn(async move {
-        let mut is_foreground = false;
-
         // Initial interval = background (5 s)
         let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(5000));
         interval.tick().await; // consume the immediate first tick
@@ -65,21 +57,6 @@ pub fn spawn_module_actor(
 
                 // ── Clean shutdown (Gap 10) ──────────────────────────
                 _ = &mut shutdown_rx => {
-                    // Final heartbeat report before exiting
-                    if let Some(ref t) = telemetry {
-                        let _ = t.record_backend_trace(
-                            telemetry::BackendTraceInput {
-                                source: "module_actor".into(),
-                                operation: "shutdown".into(),
-                                module_id: Some(module_id.clone()),
-                                status_code: 0,
-                                severity: telemetry::Severity::Info,
-                                message: format!("Actor shutting down for module {module_id}"),
-                                path: None,
-                                details: None,
-                            },
-                        ).await;
-                    }
                     break;
                 }
 
@@ -87,7 +64,7 @@ pub fn spawn_module_actor(
                 result = mode_rx.changed() => {
                     match result {
                         Ok(()) => {
-                            is_foreground = *mode_rx.borrow();
+                            let is_foreground = *mode_rx.borrow();
                             let delay_ms = if is_foreground { 500 } else { 5000 };
                             interval = tokio::time::interval(
                                 tokio::time::Duration::from_millis(delay_ms),
@@ -101,23 +78,6 @@ pub fn spawn_module_actor(
 
                 // ── Periodic heartbeat tick ──────────────────────────
                 _ = interval.tick() => {
-                    if let Some(ref t) = telemetry {
-                        let _ = t.record_backend_trace(
-                            telemetry::BackendTraceInput {
-                                source: "module_actor".into(),
-                                operation: "heartbeat".into(),
-                                module_id: Some(module_id.clone()),
-                                status_code: 0,
-                                severity: telemetry::Severity::Info,
-                                message: format!(
-                                    "{} heartbeat",
-                                    if is_foreground { "foreground" } else { "background" },
-                                ),
-                                path: None,
-                                details: None,
-                            },
-                        ).await;
-                    }
                     ok.store(true, Ordering::Relaxed);
                 }
             }

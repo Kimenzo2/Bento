@@ -107,42 +107,92 @@
   }
 
   let pollTimer: ReturnType<typeof setInterval> | null = null;
+  let basePollInterval = 30_000;
+  let loadInFlight = false;
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
+  /**
+   * Load dashboard data with debounce + concurrency guard.
+   *
+   * - Debounce: if called multiple times within 500ms, only the last call fires.
+   *   Prevents IPC storms from rapid focus/blur or multiple refresh events.
+   * - Concurrency guard (`loadInFlight`): if a load is already in flight,
+   *   skips this call. The in-flight request will update data when it returns.
+   * - Poll backoff: if the request fails (timeout/error), the poll interval
+   *   doubles (up to 2 min max). On success, it resets to 30s.
+   */
   async function loadDashboard() {
     if (!canUseTauri) { loadFallbackData(); loading = false; return; }
-    try {
-      const result = await invokeWithTimeout<DashboardPayload>("get_dashboard_data", undefined, 10_000);
-      data = result; error = null;
-    } catch (err) {
-      console.error("[dashboard] loadDashboard failed:", err);
-      error = typeof err === "string" ? err : _t('dashboardFailedToLoad');
-    } finally { loading = false; }
-  }
 
-  function startPolling() {
-    if (!canUseTauri) return;
-    pollTimer = setInterval(() => { void loadDashboard(); }, 30_000);
+    // Debounce: cancel any pending delayed load
+    if (debounceTimer) clearTimeout(debounceTimer);
+
+    debounceTimer = setTimeout(async () => {
+      debounceTimer = null;
+
+      // Concurrency guard: don't stack requests
+      if (loadInFlight) {
+        console.log("[dashboard] load already in flight — skipping");
+        return;
+      }
+
+      loadInFlight = true;
+      try {
+        const result = await invokeWithTimeout<DashboardPayload>("get_dashboard_data", undefined, 10_000);
+        data = result;
+        error = null;
+        // Reset poll interval on success
+        basePollInterval = 30_000;
+        restartPolling();
+      } catch (err) {
+        console.error("[dashboard] loadDashboard failed:", err);
+        error = typeof err === "string" ? err : _t('dashboardFailedToLoad');
+        // Poll backoff: double interval up to 2 min max
+        basePollInterval = Math.min(basePollInterval * 2, 120_000);
+        restartPolling();
+      } finally {
+        loadInFlight = false;
+        loading = false;
+      }
+    }, 500); // 500ms debounce
   }
 
   function stopPolling() {
-    if (pollTimer) clearInterval(pollTimer);
-    pollTimer = null;
+    if (pollTimer !== null) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+  }
+
+  function restartPolling() {
+    stopPolling();
+    if (!canUseTauri) return;
+    pollTimer = setInterval(() => { void loadDashboard(); }, basePollInterval);
+  }
+
+  function handleFocus() {
+    // Debounced focus handler — rapid alt-tab won't flood IPC
+    void loadDashboard();
+  }
+
+  function handleDashboardRefresh() {
+    // Refresh events from other parts of the app (task save, module switch)
+    // are debounced the same way as focus
+    void loadDashboard();
   }
 
   onMount(() => {
     void loadDashboard();
-    startPolling();
+    restartPolling();
     window.addEventListener("focus", handleFocus);
     window.addEventListener("bento:dashboard-refresh", handleDashboardRefresh as EventListener);
     return () => {
       stopPolling();
+      if (debounceTimer) clearTimeout(debounceTimer);
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("bento:dashboard-refresh", handleDashboardRefresh as EventListener);
     };
   });
-
-  function handleFocus() { void loadDashboard(); }
-  function handleDashboardRefresh() { void loadDashboard(); }
 
   const LAST_MODULE_KEY = "bento:lastModule";
   const LAST_MODULE_AT_KEY = "bento:lastModuleAt";

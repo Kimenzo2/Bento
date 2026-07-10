@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
-use sqlx::Row;
 use tauri::{ipc::Channel, AppHandle, Emitter, State};
 
 use crate::auth::AuthManager;
@@ -55,14 +54,6 @@ pub struct PrivacySettings {
     pub crash_reports: bool,
     pub session_lock_timeout: Option<u64>,
     pub biometric_unlock: bool,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TelemetrySummary {
-    pub snapshots: Vec<serde_json::Value>,
-    pub anomalies: Vec<serde_json::Value>,
-    pub insights: Vec<serde_json::Value>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -462,103 +453,6 @@ pub async fn set_privacy_settings(app: AppHandle, patch: PrivacySettings) -> Res
         next.telemetry.consented = patch.analytics;
         next.telemetry.crash_reports = patch.crash_reports;
     })?;
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn get_telemetry_summary(
-    state: State<'_, BentoAppState>,
-) -> Result<TelemetrySummary, String> {
-    let snapshots = sqlx::query(
-        "SELECT id, ts, module_id, heap_mb, state, ipc_ms, db_ms, last_action FROM telemetry_ticks ORDER BY ts DESC LIMIT 25",
-    )
-    .fetch_all(&state.db())
-    .await
-    .map_err(|error| error.to_string())?
-    .into_iter()
-    .map(|row| {
-        serde_json::json!({
-            "id": row.try_get::<i64, _>("id").unwrap_or_default(),
-            "timestampMs": row.try_get::<i64, _>("ts").unwrap_or_default(),
-            "moduleId": row.try_get::<String, _>("module_id").unwrap_or_default(),
-            "heapMb": row.try_get::<f32, _>("heap_mb").unwrap_or_default(),
-            "state": row.try_get::<String, _>("state").unwrap_or_default(),
-            "ipcMs": row.try_get::<Option<f32>, _>("ipc_ms").ok().flatten(),
-            "dbMs": row.try_get::<Option<f32>, _>("db_ms").ok().flatten(),
-            "lastAction": row.try_get::<Option<String>, _>("last_action").ok().flatten(),
-        })
-    })
-    .collect();
-
-    let anomalies = sqlx::query(
-        "SELECT id, ts, module_id, type, severity, message, healed, heal_action, heal_ms FROM anomaly_log ORDER BY ts DESC LIMIT 25",
-    )
-    .fetch_all(&state.db())
-    .await
-    .map_err(|error| error.to_string())?
-    .into_iter()
-    .map(|row| {
-        serde_json::json!({
-            "id": row.try_get::<i64, _>("id").unwrap_or_default(),
-            "timestampMs": row.try_get::<i64, _>("ts").unwrap_or_default(),
-            "moduleId": row.try_get::<String, _>("module_id").unwrap_or_default(),
-            "type": row.try_get::<String, _>("type").unwrap_or_default(),
-            "severity": row.try_get::<String, _>("severity").unwrap_or_default(),
-            "message": row.try_get::<String, _>("message").unwrap_or_default(),
-            "healed": row.try_get::<i64, _>("healed").unwrap_or(0) == 1,
-            "healAction": row.try_get::<Option<String>, _>("heal_action").ok().flatten(),
-            "healMs": row.try_get::<Option<i64>, _>("heal_ms").ok().flatten(),
-        })
-    })
-    .collect();
-
-    let insights = sqlx::query(
-        "SELECT id, discovered_at, action, metric, pearson, n_samples, description FROM insights ORDER BY discovered_at DESC LIMIT 25",
-    )
-    .fetch_all(&state.db())
-    .await
-    .map_err(|error| error.to_string())?
-    .into_iter()
-    .map(|row| {
-        serde_json::json!({
-            "id": row.try_get::<i64, _>("id").unwrap_or_default(),
-            "discoveredAt": row.try_get::<i64, _>("discovered_at").unwrap_or_default(),
-            "action": row.try_get::<String, _>("action").unwrap_or_default(),
-            "metric": row.try_get::<String, _>("metric").unwrap_or_default(),
-            "pearson": row.try_get::<f32, _>("pearson").unwrap_or_default(),
-            "nSamples": row.try_get::<i64, _>("n_samples").unwrap_or_default(),
-            "description": row.try_get::<String, _>("description").unwrap_or_default(),
-        })
-    })
-    .collect();
-
-    Ok(TelemetrySummary {
-        snapshots,
-        anomalies,
-        insights,
-    })
-}
-
-#[tauri::command]
-pub async fn clear_telemetry_data(state: State<'_, BentoAppState>) -> Result<(), String> {
-    let mut tx = state
-        .db()
-        .begin()
-        .await
-        .map_err(|error| error.to_string())?;
-    for query in [
-        "DELETE FROM telemetry_ticks",
-        "DELETE FROM anomaly_log",
-        "DELETE FROM backend_traces",
-        "DELETE FROM insights",
-        "DELETE FROM predictions",
-    ] {
-        sqlx::query(query)
-            .execute(&mut *tx)
-            .await
-            .map_err(|error| error.to_string())?;
-    }
-    tx.commit().await.map_err(|error| error.to_string())?;
     Ok(())
 }
 

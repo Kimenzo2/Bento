@@ -59,7 +59,8 @@ pub struct SaveEntryParams {
 /// Create a new blank journal entry for the given date.
 /// Returns the new entry with empty blocks.
 #[tauri::command]
-pub async fn create_journal_entry(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn create_journal_entry(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     search: State<'_, SearchService>,
     date: String,
@@ -104,7 +105,8 @@ pub async fn create_journal_entry(auth: State<'_, crate::auth::AuthManager>,
 /// Save (update) a journal entry by ID.
 /// If the ID doesn't exist, inserts a new row.
 #[tauri::command]
-pub async fn save_journal_entry(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn save_journal_entry(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     search: State<'_, SearchService>,
     params: SaveEntryParams,
@@ -179,7 +181,8 @@ pub async fn save_journal_entry(auth: State<'_, crate::auth::AuthManager>,
 
 /// Get a journal entry by its ID.
 #[tauri::command]
-pub async fn get_journal_entry(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn get_journal_entry(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<Option<JournalEntry>, String> {
@@ -211,7 +214,8 @@ pub async fn get_journal_entry(auth: State<'_, crate::auth::AuthManager>,
 
 /// Delete a journal entry by ID.
 #[tauri::command]
-pub async fn delete_journal_entry(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn delete_journal_entry(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     search: State<'_, SearchService>,
     id: String,
@@ -232,7 +236,8 @@ pub async fn delete_journal_entry(auth: State<'_, crate::auth::AuthManager>,
 
 /// List recent journal entries (newest first, by created_at).
 #[tauri::command]
-pub async fn list_journal_entries(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn list_journal_entries(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     limit: Option<i32>,
 ) -> Result<Vec<JournalEntry>, String> {

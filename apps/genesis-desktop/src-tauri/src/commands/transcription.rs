@@ -110,84 +110,102 @@ pub async fn voice_save_note(
 
     let tags_json = r#"["Voice Note"]"#;
 
-    let mut tx = pool
-        .begin()
+    let mut conn = pool
+        .acquire()
+        .await
+        .map_err(|e| format!("Transaction error: {e}"))?;
+    // BEGIN IMMEDIATE prevents the read->write upgrade trap where
+    // SQLITE_BUSY ignores busy_timeout when a read tx tries to write.
+    sqlx::query("BEGIN IMMEDIATE")
+        .execute(&mut *conn)
         .await
         .map_err(|e| format!("Transaction error: {e}"))?;
 
-    // Insert note object
-    sqlx::query(
-        r#"INSERT INTO note_objects (id, title, icon, tags, pinned, layout, is_archived, details, created_at, updated_at)
-           VALUES (?, ?, ?, ?, 0, 'note', 0, '{}', ?, ?)"#,
-    )
-    .bind(&object_id)
-    .bind(&note_title)
-    .bind("🎤") // mic icon for voice notes
-    .bind(tags_json)
-    .bind(now_ms)
-    .bind(now_ms)
-    .execute(&mut *tx)
-    .await
-    .map_err(|e| format!("Failed to create note object: {e}"))?;
-
-    // Insert title block
-    let title_content = serde_json::json!({
-        "text": note_title,
-        "style": 4,  // TextStyle::Title
-        "marks": [],
-        "checked": false,
-        "color": "",
-        "iconEmoji": "",
-        "iconImage": ""
-    });
-    sqlx::query(
-        r#"INSERT INTO blocks (id, object_id, parent_id, type, content, position, created_at, updated_at)
-           VALUES (?, ?, NULL, 'text', ?, 0, ?, ?)"#,
-    )
-    .bind(Uuid::new_v4().to_string())
-    .bind(&object_id)
-    .bind(&title_content.to_string())
-    .bind(now_ms)
-    .bind(now_ms)
-    .execute(&mut *tx)
-    .await
-    .map_err(|e| format!("Failed to create title block: {e}"))?;
-
-    // Insert body block with transcript
-    let body_content = serde_json::json!({
-        "text": transcript.trim(),
-        "style": 0,  // TextStyle::Paragraph
-        "marks": [],
-        "checked": false,
-        "color": "",
-        "iconEmoji": "",
-        "iconImage": ""
-    });
-    sqlx::query(
-        r#"INSERT INTO blocks (id, object_id, parent_id, type, content, position, created_at, updated_at)
-           VALUES (?, ?, NULL, 'text', ?, 1, ?, ?)"#,
-    )
-    .bind(&block_id)
-    .bind(&object_id)
-    .bind(&body_content.to_string())
-    .bind(now_ms)
-    .bind(now_ms)
-    .execute(&mut *tx)
-    .await
-    .map_err(|e| format!("Failed to create note block: {e}"))?;
-
-    tx.commit()
+    let tx_result: Result<VoiceNoteResult, String> = async {
+        // Insert note object
+        sqlx::query(
+            r#"INSERT INTO note_objects (id, title, icon, tags, pinned, layout, is_archived, details, created_at, updated_at)
+               VALUES (?, ?, ?, ?, 0, 'note', 0, '{}', ?, ?)"#,
+        )
+        .bind(&object_id)
+        .bind(&note_title)
+        .bind("🎤") // mic icon for voice notes
+        .bind(tags_json)
+        .bind(now_ms)
+        .bind(now_ms)
+        .execute(&mut *conn)
         .await
-        .map_err(|e| format!("Commit error: {e}"))?;
+        .map_err(|e| format!("Failed to create note object: {e}"))?;
 
-    let char_count = transcript.trim().len();
+        // Insert title block
+        let title_content = serde_json::json!({
+            "text": note_title,
+            "style": 4,  // TextStyle::Title
+            "marks": [],
+            "checked": false,
+            "color": "",
+            "iconEmoji": "",
+            "iconImage": ""
+        });
+        sqlx::query(
+            r#"INSERT INTO blocks (id, object_id, parent_id, type, content, position, created_at, updated_at)
+               VALUES (?, ?, NULL, 'text', ?, 0, ?, ?)"#,
+        )
+        .bind(Uuid::new_v4().to_string())
+        .bind(&object_id)
+        .bind(&title_content.to_string())
+        .bind(now_ms)
+        .bind(now_ms)
+        .execute(&mut *conn)
+        .await
+        .map_err(|e| format!("Failed to create title block: {e}"))?;
 
-    Ok(VoiceNoteResult {
-        success: true,
-        note_id: object_id,
-        title: note_title,
-        char_count,
-    })
+        // Insert body block with transcript
+        let body_content = serde_json::json!({
+            "text": transcript.trim(),
+            "style": 0,  // TextStyle::Paragraph
+            "marks": [],
+            "checked": false,
+            "color": "",
+            "iconEmoji": "",
+            "iconImage": ""
+        });
+        sqlx::query(
+            r#"INSERT INTO blocks (id, object_id, parent_id, type, content, position, created_at, updated_at)
+               VALUES (?, ?, NULL, 'text', ?, 1, ?, ?)"#,
+        )
+        .bind(&block_id)
+        .bind(&object_id)
+        .bind(&body_content.to_string())
+        .bind(now_ms)
+        .bind(now_ms)
+        .execute(&mut *conn)
+        .await
+        .map_err(|e| format!("Failed to create note block: {e}"))?;
+
+        let char_count = transcript.trim().len();
+
+        Ok(VoiceNoteResult {
+            success: true,
+            note_id: object_id,
+            title: note_title,
+            char_count,
+        })
+    }.await;
+
+    match tx_result {
+        Ok(val) => {
+            sqlx::query("COMMIT")
+                .execute(&mut *conn)
+                .await
+                .map_err(|e| format!("Commit error: {e}"))?;
+            Ok(val)
+        }
+        Err(e) => {
+            let _ = sqlx::query("ROLLBACK").execute(&mut *conn).await;
+            Err(e)
+        }
+    }
 }
 
 /// Get a voice note by ID (redirects to notes service).

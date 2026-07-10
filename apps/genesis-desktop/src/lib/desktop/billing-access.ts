@@ -53,7 +53,7 @@ export function canAccessModuleByPlan(
 export function isModuleVisibleByPlan(
   activePlanCode: string | null | undefined,
   moduleId: string,
-  hasActiveSubscription: boolean,
+  _hasActiveSubscription: boolean,
 ): boolean {
   if (moduleId === "dashboard" || moduleId === "settings") {
     return true;

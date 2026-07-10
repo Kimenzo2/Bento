@@ -165,7 +165,8 @@ pub struct SleepAlarmInput {
 
 /// Returns the last N days of sleep sessions ordered by date desc.
 #[tauri::command]
-pub async fn get_sleep_sessions(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn get_sleep_sessions(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     days: Option<i32>,
 ) -> Result<Vec<SleepSession>, String> {
@@ -188,7 +189,8 @@ pub async fn get_sleep_sessions(auth: State<'_, crate::auth::AuthManager>,
 
 /// Returns the most recent completed session (last night).
 #[tauri::command]
-pub async fn get_last_night(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn get_last_night(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Option<SleepSession>, String> {
     crate::auth::require_billing_tier(&auth, "sleep").await?;
@@ -208,7 +210,10 @@ pub async fn get_last_night(auth: State<'_, crate::auth::AuthManager>,
 
 /// Get the current sleep goal (returns default if none exists — never fails).
 #[tauri::command]
-pub async fn get_sleep_goal(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<SleepGoal, String> {
+pub async fn get_sleep_goal(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+) -> Result<SleepGoal, String> {
     crate::auth::require_billing_tier(&auth, "sleep").await?;
 
     ensure_sleep_tables(&state.db()).await?;
@@ -217,7 +222,8 @@ pub async fn get_sleep_goal(auth: State<'_, crate::auth::AuthManager>, state: St
 
 /// Update the sleep goal.
 #[tauri::command]
-pub async fn update_sleep_goal(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn update_sleep_goal(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     bedtime: String,
     waketime: String,
@@ -256,7 +262,8 @@ pub async fn update_sleep_goal(auth: State<'_, crate::auth::AuthManager>,
 
 /// Add a manual sleep session (for days when user wants to log manually).
 #[tauri::command]
-pub async fn add_manual_sleep_session(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn add_manual_sleep_session(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     input: ManualSessionInput,
 ) -> Result<SleepSession, String> {
@@ -325,7 +332,8 @@ pub async fn add_manual_sleep_session(auth: State<'_, crate::auth::AuthManager>,
 
 /// Delete a sleep session by id.
 #[tauri::command]
-pub async fn delete_sleep_session(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn delete_sleep_session(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<bool, String> {
@@ -344,7 +352,8 @@ pub async fn delete_sleep_session(auth: State<'_, crate::auth::AuthManager>,
 
 /// Confirm or discard a pending session (morning confirmation).
 #[tauri::command]
-pub async fn confirm_sleep_session(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn confirm_sleep_session(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     id: String,
     accept: bool,
@@ -372,7 +381,8 @@ pub async fn confirm_sleep_session(auth: State<'_, crate::auth::AuthManager>,
 
 /// Get comprehensive sleep stats for a period.
 #[tauri::command]
-pub async fn get_sleep_stats(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn get_sleep_stats(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     days: Option<i32>,
 ) -> Result<SleepStats, String> {
@@ -762,7 +772,8 @@ fn today_key() -> String {
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn sleep_log_save(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn sleep_log_save(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     entry: SleepLogEntry,
 ) -> Result<SleepLogRow, String> {
@@ -772,7 +783,8 @@ pub async fn sleep_log_save(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn sleep_log_save_for_date(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn sleep_log_save_for_date(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     date_key: String,
     entry: SleepLogEntry,
@@ -826,7 +838,8 @@ async fn inner_sleep_log_save(
 }
 
 #[tauri::command]
-pub async fn sleep_log_today(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn sleep_log_today(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Option<SleepLogRow>, String> {
     crate::auth::require_billing_tier(&auth, "sleep").await?;
@@ -836,7 +849,8 @@ pub async fn sleep_log_today(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn sleep_log_get(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn sleep_log_get(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     date_key: String,
 ) -> Result<Option<SleepLogRow>, String> {
@@ -847,7 +861,10 @@ pub async fn sleep_log_get(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn sleep_logs_week(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<Vec<SleepLogRow>, String> {
+pub async fn sleep_logs_week(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+) -> Result<Vec<SleepLogRow>, String> {
     crate::auth::require_billing_tier(&auth, "sleep").await?;
 
     ensure_sleep_tables(&state.db()).await?;
@@ -855,7 +872,8 @@ pub async fn sleep_logs_week(auth: State<'_, crate::auth::AuthManager>, state: S
 }
 
 #[tauri::command]
-pub async fn sleep_logs_recent(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn sleep_logs_recent(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     days: Option<i32>,
 ) -> Result<Vec<SleepLogRow>, String> {
@@ -867,7 +885,11 @@ pub async fn sleep_logs_recent(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn sleep_log_delete(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>, id: String) -> Result<(), String> {
+pub async fn sleep_log_delete(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+    id: String,
+) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "sleep").await?;
 
     ensure_sleep_tables(&state.db()).await?;
@@ -880,7 +902,8 @@ pub async fn sleep_log_delete(auth: State<'_, crate::auth::AuthManager>, state: 
 }
 
 #[tauri::command]
-pub async fn sleep_routine_list(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn sleep_routine_list(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<SleepRoutine>, String> {
     crate::auth::require_billing_tier(&auth, "sleep").await?;
@@ -904,7 +927,8 @@ pub async fn sleep_routine_list(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn sleep_routine_save(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn sleep_routine_save(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     input: SleepRoutineInput,
 ) -> Result<SleepRoutine, String> {
@@ -940,7 +964,8 @@ pub async fn sleep_routine_save(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn sleep_routine_delete(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn sleep_routine_delete(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     ids: Vec<String>,
 ) -> Result<(), String> {
@@ -958,7 +983,8 @@ pub async fn sleep_routine_delete(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn sleep_routine_reorder(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn sleep_routine_reorder(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     ids: Vec<String>,
 ) -> Result<(), String> {
@@ -977,7 +1003,8 @@ pub async fn sleep_routine_reorder(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn sleep_routine_status(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn sleep_routine_status(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     date_key: Option<String>,
 ) -> Result<Vec<RoutineTracking>, String> {
@@ -1003,7 +1030,8 @@ pub async fn sleep_routine_status(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn sleep_routine_toggle(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn sleep_routine_toggle(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     routine_id: String,
     date_key: Option<String>,
@@ -1038,7 +1066,10 @@ pub async fn sleep_routine_toggle(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn sleep_alarm_list(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<Vec<SleepAlarm>, String> {
+pub async fn sleep_alarm_list(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+) -> Result<Vec<SleepAlarm>, String> {
     crate::auth::require_billing_tier(&auth, "sleep").await?;
 
     ensure_sleep_tables(&state.db()).await?;
@@ -1060,7 +1091,8 @@ pub async fn sleep_alarm_list(auth: State<'_, crate::auth::AuthManager>, state: 
 }
 
 #[tauri::command]
-pub async fn sleep_alarm_save(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn sleep_alarm_save(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     alarm: SleepAlarmInput,
 ) -> Result<SleepAlarm, String> {
@@ -1137,7 +1169,8 @@ pub async fn sleep_alarm_save(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn sleep_alarm_delete(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn sleep_alarm_delete(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     alarm_id: String,
 ) -> Result<(), String> {
@@ -1158,7 +1191,8 @@ pub async fn sleep_alarm_delete(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn sleep_alarm_toggle(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn sleep_alarm_toggle(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     alarm_id: String,
 ) -> Result<bool, String> {

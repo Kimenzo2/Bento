@@ -131,7 +131,14 @@ const AGENT_H: f64 = 60.0;
 /// Window procedure for the agent dock — handles WM_NCHITTEST to provide
 /// per-pixel click-through outside the interactive dock bounds.
 #[cfg(target_os = "windows")]
-static ORIGINAL_AGENT_WNDPROC: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+static ORIGINAL_AGENT_WNDPROC: std::sync::atomic::AtomicUsize =
+    std::sync::atomic::AtomicUsize::new(0);
+
+/// Tracks whether the agent WebView2 window is currently shown (visible).
+/// Used by the global shortcut handler to avoid a blocking `is_visible()` IPC
+/// call from the shortcut thread (same pattern as ISLAND_VISIBLE).
+/// Updated atomically by all show/hide operations.
+pub(crate) static AGENT_VISIBLE: AtomicBool = AtomicBool::new(false);
 
 static INITIAL_POSITION_SET: AtomicBool = AtomicBool::new(false);
 
@@ -173,7 +180,12 @@ fn extend_frame_into_client_area(window: &WebviewWindow) -> Result<(), Box<dyn s
     #[link(name = "dwmapi")]
     extern "system" {
         fn DwmExtendFrameIntoClientArea(hwnd: isize, pMargins: *const MARGINS) -> i32;
-        fn DwmSetWindowAttribute(hwnd: isize, dwAttribute: u32, pvAttribute: *const std::ffi::c_void, cbAttribute: u32) -> i32;
+        fn DwmSetWindowAttribute(
+            hwnd: isize,
+            dwAttribute: u32,
+            pvAttribute: *const std::ffi::c_void,
+            cbAttribute: u32,
+        ) -> i32;
     }
 
     let handle = window.window_handle()?;
@@ -217,9 +229,8 @@ fn extend_frame_into_client_area(window: &WebviewWindow) -> Result<(), Box<dyn s
 fn strip_window_borders(window: &WebviewWindow) -> Result<(), Box<dyn std::error::Error>> {
     use raw_window_handle::HasWindowHandle;
     use windows_sys::Win32::UI::WindowsAndMessaging::{
-        GetWindowLongW, SetWindowLongW, GWL_EXSTYLE, GWL_STYLE,
-        WS_BORDER, WS_CAPTION, WS_THICKFRAME,
-        WS_EX_DLGMODALFRAME, WS_EX_WINDOWEDGE,
+        GetWindowLongW, SetWindowLongW, GWL_EXSTYLE, GWL_STYLE, WS_BORDER, WS_CAPTION,
+        WS_EX_DLGMODALFRAME, WS_EX_WINDOWEDGE, WS_THICKFRAME,
     };
 
     let handle = window.window_handle()?;
@@ -231,17 +242,13 @@ fn strip_window_borders(window: &WebviewWindow) -> Result<(), Box<dyn std::error
     unsafe {
         // Remove frame/border styles from the window style
         let style = GetWindowLongW(hwnd, GWL_STYLE);
-        let new_style = style
-            & !(WS_CAPTION as i32)
-            & !(WS_THICKFRAME as i32)
-            & !(WS_BORDER as i32);
+        let new_style =
+            style & !(WS_CAPTION as i32) & !(WS_THICKFRAME as i32) & !(WS_BORDER as i32);
         SetWindowLongW(hwnd, GWL_STYLE, new_style);
 
         // Remove extended styles that cause DWM to draw edges
         let ex_style = GetWindowLongW(hwnd, GWL_EXSTYLE);
-        let new_ex_style = ex_style
-            & !(WS_EX_WINDOWEDGE as i32)
-            & !(WS_EX_DLGMODALFRAME as i32);
+        let new_ex_style = ex_style & !(WS_EX_WINDOWEDGE as i32) & !(WS_EX_DLGMODALFRAME as i32);
         SetWindowLongW(hwnd, GWL_EXSTYLE, new_ex_style);
     }
     Ok(())
@@ -356,7 +363,11 @@ fn prepare_agent_window_for_hit_test(
             ex_style | (WS_EX_NOACTIVATE as i32) | (WS_EX_LAYERED as i32),
         );
 
-        let prev = SetWindowLongPtrW(hwnd, GWLP_WNDPROC, agent_hit_test_proc as *const () as isize);
+        let prev = SetWindowLongPtrW(
+            hwnd,
+            GWLP_WNDPROC,
+            agent_hit_test_proc as *const () as isize,
+        );
         ORIGINAL_AGENT_WNDPROC.store(prev as usize, Ordering::Relaxed);
     }
 
@@ -437,9 +448,7 @@ fn set_agent_macos_window_level(window: &WebviewWindow) -> Result<(), Box<dyn st
 
 /// Position the agent window at bottom-right of the primary monitor.
 /// `expanded` accounts for the composer being open.
-fn position_bottom_right(
-    window: &WebviewWindow,
-) -> Result<(), Box<dyn std::error::Error>> {
+fn position_bottom_right(window: &WebviewWindow) -> Result<(), Box<dyn std::error::Error>> {
     let Some(monitor) = window.app_handle().primary_monitor()? else {
         return Err("no primary monitor found".into());
     };
@@ -468,6 +477,10 @@ static AGENT_CURRENT_H: AtomicI32 = AtomicI32::new(AGENT_H as i32);
 
 /// Resize the agent window to the exact content size reported by the frontend.
 /// This enables flexible sizing for screenshots, large text, and other dynamic content.
+///
+/// Stores dimensions in atomics immediately for hit-testing, then schedules the
+/// WebView2 compositor calls (set_size + set_position) on the main thread via
+/// run_on_main_thread so the IPC thread is never blocked.
 #[tauri::command]
 pub fn agent_set_size(app: AppHandle, width: f64, height: f64) -> Result<(), String> {
     let window = get_or_create_agent_window(&app)?;
@@ -485,19 +498,20 @@ pub fn agent_set_size(app: AppHandle, width: f64, height: f64) -> Result<(), Str
         return Ok(());
     }
 
+    // Update atomics immediately — WM_NCHITTEST uses these for hit-test bounds,
+    // so they reflect the new size even before the compositor finishes.
     AGENT_CURRENT_W.store(w, Ordering::Relaxed);
     AGENT_CURRENT_H.store(h, Ordering::Relaxed);
 
-    let scale = window.scale_factor().unwrap_or(1.0);
-
-    window
-        .set_size(tauri::Size::Physical(tauri::PhysicalSize {
+    // Schedule compositor work on the main thread to avoid blocking IPC.
+    let _ = app.run_on_main_thread(move || {
+        let scale = window.scale_factor().unwrap_or(1.0);
+        let _ = window.set_size(tauri::Size::Physical(tauri::PhysicalSize {
             width: (w as f64 * scale) as u32,
             height: (h as f64 * scale) as u32,
-        }))
-        .map_err(|e| e.to_string())?;
-
-    position_bottom_right(&window).map_err(|e| e.to_string())?;
+        }));
+        let _ = position_bottom_right(&window);
+    });
 
     #[cfg(debug_assertions)]
     eprintln!("[agent] agent_set_size({w}, {h})");
@@ -516,20 +530,25 @@ fn show_agent_window_impl(app: &AppHandle) -> Result<(), String> {
     }
 
     window.show().map_err(|e| e.to_string())?;
+    AGENT_VISIBLE.store(true, Ordering::SeqCst);
 
     window.set_focus().map_err(|e| e.to_string())?;
     Ok(())
 }
 
 /// Toggle the agent window visibility.
+/// Uses `AGENT_VISIBLE` atomic to avoid a blocking `is_visible()` WebView2 IPC
+/// call from the shortcut thread or tray event handler.
 #[tauri::command]
 pub fn toggle_agent(app: AppHandle) -> Result<(), String> {
     let window = get_or_create_agent_window(&app)?;
 
-    if window.is_visible().unwrap_or(false) {
+    if AGENT_VISIBLE.load(Ordering::SeqCst) {
         window.hide().map_err(|e| e.to_string())?;
+        AGENT_VISIBLE.store(false, Ordering::SeqCst);
     } else {
         show_agent_window_impl(&app)?;
+        // show_agent_window_impl sets AGENT_VISIBLE internally
     }
     Ok(())
 }
@@ -545,6 +564,7 @@ pub fn show_agent(app: AppHandle) -> Result<(), String> {
 pub fn hide_agent(app: AppHandle) -> Result<(), String> {
     let window = get_or_create_agent_window(&app)?;
     window.hide().map_err(|e| e.to_string())?;
+    AGENT_VISIBLE.store(false, Ordering::SeqCst);
     Ok(())
 }
 
@@ -622,6 +642,10 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 /// SAFETY: WebviewWindowBuilder::build() MUST run on the main thread
 /// (Windows Win32 thread affinity). The window is pre-created during
 /// app startup in lib.rs so this command never touches the builder.
+///
+/// Compositor calls (show/hide/set_position) are scheduled on the main
+/// thread via run_on_main_thread to avoid blocking the IPC thread.
+/// AGENT_VISIBLE is updated immediately for the shortcut handler.
 #[tauri::command]
 pub fn set_agent_dock_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
     eprintln!("[agent] set_agent_dock_enabled({enabled}) called");
@@ -635,17 +659,20 @@ pub fn set_agent_dock_enabled(app: AppHandle, enabled: bool) -> Result<(), Strin
     };
 
     if enabled {
-        if !INITIAL_POSITION_SET.swap(true, Ordering::SeqCst) {
-            position_bottom_right(&window).unwrap_or_else(|e| {
-                eprintln!("[agent] set_agent_dock_enabled: position failed: {e}");
-            });
-        }
-
-        window.show().map_err(|e| e.to_string())?;
+        AGENT_VISIBLE.store(true, Ordering::SeqCst);
+        let _ = app.run_on_main_thread(move || {
+            if !INITIAL_POSITION_SET.swap(true, Ordering::SeqCst) {
+                let _ = position_bottom_right(&window);
+            }
+            let _ = window.show();
+        });
         eprintln!("[agent] set_agent_dock_enabled(true): complete");
     } else {
+        AGENT_VISIBLE.store(false, Ordering::SeqCst);
         stop_mouse_monitor();
-        window.hide().map_err(|e| e.to_string())?;
+        let _ = app.run_on_main_thread(move || {
+            let _ = window.hide();
+        });
         eprintln!("[agent] set_agent_dock_enabled(false): window hidden, monitor stopped");
     }
 
@@ -654,24 +681,19 @@ pub fn set_agent_dock_enabled(app: AppHandle, enabled: bool) -> Result<(), Strin
 
 /// Focus the main Bento window from the agent.
 ///
-/// SAFETY: Never throws if the main window is gone.
-/// The main window is shown only if it was previously visible; if it was
-/// intentionally hidden/minimized by the user, we respect that state.
+/// Schedules show + set_focus on the main thread via run_on_main_thread
+/// so the IPC thread is never blocked by synchronous WebView2 compositor
+/// calls (is_visible, show, set_focus). Whether the window was previously
+/// hidden or visible, show() is always safe (no-op if already visible).
+/// Errors are discarded — the user can manually refocus if this fails.
 #[tauri::command]
 pub fn focus_main_from_agent(app: AppHandle) -> Result<(), String> {
-    if let Some(window) = app.get_webview_window("main") {
-        // Only attempt to show + focus if the window is already visible.
-        // If the user minimized or hid the main window, don't force it back.
-        if window.is_visible().unwrap_or(false) {
-            let _ = window.set_focus().map_err(|e: tauri::Error| e.to_string());
-        } else {
-            // Window exists but is hidden — bring it back as the user expects
-            // (they initiated an action in the agent that requires the main window).
-            window.show().map_err(|e: tauri::Error| e.to_string())?;
-            window
-                .set_focus()
-                .map_err(|e: tauri::Error| e.to_string())?;
+    let app_clone = app.clone();
+    let _ = app.run_on_main_thread(move || {
+        if let Some(window) = app_clone.get_webview_window("main") {
+            let _ = window.show();
+            let _ = window.set_focus();
         }
-    }
+    });
     Ok(())
 }

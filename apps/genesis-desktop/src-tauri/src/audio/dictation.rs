@@ -110,7 +110,9 @@ pub fn clean_fillers(text: &str) -> String {
             continue;
         }
 
-        let words: Vec<&str> = trimmed.split_inclusive(|c: char| c.is_whitespace()).collect();
+        let words: Vec<&str> = trimmed
+            .split_inclusive(|c: char| c.is_whitespace())
+            .collect();
         let mut filtered: Vec<String> = Vec::with_capacity(words.len());
         let mut leading = true;
 
@@ -230,7 +232,8 @@ fn expand_contractions(text: &str) -> String {
         let raw_word = token.trim();
         // Separate trailing punctuation from the word for matching
         let (word, _suffix): (&str, &str) = {
-            let trimmed = raw_word.trim_end_matches(|c: char| matches!(c, '.' | ',' | '!' | '?' | ':' | ';'));
+            let trimmed =
+                raw_word.trim_end_matches(|c: char| matches!(c, '.' | ',' | '!' | '?' | ':' | ';'));
             if trimmed.is_empty() {
                 (raw_word, "")
             } else {
@@ -374,7 +377,11 @@ pub fn detect_agent_trigger(text: &str) -> AgentTriggerResult {
         }
         if lower.starts_with(pattern) {
             let prompt = trimmed[pattern.len()..].trim().to_string();
-            let prompt = if prompt.is_empty() { None } else { Some(prompt) };
+            let prompt = if prompt.is_empty() {
+                None
+            } else {
+                Some(prompt)
+            };
             return AgentTriggerResult {
                 detected: true,
                 agent_prompt: prompt,
@@ -616,7 +623,10 @@ mod tests {
 
     #[test]
     fn test_full_pipeline_standard() {
-        let result = post_process("um I think we should go to the store", DictationStyle::Standard);
+        let result = post_process(
+            "um I think we should go to the store",
+            DictationStyle::Standard,
+        );
         assert_eq!(result.text, "I think we should go to the store");
         assert!(!result.agent_trigger.detected);
         assert_eq!(result.char_count, 32);
@@ -624,10 +634,7 @@ mod tests {
 
     #[test]
     fn test_full_pipeline_with_agent_trigger() {
-        let result = post_process(
-            "uh hey bento what is the weather",
-            DictationStyle::Casual,
-        );
+        let result = post_process("uh hey bento what is the weather", DictationStyle::Casual);
         // After cleaning: "hey bento what is the weather" (first "uh" stripped, "hey" capitalized)
         // Wait: "uh" is stripped as leading filler. Then "hey" is capitalized to "Hey".
         // Then casual style lowercases everything: "hey bento what is the weather"

@@ -206,9 +206,9 @@ pub fn detect_source_turns(source: &DetectionSource) -> Result<Vec<AudioTurn>, S
             artifact_id: source.artifact_id.clone(),
             source: source.source.clone(),
             start_ms: (*start as f64 * WINDOW_MS as f64) as u64,
-            end_ms: ((*end + 1) as f64 * WINDOW_MS as f64).min(
-                (samples.len() / channels) as f64 / sample_rate as f64 * 1000.0,
-            ) as u64,
+            end_ms: ((*end + 1) as f64 * WINDOW_MS as f64)
+                .min((samples.len() / channels) as f64 / sample_rate as f64 * 1000.0)
+                as u64,
             turn_index: 0,
         })
         .collect();
@@ -363,10 +363,7 @@ pub fn write_turn_wav(
     let sample_rate = spec.sample_rate;
     let channels = spec.channels;
 
-    let all_samples: Vec<i16> = reader
-        .samples::<i16>()
-        .filter_map(|s| s.ok())
-        .collect();
+    let all_samples: Vec<i16> = reader.samples::<i16>().filter_map(|s| s.ok()).collect();
 
     let ch = channels as usize;
     let total_samples = all_samples.len();
@@ -375,7 +372,9 @@ pub fn write_turn_wav(
 
     // Calculate frame positions from time (ms * sample_rate / 1000)
     let start_frame = ((turn.start_ms as usize * sr + 999) / 1000).min(total_frames);
-    let end_frame = ((turn.end_ms as usize * sr) / 1000).min(total_frames).max(start_frame + 1);
+    let end_frame = ((turn.end_ms as usize * sr) / 1000)
+        .min(total_frames)
+        .max(start_frame + 1);
 
     // Convert frame positions to sample indices
     let start_idx = start_frame * ch;
@@ -403,7 +402,10 @@ pub fn write_turn_wav(
 
 /// Normalize a WAV file for transcription: downmix to mono, resample to 16kHz,
 /// and apply gain normalization.
-pub fn normalize_wav_for_transcription(source_path: &str, output_path: &str) -> Result<u32, String> {
+pub fn normalize_wav_for_transcription(
+    source_path: &str,
+    output_path: &str,
+) -> Result<u32, String> {
     let mut reader =
         hound::WavReader::open(source_path).map_err(|e| format!("Failed to open WAV: {e}"))?;
 
@@ -412,10 +414,7 @@ pub fn normalize_wav_for_transcription(source_path: &str, output_path: &str) -> 
     let channels = spec.channels;
 
     // Read all samples
-    let samples: Vec<i16> = reader
-        .samples::<i16>()
-        .filter_map(|s| s.ok())
-        .collect();
+    let samples: Vec<i16> = reader.samples::<i16>().filter_map(|s| s.ok()).collect();
 
     if samples.is_empty() {
         return Err("Empty audio file".to_string());
@@ -482,7 +481,10 @@ pub fn is_silent_i16(samples: &[i16]) -> bool {
     if samples.is_empty() {
         return true;
     }
-    let sum_sq: f64 = samples.iter().map(|&s| (s as f64 / i16::MAX as f64).powi(2)).sum();
+    let sum_sq: f64 = samples
+        .iter()
+        .map(|&s| (s as f64 / i16::MAX as f64).powi(2))
+        .sum();
     let rms = (sum_sq / samples.len() as f64).sqrt() as f32;
     rms < SILENCE_RMS_FLOOR
 }
@@ -593,7 +595,10 @@ mod tests {
         let input = vec![0.0, 0.5, 1.0, 0.5, 0.0]; // 5 samples at 10kHz
         let output = resample_linear(&input, 10000, 8000);
         assert!(output.len() < 5, "resampled should be shorter");
-        assert!(output.len() >= 3, "resampled should have at least 3 samples");
+        assert!(
+            output.len() >= 3,
+            "resampled should have at least 3 samples"
+        );
     }
 
     #[test]
@@ -645,7 +650,11 @@ mod tests {
         let out_path = out_dir.path().join("normalized.wav");
 
         let result = normalize_wav_for_transcription(&path, &out_path.to_string_lossy());
-        assert!(result.is_ok(), "normalization should succeed: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "normalization should succeed: {:?}",
+            result.err()
+        );
 
         // Verify output is valid 16kHz mono
         let reader = hound::WavReader::open(&out_path).unwrap();

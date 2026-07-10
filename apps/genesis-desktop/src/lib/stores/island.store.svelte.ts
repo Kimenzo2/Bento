@@ -18,7 +18,6 @@ export type ActiveModuleState = {
 
 class IslandStore {
   #transitionStart = 0;
-  #diagnostics = true;
 
   mode = $state<IslandMode>("compact");
   page = $state<IslandPage>("widgets");
@@ -95,15 +94,18 @@ class IslandStore {
     // Preserve activeModule for live activities — don't kill the compact indicator.
     // Non-live module states (quick-action triggers, one-shot statuses) are ephemeral
     // and should be cleared on collapse so the bar doesn't show stale info.
-    const isLive = this.activeModule?.activityType === "recording"
-      || this.activeModule?.activityType === "playback"
-      || this.activeModule?.activityType === "timer";
+    const isLive =
+      this.activeModule?.activityType === "recording" ||
+      this.activeModule?.activityType === "playback" ||
+      this.activeModule?.activityType === "timer";
     if (!isLive) {
       this.activeModule = null;
     }
 
     const elapsed = Date.now() - this.#transitionStart;
-    console.log(`[island-store] collapse() ${prevMode} -> compact [${elapsed}ms]${isLive ? ' (preserved activeModule)' : ''}`);
+    console.log(
+      `[island-store] collapse() ${prevMode} -> compact [${elapsed}ms]${isLive ? " (preserved activeModule)" : ""}`,
+    );
     if (prevMode === "compact") {
       console.warn(`[island-store] WARN: collapse() called while already compact`);
     }

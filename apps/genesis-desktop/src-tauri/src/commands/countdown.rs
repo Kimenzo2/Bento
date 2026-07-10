@@ -98,7 +98,8 @@ pub struct CountdownBirthdaySave {
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn countdown_list_events(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn countdown_list_events(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<CountdownEvent>, String> {
     crate::auth::require_billing_tier(&auth, "countdown").await?;
@@ -126,7 +127,8 @@ pub async fn countdown_list_events(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn countdown_save_event(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn countdown_save_event(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     params: CountdownEventSave,
 ) -> Result<CountdownEvent, String> {
@@ -167,7 +169,8 @@ pub async fn countdown_save_event(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn countdown_delete_event(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn countdown_delete_event(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<(), String> {
@@ -186,7 +189,8 @@ pub async fn countdown_delete_event(auth: State<'_, crate::auth::AuthManager>,
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn countdown_list_milestones(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn countdown_list_milestones(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<CountdownMilestone>, String> {
     crate::auth::require_billing_tier(&auth, "countdown").await?;
@@ -214,7 +218,8 @@ pub async fn countdown_list_milestones(auth: State<'_, crate::auth::AuthManager>
 }
 
 #[tauri::command]
-pub async fn countdown_save_milestone(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn countdown_save_milestone(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     params: CountdownMilestoneSave,
 ) -> Result<CountdownMilestone, String> {
@@ -255,7 +260,8 @@ pub async fn countdown_save_milestone(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn countdown_update_milestone_progress(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn countdown_update_milestone_progress(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     id: String,
     progress: i32,
@@ -274,7 +280,8 @@ pub async fn countdown_update_milestone_progress(auth: State<'_, crate::auth::Au
 }
 
 #[tauri::command]
-pub async fn countdown_delete_milestone(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn countdown_delete_milestone(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<(), String> {
@@ -293,7 +300,8 @@ pub async fn countdown_delete_milestone(auth: State<'_, crate::auth::AuthManager
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn countdown_list_birthdays(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn countdown_list_birthdays(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<CountdownBirthday>, String> {
     crate::auth::require_billing_tier(&auth, "countdown").await?;
@@ -320,7 +328,8 @@ pub async fn countdown_list_birthdays(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn countdown_save_birthday(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn countdown_save_birthday(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     params: CountdownBirthdaySave,
 ) -> Result<CountdownBirthday, String> {
@@ -361,7 +370,8 @@ pub async fn countdown_save_birthday(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn countdown_delete_birthday(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn countdown_delete_birthday(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<(), String> {

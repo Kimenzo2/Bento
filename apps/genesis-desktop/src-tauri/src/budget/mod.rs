@@ -238,7 +238,8 @@ pub struct SuggestedBudget {
 }
 
 #[tauri::command]
-pub async fn budget_suggest_limits(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_suggest_limits(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<SuggestedBudget>, String> {
     crate::auth::require_billing_tier(&auth, "budget").await?;
@@ -454,7 +455,8 @@ pub async fn ensure_budget_tables(pool: &sqlx::SqlitePool) -> Result<(), String>
 }
 
 #[tauri::command]
-pub async fn budget_list_categories(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_list_categories(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<BudgetCategoryWithSpending>, String> {
     crate::auth::require_billing_tier(&auth, "budget").await?;
@@ -511,7 +513,8 @@ pub async fn budget_list_categories(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn budget_set_category_budget(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_set_category_budget(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     category_id: String,
     monthly_budget: f64,
@@ -533,7 +536,8 @@ pub async fn budget_set_category_budget(auth: State<'_, crate::auth::AuthManager
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn budget_add_transaction(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_add_transaction(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     tx: NewTransaction,
 ) -> Result<Transaction, String> {
@@ -594,7 +598,8 @@ pub async fn budget_add_transaction(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn budget_list_transactions(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_list_transactions(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     month: Option<String>,
     limit: Option<i64>,
@@ -644,7 +649,8 @@ pub async fn budget_list_transactions(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn budget_delete_transaction(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_delete_transaction(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<(), String> {
@@ -660,7 +666,8 @@ pub async fn budget_delete_transaction(auth: State<'_, crate::auth::AuthManager>
 }
 
 #[tauri::command]
-pub async fn budget_update_transaction(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_update_transaction(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     id: String,
     tx: NewTransaction,
@@ -677,7 +684,8 @@ pub async fn budget_update_transaction(auth: State<'_, crate::auth::AuthManager>
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn budget_add_bill(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_add_bill(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     bill: NewBill,
 ) -> Result<Bill, String> {
@@ -733,7 +741,10 @@ pub async fn budget_add_bill(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn budget_list_bills(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<Vec<Bill>, String> {
+pub async fn budget_list_bills(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+) -> Result<Vec<Bill>, String> {
     crate::auth::require_billing_tier(&auth, "budget").await?;
 
     ensure_budget_tables(&state.db()).await?;
@@ -774,7 +785,8 @@ pub async fn budget_list_bills(auth: State<'_, crate::auth::AuthManager>, state:
 }
 
 #[tauri::command]
-pub async fn budget_toggle_bill_paid(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_toggle_bill_paid(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     bill_id: String,
 ) -> Result<bool, String> {
@@ -827,7 +839,11 @@ pub async fn budget_toggle_bill_paid(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn budget_delete_bill(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>, id: String) -> Result<(), String> {
+pub async fn budget_delete_bill(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+    id: String,
+) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "budget").await?;
 
     ensure_budget_tables(&state.db()).await?;
@@ -844,7 +860,8 @@ pub async fn budget_delete_bill(auth: State<'_, crate::auth::AuthManager>, state
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn budget_add_ai_cost(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_add_ai_cost(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     entry: NewAiCostEntry,
 ) -> Result<AiCostEntry, String> {
@@ -891,7 +908,8 @@ pub async fn budget_add_ai_cost(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn budget_list_ai_costs(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_list_ai_costs(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     month: Option<String>,
 ) -> Result<Vec<AiCostEntry>, String> {
@@ -933,7 +951,8 @@ pub async fn budget_list_ai_costs(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn budget_ai_cost_summary(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_ai_cost_summary(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<AiCostSummary>, String> {
     crate::auth::require_billing_tier(&auth, "budget").await?;
@@ -968,7 +987,8 @@ pub async fn budget_ai_cost_summary(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn budget_delete_ai_cost(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_delete_ai_cost(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<(), String> {
@@ -988,7 +1008,8 @@ pub async fn budget_delete_ai_cost(auth: State<'_, crate::auth::AuthManager>,
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn budget_monthly_overview(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_monthly_overview(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     month: Option<String>,
 ) -> Result<MonthlyOverview, String> {
@@ -1084,7 +1105,8 @@ pub async fn budget_monthly_overview(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn budget_financial_health(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_financial_health(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<FinancialHealthScore, String> {
     crate::auth::require_billing_tier(&auth, "budget").await?;
@@ -1269,7 +1291,8 @@ pub async fn budget_financial_health(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn budget_cash_flow_forecast(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_cash_flow_forecast(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     months: Option<i64>,
 ) -> Result<Vec<CashFlowProjection>, String> {
@@ -1375,7 +1398,8 @@ pub struct ForecastChartMonth {
 }
 
 #[tauri::command]
-pub async fn budget_forecast_chart_data(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_forecast_chart_data(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     months: Option<i64>,
 ) -> Result<Vec<ForecastChartMonth>, String> {
@@ -1476,7 +1500,8 @@ pub async fn budget_forecast_chart_data(auth: State<'_, crate::auth::AuthManager
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn budget_cross_module_spending(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_cross_module_spending(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<CrossModuleSpending, String> {
     crate::auth::require_billing_tier(&auth, "budget").await?;
@@ -1534,7 +1559,8 @@ pub async fn budget_cross_module_spending(auth: State<'_, crate::auth::AuthManag
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn budget_save_template(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_save_template(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     name: String,
     total_income: f64,
@@ -1582,7 +1608,8 @@ pub async fn budget_save_template(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn budget_list_templates(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_list_templates(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<BudgetTemplate>, String> {
     crate::auth::require_billing_tier(&auth, "budget").await?;
@@ -1628,7 +1655,8 @@ pub async fn budget_list_templates(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn budget_delete_template(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_delete_template(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<(), String> {
@@ -1650,7 +1678,8 @@ pub mod pdf_report;
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn budget_export_pdf(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_export_pdf(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     path: String,
     month: Option<String>,
@@ -2012,7 +2041,8 @@ async fn budget_cash_flow_forecast_inner(
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn budget_export_csv(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn budget_export_csv(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     month: Option<String>,
 ) -> Result<String, String> {

@@ -176,13 +176,7 @@ const WIDGETS: Record<string, WidgetContent> = {
   },
 };
 
-const ISLAND_EXCLUDED_IDS = new Set([
-  "settings",
-  "dashboard",
-  "flashcards",
-  "ai",
-  "grocery",
-]);
+const ISLAND_EXCLUDED_IDS = new Set(["settings", "dashboard", "flashcards", "ai", "grocery"]);
 
 export const islandItems: IslandItem[] = moduleCatalog
   .filter((m) => !ISLAND_EXCLUDED_IDS.has(m.id))

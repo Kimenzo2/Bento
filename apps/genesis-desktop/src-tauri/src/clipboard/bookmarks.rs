@@ -32,7 +32,6 @@ const MS_PER_DAY: i64 = 86_400_000;
 /// Maximum re-surface toasts per day (same throttle as Rhythm Engine).
 const MAX_RESURFACE_TOASTS_PER_DAY: u32 = 2;
 
-
 // ─── Shared HTTP Client ──────────────────────────────────────────────────────
 
 /// Reusable reqwest Client with consistent timeout, user-agent, and TLS config.
@@ -155,9 +154,8 @@ pub struct BookmarkEnrichment {
 // ─── URL Detection ───────────────────────────────────────────────────────────
 
 /// Lazy regex for URL detection.
-static URL_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^https?://[^\s/$.?#].[^\s]*$").unwrap()
-});
+static URL_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^https?://[^\s/$.?#].[^\s]*$").unwrap());
 
 /// Check if content is a URL.
 pub fn is_url(content: &str) -> bool {
@@ -179,8 +177,8 @@ pub fn classify_content(content: &str) -> UrlClassification {
         return UrlClassification::default();
     }
     if is_url(trimmed) {
-        let platform = url_to_hostname(trimmed)
-            .map(|h| KnownPlatform::from_hostname(&h).as_str().to_string());
+        let platform =
+            url_to_hostname(trimmed).map(|h| KnownPlatform::from_hostname(&h).as_str().to_string());
         return UrlClassification {
             is_url: true,
             platform,
@@ -193,10 +191,26 @@ pub fn classify_content(content: &str) -> UrlClassification {
 
 /// Known tracking parameters to strip during URL normalization.
 const TRACKING_PARAMS: &[&str] = &[
-    "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content",
-    "fbclid", "gclid", "gbraid", "wbraid", "msclkid",
-    "ref", "source", "si", "igsh", "mc_cid", "mc_eid",
-    "_ga", "_gl", "_hsmi", "_hsenc",
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "utm_term",
+    "utm_content",
+    "fbclid",
+    "gclid",
+    "gbraid",
+    "wbraid",
+    "msclkid",
+    "ref",
+    "source",
+    "si",
+    "igsh",
+    "mc_cid",
+    "mc_eid",
+    "_ga",
+    "_gl",
+    "_hsmi",
+    "_hsenc",
 ];
 
 /// Normalize a URL by stripping tracking parameters.
@@ -225,7 +239,9 @@ pub fn normalize_url(url_str: &str) -> String {
             parsed.set_fragment(None);
             // Normalize host: lowercase (already done by url crate) + strip www.
             // Clone host_str to avoid borrow conflict with set_host.
-            let wwwless = parsed.host_str().map(|h| h.trim_start_matches("www.").to_string());
+            let wwwless = parsed
+                .host_str()
+                .map(|h| h.trim_start_matches("www.").to_string());
             if let Some(host) = wwwless {
                 let _ = parsed.set_host(Some(&host));
             }
@@ -335,7 +351,10 @@ fn extract_og_tag(html: &str, html_lower: &str, property: &str) -> Option<String
                     }
                     _ => {
                         // Unquoted: content=value (until whitespace or >)
-                        let value: String = trimmed.chars().take_while(|c| !c.is_whitespace() && *c != '>').collect();
+                        let value: String = trimmed
+                            .chars()
+                            .take_while(|c| !c.is_whitespace() && *c != '>')
+                            .collect();
                         if !value.is_empty() {
                             return Some(value);
                         }
@@ -376,9 +395,18 @@ fn parse_duration_str(s: &str) -> Option<i64> {
             current = current * 10 + (ch as i64 - '0' as i64);
         } else {
             match ch {
-                'h' => { total += current * 3600; current = 0; }
-                'm' => { total += current * 60; current = 0; }
-                's' => { total += current; current = 0; }
+                'h' => {
+                    total += current * 3600;
+                    current = 0;
+                }
+                'm' => {
+                    total += current * 60;
+                    current = 0;
+                }
+                's' => {
+                    total += current;
+                    current = 0;
+                }
                 _ => return None,
             }
         }
@@ -538,7 +566,6 @@ const MAX_CONCURRENT_ENRICHMENTS: usize = 16;
 /// Acquired inside `spawn_url_enrichment` before doing any HTTP work.
 static ENRICHMENT_SEM: Semaphore = Semaphore::const_new(MAX_CONCURRENT_ENRICHMENTS);
 
-
 // ─── Enrichment Entry Point ──────────────────────────────────────────────────
 
 /// Spawn an async enrichment task for a URL clip.
@@ -558,13 +585,11 @@ pub fn spawn_url_enrichment(
     tauri::async_runtime::spawn(async move {
         // Acquire a concurrency permit — if all 16 slots are busy, wait
         // up to 30 seconds before giving up on this enrichment.
-        let _permit = tokio::time::timeout(
-            std::time::Duration::from_secs(30),
-            ENRICHMENT_SEM.acquire(),
-        )
-        .await
-        .ok()
-        .and_then(|r| r.ok());
+        let _permit =
+            tokio::time::timeout(std::time::Duration::from_secs(30), ENRICHMENT_SEM.acquire())
+                .await
+                .ok()
+                .and_then(|r| r.ok());
 
         if _permit.is_none() {
             eprintln!("[bookmarks] enrichment semaphore timeout for {clip_id}, skipping");
@@ -574,12 +599,11 @@ pub fn spawn_url_enrichment(
         let pool = app.state::<BentoAppState>().db();
 
         // Mark as pending
-        if let Err(e) = sqlx::query(
-            "UPDATE clipboard_items SET enrichment_status = 'pending' WHERE id = ?",
-        )
-        .bind(&clip_id)
-        .execute(&pool)
-        .await
+        if let Err(e) =
+            sqlx::query("UPDATE clipboard_items SET enrichment_status = 'pending' WHERE id = ?")
+                .bind(&clip_id)
+                .execute(&pool)
+                .await
         {
             eprintln!("[bookmarks] failed to set enrichment_status=pending for {clip_id}: {e}");
         }
@@ -588,7 +612,11 @@ pub fn spawn_url_enrichment(
         let enrichment = fetch_opengraph(&url).await;
 
         // Compute outcome BEFORE match (match moves enrichment)
-        let enrichment_outcome = if enrichment.is_some() { "completed" } else { "failed" };
+        let enrichment_outcome = if enrichment.is_some() {
+            "completed"
+        } else {
+            "failed"
+        };
 
         match enrichment {
             Some(mut meta) => {
@@ -665,15 +693,18 @@ pub fn spawn_url_enrichment(
                 // Emit enrichment-complete event so the frontend can update the card
                 // Use `id` (not `clipId`) to match ClipEntry.id that the frontend
                 // listener expects when merging enrichment data into existing clips.
-                let _ = app.emit("clipboard://enrichment-complete", serde_json::json!({
-                    "id": clip_id,
-                    "ogTitle": meta.og_title,
-                    "ogDescription": meta.og_description,
-                    "ogImage": meta.og_image,
-                    "ogSiteName": meta.og_site_name,
-                    "platform": meta.platform,
-                    "savedTimestampSeconds": meta.saved_timestamp_seconds,
-                }));
+                let _ = app.emit(
+                    "clipboard://enrichment-complete",
+                    serde_json::json!({
+                        "id": clip_id,
+                        "ogTitle": meta.og_title,
+                        "ogDescription": meta.og_description,
+                        "ogImage": meta.og_image,
+                        "ogSiteName": meta.og_site_name,
+                        "platform": meta.platform,
+                        "savedTimestampSeconds": meta.saved_timestamp_seconds,
+                    }),
+                );
             }
             None => {
                 eprintln!("[bookmarks] enrichment fetch failed for {clip_id} (dead link, timeout, or blocked)");
@@ -685,13 +716,19 @@ pub fn spawn_url_enrichment(
                 .execute(&pool)
                 .await
                 {
-                    eprintln!("[bookmarks] failed to set enrichment_status=failed for {clip_id}: {e}");
+                    eprintln!(
+                        "[bookmarks] failed to set enrichment_status=failed for {clip_id}: {e}"
+                    );
                 }
             }
         }
 
         // Log enrichment outcome regardless of success/failure
-        eprintln!("[bookmarks] ENRICHMENT id={:.12} outcome={enrichment_outcome} platform={:?}", clip_id, platform.as_deref());
+        eprintln!(
+            "[bookmarks] ENRICHMENT id={:.12} outcome={enrichment_outcome} platform={:?}",
+            clip_id,
+            platform.as_deref()
+        );
     });
 }
 
@@ -792,7 +829,10 @@ pub async fn handle_url_save(
     }
 
     // ── New URL save ──
-    eprintln!("[bookmarks] NEW-SAVE id={:.12} kind={kind} platform={:?} is_known={is_known} url={}", id, platform, trimmed);
+    eprintln!(
+        "[bookmarks] NEW-SAVE id={:.12} kind={kind} platform={:?} is_known={is_known} url={}",
+        id, platform, trimmed
+    );
     let byte_size = content.len() as i64;
     let classification_json = serde_json::to_string(&classification).unwrap_or_default();
     // Use the normalized URL (without tracking params) for the preview,
@@ -806,7 +846,10 @@ pub async fn handle_url_save(
     };
 
     // Insert with normalized hash in the content_hash field for dedup,
-    eprintln!("[bookmarks] INSERT id={:.12} kind={kind} platform={:?} norm_hash={:.12}", id, platform, norm_hash);
+    eprintln!(
+        "[bookmarks] INSERT id={:.12} kind={kind} platform={:?} norm_hash={:.12}",
+        id, platform, norm_hash
+    );
     // but store both the original URL in content and track enrichment
     let _ = sqlx::query(
         r#"INSERT INTO clipboard_items
@@ -817,9 +860,9 @@ pub async fn handle_url_save(
                 ?, 'pending', 0, ?)"#,
     )
     .bind(&id)
-    .bind(&norm_hash)  // Use normalized hash for dedup
+    .bind(&norm_hash) // Use normalized hash for dedup
     .bind(&kind)
-    .bind(content)      // Original URL with tracking params preserved
+    .bind(content) // Original URL with tracking params preserved
     .bind(&preview)
     .bind(byte_size)
     .bind(now)
@@ -851,10 +894,10 @@ pub async fn handle_url_save(
         og_description: None,
         og_image: None,
         og_site_name: None,
-        platform: platform.clone(),       // ← real platform, not None
+        platform: platform.clone(), // ← real platform, not None
         saved_timestamp_seconds: None,
         recopy_count: 0,
-        enrichment_status: "pending".to_string(),  // ← real status, not "none"
+        enrichment_status: "pending".to_string(), // ← real status, not "none"
     };
 
     // Index in Tantivy
@@ -865,16 +908,17 @@ pub async fn handle_url_save(
 
     // Spawn async enrichment (fire-and-forget, never blocks the save)
     if is_known {
-        eprintln!("[bookmarks] SPAWN-ENRICHMENT id={:.12} platform={:?}", id, platform);
+        eprintln!(
+            "[bookmarks] SPAWN-ENRICHMENT id={:.12} platform={:?}",
+            id, platform
+        );
         spawn_url_enrichment(app.clone(), id, content.to_string(), platform.clone());
     } else {
         // For unknown platforms, still mark enrichment as failed immediately
-        let _ = sqlx::query(
-            "UPDATE clipboard_items SET enrichment_status = 'none' WHERE id = ?",
-        )
-        .bind(&id)
-        .execute(&pool)
-        .await;
+        let _ = sqlx::query("UPDATE clipboard_items SET enrichment_status = 'none' WHERE id = ?")
+            .bind(&id)
+            .execute(&pool)
+            .await;
     }
 
     Ok(entry)
@@ -930,33 +974,80 @@ mod tests {
 
     #[test]
     fn test_known_platforms() {
-        assert_eq!(KnownPlatform::from_hostname("youtube.com"), KnownPlatform::Youtube);
-        assert_eq!(KnownPlatform::from_hostname("x.com"), KnownPlatform::Twitter);
-        assert_eq!(KnownPlatform::from_hostname("reddit.com"), KnownPlatform::Reddit);
-        assert_eq!(KnownPlatform::from_hostname("instagram.com"), KnownPlatform::Instagram);
-        assert_eq!(KnownPlatform::from_hostname("arena.na"), KnownPlatform::Arena);
-        assert_eq!(KnownPlatform::from_hostname("cosmos.so"), KnownPlatform::Cosmos);
-        assert_eq!(KnownPlatform::from_hostname("threads.net"), KnownPlatform::Threads);
-        assert_eq!(KnownPlatform::from_hostname("tiktok.com"), KnownPlatform::Tiktok);
-        assert_eq!(KnownPlatform::from_hostname("unknown-site.com"), KnownPlatform::Other);
+        assert_eq!(
+            KnownPlatform::from_hostname("youtube.com"),
+            KnownPlatform::Youtube
+        );
+        assert_eq!(
+            KnownPlatform::from_hostname("x.com"),
+            KnownPlatform::Twitter
+        );
+        assert_eq!(
+            KnownPlatform::from_hostname("reddit.com"),
+            KnownPlatform::Reddit
+        );
+        assert_eq!(
+            KnownPlatform::from_hostname("instagram.com"),
+            KnownPlatform::Instagram
+        );
+        assert_eq!(
+            KnownPlatform::from_hostname("arena.na"),
+            KnownPlatform::Arena
+        );
+        assert_eq!(
+            KnownPlatform::from_hostname("cosmos.so"),
+            KnownPlatform::Cosmos
+        );
+        assert_eq!(
+            KnownPlatform::from_hostname("threads.net"),
+            KnownPlatform::Threads
+        );
+        assert_eq!(
+            KnownPlatform::from_hostname("tiktok.com"),
+            KnownPlatform::Tiktok
+        );
+        assert_eq!(
+            KnownPlatform::from_hostname("unknown-site.com"),
+            KnownPlatform::Other
+        );
     }
 
     #[test]
     fn test_parse_youtube_timestamp() {
-        assert_eq!(parse_youtube_timestamp("https://youtube.com/watch?v=test&t=120"), Some(120));
-        assert_eq!(parse_youtube_timestamp("https://youtu.be/test?t=1m30s"), Some(90));
-        assert_eq!(parse_youtube_timestamp("https://youtube.com/watch?v=test&start=60"), Some(60));
-        assert_eq!(parse_youtube_timestamp("https://youtube.com/watch?v=test"), None);
+        assert_eq!(
+            parse_youtube_timestamp("https://youtube.com/watch?v=test&t=120"),
+            Some(120)
+        );
+        assert_eq!(
+            parse_youtube_timestamp("https://youtu.be/test?t=1m30s"),
+            Some(90)
+        );
+        assert_eq!(
+            parse_youtube_timestamp("https://youtube.com/watch?v=test&start=60"),
+            Some(60)
+        );
+        assert_eq!(
+            parse_youtube_timestamp("https://youtube.com/watch?v=test"),
+            None
+        );
     }
 
     #[test]
     fn test_is_reddit_comment() {
         // Comment permalink: has extra segment after title
-        assert!(is_reddit_comment("https://reddit.com/r/programming/comments/abc123/some_title/def456/"));
-        assert!(is_reddit_comment("https://reddit.com/r/programming/comments/abc123/some_title/def456"));
+        assert!(is_reddit_comment(
+            "https://reddit.com/r/programming/comments/abc123/some_title/def456/"
+        ));
+        assert!(is_reddit_comment(
+            "https://reddit.com/r/programming/comments/abc123/some_title/def456"
+        ));
         // Post link: four segments after domain, no extra comment segment
-        assert!(!is_reddit_comment("https://reddit.com/r/programming/comments/abc123/some_title/"));
-        assert!(!is_reddit_comment("https://reddit.com/r/programming/comments/abc123/"));
+        assert!(!is_reddit_comment(
+            "https://reddit.com/r/programming/comments/abc123/some_title/"
+        ));
+        assert!(!is_reddit_comment(
+            "https://reddit.com/r/programming/comments/abc123/"
+        ));
         assert!(!is_reddit_comment("https://reddit.com/r/programming"));
     }
 
@@ -967,6 +1058,3 @@ mod tests {
         assert!(!KnownPlatform::Other.is_known());
     }
 }
-
-
-

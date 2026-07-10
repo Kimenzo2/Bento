@@ -27,7 +27,10 @@ async function openViaPlugin(url: string): Promise<boolean> {
       await Promise.race([
         openUrl(url),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error(`openUrl timed out after ${IPC_TIMEOUT_MS}ms`)), IPC_TIMEOUT_MS),
+          setTimeout(
+            () => reject(new Error(`openUrl timed out after ${IPC_TIMEOUT_MS}ms`)),
+            IPC_TIMEOUT_MS,
+          ),
         ),
       ]);
       if (attempt > 1) {
@@ -56,7 +59,10 @@ async function openViaRustBridge(url: string): Promise<boolean> {
       await Promise.race([
         invoke("open_external_url", { url }),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error(`invoke timed out after ${IPC_TIMEOUT_MS}ms`)), IPC_TIMEOUT_MS),
+          setTimeout(
+            () => reject(new Error(`invoke timed out after ${IPC_TIMEOUT_MS}ms`)),
+            IPC_TIMEOUT_MS,
+          ),
         ),
       ]);
       if (attempt > 1) {

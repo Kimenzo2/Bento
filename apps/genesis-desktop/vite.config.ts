@@ -48,6 +48,11 @@ export default defineConfig({
         "./src/lib/shell-theme.ts",
         "./src/lib/components/DatabaseUnlockGate.svelte",
       ],
+      // Pre-load the SvelteKit SSR runtime at startup so Vite's module
+      // runner doesn't hit the hard-coded 60-second IPC transport timeout
+      // when resolving it lazily through bun's .bun/ store junctions on
+      // Windows (each junction hop adds latency that can exceed the limit).
+      ssrFiles: ["./node_modules/@sveltejs/kit/src/runtime/server/index.js"],
     },
   },
   // ── Custom dep cache (survives bun install) ────────────────────

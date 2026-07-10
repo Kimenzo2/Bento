@@ -23,8 +23,8 @@ use tokio::sync::Semaphore;
 
 use crate::audio::processing_queue;
 use crate::audio::turns::{
-    self, coalesce_turns_for_transcription, detect_turns,
-    normalize_wav_for_transcription, write_turn_wav, AudioTurn, DetectionSource, RecordingSource,
+    self, coalesce_turns_for_transcription, detect_turns, normalize_wav_for_transcription,
+    write_turn_wav, AudioTurn, DetectionSource, RecordingSource,
 };
 use crate::audio::validation::{
     self, validate_audio_artifact, AudioValidationConfig, SourceValidationDto,
@@ -139,7 +139,9 @@ pub async fn process_saved_source_audio(
 
     // ── Step 2: If no valid sources, return early ───────────────
     if valid_sources.is_empty() {
-        result.errors.push("No valid audio sources to process".to_string());
+        result
+            .errors
+            .push("No valid audio sources to process".to_string());
         return result;
     }
 
@@ -260,7 +262,10 @@ async fn transcribe_turn_chunk(
     write_turn_wav(source_file, &merged_turn, &chunk_path.to_string_lossy())?;
 
     // Normalize for transcription
-    normalize_wav_for_transcription(&chunk_path.to_string_lossy(), &normalized_path.to_string_lossy())?;
+    normalize_wav_for_transcription(
+        &chunk_path.to_string_lossy(),
+        &normalized_path.to_string_lossy(),
+    )?;
 
     // Read the normalized audio
     let reader = hound::WavReader::open(&normalized_path)
@@ -287,7 +292,11 @@ async fn transcribe_turn_chunk(
     }
 
     // Transcribe using moonshine
-    let app_dir = processing_dir.parent().and_then(|p| p.parent()).map(|p| p.to_path_buf()).unwrap_or_default();
+    let app_dir = processing_dir
+        .parent()
+        .and_then(|p| p.parent())
+        .map(|p| p.to_path_buf())
+        .unwrap_or_default();
     let transcriber = crate::audio::moonshine::Moonshine::new(&app_dir)
         .map_err(|e| format!("Moonshine init failed: {e}"))?;
     let text = transcriber
@@ -340,8 +349,12 @@ pub async fn process_saved_audio_fallback(
         let normalized_path = processing_dir.join(format!("full_{}.wav", src.artifact_id));
 
         // Normalize
-        if let Err(e) = normalize_wav_for_transcription(&src.file_path, &normalized_path.to_string_lossy()) {
-            result.errors.push(format!("Normalization failed for {}: {e}", src.file_path));
+        if let Err(e) =
+            normalize_wav_for_transcription(&src.file_path, &normalized_path.to_string_lossy())
+        {
+            result
+                .errors
+                .push(format!("Normalization failed for {}: {e}", src.file_path));
             continue;
         }
 
@@ -349,7 +362,9 @@ pub async fn process_saved_audio_fallback(
         let reader = match hound::WavReader::open(&normalized_path) {
             Ok(r) => r,
             Err(e) => {
-                result.errors.push(format!("Failed to read normalized audio: {e}"));
+                result
+                    .errors
+                    .push(format!("Failed to read normalized audio: {e}"));
                 continue;
             }
         };
@@ -361,7 +376,10 @@ pub async fn process_saved_audio_fallback(
             .collect();
 
         if samples.is_empty() {
-            result.warnings.push(format!("Empty audio after normalization: {}", src.file_path));
+            result.warnings.push(format!(
+                "Empty audio after normalization: {}",
+                src.file_path
+            ));
             continue;
         }
 
@@ -371,7 +389,10 @@ pub async fn process_saved_audio_fallback(
             .collect();
 
         if turns::is_effectively_silent(&audio_f32) {
-            result.warnings.push(format!("Silent audio after normalization: {}", src.file_path));
+            result.warnings.push(format!(
+                "Silent audio after normalization: {}",
+                src.file_path
+            ));
             continue;
         }
 

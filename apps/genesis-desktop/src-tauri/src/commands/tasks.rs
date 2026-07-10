@@ -121,7 +121,8 @@ fn row_to_task(row: sqlx::sqlite::SqliteRow) -> TaskEntry {
 
 /// Save (insert) a new task.
 #[tauri::command]
-pub async fn save_task(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn save_task(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     cache: State<'_, DashboardCache>,
     params: SaveTaskParams,
@@ -192,7 +193,8 @@ pub async fn save_task(auth: State<'_, crate::auth::AuthManager>,
 
 /// Update an existing task (partial update — only provided fields change).
 #[tauri::command]
-pub async fn update_task(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn update_task(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     cache: State<'_, DashboardCache>,
     params: UpdateTaskParams,
@@ -297,7 +299,8 @@ pub async fn update_task(auth: State<'_, crate::auth::AuthManager>,
 /// Toggle a task's done state. If the task has a recurrence rule,
 /// auto-generate the next instance on completion.
 #[tauri::command]
-pub async fn toggle_task(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn toggle_task(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     cache: State<'_, DashboardCache>,
     id: String,
@@ -405,7 +408,8 @@ fn advance_recurrence(rule: &str, current_due: Option<i64>) -> Option<i64> {
 
 /// Get a task by ID.
 #[tauri::command]
-pub async fn get_task(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn get_task(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<Option<TaskEntry>, String> {
@@ -424,7 +428,8 @@ pub async fn get_task(auth: State<'_, crate::auth::AuthManager>,
 
 /// Delete a task by ID.
 #[tauri::command]
-pub async fn delete_task(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn delete_task(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     cache: State<'_, DashboardCache>,
     id: String,
@@ -444,7 +449,8 @@ pub async fn delete_task(auth: State<'_, crate::auth::AuthManager>,
 /// List tasks with optional filters.
 #[allow(clippy::too_many_arguments)]
 #[tauri::command]
-pub async fn list_tasks(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn list_tasks(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     project: Option<String>,
     priority: Option<String>,
@@ -522,7 +528,8 @@ pub async fn get_task_count(state: State<'_, BentoAppState>) -> Result<i64, Stri
 
 /// Log an activity entry for a task.
 #[tauri::command]
-pub async fn log_activity_entry(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn log_activity_entry(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     params: LogActivityParams,
 ) -> Result<ActivityEntry, String> {
@@ -564,7 +571,8 @@ pub async fn log_activity_entry(auth: State<'_, crate::auth::AuthManager>,
 
 /// Archive a task (set archived = true).
 #[tauri::command]
-pub async fn archive_task(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn archive_task(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     cache: State<'_, DashboardCache>,
     id: String,
@@ -599,7 +607,8 @@ pub async fn archive_task(auth: State<'_, crate::auth::AuthManager>,
 
 /// Duplicate a task (copy with new ID).
 #[tauri::command]
-pub async fn duplicate_task(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn duplicate_task(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     id: String,
 ) -> Result<TaskEntry, String> {
@@ -672,7 +681,8 @@ pub struct SaveSubtaskParams {
 
 /// Save (insert) a new subtask.
 #[tauri::command]
-pub async fn save_subtask(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn save_subtask(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     params: SaveSubtaskParams,
 ) -> Result<SubtaskEntry, String> {
@@ -711,7 +721,11 @@ pub async fn save_subtask(auth: State<'_, crate::auth::AuthManager>,
 
 /// Delete a subtask by ID.
 #[tauri::command]
-pub async fn delete_subtask(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>, id: String) -> Result<(), String> {
+pub async fn delete_subtask(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+    id: String,
+) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "tasks").await?;
 
     let db = state.db();
@@ -725,7 +739,8 @@ pub async fn delete_subtask(auth: State<'_, crate::auth::AuthManager>, state: St
 
 /// List all subtasks for a given task.
 #[tauri::command]
-pub async fn list_subtasks_for_task(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn list_subtasks_for_task(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     task_id: String,
 ) -> Result<Vec<SubtaskEntry>, String> {
@@ -755,7 +770,8 @@ pub async fn list_subtasks_for_task(auth: State<'_, crate::auth::AuthManager>,
 
 /// Update a subtask's done status.
 #[tauri::command]
-pub async fn update_subtask_status(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn update_subtask_status(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     id: String,
     done: bool,
@@ -793,7 +809,8 @@ pub async fn update_subtask_status(auth: State<'_, crate::auth::AuthManager>,
 
 /// Reorder tasks in bulk (set sort_order for each).
 #[tauri::command]
-pub async fn reorder_tasks(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn reorder_tasks(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     cache: State<'_, DashboardCache>,
     items: Vec<ReorderItem>,
@@ -816,7 +833,8 @@ pub async fn reorder_tasks(auth: State<'_, crate::auth::AuthManager>,
 
 /// List activity entries for a task.
 #[tauri::command]
-pub async fn list_activity_for_task(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn list_activity_for_task(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     task_id: String,
     limit: Option<i32>,

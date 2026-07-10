@@ -37,6 +37,27 @@ pub async fn crypto_get_status(
     })
 }
 
+/// Create a placeholder pair (writer + reader in-memory) for crypto hot-swap.
+/// Both pools point to `:memory:` so no file access is needed during the
+/// brief window when the real pools are being replaced.
+async fn crypto_placeholder_pair() -> Result<(sqlx::SqlitePool, sqlx::SqlitePool), String> {
+    use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+    let opts = SqliteConnectOptions::new()
+        .filename(":memory:")
+        .create_if_missing(true);
+    let writer = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect_with(opts.clone())
+        .await
+        .map_err(|e| e.to_string())?;
+    let reader = SqlitePoolOptions::new()
+        .max_connections(4)
+        .connect_with(opts)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok((writer, reader))
+}
+
 /// First-time setup: set master password and encrypt all databases.
 /// Must only be called when status == NotConfigured.
 #[tauri::command]
@@ -54,35 +75,30 @@ pub async fn crypto_setup_master_password(
 
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
 
-    // ── CRITICAL: close the plain pool BEFORE SQLCipher opens the same file ──
-    // We need a temporary placeholder so BentoAppState is never pool-less.
-    // Create a fresh in-memory pool as placeholder, atomically replace + close old.
-    let placeholder = {
-        use sqlx::sqlite::SqliteConnectOptions;
-        use sqlx::sqlite::SqlitePoolOptions;
-        SqlitePoolOptions::new()
-            .max_connections(1)
-            .connect_with(
-                SqliteConnectOptions::new()
-                    .filename(":memory:")
-                    .create_if_missing(true),
-            )
-            .await
-            .map_err(|e| e.to_string())?
-    };
+    // ── CRITICAL: close BOTH pools BEFORE SQLCipher opens the same file ──
+    // Create placeholder pair so BentoAppState is never pool-less.
+    let (placeholder_writer, placeholder_reader) = crypto_placeholder_pair().await?;
 
     if let Some(state) = app.try_state::<BentoAppState>() {
-        // Atomically close the plain pool and install the placeholder.
-        state.close_and_replace(placeholder).await;
+        // Atomically close both plain pools and install placeholders.
+        state
+            .close_and_replace_all(placeholder_writer, placeholder_reader)
+            .await;
     }
 
     // Now setup encryption — no other pool holds app.db open.
     crypto.setup_master_password(&password, &data_dir).await?;
 
-    // Hot-swap in the real encrypted pool.
+    // Hot-swap in the real encrypted pool pair.
     if let Some(state) = app.try_state::<BentoAppState>() {
         let encrypted_pool = crypto.main_pool().await?;
-        state.replace_pool(encrypted_pool);
+        // Reader gets a clone of the encrypted pool (same underlying connections
+        // — acceptable for the brief window before full unlock).
+        // A dedicated reader pool would require the encrypted connection path
+        // from CryptoService.
+        state
+            .close_and_replace_all(encrypted_pool.clone(), encrypted_pool)
+            .await;
     }
 
     Ok(CryptoStatusResponse {
@@ -99,30 +115,20 @@ pub async fn crypto_unlock_database(
     crypto: State<'_, CryptoService>,
     password: String,
 ) -> Result<CryptoStatusResponse, String> {
-    // Close the stale plain pool before opening the encrypted one.
-    let placeholder = {
-        use sqlx::sqlite::SqliteConnectOptions;
-        use sqlx::sqlite::SqlitePoolOptions;
-        SqlitePoolOptions::new()
-            .max_connections(1)
-            .connect_with(
-                SqliteConnectOptions::new()
-                    .filename(":memory:")
-                    .create_if_missing(true),
-            )
-            .await
-            .map_err(|e| e.to_string())?
-    };
+    // Close the stale plain pools before opening the encrypted one.
+    let (placeholder_writer, placeholder_reader) = crypto_placeholder_pair().await?;
     if let Some(state) = app.try_state::<BentoAppState>() {
-        state.close_and_replace(placeholder).await;
+        state
+            .close_and_replace_all(placeholder_writer, placeholder_reader)
+            .await;
     }
 
     crypto.unlock(&password).await?;
 
-    // Install the real encrypted pool.
+    // Install the real encrypted pool pair.
     if let Some(state) = app.try_state::<BentoAppState>() {
         let pool = crypto.main_pool().await?;
-        state.replace_pool(pool);
+        state.close_and_replace_all(pool.clone(), pool).await;
     }
 
     Ok(CryptoStatusResponse {
@@ -158,10 +164,10 @@ pub async fn crypto_change_master_password(
         .change_master_password(&current_password, &new_password, &data_dir, &backup_dir)
         .await?;
 
-    // Update BentoAppState pool with new key's pool
+    // Update BentoAppState pool pair with new key's pool
     if let Some(state) = app.try_state::<BentoAppState>() {
         let pool = crypto.main_pool().await?;
-        state.replace_pool(pool);
+        state.close_and_replace_all(pool.clone(), pool).await;
     }
 
     Ok(BackupInfo {

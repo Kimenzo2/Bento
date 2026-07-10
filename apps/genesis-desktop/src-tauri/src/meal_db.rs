@@ -353,7 +353,8 @@ fn meal_detail_to_recipe_payload(meal: &MealDbFullMeal) -> NewRecipePayload {
 
 /// Search meals by name
 #[tauri::command]
-pub async fn discover_search(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn discover_search(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     query: String,
 ) -> Result<Vec<DiscoverRecipeSummary>, String> {
@@ -394,7 +395,8 @@ pub async fn discover_search(auth: State<'_, crate::auth::AuthManager>,
 
 /// Get random meal
 #[tauri::command]
-pub async fn discover_random(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn discover_random(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<DiscoverRecipeDetail, String> {
     crate::auth::require_billing_tier(&auth, "meal_db").await?;
@@ -417,7 +419,8 @@ pub async fn discover_random(auth: State<'_, crate::auth::AuthManager>,
 
 /// Get full meal detail by ID
 #[tauri::command]
-pub async fn discover_meal_detail(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn discover_meal_detail(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     meal_id: String,
 ) -> Result<DiscoverRecipeDetail, String> {
@@ -450,7 +453,8 @@ pub async fn discover_meal_detail(auth: State<'_, crate::auth::AuthManager>,
 
 /// List all categories
 #[tauri::command]
-pub async fn discover_categories(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn discover_categories(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<DiscoverCategory>, String> {
     crate::auth::require_billing_tier(&auth, "meal_db").await?;
@@ -487,7 +491,8 @@ pub async fn discover_categories(auth: State<'_, crate::auth::AuthManager>,
 
 /// List all areas
 #[tauri::command]
-pub async fn discover_areas(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn discover_areas(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<DiscoverFilterOption>, String> {
     crate::auth::require_billing_tier(&auth, "meal_db").await?;
@@ -520,7 +525,8 @@ pub async fn discover_areas(auth: State<'_, crate::auth::AuthManager>,
 
 /// Filter meals by category
 #[tauri::command]
-pub async fn discover_filter_by_category(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn discover_filter_by_category(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     category: String,
 ) -> Result<Vec<DiscoverRecipeSummary>, String> {
@@ -536,7 +542,8 @@ pub async fn discover_filter_by_category(auth: State<'_, crate::auth::AuthManage
 
 /// Filter meals by area
 #[tauri::command]
-pub async fn discover_filter_by_area(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn discover_filter_by_area(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     area: String,
 ) -> Result<Vec<DiscoverRecipeSummary>, String> {
@@ -552,7 +559,8 @@ pub async fn discover_filter_by_area(auth: State<'_, crate::auth::AuthManager>,
 
 /// Filter meals by ingredient
 #[tauri::command]
-pub async fn discover_filter_by_ingredient(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn discover_filter_by_ingredient(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     ingredient: String,
 ) -> Result<Vec<DiscoverRecipeSummary>, String> {
@@ -568,7 +576,8 @@ pub async fn discover_filter_by_ingredient(auth: State<'_, crate::auth::AuthMana
 
 /// List all ingredients
 #[tauri::command]
-pub async fn discover_ingredients(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn discover_ingredients(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<DiscoverFilterOption>, String> {
     crate::auth::require_billing_tier(&auth, "meal_db").await?;
@@ -601,7 +610,8 @@ pub async fn discover_ingredients(auth: State<'_, crate::auth::AuthManager>,
 
 /// Import a TheMealDB meal into the local recipes database
 #[tauri::command]
-pub async fn discover_import_meal(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn discover_import_meal(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     search: State<'_, crate::search::SearchService>,
     meal_id: String,

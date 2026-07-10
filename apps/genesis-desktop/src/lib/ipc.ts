@@ -39,10 +39,7 @@ export function setLogRocketInstance(lr: any): void {
  *  - "invoke:hang" breadcrumb if duration exceeds threshold
  *  - "invoke:error" breadcrumb + captureException on failure
  */
-export async function invoke<T>(
-  cmd: string,
-  args?: Record<string, unknown>,
-): Promise<T> {
+export async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   const lr = getLR();
   const start = performance.now();
 

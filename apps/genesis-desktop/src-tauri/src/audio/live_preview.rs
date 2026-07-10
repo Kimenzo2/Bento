@@ -197,7 +197,8 @@ fn run_live_preview_worker(
                     continue;
                 }
             };
-            let dur = (first_batch.samples.len() as f64 / first_batch.sample_rate as f64 * 1000.0) as u64;
+            let dur =
+                (first_batch.samples.len() as f64 / first_batch.sample_rate as f64 * 1000.0) as u64;
             (dur, first_batch.sample_rate)
         };
 
@@ -214,8 +215,9 @@ fn run_live_preview_worker(
 
         for b in &backlog {
             let needed = (sample_rate_for_chunk as f64 * PREVIEW_CHUNK_MS as f64 / 1000.0) as usize;
-            if total_samples + b.samples.len() > needed {                let remaining = needed.saturating_sub(total_samples);
-                    merged_samples.extend_from_slice(&b.samples[..remaining]);
+            if total_samples + b.samples.len() > needed {
+                let remaining = needed.saturating_sub(total_samples);
+                merged_samples.extend_from_slice(&b.samples[..remaining]);
                 batches_to_consume += 1;
                 break;
             }
@@ -254,115 +256,115 @@ fn run_live_preview_worker(
             }
         }
 
-            // Normalize to 16kHz mono
-            if normalize_wav_for_transcription(
-                &chunk_path.to_string_lossy(),
-                &norm_path.to_string_lossy(),
-            )
-            .is_err()
-            {
+        // Normalize to 16kHz mono
+        if normalize_wav_for_transcription(
+            &chunk_path.to_string_lossy(),
+            &norm_path.to_string_lossy(),
+        )
+        .is_err()
+        {
+            chunk_index += 1;
+            continue;
+        }
+
+        // Read normalized audio
+        let reader = match hound::WavReader::open(&norm_path) {
+            Ok(r) => r,
+            Err(_) => {
                 chunk_index += 1;
                 continue;
             }
+        };
 
-            // Read normalized audio
-            let reader = match hound::WavReader::open(&norm_path) {
-                Ok(r) => r,
+        let spec = reader.spec();
+        let samples: Vec<i16> = reader
+            .into_samples::<i16>()
+            .filter_map(|s| s.ok())
+            .collect();
+
+        if samples.is_empty() {
+            chunk_index += 1;
+            continue;
+        }
+
+        let audio_f32: Vec<f32> = samples
+            .iter()
+            .map(|&s| s as f32 / i16::MAX as f32)
+            .collect();
+
+        if is_effectively_silent(&audio_f32) {
+            chunk_index += 1;
+            continue;
+        }
+
+        // Transcribe
+        let app_dir = processing_dir
+            .parent()
+            .map(|p| p.to_path_buf())
+            .unwrap_or_else(|| std::env::temp_dir().join("bento"));
+
+        let result_text = {
+            let transcriber = match crate::audio::moonshine::Moonshine::new(&app_dir) {
+                Ok(t) => t,
                 Err(_) => {
                     chunk_index += 1;
                     continue;
                 }
             };
-
-            let spec = reader.spec();
-            let samples: Vec<i16> = reader
-                .into_samples::<i16>()
-                .filter_map(|s| s.ok())
-                .collect();
-
-            if samples.is_empty() {
-                chunk_index += 1;
-                continue;
-            }
-
-            let audio_f32: Vec<f32> = samples
-                .iter()
-                .map(|&s| s as f32 / i16::MAX as f32)
-                .collect();
-
-            if is_effectively_silent(&audio_f32) {
-                chunk_index += 1;
-                continue;
-            }
-
-            // Transcribe
-            let app_dir = processing_dir
-                .parent()
-                .map(|p| p.to_path_buf())
-                .unwrap_or_else(|| std::env::temp_dir().join("bento"));
-
-            let result_text = {
-                let transcriber = match crate::audio::moonshine::Moonshine::new(&app_dir) {
-                    Ok(t) => t,
-                    Err(_) => {
-                        chunk_index += 1;
-                        continue;
-                    }
-                };
-                match transcriber.transcribe(&audio_f32, spec.sample_rate.max(1) as i32) {
-                    Ok(t) => t.trim().to_string(),
-                    Err(_) => {
-                        chunk_index += 1;
-                        continue;
-                    }
-                }
-            };
-
-            if result_text.is_empty() {
-                chunk_index += 1;
-                continue;
-            }
-
-            // Update recent context
-            {
-                if let Ok(mut recent) = recent_text.lock() {
-                    recent.push(result_text.clone());
-                    if recent.len() > PREVIEW_CONTEXT_TURNS {
-                        let excess = recent.len() - PREVIEW_CONTEXT_TURNS;
-                        recent.drain(0..excess);
-                    }
+            match transcriber.transcribe(&audio_f32, spec.sample_rate.max(1) as i32) {
+                Ok(t) => t.trim().to_string(),
+                Err(_) => {
+                    chunk_index += 1;
+                    continue;
                 }
             }
+        };
 
-            // Build context string
-            #[allow(unused_variables)]
-            let context = {
-                if let Ok(recent) = recent_text.lock() {
-                    recent.join(" | ")
-                } else {
-                    String::new()
-                }
-            };
-
-            // Emit to frontend
-            let event = LiveTranscriptEventDto {
-                note_id: note_id.clone(),
-                session_id: session_id.clone(),
-                source: "microphone".to_string(),
-                segment_id: format!("preview-{}", chunk_index),
-                start_ms: chunk_index * PREVIEW_CHUNK_MS,
-                end_ms: (chunk_index + 1) * PREVIEW_CHUNK_MS,
-                text: result_text,
-                is_final: false,
-            };
-
-            let _ = app_handle.emit("voice:live-transcript", &event);
-
+        if result_text.is_empty() {
             chunk_index += 1;
+            continue;
+        }
 
-            // Cleanup temp files
-            let _ = std::fs::remove_file(&chunk_path);
-            let _ = std::fs::remove_file(&norm_path);
+        // Update recent context
+        {
+            if let Ok(mut recent) = recent_text.lock() {
+                recent.push(result_text.clone());
+                if recent.len() > PREVIEW_CONTEXT_TURNS {
+                    let excess = recent.len() - PREVIEW_CONTEXT_TURNS;
+                    recent.drain(0..excess);
+                }
+            }
+        }
+
+        // Build context string
+        #[allow(unused_variables)]
+        let context = {
+            if let Ok(recent) = recent_text.lock() {
+                recent.join(" | ")
+            } else {
+                String::new()
+            }
+        };
+
+        // Emit to frontend
+        let event = LiveTranscriptEventDto {
+            note_id: note_id.clone(),
+            session_id: session_id.clone(),
+            source: "microphone".to_string(),
+            segment_id: format!("preview-{}", chunk_index),
+            start_ms: chunk_index * PREVIEW_CHUNK_MS,
+            end_ms: (chunk_index + 1) * PREVIEW_CHUNK_MS,
+            text: result_text,
+            is_final: false,
+        };
+
+        let _ = app_handle.emit("voice:live-transcript", &event);
+
+        chunk_index += 1;
+
+        // Cleanup temp files
+        let _ = std::fs::remove_file(&chunk_path);
+        let _ = std::fs::remove_file(&norm_path);
 
         std::thread::sleep(std::time::Duration::from_millis(50));
     }

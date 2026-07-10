@@ -33,14 +33,16 @@
   let diagTransitionStartTime = 0;
   let diagLastTransitionProperty = "";
   let diagInvokeTimeout = 5000;
-  let diagInvokeTimedOut = false;
   let diagVisibilityHiddenCount = 0;
 
   // ── Three-phase choreography state ──
-  let choreoClass = $state<"choreo-expand" | "choreo-collapse" | "">("");
+  let choreoClass = $state<"goo-expand" | "goo-collapse" | "">("");
   // Track whether the current expand used choreography (for matching collapse)
   let usedChoreography = $state(false);
   let isIslandExpanded = $derived(islandStore.mode === "expanded" || choreoClass !== "");
+
+  // SVG gooey filter — only active during transition to avoid perf hit
+  let gooFilterActive = $state(false);
 
   if (DIAG) {
     console.log("[island-diag] Island.svelte mounted at", new Date().toISOString());
@@ -219,32 +221,45 @@
   }
 
   /**
-   * Expand with three-phase choreography overlay.
+   * Expand with gooey SVG-filter detachment animation.
    * Reserved for: specific widget/notification taps inside the notch.
+   *
+   * A container wrapping both the notch and panel has `filter: url(#goo)`
+   * applied during the transition. The SVG filter (feGaussianBlur + feColorMatrix)
+   * fuses the two shapes' blurred alpha channels, creating a liquid-looking
+   * connecting neck that stretches and snaps as the panel moves away from
+   * the notch — no hand-animated blob paths needed.
+   *
+   * The filter is removed after the settle to restore GPU perf.
    */
   function expandWithChoreography() {
     if (islandStore.mode === "expanded") return;
     usedChoreography = true;
-    choreoClass = "choreo-expand";
+    choreoClass = "goo-expand";
+    gooFilterActive = true;
     islandStore.expand();
-    // The task island morph is intentionally brief. It originates at the notch
-    // and settles below it before the user can perceive a separate panel swap.
-    setTimeout(() => { choreoClass = ""; }, 300);
+    // Keep filter alive for the full detach + settle (~350ms), then remove.
+    setTimeout(() => {
+      choreoClass = "";
+      gooFilterActive = false;
+    }, 380);
   }
 
   /**
-   * Collapse with reverse choreography (70% speed, less overshoot).
-   * Used when the current expand used choreography.
+   * Collapse with reverse gooey reattachment.
+   * The goo filter is reapplied so the returning panel re-fuses
+   * into the notch visually as it springs back upward.
    */
   function collapseWithChoreography() {
     if (islandStore.mode === "compact") return;
-    choreoClass = "choreo-collapse";
-    // Keep the task surface mounted for the full return path.
+    choreoClass = "goo-collapse";
+    gooFilterActive = true;
     setTimeout(() => {
       choreoClass = "";
+      gooFilterActive = false;
       islandStore.collapse();
       usedChoreography = false;
-    }, 240);
+    }, 300);
   }
 
   /** Collapse — dispatches to choreography or normal based on how we expanded. */
@@ -319,9 +334,9 @@
   }
 
   // ── Diagnostics: invoke timeout tracking ──
-  // Uses imported invokeWithTimeout from $lib/ipc. The diagInvokeTimedOut
-  // flag is set by the watchdog interval below when a timeout is detected.
-  // (The local function was removed because it shadowed the import.)
+  // Uses imported invokeWithTimeout from $lib/ipc. Timeout detection is
+  // handled by invokeWithTimeout's Promise.race (the caught error is silently
+  // discarded — the watchdog can't see it from here).
 
   // ── Diagnostics: transitionend handler ──
   function onTransitionEnd(e: TransitionEvent) {
@@ -414,9 +429,8 @@
           warnings.push(stuck);
           diagTransitionStartTime = 0;
         }
-        if (diagInvokeTimedOut) {
-          warnings.push("[island-diag] Invoke timeout detected — Rust command may be stuck");
-        }
+        // invoke timeout detection is handled by invokeWithTimeout (ipc.ts)
+        // and is not accessible from this component's scope.
         if (warnings.length > 0) {
           console.warn(`[island-diag] Watchdog health check FAILED:`);
           warnings.forEach((w) => console.warn(`  ${w}`));
@@ -437,6 +451,12 @@
       if (diagWatchdogInterval) {
         clearInterval(diagWatchdogInterval);
         diagWatchdogInterval = null;
+      }
+      // Clean up global stress-test harness to prevent stale references
+      if (DIAG && typeof window !== "undefined") {
+        delete (window as any).__islandDiagnostics;
+        delete (window as any).__stressIsland;
+        delete (window as any).__stressIslandRapid;
       }
       if (DIAG) console.log(`[island-diag] cleanup complete — keydown=${diagKeydownCount}, escape=${diagEscapeCount}, clickOutside=${diagClickListenerCount}, transitions=${diagTransitionCount}, interruptions=${diagTransitionInterruptions}`);
     };
@@ -548,7 +568,7 @@
 </script>
 
 <div
-  class="island-overlay"
+  class="island island-overlay"
   class:island-overlay--expanded={isIslandExpanded}
 >
   <div
@@ -561,12 +581,41 @@
     class:island-shell--expanded={isIslandExpanded}
     bind:this={islandEl}
   >
-    <div
-      class="island-notch"
-      class:island-notch--normal={!islandStore.activeModule}
-      class:island-notch--hidden={!!islandStore.activeModule}
-      class:island-notch--compact={islandStore.mode === "compact"}
-    >
+    <!-- ════════════════════════════════════════════════════════════
+         GOOEY FILTER CONTAINER
+         Wraps both .island-notch (stationary) and .island-panel
+         (moving) so the SVG filter composites their blurred alpha
+         channels together before the contrast pass. The goo filter
+         is ONLY active during transitions — class:goo-active adds
+         filter: url(#goo) which fuses the two shapes into a single
+         liquid form connected by an organic stretched "neck" that
+         appears automatically from the blur overlap.
+         ════════════════════════════════════════════════════════ -->
+    <div class="goo-container" class:goo-active={gooFilterActive}>
+      <!-- SVG filter: feGaussianBlur (soft edges) → feColorMatrix (crisp alpha with steep contrast, fusing overlapping blur into one connected shape) -->
+      <svg class="goo-svg" aria-hidden="true">
+        <defs>
+          <filter id="goo" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur" />
+            <feColorMatrix
+              in="blur"
+              mode="matrix"
+              values="1 0 0 0 0
+                      0 1 0 0 0
+                      0 0 1 0 0
+                      0 0 0 18 -7"
+              result="goo"
+            />
+            <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+          </filter>
+        </defs>
+      </svg>
+      <div
+        class="island-notch"
+        class:island-notch--normal={!islandStore.activeModule}
+        class:island-notch--hidden={!!islandStore.activeModule}
+        class:island-notch--compact={islandStore.mode === "compact"}
+      >
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="compact-body"
@@ -627,10 +676,14 @@
         class:island-panel--widget={!!islandStore.activeModule}
         class:island-panel--task={islandStore.activeModule?.id === "tasks"}
         class:island-panel--shell={!islandStore.activeModule}
-        class:choreo-expand={choreoClass === "choreo-expand"}
-        class:choreo-collapse={choreoClass === "choreo-collapse"}
+        onmousedown={(e) => e.stopPropagation()}
         onclick={(e) => e.stopPropagation()}
       >
+        <div
+          class="goo-panel"
+          class:goo-expand={choreoClass === "goo-expand"}
+          class:goo-collapse={choreoClass === "goo-collapse"}
+        >
           {#if islandStore.activeModule}
             {#if islandStore.activeModule.id === "tasks"}
               <TaskWidget />
@@ -652,7 +705,9 @@
             </div>
           {/if}
         </div>
+      </div>
     {/if}
+    </div><!-- end goo-container -->
   </div>
 </div>
 
@@ -673,7 +728,7 @@
       clickOutsideCount: diagClickListenerCount,
       transitionCount: diagTransitionCount,
       transitionInterruptions: diagTransitionInterruptions,
-      invokeTimedOut: diagInvokeTimedOut,
+      // invokeTimedOut: removed — tracked by ipc.ts LogRocket breadcrumbs
       visibilityHiddenCount: diagVisibilityHiddenCount,
       mountTime: new Date(diagMountTime).toISOString(),
       uptime: ((Date.now() - diagMountTime) / 1000).toFixed(1) + "s",
@@ -929,68 +984,97 @@
   }
 
   /* ════════════════════════════════════════════════════════════════════
-     THREE-PHASE CHOREOGRAPHY — transform-only overlay
-     The shell width/height resize is handled by the CSS transition above.
-     These keyframes ONLY animate the detached panel (translateY + scale),
-     layering the detach/drop/settle physics on top of the resize.
-
-     KEY: The expanded panel must appear to DETACH from the notch
-     and FLOAT DOWN — not just expand in place.
+     GOOEY DETACHMENT CONTAINER & SVG FILTER
      ════════════════════════════════════════════════════════════════════ */
 
-  /* ── EXPAND: Phase 1 (Detach) → Phase 2 (Drop) → Phase 3 (Settle) ── */
-  @keyframes choreo-expand-keyframes {
+  .goo-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    border-radius: inherit;
+  }
+
+  .goo-svg {
+    position: absolute;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  /* Inner wrapper that carries the goo animation transforms.
+     Separated from .island-panel (which handles centering via
+     left:50%/translateX) so the animation doesn't interfere
+     with horizontal positioning. */
+  .goo-panel {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    transform-origin: top center;
+    will-change: transform;
+  }
+
+  /* The gooey filter is ONLY applied during transitions (goo-active).
+     When active: feGaussianBlur blurs both shapes' edges, then
+     feColorMatrix sharpens the alpha back — fusing overlapping blur
+     regions into a single connected form. This creates the organic
+     liquid "neck" between notch and panel automatically.
+     When inactive: zero filter cost, crisp normal rendering. */
+  .goo-active {
+    filter: url(#goo);
+    /* Don't clip — the panel animates away from the notch during the gooey
+       detachment; overflow:hidden would clip the moving panel and break the
+       liquid-connection visual effect. The filter bounds are expanded to
+       x=-50%/y=-50%/width=200%/height=200% to accommodate the movement. */
+    overflow: visible;
+  }
+
+  /* During the gooey transition, the panel's own background would appear
+     abruptly at full size before the animation settles — hide it so only
+     the notch background and the goo-filtered blend are visible. */
+  .goo-active .island-panel {
+    background: transparent;
+    border: none;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════
+     GOOEY DETACHMENT — SVG filter metaball liquid transition
+     The shell width/height resize is handled by the CSS transition
+     on .island-shell. These keyframes ONLY animate the floating panel
+     (translateY + scale), making it appear to detach from the notch
+     and settle below it. The goo filter on .goo-container fuses the
+     two shapes into one liquid blob that stretches and snaps.
+     ════════════════════════════════════════════════════════════════════ */
+
+  /* ── EXPAND: panel starts overlapping the notch (small, same position)
+       then springs downward and outward to its floating position ── */
+  @keyframes goo-expand-keyframes {
     0% {
-      transform: translateX(-50%) translateY(-64px) scale(0.59, 0.18);
-      opacity: 0;
-    }
-    34% {
-      transform: translateX(-50%) translateY(-42px) scale(0.74, 0.42);
-      opacity: 0;
-    }
-    58% {
-      transform: translateX(-50%) translateY(-14px) scale(0.94, 0.9);
-      opacity: 0.82;
-    }
-    82% {
-      transform: translateX(-50%) translateY(1px) scale(1.003, 1.006);
-      opacity: 1;
+      transform: translateY(-44px) scale(0.59, 0.22);
     }
     100% {
-      transform: translateX(-50%) translateY(0) scale(1);
-      opacity: 1;
+      transform: translateY(0) scale(1, 1);
     }
   }
 
-  .choreo-expand {
-    animation: choreo-expand-keyframes 280ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  .goo-expand {
+    animation: goo-expand-keyframes 350ms cubic-bezier(0.23, 1, 0.32, 1) both;
   }
 
-  /* ── COLLAPSE: reverse — 70% speed, calmer overshoot ── */
-  @keyframes choreo-collapse-keyframes {
+  /* ── COLLAPSE: reverse — panel springs back into the notch,
+       filter re-fuses it into the notch visually ── */
+  @keyframes goo-collapse-keyframes {
     0% {
-      transform: translateX(-50%) translateY(0) scale(1);
-      opacity: 1;
-    }
-    22% {
-      transform: translateX(-50%) translateY(-2px) scale(0.99, 0.985);
-    }
-    52% {
-      transform: translateX(-50%) translateY(-18px) scale(0.9, 0.8);
-      opacity: 0.7;
-    }
-    74% {
-      transform: translateX(-50%) translateY(-42px) scale(0.72, 0.4);
-      opacity: 0;
+      transform: translateY(0) scale(1, 1);
     }
     100% {
-      transform: translateX(-50%) translateY(-64px) scale(0.59, 0.18);
-      opacity: 0;
+      transform: translateY(-44px) scale(0.59, 0.22);
     }
   }
 
-  .choreo-collapse {
-    animation: choreo-collapse-keyframes 240ms cubic-bezier(0.55, 0, 0.67, 1) both;
+  .goo-collapse {
+    animation: goo-collapse-keyframes 280ms cubic-bezier(0.55, 0, 0.67, 1) both;
   }
 
   .compact-body {

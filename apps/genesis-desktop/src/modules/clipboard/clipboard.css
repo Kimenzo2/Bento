@@ -973,7 +973,9 @@
   font-size: 0.9rem;
   outline: none;
   box-sizing: border-box;
-  transition: background 0.15s, box-shadow 0.15s;
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
 }
 
 :global(.cb-bookmark-input__field) input::placeholder {
@@ -1020,13 +1022,27 @@
   opacity: 1;
 }
 
-:global(.cb-bookmark-input__badge[data-platform="x"])         { background: #000; }
-:global(.cb-bookmark-input__badge[data-platform="youtube"])   { background: #FF0000; }
-:global(.cb-bookmark-input__badge[data-platform="reddit"])    { background: #FF4500; }
-:global(.cb-bookmark-input__badge[data-platform="threads"])   { background: #000; }
-:global(.cb-bookmark-input__badge[data-platform="instagram"]) { background: #FF0076; }
-:global(.cb-bookmark-input__badge[data-platform="tiktok"])    { background: #000; }
-:global(.cb-bookmark-input__badge[data-platform="other"])     { background: #787873; }
+:global(.cb-bookmark-input__badge[data-platform="x"]) {
+  background: #000;
+}
+:global(.cb-bookmark-input__badge[data-platform="youtube"]) {
+  background: #ff0000;
+}
+:global(.cb-bookmark-input__badge[data-platform="reddit"]) {
+  background: #ff4500;
+}
+:global(.cb-bookmark-input__badge[data-platform="threads"]) {
+  background: #000;
+}
+:global(.cb-bookmark-input__badge[data-platform="instagram"]) {
+  background: #ff0076;
+}
+:global(.cb-bookmark-input__badge[data-platform="tiktok"]) {
+  background: #000;
+}
+:global(.cb-bookmark-input__badge[data-platform="other"]) {
+  background: #787873;
+}
 
 /* Save button */
 :global(.cb-bookmark-input__save) {
@@ -1101,10 +1117,24 @@
   break-inside: avoid;
   page-break-inside: avoid;
   cursor: pointer;
-  font-family: "Pin Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Oxygen-Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
-    Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue",
-    Helvetica, Arial, sans-serif;
+  font-family:
+    "Pin Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Oxygen-Sans",
+    "Apple Color Emoji",
+    "Segoe UI Emoji",
+    "Segoe UI Symbol",
+    Ubuntu,
+    Cantarell,
+    "Fira Sans",
+    "Droid Sans",
+    "Helvetica Neue",
+    Helvetica,
+    Arial,
+    sans-serif;
   color: #211922;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -1147,7 +1177,9 @@
 }
 
 /* Image inside placeholder (hidden on error) */
-:global(.cb-pin-card__image-wrapper) img[style*="display: none"] + :global(.cb-pin-card__img-placeholder) {
+:global(.cb-pin-card__image-wrapper)
+  img[style*="display: none"]
+  + :global(.cb-pin-card__img-placeholder) {
   display: flex;
 }
 
@@ -1178,19 +1210,45 @@
 }
 
 /* Platform brand colors (Pinterest-exact hex values) */
-:global(.cb-pin-card__badge[data-platform="x"])         { background: #000; }
-:global(.cb-pin-card__badge[data-platform="twitter"])   { background: #000; }
-:global(.cb-pin-card__badge[data-platform="youtube"])   { background: #FF0000; }
-:global(.cb-pin-card__badge[data-platform="reddit"])    { background: #FF4500; }
-:global(.cb-pin-card__badge[data-platform="threads"])   { background: #000; }
-:global(.cb-pin-card__badge[data-platform="instagram"]) { background: #FF0076; }
-:global(.cb-pin-card__badge[data-platform="tiktok"])    { background: #000; }
-:global(.cb-pin-card__badge[data-platform="cosmos"])    { background: #6C5CE7; }
-:global(.cb-pin-card__badge[data-platform="arena"])     { background: #000; }
-:global(.cb-pin-card__badge[data-platform="are.na"])    { background: #000; }
-:global(.cb-pin-card__badge[data-platform="linkedin"])  { background: #0A66C2; }
-:global(.cb-pin-card__badge[data-platform="github"])    { background: #181717; }
-:global(.cb-pin-card__badge[data-platform="other"])     { background: #787873; }
+:global(.cb-pin-card__badge[data-platform="x"]) {
+  background: #000;
+}
+:global(.cb-pin-card__badge[data-platform="twitter"]) {
+  background: #000;
+}
+:global(.cb-pin-card__badge[data-platform="youtube"]) {
+  background: #ff0000;
+}
+:global(.cb-pin-card__badge[data-platform="reddit"]) {
+  background: #ff4500;
+}
+:global(.cb-pin-card__badge[data-platform="threads"]) {
+  background: #000;
+}
+:global(.cb-pin-card__badge[data-platform="instagram"]) {
+  background: #ff0076;
+}
+:global(.cb-pin-card__badge[data-platform="tiktok"]) {
+  background: #000;
+}
+:global(.cb-pin-card__badge[data-platform="cosmos"]) {
+  background: #6c5ce7;
+}
+:global(.cb-pin-card__badge[data-platform="arena"]) {
+  background: #000;
+}
+:global(.cb-pin-card__badge[data-platform="are.na"]) {
+  background: #000;
+}
+:global(.cb-pin-card__badge[data-platform="linkedin"]) {
+  background: #0a66c2;
+}
+:global(.cb-pin-card__badge[data-platform="github"]) {
+  background: #181717;
+}
+:global(.cb-pin-card__badge[data-platform="other"]) {
+  background: #787873;
+}
 
 /* ─── Card Footer ─── */
 :global(.cb-pin-card__footer) {
@@ -1302,10 +1360,24 @@
   padding: 60px 20px;
   color: #62625b;
   text-align: center;
-  font-family: "Pin Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    "Oxygen-Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
-    Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue",
-    Helvetica, Arial, sans-serif;
+  font-family:
+    "Pin Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Oxygen-Sans",
+    "Apple Color Emoji",
+    "Segoe UI Emoji",
+    "Segoe UI Symbol",
+    Ubuntu,
+    Cantarell,
+    "Fira Sans",
+    "Droid Sans",
+    "Helvetica Neue",
+    Helvetica,
+    Arial,
+    sans-serif;
 }
 
 :global(.cb-bookmark-empty) p {

@@ -25,8 +25,8 @@ pub mod modules;
 pub mod mood;
 pub mod notes;
 pub mod notifications;
-pub mod ping;
 pub mod payments;
+pub mod ping;
 pub mod recipes;
 pub mod runtime;
 pub mod scheduler;
@@ -41,7 +41,14 @@ pub mod window_effects;
 
 use chrono::Utc;
 use serde::Serialize;
-use std::{env, fs, panic::PanicHookInfo, path::PathBuf, sync::Arc, thread, time::{Duration, Instant}};
+use std::{
+    env, fs,
+    panic::PanicHookInfo,
+    path::PathBuf,
+    sync::Arc,
+    thread,
+    time::{Duration, Instant},
+};
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 
@@ -105,7 +112,8 @@ impl StartupDegraded {
     }
 
     fn mark(&self, reason: String) {
-        self.is_degraded.store(true, std::sync::atomic::Ordering::Release);
+        self.is_degraded
+            .store(true, std::sync::atomic::Ordering::Release);
         if let Ok(mut r) = self.reason.lock() {
             *r = reason;
         }
@@ -113,7 +121,9 @@ impl StartupDegraded {
 }
 
 #[tauri::command]
-fn get_startup_degraded_state(state: tauri::State<'_, StartupDegraded>) -> Result<Option<String>, String> {
+fn get_startup_degraded_state(
+    state: tauri::State<'_, StartupDegraded>,
+) -> Result<Option<String>, String> {
     if state.is_degraded.load(std::sync::atomic::Ordering::Acquire) {
         Ok(state.reason.lock().ok().map(|r| r.clone()))
     } else {
@@ -326,11 +336,15 @@ const CRASH_COUNTER: &str = ".bento-crash-count";
 const MAX_CRASH_LOOP: u32 = 3;
 
 fn sentinel_path() -> PathBuf {
-    std::env::temp_dir().join("bento-desktop").join(STARTUP_SENTINEL)
+    std::env::temp_dir()
+        .join("bento-desktop")
+        .join(STARTUP_SENTINEL)
 }
 
 fn crash_counter_path() -> PathBuf {
-    std::env::temp_dir().join("bento-desktop").join(CRASH_COUNTER)
+    std::env::temp_dir()
+        .join("bento-desktop")
+        .join(CRASH_COUNTER)
 }
 
 fn read_crash_count() -> u32 {
@@ -343,7 +357,8 @@ fn read_crash_count() -> u32 {
 fn write_crash_count(n: u32) {
     let p = crash_counter_path();
     let _ = std::fs::create_dir_all(
-        p.parent().expect("crash counter path must have a parent dir"),
+        p.parent()
+            .expect("crash counter path must have a parent dir"),
     );
     let _ = std::fs::write(&p, n.to_string());
 }
@@ -362,7 +377,10 @@ fn delete_webview2_profile() {
     let folder = base.join("Bento").join("WebView2").join("User Data");
 
     if folder.exists() {
-        eprintln!("[startup] removing corrupt WebView2 profile: {}", folder.display());
+        eprintln!(
+            "[startup] removing corrupt WebView2 profile: {}",
+            folder.display()
+        );
         write_startup_log(&format!("removing WebView2 profile: {}", folder.display()));
         if let Err(e) = std::fs::remove_dir_all(&folder) {
             eprintln!("[startup] WARN: failed to remove WebView2 profile: {e}");
@@ -386,9 +404,7 @@ fn recover_from_startup_crash() {
         let count = read_crash_count() + 1;
         write_crash_count(count);
 
-        eprintln!(
-            "[startup] sentinel found — previous launch crashed (crash #{count})"
-        );
+        eprintln!("[startup] sentinel found — previous launch crashed (crash #{count})");
         write_startup_log(&format!("crash sentinel found (#{count})"));
 
         if count >= MAX_CRASH_LOOP {
@@ -521,8 +537,14 @@ pub fn run() {
             Ok(d) => d,
             Err(e) => {
                 let fallback = std::env::temp_dir().join("bento-desktop").join("data");
-                eprintln!("[init] WARN: app_data_dir failed ({e}), using {}", fallback.display());
-                write_startup_log(&format!("app_data_dir failed, fallback: {}", fallback.display()));
+                eprintln!(
+                    "[init] WARN: app_data_dir failed ({e}), using {}",
+                    fallback.display()
+                );
+                write_startup_log(&format!(
+                    "app_data_dir failed, fallback: {}",
+                    fallback.display()
+                ));
                 let _ = std::fs::create_dir_all(&fallback);
                 fallback
             }
@@ -747,16 +769,21 @@ pub fn run() {
                         return;
                     }
                     if let Some(window) = handle.get_webview_window("island") {
-                        // Show/hide toggle like toggle_agent, not compact↔expanded
-                        let is_visible = window.is_visible().unwrap_or(false);
+                        // Show/hide toggle like toggle_agent, not compact↔expanded.
+                        // Use the atomic ISLAND_VISIBLE to avoid a blocking
+                        // is_visible() WebView2 IPC call from the shortcut thread.
+                        let is_visible = crate::island::ISLAND_VISIBLE
+                            .load(std::sync::atomic::Ordering::SeqCst);
                         // Persist the setting so the island state survives restarts
                         let _ = crate::settings::update_desktop_settings(handle, |s| {
                             s.dynamic_island_enabled = !is_visible;
                         });
                         if is_visible {
                             let _ = window.hide();
+                            crate::island::ISLAND_VISIBLE.store(false, std::sync::atomic::Ordering::SeqCst);
                         } else {
                             let _ = window.show();
+                            crate::island::ISLAND_VISIBLE.store(true, std::sync::atomic::Ordering::SeqCst);
                             let _ = crate::island::position_top_center(&window);
                             let _ = window.emit("island:hide", ());
                         }

@@ -53,7 +53,8 @@ pub struct DailyLogRow {
 
 /// Save or upsert today's daily check-in. One log per calendar day.
 #[tauri::command]
-pub async fn health_log_save(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn health_log_save(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     entry: DailyLogEntry,
 ) -> Result<DailyLogRow, String> {
@@ -110,7 +111,8 @@ pub async fn health_log_save(auth: State<'_, crate::auth::AuthManager>,
 
 /// Load today's check-in (if any).
 #[tauri::command]
-pub async fn health_log_today(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn health_log_today(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Option<DailyLogRow>, String> {
     crate::auth::require_billing_tier(&auth, "health").await?;
@@ -148,7 +150,10 @@ pub async fn health_log_today(auth: State<'_, crate::auth::AuthManager>,
 
 /// Last 7 days of check-ins for the weekly chart.
 #[tauri::command]
-pub async fn health_logs_week(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<Vec<DailyLogRow>, String> {
+pub async fn health_logs_week(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+) -> Result<Vec<DailyLogRow>, String> {
     crate::auth::require_billing_tier(&auth, "health").await?;
 
     ensure_health_tables(&state.db()).await?;
@@ -211,7 +216,8 @@ pub struct VitalsRow {
 }
 
 #[tauri::command]
-pub async fn health_vitals_save(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn health_vitals_save(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     entry: VitalsEntry,
 ) -> Result<VitalsRow, String> {
@@ -254,7 +260,10 @@ pub async fn health_vitals_save(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn health_vitals_list(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<Vec<VitalsRow>, String> {
+pub async fn health_vitals_list(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+) -> Result<Vec<VitalsRow>, String> {
     crate::auth::require_billing_tier(&auth, "health").await?;
 
     ensure_health_tables(&state.db()).await?;
@@ -309,7 +318,10 @@ pub struct NewMedEntry {
 }
 
 #[tauri::command]
-pub async fn health_meds_list(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<Vec<MedRow>, String> {
+pub async fn health_meds_list(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+) -> Result<Vec<MedRow>, String> {
     crate::auth::require_billing_tier(&auth, "health").await?;
 
     ensure_health_tables(&state.db()).await?;
@@ -346,7 +358,8 @@ pub async fn health_meds_list(auth: State<'_, crate::auth::AuthManager>, state: 
 }
 
 #[tauri::command]
-pub async fn health_med_add(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn health_med_add(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     entry: NewMedEntry,
 ) -> Result<MedRow, String> {
@@ -387,7 +400,8 @@ pub async fn health_med_add(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn health_med_toggle(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn health_med_toggle(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     med_id: String,
 ) -> Result<bool, String> {
@@ -432,7 +446,8 @@ pub async fn health_med_toggle(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn health_med_delete(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn health_med_delete(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     med_id: String,
 ) -> Result<(), String> {

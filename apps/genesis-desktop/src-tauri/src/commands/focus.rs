@@ -164,7 +164,8 @@ fn load_focus_settings(value: Option<String>) -> FocusSettings {
 }
 
 #[tauri::command]
-pub async fn get_focus_dashboard(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn get_focus_dashboard(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<FocusDashboardData, String> {
     crate::auth::require_billing_tier(&auth, "focus").await?;
@@ -302,7 +303,8 @@ pub async fn get_focus_dashboard(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn record_focus_session(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn record_focus_session(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     params: RecordFocusSessionParams,
 ) -> Result<(), String> {
@@ -350,7 +352,8 @@ pub async fn record_focus_session(auth: State<'_, crate::auth::AuthManager>,
 }
 
 #[tauri::command]
-pub async fn export_focus_sessions(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn export_focus_sessions(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     _dummy: Option<String>,
 ) -> Result<String, String> {

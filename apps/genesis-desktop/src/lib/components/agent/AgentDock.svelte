@@ -196,8 +196,9 @@
         const centerPeak = Math.sin((i / WAVEFORM_BARS) * Math.PI) * 0.6 + 0.4;
         waveformLevels[i] = Math.max(0.03, prevLevel * variance * centerPeak);
       }
-      // Trigger reactivity by reassigning the same array
-      waveformLevels = waveformLevels;
+      // Trigger reactivity by reassigning a shallow copy (Svelte 5 runes detect
+      // reference change on arrays, so a fresh reference triggers re-render).
+      waveformLevels = [...waveformLevels];
       frameId = requestAnimationFrame(animate);
     }
     frameId = requestAnimationFrame(animate);
@@ -207,11 +208,9 @@
   // ── Smart auto-scroll: only scroll when user is near bottom ───────────────
   $effect.pre(() => {
     if (!messagesContainer) return;
-    // Create reactive deps on these values
-    messages.length;
-    streamingText.length;
+    // Reactive deps for auto-scroll: read these to track changes.
 
-    if (userNearBottom) {
+    if (userNearBottom && (messages.length > 0 || streamingText.length > 0)) {
       tick().then(() => {
         if (!messagesContainer?.isConnected) return;
         messagesContainer.scrollTop = messagesContainer.scrollHeight;

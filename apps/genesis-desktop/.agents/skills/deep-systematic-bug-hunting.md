@@ -1,6 +1,7 @@
 # Deep Systematic Bug Hunting
 
 ## Core Principles
+
 - Always maintain 100% confidence before proposing any fix. If uncertain, iterate more.
 - Work cross-platform: test on Windows and macOS equivalents.
 - Systematic from Rust backend → integration points → Svelte frontend.
@@ -36,6 +37,7 @@
    - End with full confidence assessment and exact reproduction/fix steps.
 
 ## Success Criteria
+
 - Bug eliminated in all tested environments.
 - Detailed explanation of root cause and why the fix works.
 - No regressions introduced.

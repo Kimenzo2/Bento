@@ -4,21 +4,38 @@ use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
 
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 
-const EXPANDED_W: f64 = 560.0;
-
-/// Compact island dimensions — used by the Windows mouse monitor.
-#[cfg(target_os = "windows")]
+/// ── Window size constants ─────────────────────────────────────────────
+/// Compact: matches the notch footprint — 260×40 visual + 10px margin.
 const COMPACT_W: f64 = 260.0;
-#[cfg(target_os = "windows")]
-const COMPACT_H: f64 = 40.0;
+const COMPACT_H: f64 = 50.0;
+
+/// Notch visual height — used by the Windows hit-test to compute the
+/// clickable band in compact mode (the notch itself, not the window margin).
+const NOTCH_H: f64 = 40.0;
+
+/// Expanded: covers the largest widget or overlay panel.
+const EXPANDED_W: f64 = 560.0;
+const EXPANDED_H: f64 = 520.0;
+
+/// Monotonically increasing generation counter. Every call to
+/// `island_compact` bumps it. The delayed resize thread captures the
+/// generation at spawn time and only resizes if no newer expand/compact
+/// has incremented the counter (i.e. the thread is not stale).
+static RESIZE_GENERATION: AtomicU64 = AtomicU64::new(0);
 
 /// Tracks whether the frontend island is currently expanded.
 /// Used by:
 /// - Windows mouse monitor to compute correct hit bounds
-///   (compact: 260x40 centered in the window).
+///   (notch: 260×40 centered in the window).
 /// - Resize guard: prevents delayed compact resize from firing
 ///   if the user re-expanded within the delay window.
 static ISLAND_EXPANDED: AtomicBool = AtomicBool::new(false);
+
+/// Tracks whether the island WebView2 window is currently shown (visible).
+/// Used by the global shortcut handler to avoid a blocking `is_visible()` IPC
+/// call on the shortcut thread (which would block if the island is mid-animation).
+/// Updated atomically by show/hide operations in set_island_enabled and the shortcut.
+pub(crate) static ISLAND_VISIBLE: AtomicBool = AtomicBool::new(false);
 
 #[cfg(target_os = "windows")]
 static LAST_EXPAND_CHANGE_MS: AtomicU64 = AtomicU64::new(0);
@@ -122,7 +139,11 @@ fn prepare_island_window_for_hit_test(
         let ex_style = GetWindowLongW(hwnd, GWL_EXSTYLE);
         SetWindowLongW(hwnd, GWL_EXSTYLE, ex_style | (WS_EX_NOACTIVATE as i32));
 
-        let prev = SetWindowLongPtrW(hwnd, GWLP_WNDPROC, island_hit_test_proc as *const () as isize);
+        let prev = SetWindowLongPtrW(
+            hwnd,
+            GWLP_WNDPROC,
+            island_hit_test_proc as *const () as isize,
+        );
         ORIGINAL_ISLAND_WNDPROC.store(prev as usize, Ordering::Relaxed);
     }
 
@@ -155,7 +176,11 @@ unsafe extern "system" fn island_hit_test_proc(
 
             let expanded = ISLAND_EXPANDED.load(Ordering::Relaxed);
 
-            let (i_w, i_h) = if expanded { (win_w, win_h) } else { (COMPACT_W, COMPACT_H) };
+            let (i_w, i_h) = if expanded {
+                (win_w, win_h)
+            } else {
+                (COMPACT_W, NOTCH_H)
+            };
             let i_x = win_x + (win_w - i_w) / 2.0;
 
             let inside = (cursor_x as f64) >= i_x
@@ -221,9 +246,9 @@ pub fn setup_island_window(app: &tauri::App) -> Result<(), Box<dyn std::error::E
         let _ = window.eval("document.body.style.background='transparent'");
     }
 
-    position_top_center_expanded(&window).unwrap_or_else(|e| {
-        eprintln!("[island] position_top_center_expanded failed: {e}");
-    });
+    // Start at compact size — window is hidden by default; this ensures
+    // the first show already has the correct footprint.
+    resize_island(&window, true);
 
     // Show the window so the WebView2 IPC channel fully initializes.
     // The window is hidden by `visible: false` in tauri.conf.json but
@@ -279,24 +304,6 @@ pub fn position_top_center(window: &WebviewWindow) -> Result<(), Box<dyn std::er
     let monitor_pos = monitor.position();
     let physical_screen_w = monitor.size().width as i32;
     let physical_w = window.outer_size()?.width as i32;
-    let x = monitor_pos.x + ((physical_screen_w - physical_w) / 2).max(0);
-    window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
-        x,
-        y: 0,
-    }))?;
-    Ok(())
-}
-
-/// Position the window at the expanded size (window never resizes after startup).
-/// The frontend island div animates between compact/expanded via CSS transitions.
-fn position_top_center_expanded(window: &WebviewWindow) -> Result<(), Box<dyn std::error::Error>> {
-    let Some(monitor) = window.app_handle().primary_monitor()? else {
-        return Err("no primary monitor found".into());
-    };
-
-    let monitor_pos = monitor.position();
-    let physical_screen_w = monitor.size().width as i32;
-    let physical_w = (EXPANDED_W * monitor.scale_factor()) as i32;
     let x = monitor_pos.x + ((physical_screen_w - physical_w) / 2).max(0);
     window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
         x,
@@ -390,22 +397,40 @@ pub fn island_set_ignore_cursor_events(
 }
 
 /// Resize and reposition the island window.
-/// Compact: 260x50 — just the notch, no dead zone.
-/// Expanded: 560x520 — enough for any widget panel or overlay.
+/// Compact: 260×50 — just the notch, no dead zone.
+/// Expanded: 560×520 — enough for any widget panel or overlay.
 fn resize_island(window: &tauri::WebviewWindow, compact: bool) {
-    let (w, h) = if compact { (260.0, 50.0) } else { (560.0, 520.0) };
-    let _ = window.set_size(tauri::Size::Logical(tauri::LogicalSize { width: w, height: h }));
+    let (w, h) = if compact {
+        (COMPACT_W, COMPACT_H)
+    } else {
+        (EXPANDED_W, EXPANDED_H)
+    };
+
+    if let Err(e) = window.set_size(tauri::Size::Logical(tauri::LogicalSize {
+        width: w,
+        height: h,
+    })) {
+        eprintln!("[island] resize_island: set_size failed: {e}");
+    }
 
     // Re-center horizontally at the top of the primary monitor.
-    if let Ok(Some(monitor)) = window.app_handle().primary_monitor() {
-        let scale = monitor.scale_factor();
-        let screen_w = monitor.size().width as f64;
-        let phys_w = w * scale;
-        let x = (monitor.position().x as f64) + ((screen_w - phys_w) / 2.0).max(0.0);
-        let _ = window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
-            x: x as i32,
-            y: 0,
-        }));
+    match window.app_handle().primary_monitor() {
+        Ok(Some(monitor)) => {
+            let scale = monitor.scale_factor();
+            let screen_w = monitor.size().width as f64;
+            let phys_w = w * scale;
+            let x = (monitor.position().x as f64) + ((screen_w - phys_w) / 2.0).max(0.0);
+            if let Err(e) =
+                window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
+                    x: x as i32,
+                    y: 0,
+                }))
+            {
+                eprintln!("[island] resize_island: set_position failed: {e}");
+            }
+        }
+        Ok(None) => eprintln!("[island] resize_island: no primary monitor found"),
+        Err(e) => eprintln!("[island] resize_island: primary_monitor error: {e}"),
     }
 }
 
@@ -413,6 +438,7 @@ fn resize_island(window: &tauri::WebviewWindow, compact: bool) {
 pub fn island_compact(window: tauri::WebviewWindow) -> Result<(), String> {
     eprintln!("[island] island_compact() called");
     let prev = ISLAND_EXPANDED.swap(false, Ordering::SeqCst);
+    let gen = RESIZE_GENERATION.fetch_add(1, Ordering::SeqCst);
     #[cfg(target_os = "windows")]
     LAST_EXPAND_CHANGE_MS.store(
         std::time::SystemTime::now()
@@ -421,14 +447,23 @@ pub fn island_compact(window: tauri::WebviewWindow) -> Result<(), String> {
             .as_millis() as u64,
         Ordering::Relaxed,
     );
-    eprintln!("[island] compact() -- ISLAND_EXPANDED: {prev} -> false");
+    eprintln!("[island] compact(gen={gen}) -- ISLAND_EXPANDED: {prev} -> false");
     // Delay window resize by 600ms so the CSS shell animation (550ms)
     // finishes shrinking first — prevents clipping the still-animating shell.
-    // Guard: skip if the user expanded again within the delay window.
+    // Guard: only resize if no newer expand/compact has been requested since
+    // this compact call (generation counter check).
+    //
+    // Uses run_on_main_thread to schedule the resize on the main/UI thread
+    // (WebView2 set_size/set_position must not be called from background threads).
+    let app_handle = window.app_handle().clone();
     std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_millis(600));
-        if !ISLAND_EXPANDED.load(Ordering::Relaxed) {
-            resize_island(&window, true);
+        if !ISLAND_EXPANDED.load(Ordering::Relaxed)
+            && RESIZE_GENERATION.load(Ordering::Relaxed) == gen + 1
+        {
+            let _ = app_handle.run_on_main_thread(move || {
+                resize_island(&window, true);
+            });
         }
     });
     Ok(())
@@ -437,8 +472,14 @@ pub fn island_compact(window: tauri::WebviewWindow) -> Result<(), String> {
 #[tauri::command]
 pub fn island_expand(window: tauri::WebviewWindow) -> Result<(), String> {
     eprintln!("[island] island_expand() called");
-    resize_island(&window, false);
+    // Schedule resize on main thread via run_on_main_thread so the IPC
+    // thread is never blocked by WebView2 compositor work.
+    let app_handle = window.app_handle().clone();
+    let _ = app_handle.run_on_main_thread(move || {
+        resize_island(&window, false);
+    });
     let prev = ISLAND_EXPANDED.swap(true, Ordering::SeqCst);
+    RESIZE_GENERATION.fetch_add(1, Ordering::SeqCst);
     #[cfg(target_os = "windows")]
     LAST_EXPAND_CHANGE_MS.store(
         std::time::SystemTime::now()
@@ -573,11 +614,13 @@ pub async fn voice_set_island_state(
 #[tauri::command]
 pub async fn set_island_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
     let Some(window) = app.get_webview_window("island") else {
-        eprintln!("[island] set_island_enabled({enabled}): island window not found yet (non-fatal)");
+        eprintln!(
+            "[island] set_island_enabled({enabled}): island window not found yet (non-fatal)"
+        );
         return Ok(());
     };
 
-    spawn_timeout!(10, {
+    spawn_timeout!(5, {
         eprintln!("[island] set_island_enabled({enabled}) called");
 
         if enabled {
@@ -595,17 +638,17 @@ pub async fn set_island_enabled(app: AppHandle, enabled: bool) -> Result<(), Str
                 eprintln!("[island] set_background_color on re-enable failed: {e}");
             }
 
-            position_top_center_expanded(&window).unwrap_or_else(|e| {
-                eprintln!("[island] reposition on re-enable failed: {e}");
-            });
+            resize_island(&window, true);
 
             window.show().map_err(|e| e.to_string())?;
+            ISLAND_VISIBLE.store(true, Ordering::SeqCst);
 
             let _ = window.emit("island:hide", ());
 
             eprintln!("[island] set_island_enabled(true): complete");
         } else {
             window.hide().map_err(|e| e.to_string())?;
+            ISLAND_VISIBLE.store(false, Ordering::SeqCst);
             eprintln!("[island] set_island_enabled(false): window hidden");
         }
 

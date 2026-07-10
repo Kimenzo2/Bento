@@ -120,7 +120,8 @@ fn read_wav_layout(file_path: &str) -> Result<WavLayout, String> {
                 file.read_exact(&mut fmt_data).ok();
                 if fmt_data.len() >= 16 {
                     let audio_format = u16::from_le_bytes(fmt_data[0..2].try_into().unwrap());
-                    is_standard_pcm = audio_format == 1 || audio_format == 0xFFFE; // PCM or EXTENSIBLE
+                    is_standard_pcm = audio_format == 1 || audio_format == 0xFFFE;
+                    // PCM or EXTENSIBLE
                 }
             }
             b"data" => {
@@ -129,9 +130,7 @@ fn read_wav_layout(file_path: &str) -> Result<WavLayout, String> {
                 declared_data_size = u32::from_le_bytes(chunk_header[4..8].try_into().unwrap());
 
                 // Check available bytes past header for actual size
-                let file_len = std::fs::metadata(file_path)
-                    .map(|m| m.len())
-                    .unwrap_or(0);
+                let file_len = std::fs::metadata(file_path).map(|m| m.len()).unwrap_or(0);
                 let actual_data_bytes = file_len.saturating_sub(data_offset);
                 // Re-interpret if the declared size is 0 or obviously wrong
                 if declared_data_size == 0 || declared_data_size as u64 > actual_data_bytes {
@@ -202,7 +201,9 @@ pub fn validate_audio_artifact(
 
     if metadata.len() < 44 {
         // WAV header minimum size
-        result.warnings.push("File too small to be a valid WAV".to_string());
+        result
+            .warnings
+            .push("File too small to be a valid WAV".to_string());
         return result;
     }
 
@@ -294,7 +295,9 @@ pub fn validate_audio_artifact(
         result.is_silent = result.rms_amplitude < crate::audio::turns::SILENCE_RMS_FLOOR;
 
         if result.is_silent {
-            result.warnings.push("Audio is effectively silent".to_string());
+            result
+                .warnings
+                .push("Audio is effectively silent".to_string());
         }
     }
 
@@ -317,10 +320,7 @@ fn dynamic_tolerance(duration_ms: u64, base_tolerance_ms: u64) -> u64 {
 }
 
 /// Determine if a source's validation result passes the quality bar.
-pub fn source_audio_passes_validation(
-    dto: &AudioValidationDto,
-    _source: &RecordingSource,
-) -> bool {
+pub fn source_audio_passes_validation(dto: &AudioValidationDto, _source: &RecordingSource) -> bool {
     if !dto.exists || !dto.readable {
         return false;
     }
@@ -432,7 +432,11 @@ pub fn checksum_file(file_path: &str) -> Result<String, String> {
 mod tests {
     use super::*;
 
-    fn create_test_wav(samples: &[i16], sample_rate: u32, channels: u16) -> (tempfile::TempDir, String) {
+    fn create_test_wav(
+        samples: &[i16],
+        sample_rate: u32,
+        channels: u16,
+    ) -> (tempfile::TempDir, String) {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("test.wav");
         let spec = hound::WavSpec {
@@ -451,7 +455,9 @@ mod tests {
 
     #[test]
     fn test_validate_valid_wav() {
-        let samples: Vec<i16> = (0..44100).map(|i| (i as f64 * 0.1).sin() as i16 * 5000).collect();
+        let samples: Vec<i16> = (0..44100)
+            .map(|i| (i as f64 * 0.1).sin() as i16 * 5000)
+            .collect();
         let (_dir, path) = create_test_wav(&samples, 44100, 1);
         let config = AudioValidationConfig::default();
         let result = validate_audio_artifact(&path, &config);
@@ -483,16 +489,15 @@ mod tests {
     #[test]
     fn test_repair_stale_wav_header() {
         // Create a valid WAV, then corrupt the header's data size
-        let samples: Vec<i16> = (0..44100).map(|i| (i as f64 * 0.1).sin() as i16 * 5000).collect();
+        let samples: Vec<i16> = (0..44100)
+            .map(|i| (i as f64 * 0.1).sin() as i16 * 5000)
+            .collect();
         let (_dir, path) = create_test_wav(&samples, 44100, 1);
 
         // Corrupt the data chunk size (at offset 40 for standard WAV)
         {
             use std::io::{Seek, SeekFrom, Write};
-            let mut file = std::fs::OpenOptions::new()
-                .write(true)
-                .open(&path)
-                .unwrap();
+            let mut file = std::fs::OpenOptions::new().write(true).open(&path).unwrap();
             // Write a very small data size
             file.seek(SeekFrom::Start(40)).unwrap();
             file.write_all(&100u32.to_le_bytes()).unwrap(); // claim only 100 bytes
@@ -521,9 +526,6 @@ mod tests {
         assert_eq!(short, 750, "Short recordings should use base tolerance");
 
         let long = dynamic_tolerance(300_000, 750);
-        assert!(
-            long > 750,
-            "Long recordings should have extended tolerance"
-        );
+        assert!(long > 750, "Long recordings should have extended tolerance");
     }
 }

@@ -14,8 +14,24 @@ use crate::runtime::DesktopRuntime;
 use crate::util::time;
 
 // ---------------------------------------------------------------------------
-// DashboardCache — 30-second TTL cache
+// DashboardCache — stale-while-revalidate cache
 // ---------------------------------------------------------------------------
+//
+// Architecture:
+//   - Fresh TTL: 30 seconds (same as before). Cache returns fresh data.
+//   - Stale TTL: 5 minutes. After fresh expires, the cache still holds the
+//     previous payload for a "stale-while-revalidate" pattern. If a new query
+//     fails or times out, the stale data is returned instead of an empty
+//     fallback. This ensures the dashboard ALWAYS has SOMETHING to show,
+//     even during transient DB contention or network interruptions.
+//   - The stale data is only served when a REQUEST fails. On a healthy path,
+//     fresh data replaces the stale entry as usual.
+//
+// This prevents the "Loading..." fallback that currently appears every time
+// the DB pool is briefly congested.
+
+const CACHE_TTL_FRESH: std::time::Duration = std::time::Duration::from_secs(30);
+const CACHE_TTL_STALE: std::time::Duration = std::time::Duration::from_secs(300); // 5 min
 
 pub struct DashboardCache {
     cached: Mutex<Option<(DashboardPayload, Instant)>>,
@@ -34,14 +50,28 @@ impl DashboardCache {
         }
     }
 
+    /// Returns fresh cache data if within the 30s TTL.
     pub fn get(&self) -> Option<DashboardPayload> {
-        if let Ok(mut guard) = self.cached.lock() {
+        if let Ok(guard) = self.cached.lock() {
             if let Some((payload, time)) = guard.as_ref() {
-                if time.elapsed() < std::time::Duration::from_secs(30) {
+                if time.elapsed() < CACHE_TTL_FRESH {
                     return Some(payload.clone());
                 }
             }
-            *guard = None;
+        }
+        None
+    }
+
+    /// Returns stale data (up to 5 min old) even if the cache TTL has expired.
+    /// Used as a fallback when a fresh query fails — never return empty data
+    /// when stale data is available.
+    pub fn get_stale(&self) -> Option<DashboardPayload> {
+        if let Ok(guard) = self.cached.lock() {
+            if let Some((payload, time)) = guard.as_ref() {
+                if time.elapsed() < CACHE_TTL_STALE {
+                    return Some(payload.clone());
+                }
+            }
         }
         None
     }
@@ -834,6 +864,65 @@ fn is_valid_module_id(id: &str) -> bool {
 }
 
 // ---------------------------------------------------------------------------
+// Query runner — shared between reader and writer pool attempts
+// ---------------------------------------------------------------------------
+
+/// Run all dashboard queries against `db` and assemble the payload.
+/// Does NOT check the cache — the caller does that.
+async fn run_dashboard_queries(
+    db: &SqlitePool,
+    app: &tauri::AppHandle,
+    cache: &DashboardCache,
+) -> Result<DashboardPayload, String> {
+    let today_start = today_start_ms();
+    let today_end = today_end_ms();
+
+    // Read user's display name from Supabase auth (fallback to DesktopRuntime settings)
+    let display_name = if let Some(auth) = app.try_state::<AuthManager>() {
+        match auth.snapshot().await {
+            AuthBootstrapState::Restored { user } if !user.name.trim().is_empty() => user.name,
+            _ => app
+                .try_state::<DesktopRuntime>()
+                .map(|r| r.settings().display_name)
+                .unwrap_or_default(),
+        }
+    } else {
+        app.try_state::<DesktopRuntime>()
+            .map(|r| r.settings().display_name)
+            .unwrap_or_default()
+    };
+
+    let mut insight = String::new();
+
+    let featured_module = query_featured_module(db, today_start, today_end, &mut insight).await?;
+    let recent_activity = query_recent_activity(db, &mut insight).await?;
+    let streak = query_streak(db, &mut insight).await?;
+    let featured_metric = query_featured_metric(db, today_start, &mut insight).await?;
+    let preferred_module = read_runtime_state(db, "last_active_module").await?;
+    let recent_modules = query_recent_modules(db, preferred_module.as_deref()).await?;
+
+    if insight.is_empty() {
+        insight = String::from("Welcome back! Open a module to get started");
+    }
+
+    let payload = DashboardPayload {
+        greeting: compute_greeting(&display_name),
+        insight_line: insight,
+        featured_module,
+        recent_activity,
+        streak,
+        featured_metric,
+        recent_modules,
+        gradient_colors: ["#4F6EF7".to_string(), "#5B7BFA".to_string()],
+    };
+
+    // Store in cache
+    cache.set(payload.clone());
+
+    Ok(payload)
+}
+
+// ---------------------------------------------------------------------------
 // Main dashboard command
 // ---------------------------------------------------------------------------
 
@@ -885,7 +974,12 @@ pub async fn get_dashboard_data(
         return Ok(cached);
     }
 
-    let db = state.db();
+    // ── Reader pool (first attempt) ──────────────────────────────────────
+    // Use the dedicated reader pool to avoid competing with user-facing IPC
+    // writes for the single writer connection slot. If the reader pool times
+    // out (e.g. pool contention or a dormant connection), we fall back to
+    // the writer pool — the dashboard MUST always return data.
+    let reader_db = state.db_reader();
 
     // ── Fire-and-forget: sync Supabase data in background ────────────────
     // DO NOT await sync in the dashboard hot path. reqwest uses blocking DNS
@@ -893,7 +987,7 @@ pub async fn get_dashboard_data(
     // timeout from firing and causing the dashboard to hang for 10+ seconds.
     // The local DB already has the user's data — sync is just a refresh.
     {
-        let db_clone = db.clone();
+        let db_clone = reader_db.clone();
         let app_clone = app.clone();
         tauri::async_runtime::spawn(async move {
             if let Some(auth) = app_clone.try_state::<AuthManager>() {
@@ -906,80 +1000,65 @@ pub async fn get_dashboard_data(
         });
     }
 
-    // Top-level timeout: if the entire query takes longer than 4 seconds,
-    // return a fallback payload so the UI never hangs forever.
-    // This prevents a deadlock in ANY downstream call (SQLite, network, mutex)
-    // from freezing the entire app.
-    let result = tokio::time::timeout(
+    // Reader pool: 4s timeout — if the reader pool is congested, fail fast
+    // and fall back to the writer pool below.
+    let reader_result = tokio::time::timeout(
         std::time::Duration::from_secs(4),
-        async {
-            let today_start = today_start_ms();
-            let today_end = today_end_ms();
-
-            // Read user's display name from Supabase auth (fallback to DesktopRuntime settings)
-            let display_name = if let Some(auth) = app.try_state::<AuthManager>() {
-                match auth.snapshot().await {
-                    AuthBootstrapState::Restored { user } if !user.name.trim().is_empty() => user.name,
-                    _ => app
-                        .try_state::<DesktopRuntime>()
-                        .map(|r| r.settings().display_name)
-                        .unwrap_or_default(),
-                }
-            } else {
-                app.try_state::<DesktopRuntime>()
-                    .map(|r| r.settings().display_name)
-                    .unwrap_or_default()
-            };
-
-            let mut insight = String::new();
-
-            let featured_module = query_featured_module(&db, today_start, today_end, &mut insight).await?;
-            let recent_activity = query_recent_activity(&db, &mut insight).await?;
-            let streak = query_streak(&db, &mut insight).await?;
-            let featured_metric = query_featured_metric(&db, today_start, &mut insight).await?;
-            let preferred_module = read_runtime_state(&db, "last_active_module").await?;
-            let recent_modules = query_recent_modules(&db, preferred_module.as_deref()).await?;
-
-            if insight.is_empty() {
-                insight = String::from("Welcome back! Open a module to get started");
-            }
-
-            let accent_a = String::from("#4F6EF7");
-            let accent_b = String::from("#5B7BFA");
-
-            let payload = DashboardPayload {
-                greeting: compute_greeting(&display_name),
-                insight_line: insight,
-                featured_module,
-                recent_activity,
-                streak,
-                featured_metric,
-                recent_modules,
-                gradient_colors: [accent_a, accent_b],
-            };
-
-            // Store in cache
-            cache.set(payload.clone());
-
-            Ok(payload) as Result<DashboardPayload, String>
-        },
+        run_dashboard_queries(&reader_db, &app, &*cache),
     )
     .await;
 
-    match result {
-        Ok(Ok(payload)) => Ok(payload),
+    match reader_result {
+        Ok(Ok(payload)) => return Ok(payload),
         Ok(Err(db_err)) => {
-            eprintln!("[dashboard] get_dashboard_data query failed: {db_err}");
-            // Return fallback rather than failing — the user can retry
-            let fb = fallback_payload();
-            cache.set(fb.clone());
-            Ok(fb)
+            eprintln!(
+                "[dashboard] reader pool query failed: {db_err} — falling back to writer pool"
+            );
         }
         Err(_timeout) => {
-            eprintln!("[dashboard] get_dashboard_data timed out after 4s — returning fallback");
-            let fb = fallback_payload();
-            cache.set(fb.clone());
-            Ok(fb)
+            eprintln!("[dashboard] reader pool timed out after 4s — falling back to writer pool");
+        }
+    }
+
+    // ── Writer pool (fallback) ───────────────────────────────────────────
+    // The writer pool has `acquire_timeout(15s)` and one dedicated slot, so
+    // it should never time out for a read-only workload. This fallback
+    // ensures the dashboard ALWAYS returns data even if the reader pool is
+    // temporarily congested or has a dormant connection issue.
+    eprintln!("[dashboard] retrying on writer pool...");
+    let writer_db = state.db();
+
+    // Writer pool: 5s timeout — generous, but still protects the IPC thread.
+    let writer_result = tokio::time::timeout(
+        std::time::Duration::from_secs(5),
+        run_dashboard_queries(&writer_db, &app, &*cache),
+    )
+    .await;
+
+    match writer_result {
+        Ok(Ok(payload)) => {
+            eprintln!("[dashboard] writer pool fallback succeeded");
+            Ok(payload)
+        }
+        Ok(Err(db_err)) => {
+            eprintln!("[dashboard] writer pool query also failed: {db_err}");
+            if let Some(stale) = cache.get_stale() {
+                eprintln!("[dashboard] returning stale cached data instead of fallback");
+                Ok(stale)
+            } else {
+                eprintln!("[dashboard] no stale data — returning empty fallback");
+                Ok(fallback_payload())
+            }
+        }
+        Err(_timeout) => {
+            eprintln!("[dashboard] writer pool also timed out — returning stale or fallback");
+            if let Some(stale) = cache.get_stale() {
+                eprintln!("[dashboard] returning stale cached data instead of fallback");
+                Ok(stale)
+            } else {
+                eprintln!("[dashboard] no stale data — returning empty fallback");
+                Ok(fallback_payload())
+            }
         }
     }
 }

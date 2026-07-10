@@ -93,7 +93,8 @@ pub struct StreakFreezeState {
 /// List all habits with their completion history (last 90 days) and computed
 /// streak/state for today.
 #[tauri::command]
-pub async fn habits_list(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn habits_list(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<HabitWithCompletions>, String> {
     crate::auth::require_billing_tier(&auth, "habits").await?;
@@ -238,7 +239,8 @@ pub async fn habits_list(auth: State<'_, crate::auth::AuthManager>,
 
 /// Save (create or update) a habit. If id is provided, update; otherwise insert.
 #[tauri::command]
-pub async fn habits_save(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn habits_save(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     input: HabitInput,
 ) -> Result<HabitRow, String> {
@@ -351,7 +353,11 @@ pub async fn habits_save(auth: State<'_, crate::auth::AuthManager>,
 
 /// Delete a habit by id (cascades to completions).
 #[tauri::command]
-pub async fn habits_delete(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>, id: String) -> Result<bool, String> {
+pub async fn habits_delete(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+    id: String,
+) -> Result<bool, String> {
     crate::auth::require_billing_tier(&auth, "habits").await?;
 
     ensure_habits_tables(&state.db()).await?;
@@ -369,7 +375,8 @@ pub async fn habits_delete(auth: State<'_, crate::auth::AuthManager>, state: Sta
 /// If already completed for today, remove the completion (uncheck).
 /// If not completed, add a completion.
 #[tauri::command]
-pub async fn habits_toggle_complete(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn habits_toggle_complete(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     habit_id: String,
 ) -> Result<bool, String> {
@@ -430,7 +437,8 @@ pub async fn habits_toggle_complete(auth: State<'_, crate::auth::AuthManager>,
 
 /// Increment count for a count/duration habit. Returns new current_count.
 #[tauri::command]
-pub async fn habits_increment(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn habits_increment(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     habit_id: String,
 ) -> Result<i32, String> {
@@ -464,7 +472,10 @@ pub async fn habits_increment(auth: State<'_, crate::auth::AuthManager>,
 
 /// Get basic stats for the habits dashboard widget.
 #[tauri::command]
-pub async fn habits_get_stats(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<HabitStats, String> {
+pub async fn habits_get_stats(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+) -> Result<HabitStats, String> {
     crate::auth::require_billing_tier(&auth, "habits").await?;
 
     ensure_habits_tables(&state.db()).await?;
@@ -564,7 +575,10 @@ pub async fn habits_get_stats(auth: State<'_, crate::auth::AuthManager>, state: 
 
 /// Export habits data as CSV content. Returns the CSV string.
 #[tauri::command]
-pub async fn habits_export_csv(auth: State<'_, crate::auth::AuthManager>, state: State<'_, BentoAppState>) -> Result<String, String> {
+pub async fn habits_export_csv(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+) -> Result<String, String> {
     crate::auth::require_billing_tier(&auth, "habits").await?;
 
     let habits = habits_list(auth, state).await?;
@@ -610,7 +624,10 @@ fn csv_escape(s: &str) -> String {
 
 /// Get current freeze token state from settings.
 #[tauri::command]
-pub async fn habits_get_freeze_state(auth: State<'_, crate::auth::AuthManager>, app: AppHandle) -> Result<StreakFreezeState, String> {
+pub async fn habits_get_freeze_state(
+    auth: State<'_, crate::auth::AuthManager>,
+    app: AppHandle,
+) -> Result<StreakFreezeState, String> {
     crate::auth::require_billing_tier(&auth, "habits").await?;
 
     let s = settings::current_settings(&app);
@@ -624,7 +641,8 @@ pub async fn habits_get_freeze_state(auth: State<'_, crate::auth::AuthManager>, 
 
 /// Save freeze token state to settings.
 #[tauri::command]
-pub async fn habits_save_freeze_state(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn habits_save_freeze_state(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     freeze_tokens: i32,
     used_freeze_tokens: i32,
@@ -649,7 +667,8 @@ pub async fn habits_save_freeze_state(auth: State<'_, crate::auth::AuthManager>,
 
 /// Mark a habit as skipped today (inserts sentinel).
 #[tauri::command]
-pub async fn habits_skip_today(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn habits_skip_today(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     habit_id: String,
 ) -> Result<(), String> {
@@ -666,7 +685,8 @@ pub async fn habits_skip_today(auth: State<'_, crate::auth::AuthManager>,
 
 /// Remove the skip sentinel for a habit.
 #[tauri::command]
-pub async fn habits_unskip_today(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn habits_unskip_today(
+    auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     habit_id: String,
 ) -> Result<(), String> {
@@ -682,7 +702,8 @@ pub async fn habits_unskip_today(auth: State<'_, crate::auth::AuthManager>,
 
 /// Freeze a habit's streak (inserts freeze sentinel + decrements token).
 #[tauri::command]
-pub async fn habits_freeze_streak(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn habits_freeze_streak(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
     habit_id: String,
@@ -707,7 +728,8 @@ pub async fn habits_freeze_streak(auth: State<'_, crate::auth::AuthManager>,
 
 /// Unfreeze a habit (removes sentinel + refunds token).
 #[tauri::command]
-pub async fn habits_unfreeze_streak(auth: State<'_, crate::auth::AuthManager>, 
+pub async fn habits_unfreeze_streak(
+    auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
     habit_id: String,

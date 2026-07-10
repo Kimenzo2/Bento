@@ -9,6 +9,17 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { islandStore } from "$lib/stores/island.store.svelte";
 
+// Note: The Dynamic Island runs in a separate Tauri webview window with its
+// own islandStore singleton. Voice MODE state is communicated to the island
+// exclusively via the Rust bridge (voice_set_island_state invoke →
+// voice:island-state-changed event). We do NOT call islandStore.activateModule()
+// from here because that would set state on the main window's store instance,
+// not the island's.
+//
+// However, islandStore IS still imported for islandStore.collapse() in the
+// complete() method — that call detects the main window's 3-second auto-reset
+// timeout and is intentionally scoped to the main window context.
+
 // ─── Constants ───────────────────────────────────────────────────────
 
 /** Push-to-talk minimum hold duration (ms). Shorter presses are ignored. */
@@ -161,14 +172,38 @@ class VoiceEngineStore {
 
   /**
    * Update the island's voice module state via the cross-window Rust bridge.
+   *
+   * The Dynamic Island runs in a separate Tauri webview window with its own
+   * `islandStore` singleton. We communicate exclusively through Rust's
+   * `window.emit()` mechanism — the island window's event listener in
+   * `+page.svelte` receives `voice:island-state-changed` and applies it locally.
+   *
+   * We do NOT call `islandStore.activateModule()` here because that would set
+   * state on the main window's store instance, not the island's. The island
+   * window handles activation through its own event handler.
+   *
+   * Retry with exponential backoff if the bridge is temporarily unavailable
+   * (e.g., island window still initializing on first launch).
    */
-  #setIslandState(state: VoiceIslandState | null): void {
-    if (state) {
-      islandStore.activateModule(state);
+  async #setIslandState(state: VoiceIslandState | null): Promise<void> {
+    const maxRetries = 3;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        await invoke("voice_set_island_state", { state });
+        return;
+      } catch (err) {
+        if (attempt < maxRetries - 1) {
+          const delay = Math.pow(2, attempt + 1) * 500; // 1s, 2s, 4s
+          console.warn(
+            `[voice-engine] Island state update failed (attempt ${attempt + 1}/${maxRetries}), retrying in ${delay}ms:`,
+            err,
+          );
+          await new Promise((r) => setTimeout(r, delay));
+        } else {
+          console.warn("[voice-engine] Failed to update island state after all retries:", err);
+        }
+      }
     }
-    invoke("voice_set_island_state", { state }).catch((err) => {
-      console.warn("[voice-engine] Failed to update island state:", err);
-    });
   }
 
   // ── Constructor: register Tauri event listeners ────────────────
@@ -354,7 +389,7 @@ class VoiceEngineStore {
     }
   }
 
-  async #startWebSpeech(mode: VoiceMode) {
+  async #startWebSpeech(_mode: VoiceMode) {
     const granted = await this.#requestMicPermission();
     if (!granted) {
       this.status = "error";
@@ -547,7 +582,6 @@ class VoiceEngineStore {
     // Check if agent trigger was detected in post-processing
     if (processed.agentTrigger.detected) {
       this.mode = "agent_conversation";
-      const prompt = processed.agentTrigger.agentPrompt || transcript;
       this.complete(transcript);
       // The Dock will pick up the mode change and submit to AI
       return;
@@ -627,10 +661,8 @@ class VoiceEngineStore {
     }
   }
 
-  #checkSpeechRecovery(): boolean {
-    const recognition = this.#createSpeechRecognition();
-    return recognition !== null;
-  }
+  // #checkSpeechRecovery is removed — unused. If speech recovery detection
+  // is needed again, re-implement using #createSpeechRecognition().
 
   async #stopRustRecording() {
     try {

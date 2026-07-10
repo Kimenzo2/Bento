@@ -102,14 +102,12 @@ impl Drop for ProcessingTicket {
 pub fn enqueue(recording_id: &str) -> (ProcessingTicket, i64) {
     let mut queues = QUEUES.lock().unwrap_or_else(|e| e.into_inner());
 
-    let entry = queues
-        .entry(recording_id.to_string())
-        .or_insert_with(|| {
-            Arc::new(NoteQueue {
-                lock: Arc::new(AsyncMutex::new(())),
-                pending: AtomicI64::new(0),
-            })
-        });
+    let entry = queues.entry(recording_id.to_string()).or_insert_with(|| {
+        Arc::new(NoteQueue {
+            lock: Arc::new(AsyncMutex::new(())),
+            pending: AtomicI64::new(0),
+        })
+    });
 
     // Position before incrementing: 0 = new, 1+ = already running/queued
     let position = entry.pending.load(Ordering::Acquire) + 1;
