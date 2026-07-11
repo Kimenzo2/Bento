@@ -94,9 +94,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${inter.variable} ${dmSans.variable} ${instrumentSerif.variable} ${biscotti.variable}`}
       >
-        <a href="#main-content" className="skip-link">
-          Skip to content
-        </a>
         {children}
         <Analytics />
       </body>
