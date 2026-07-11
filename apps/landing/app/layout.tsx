@@ -67,7 +67,7 @@ export const metadata: Metadata = {
     url: '/',
     siteName: 'Bento',
     locale: 'en_US',
-    images: [{ url: '/og-image.png', width: 1200, height: 630 }],
+    images: [{ url: `${baseUrl}/og-image.png`, width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
@@ -75,7 +75,7 @@ export const metadata: Metadata = {
       'Your sleep, mood, and habits affect each other every day. So why are you tracking them in 15 separate places?',
     description:
       'Bento brings mood, tasks, habits, sleep, budget, notes, journal, passwords — 15 mini-apps — into one private desktop app. Fully offline. Your data stays on your machine.',
-    images: [{ url: '/og-image.png', width: 1200, height: 630 }],
+    images: [{ url: `${baseUrl}/og-image.png`, width: 1200, height: 630 }],
   },
   alternates: { canonical: '/' },
   other: {
