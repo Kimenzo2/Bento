@@ -138,6 +138,7 @@ package-lock.json
 !apps/landing/public/bento-icon.png
 !apps/landing/public/images/hero-app-screenshot.png
 !apps/landing/public/images/hero-bg.png
+!apps/landing/public/og-image.png
 *.jpg
 *.jpeg
 !apps/genesis-desktop/static/assets/characters/demo-agent-avatar.jpeg
