@@ -16,6 +16,16 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.iamazeyou.me' }],
+        destination: 'https://iamazeyou.me/:path*',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

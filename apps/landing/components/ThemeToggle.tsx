@@ -17,12 +17,14 @@ function getSystemTheme(): 'light' | 'dark' {
 }
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    if (typeof window === 'undefined') return 'light';
-    return readThemeCookie() ?? getSystemTheme();
-  });
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
   useEffect(() => {
+    const cookie = readThemeCookie();
+    const initial = cookie ?? getSystemTheme();
+    setTheme(initial);
+    document.documentElement.setAttribute('data-theme', initial);
+
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = (e: MediaQueryListEvent) => {
       if (!readThemeCookie()) {

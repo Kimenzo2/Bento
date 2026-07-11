@@ -42,7 +42,7 @@ export default function AppShowcase() {
               margin: 0,
             }}
           >
-            Seventeen mini-apps. One desktop. No subscriptions.
+            15 mini-apps. One desktop.
           </h2>
           <p
             className="text-body"

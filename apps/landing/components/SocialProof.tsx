@@ -1,7 +1,7 @@
 import { tokens } from './tokens';
 
 const stats = [
-  { value: '17', label: 'Apps included' },
+  { value: '15', label: 'Apps included' },
   { value: '100%', label: 'Offline capable' },
   { value: '0', label: 'Data sent to servers' },
   { value: '3 platforms', label: 'Windows, macOS & Linux' },
@@ -14,8 +14,22 @@ export default function SocialProof() {
         background: tokens.bg,
         padding: '32px 28px',
       }}
-      aria-label="Key numbers"
+      aria-labelledby="social-proof-heading"
     >
+      <h2
+        id="social-proof-heading"
+        style={{
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          overflow: 'hidden',
+          clip: 'rect(0,0,0,0)',
+          whiteSpace: 'nowrap',
+          border: 0,
+        }}
+      >
+        Key numbers
+      </h2>
       <div style={{ maxWidth: tokens.contentMax, margin: '0 auto' }}>
         <div
           style={{

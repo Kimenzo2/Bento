@@ -145,7 +145,7 @@ export default function DownloadSection({ version }: { version: string }) {
             }}
           >
             {[
-              'Seventeen mini-apps in one desktop app',
+              '15 mini-apps in one desktop app',
               'Works fully offline — no internet required',
               'Light and dark themes, everywhere',
               'Available on Windows, macOS, and Linux',

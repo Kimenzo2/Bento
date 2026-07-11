@@ -144,7 +144,8 @@ export default function HowItWorks() {
     <section
       style={{
         background: tokens.bg,
-        padding: tokens.sectionPad + ' 28px',
+        padding: '0 28px ' + tokens.sectionPad,
+        paddingTop: 'calc(360px + clamp(5rem, 10vw, 8rem))',
       }}
       aria-labelledby="how-heading"
     >
@@ -178,7 +179,7 @@ export default function HowItWorks() {
               margin: '0 0 12px',
             }}
           >
-            Seventeen mini-apps that work as one.
+            15 mini-apps that work as one.
           </h2>
           <p
             className="text-body"

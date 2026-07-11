@@ -45,6 +45,18 @@ export default function DownloadPage() {
 
   return (
     <main className="download-page">
+      <title>Download Bento</title>
+      <meta
+        name="description"
+        content="Download Bento for Windows, macOS, or Linux. Your account works across all devices."
+      />
+      <meta property="og:title" content="Download Bento — Windows, macOS & Linux" />
+      <meta
+        property="og:description"
+        content="Download Bento for Windows, macOS, or Linux. Your account works across all devices."
+      />
+      <meta name="robots" content="index, follow" />
+      <link rel="canonical" href="https://iamazeyou.me/download" />
       <div className="download-page__inner">
         <section className="download-page__hero">
           <Link href="/" className="download-page__logo">

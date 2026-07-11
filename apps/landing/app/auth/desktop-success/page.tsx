@@ -40,6 +40,9 @@ export default function DesktopSuccessPage() {
 
   return (
     <main className="auth-page">
+      <title>Authentication</title>
+      <meta name="description" content="Completing your Bento desktop authentication." />
+      <meta name="robots" content="noindex, nofollow" />
       <div className="auth-card">
         {error ? (
           <>

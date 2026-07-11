@@ -7,6 +7,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import Script from 'next/script';
 import Nav from '../components/Nav';
 import Hero from '../components/Hero';
 import HowItWorks from '../components/HowItWorks';
@@ -14,9 +15,11 @@ import AppShowcase from '../components/AppShowcase';
 import WhyBento from '../components/WhyBento';
 import SocialProof from '../components/SocialProof';
 import Pricing from '../components/Pricing';
+import { allFaqs } from '../lib/faq-data';
 import FAQ from '../components/FAQ';
 import DownloadSection from '../components/DownloadSection';
 import Footer from '../components/Footer';
+import { SoftwareAppSchema, OrganizationSchema, WebSiteSchema } from '../components/StructuredData';
 
 const CN_CDN = 'https://cdn.crabnebula.app/download/bento-industries/bento/latest/platform';
 
@@ -67,6 +70,24 @@ export default function HomePage() {
 
   return (
     <>
+      <SoftwareAppSchema version={version} />
+      <OrganizationSchema />
+      <WebSiteSchema />
+      <Script
+        id="schema-faq"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: allFaqs.map((item) => ({
+              '@type': 'Question',
+              name: item.q,
+              acceptedAnswer: { '@type': 'Answer', text: item.a },
+            })),
+          }),
+        }}
+      />
       <Nav platforms={platforms} />
       <main id="main-content">
         <Hero version={version} platforms={platforms} />

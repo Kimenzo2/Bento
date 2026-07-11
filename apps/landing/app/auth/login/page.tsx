@@ -21,7 +21,9 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => { setSupabase(createClient()); }, []);
+  useEffect(() => {
+    setSupabase(createClient());
+  }, []);
 
   async function handleGoogleLogin() {
     setLoading(true);
@@ -225,6 +227,18 @@ export default function LoginPage() {
         padding: '2rem 1.5rem',
       }}
     >
+      <title>Sign in</title>
+      <meta
+        name="description"
+        content="Sign in to your Bento account to manage your subscription and settings."
+      />
+      <meta property="og:title" content="Sign in — Bento" />
+      <meta
+        property="og:description"
+        content="Sign in to your Bento account to manage your subscription and settings."
+      />
+      <meta name="robots" content="index, follow" />
+      <link rel="canonical" href="https://iamazeyou.me/auth/login" />
       <Suspense
         fallback={
           <div

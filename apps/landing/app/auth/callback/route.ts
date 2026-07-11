@@ -5,7 +5,12 @@ export const dynamic = 'force-dynamic';
 
 function validateRedirectPath(path: string): string {
   const sanitized = path.split('?')[0].split('#')[0];
-  if (sanitized.startsWith('/') && !sanitized.includes('@') && !sanitized.includes('//') && !sanitized.includes('\\')) {
+  if (
+    sanitized.startsWith('/') &&
+    !sanitized.includes('@') &&
+    !sanitized.includes('//') &&
+    !sanitized.includes('\\')
+  ) {
     return sanitized;
   }
   return '/pricing';

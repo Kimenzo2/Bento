@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Script from 'next/script';
 import { headers } from 'next/headers';
@@ -15,6 +16,18 @@ import {
   selectPreferredPaystackMethod,
   toPaystackMethodViews,
 } from '../../lib/paystack/payment-methods';
+
+export const metadata: Metadata = {
+  title: 'Pricing',
+  description:
+    'Simple, transparent pricing for Bento. Core, Pro, and Power plans. Upgrade or downgrade at any time.',
+  robots: { index: true, follow: true },
+  openGraph: {
+    title: 'Pricing — Bento',
+    description: 'Simple, transparent pricing for Bento. Core, Pro, and Power plans.',
+  },
+  alternates: { canonical: '/pricing' },
+};
 
 export const dynamic = 'force-dynamic';
 

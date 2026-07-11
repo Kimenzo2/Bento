@@ -42,12 +42,12 @@ export const PRICING_PLANS: PricingPlan[] = [
     key: 'pro',
     name: 'Pro',
     description: 'For people using Bento across work, study, and daily routines.',
-    summary: 'All 17 apps',
+    summary: 'All 15 apps',
     price: { monthly: '$19', yearly: '$180' },
     period: { monthly: '/mo', yearly: '/yr' },
     accent: 'var(--color-ink)',
     features: [
-      'All 17 apps',
+      'All 15 apps',
       'Sync across devices (Coming soon)',
       'Basic AI features',
       'Desktop-first continuity',
@@ -64,7 +64,7 @@ export const PRICING_PLANS: PricingPlan[] = [
     period: { monthly: '/mo', yearly: '/yr' },
     accent: 'var(--color-ink)',
     features: [
-      'All 17 apps',
+      'All 15 apps',
       'Unlimited devices',
       'Advanced AI intelligence layer',
       'Priority support and early access',

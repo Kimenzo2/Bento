@@ -371,3 +371,40 @@ button {
     display: none !important;
   }
 }
+
+/* ── Hero typography (always dark — bg image is light, never changes) ── */
+.hero-heading {
+  font-family:
+    'Inter Display',
+    var(--font-inter),
+    system-ui,
+    -apple-system,
+    sans-serif;
+  font-size: clamp(2.2rem, 5vw, 3.125rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: #1a1a1a;
+  text-align: center;
+}
+
+.hero-heading .hero-accent {
+  font-family: var(--font-instrument-serif), 'Georgia', 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* ── Hero buttons: override theme-dependent hover with light-mode hover colors ── */
+#hero-section [data-slot='button'].btn-accent.hero-btn:hover {
+  background: #000000 !important;
+}
+#hero-section [data-slot='button'].hero-btn:not(.btn-accent):hover {
+  background: rgba(0, 0, 0, 0.1) !important;
+}
+
+@media (max-width: 700px) {
+  .hero-heading {
+    font-size: clamp(1.8rem, 7vw, 2.5rem);
+    letter-spacing: -0.04em;
+  }
+}

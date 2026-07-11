@@ -55,6 +55,18 @@ export default function SignupPage() {
         padding: '2rem 1.5rem',
       }}
     >
+      <title>Create your account</title>
+      <meta
+        name="description"
+        content="Create your Bento account and get started with 15 private, offline-first mini-apps."
+      />
+      <meta property="og:title" content="Create your account — Bento" />
+      <meta
+        property="og:description"
+        content="Create your Bento account and get started with 15 private, offline-first mini-apps."
+      />
+      <meta name="robots" content="index, follow" />
+      <link rel="canonical" href="https://iamazeyou.me/auth/signup" />
       <div
         style={{
           width: '100%',

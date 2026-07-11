@@ -1,8 +1,16 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getAuthenticatedUser } from '../../../lib/supabase/server';
 import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Thanks for subscribing',
+  description: 'Your payment was successful. Your Bento apps will unlock automatically.',
+  robots: { index: false, follow: false },
+  alternates: { canonical: '/pricing/success' },
+};
 
 function getPaystackSecretKey() {
   const key = process.env.PAYSTACK_SECRET_KEY;

@@ -17,6 +17,8 @@
     "**/dev-dist/**",
     "**/.turbo/**",
     "**/*.min.js",
-    "**/*.min.css"
+    "**/*.min.css",
+    "next-env.d.ts",
+    "tsconfig.json"
   ]
 }

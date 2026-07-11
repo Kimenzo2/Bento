@@ -114,7 +114,7 @@ export default function WhyBento() {
                 fontWeight: 500,
               }}
             >
-              See all 17 mini-apps &rarr;
+              See all 15 mini-apps &rarr;
             </a>
           </p>
         </div>
@@ -209,10 +209,9 @@ export default function WhyBento() {
             </p>
             <p style={{ margin: 0 }}>
               Because everything runs on your machine there is no sync delay, no offline mode that
-              means limited mode, no subscription tier that gates access to your own data. The apps
-              talk to each other not because a cloud service brokers the conversation, but because
-              they were never separate to begin with. The integration is architectural, not
-              contractual.
+              means limited mode. The apps talk to each other not because a cloud service brokers
+              the conversation, but because they were never separate to begin with. The integration
+              is architectural, not contractual.
             </p>
           </div>
           <p style={{ margin: '12px 0 0' }}>

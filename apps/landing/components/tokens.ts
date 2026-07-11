@@ -76,10 +76,12 @@ export const tokens = {
     '"universalSans", var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
   fontFamilyDisplay:
     'var(--font-dm-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+  fontFamilyHero: '"Inter Display", var(--font-inter), system-ui, -apple-system, sans-serif',
+  fontFamilyHeroAccent: 'var(--font-instrument-serif), "Georgia", "Times New Roman", serif',
 
-  heroSize: 'clamp(2.4rem, 5vw, 4rem)',
+  heroSize: 'clamp(2.2rem, 5vw, 3.125rem)',
   headingSize: 'clamp(1.5rem, 2.8vw, 2rem)',
-  subheadSize: '1.05rem',
+  subheadSize: '1.15rem',
   bodySize: '1rem',
   smallSize: '0.875rem',
   labelSize: '0.75rem',
