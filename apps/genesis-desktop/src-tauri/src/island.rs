@@ -1,5 +1,4 @@
 use crate::spawn_timeout;
-use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, WebviewWindow};
 
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
@@ -550,55 +549,6 @@ pub async fn focus_main_window(app: AppHandle) -> Result<(), String> {
             .set_focus()
             .map_err(|e: tauri::Error| e.to_string())?;
         eprintln!("[island] focus_main_window: main window focused");
-        Ok(())
-    })
-}
-
-/// Set the voice engine state on the Dynamic Island.
-/// This is called from the main window's VoiceEngine store to update the island window's
-/// active module state (recording timer, status, etc.).
-/// Pass `null` (None) to clear the voice module from the island.
-#[derive(Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct VoiceIslandState {
-    pub id: String,
-    pub label: String,
-    pub icon: String,
-    pub status: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub activity_type: Option<String>,
-}
-
-/// Update the Dynamic Island voice state.
-///
-/// Called from the VoiceEngine store on every state change (recording start/stop,
-/// transcription progress, module switch). `window.emit()` is a synchronous WebView2
-/// IPC call that can block the main thread if the island's IPC channel is congested
-/// (e.g. during animations or compositor changes).
-///
-/// Runs on the blocking thread pool via spawn_timeout! to prevent voice recognition
-/// from stalling when the island is busy rendering.
-#[tauri::command]
-pub async fn voice_set_island_state(
-    app: AppHandle,
-    state: Option<VoiceIslandState>,
-) -> Result<(), String> {
-    let Some(window) = app.get_webview_window("island") else {
-        eprintln!("[voice] voice_set_island_state: island window not found");
-        return Err("island window not found".into());
-    };
-
-    let is_active = state.is_some();
-    let state_clone = state.clone();
-
-    spawn_timeout!(5, {
-        window
-            .emit("voice:island-state-changed", &state_clone)
-            .map_err(|e| format!("failed to emit island state: {e}"))?;
-        eprintln!(
-            "[voice] voice_set_island_state: emitted state={}",
-            if is_active { "active" } else { "null" }
-        );
         Ok(())
     })
 }

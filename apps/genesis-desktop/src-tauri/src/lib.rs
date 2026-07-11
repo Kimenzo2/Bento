@@ -1441,7 +1441,6 @@ pub fn run() {
             crate::island::set_island_enabled,
             crate::agent::set_agent_dock_enabled,
             crate::island::focus_main_window,
-            crate::island::voice_set_island_state,
             get_startup_degraded_state,
         ])
         .run(tauri::generate_context!())

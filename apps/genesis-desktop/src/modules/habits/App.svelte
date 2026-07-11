@@ -11,6 +11,25 @@
   import PencilIcon from "@lucide/svelte/icons/pencil";
   import SearchIcon from "@lucide/svelte/icons/search";
   import TargetIcon from "@lucide/svelte/icons/target";
+  import StarIcon from "@lucide/svelte/icons/star";
+  import FootprintsIcon from "@lucide/svelte/icons/footprints";
+  import BookOpenIcon from "@lucide/svelte/icons/book-open";
+  import DropletIcon from "@lucide/svelte/icons/droplet";
+  import WindIcon from "@lucide/svelte/icons/wind";
+  import SmartphoneIcon from "@lucide/svelte/icons/smartphone";
+  import DumbbellIcon from "@lucide/svelte/icons/dumbbell";
+  import AppleIcon from "@lucide/svelte/icons/apple";
+  import MoonIcon from "@lucide/svelte/icons/moon";
+  import PaletteIcon from "@lucide/svelte/icons/palette";
+  import MusicIcon from "@lucide/svelte/icons/music";
+  import PenIcon from "@lucide/svelte/icons/pen";
+  import LeafIcon from "@lucide/svelte/icons/leaf";
+  import BrainIcon from "@lucide/svelte/icons/brain";
+  import HeartIcon from "@lucide/svelte/icons/heart";
+  import ZapIcon from "@lucide/svelte/icons/zap";
+  import MonitorIcon from "@lucide/svelte/icons/monitor";
+  import HeadphonesIcon from "@lucide/svelte/icons/headphones";
+  import CoffeeIcon from "@lucide/svelte/icons/coffee";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import {
@@ -58,7 +77,10 @@
     currentCount: number;
     unit: string;
     frequency: Frequency;
+    timeOfDay: string;
     why: string;
+    stackAfterId: string | null;
+    stackAfterName: string;
     completionHistory: boolean[];
     archived: boolean;
     createdAt: number;
@@ -88,7 +110,10 @@
         currentCount: r.currentCount ?? 0,
         unit: r.unit || '',
         frequency: (r.frequency || 'daily') as Frequency,
+        timeOfDay: r.timeOfDay || 'anytime',
         why: r.why || '',
+        stackAfterId: r.stackAfterId ?? null,
+        stackAfterName: r.stackAfterName || '',
         completionHistory: Array.isArray(r.completionHistory) ? r.completionHistory : [],
         archived: r.archived ?? false,
         createdAt: r.createdAt ?? Date.now(),
@@ -127,12 +152,155 @@
   let totalHabits = $derived(activeHabits.length);
   let progressPct = $derived(totalHabits > 0 ? (completedCount / totalHabits) * 100 : 0);
   let topStreak = $derived(Math.max(...activeHabits.map(h => h.streak), 0));
+  let streakMilestoneLabel = $derived.by((): string => {
+    if (topStreak <= 0) return '';
+    if (topStreak >= 100) return '100 days — this isn\'t a habit anymore, it\'s who you are. Extraordinary.';
+    if (topStreak >= 30) return '30 days — a full month. This practice is now part of your identity.';
+    if (topStreak >= 14) return '14 days — two weeks. Your brain is starting to automate this.';
+    if (topStreak >= 7) return '7 days — a full week. The first real milestone. You built something.';
+    if (topStreak >= 3) return '3 days — three in a row. Momentum is building.';
+    return '';
+  });
   let avgRate = $derived(activeHabits.length > 0
     ? Math.round(activeHabits.reduce((s,h) => s + h.completionHistory.filter(Boolean).length / 90, 0) / activeHabits.length * 100) : 0);
   let sortedByStreak = $derived([...activeHabits].sort((a,b) => b.streak - a.streak));
   let bestHabit = $derived([...activeHabits].sort((a,b) =>
     b.completionHistory.filter(Boolean).length - a.completionHistory.filter(Boolean).length)[0]);
   let thisWeekTotal = $derived(activeHabits.reduce((s,h) => s + h.completionHistory.slice(-7).filter(Boolean).length, 0));
+  let progressNarrative = $derived.by((): string => {
+    if (totalHabits === 0) return '';
+    if (completedCount === totalHabits) return 'Every one done. You showed up fully — that\'s how change happens.';
+    if (completedCount >= totalHabits * 0.7) return `${completedCount} of ${totalHabits} — almost there. Keep going at your own pace.`;
+    if (completedCount === 0) return 'No taps yet. Start with one — that\'s enough right now.';
+    return `${completedCount} of ${totalHabits}. Small steps compound.`;
+  });
+
+  // ── Time-of-day logic ───────────────────────────────────────────
+  const timeOfDayTabs = ['Now','Morning','Afternoon','Evening','All'] as const;
+  let selectedTimeTab = $state('Now');
+  
+  function getCurrentPeriod(): string {
+    const h = new Date().getHours();
+    if (h < 12) return 'morning';
+    if (h < 17) return 'afternoon';
+    return 'evening';
+  }
+
+  // Reactive clock period — updates every 60s so "Now" tab adapts to time of day
+  let clockPeriod = $state(getCurrentPeriod());
+  onMount(() => {
+    const iv = setInterval(() => { clockPeriod = getCurrentPeriod(); }, 60_000);
+    return () => clearInterval(iv);
+  });
+
+  const emptyStateMessages: Record<string, { emoji: string; message: string }> = {
+    morning: { emoji: '🌅', message: 'Good morning. What\'s one thing you want to become more consistent at?' },
+    afternoon: { emoji: '☀️', message: 'Afternoon check-in. What small habit would make today feel complete?' },
+    evening: { emoji: '🌙', message: 'Evening wind-down. One small habit now can set up tomorrow for success.' },
+  };
+  let emptyStateMessage = $derived(emptyStateMessages[clockPeriod] ?? emptyStateMessages.evening);
+
+  let undoneHabits = $derived(activeHabits.filter(h => !h.completedToday && !h.skippedToday));
+  
+  /** Habits for the "Now" tab — matching current time period. Stacked habits shown even when blocked. */
+  let nowHabits = $derived(undoneHabits.filter(h => h.timeOfDay === 'anytime' || h.timeOfDay === clockPeriod));
+
+  let morningHabits = $derived(undoneHabits.filter(h => h.timeOfDay === 'morning' || h.timeOfDay === 'anytime'));
+  let afternoonHabits = $derived(undoneHabits.filter(h => h.timeOfDay === 'afternoon' || h.timeOfDay === 'anytime'));
+  let eveningHabits = $derived(undoneHabits.filter(h => h.timeOfDay === 'evening' || h.timeOfDay === 'anytime'));
+  
+  /** Filtered habits based on selected time tab */
+  let filteredHabits = $derived.by((): Habit[] => {
+    switch (selectedTimeTab) {
+      case 'Now': return nowHabits;
+      case 'Morning': return morningHabits;
+      case 'Afternoon': return afternoonHabits;
+      case 'Evening': return eveningHabits;
+      case 'All': return undoneHabits;
+      default: return undoneHabits;
+    }
+  });
+
+  /** Flow priority: higher = more important to do first.
+   - Fragile streaks (2-5 days) are most likely to break - do them first
+   - Compounding momentum (4+ of last 7 days) - protect the streak  */
+  function flowPriority(h: Habit): number {
+    if (h.streak >= 2 && h.streak <= 5) return 3;
+    const last7 = h.completionHistory.slice(-7).filter(Boolean).length;
+    if (last7 >= 4) return 2;
+    return 1;
+  }
+
+  /** Chain ordering: stacked habits appear together in dependency order */
+  let chainOrderedHabits = $derived.by((): Habit[] => {
+    const pool = [...filteredHabits];
+    const used = new Set<string>();
+    const result: Habit[] = [];
+    // Find all habits that serve as anchors
+    const anchorIds = new Set(pool.filter(h => h.stackAfterId).map(h => h.stackAfterId!));
+    // First pass: process ROOT anchors — anchors that are NOT themselves
+    // stacked after another habit in the pool. This ensures chains are
+    // built root → leaf in correct dependency order regardless of pool order.
+    for (const h of pool) {
+      if (used.has(h.id)) continue;
+      if (anchorIds.has(h.id) && !h.stackAfterId) {
+        let current: Habit | undefined = h;
+        while (current && !used.has(current.id)) {
+          used.add(current.id);
+          result.push(current);
+          current = pool.find(n => n.stackAfterId === current!.id);
+        }
+      }
+    }
+    // Second pass: handle anchors whose root is outside the pool
+    // (e.g., anchor was completed, so it's not in the filtered view)
+    for (const h of pool) {
+      if (used.has(h.id)) continue;
+      if (anchorIds.has(h.id)) {
+        let current: Habit | undefined = h;
+        while (current && !used.has(current.id)) {
+          used.add(current.id);
+          result.push(current);
+          current = pool.find(n => n.stackAfterId === current!.id);
+        }
+      }
+    }
+    // Third pass: add remaining standalone habits sorted by flow priority
+    const standalone = pool.filter(h => !used.has(h.id));
+    standalone.sort((a, b) => {
+      const pa = flowPriority(a);
+      const pb = flowPriority(b);
+      return pb - pa;
+    });
+    for (const h of standalone) {
+      used.add(h.id);
+      result.push(h);
+    }
+    return result;
+  });
+
+  /** Set of habit IDs that are blocked by an incomplete anchor */
+  let blockedHabitIds = $derived.by((): Set<string> => {
+    const blocked = new Set<string>();
+    for (const h of undoneHabits) {
+      if (h.stackAfterId) {
+        const prereq = activeHabits.find(a => a.id === h.stackAfterId);
+        if (prereq && !prereq.completedToday) {
+          blocked.add(h.id);
+        }
+      }
+    }
+    return blocked;
+  });
+
+  /** Completed habits to show under the filtered list */
+  let completedTodayHabits = $derived(activeHabits.filter(h => h.completedToday));
+
+  /** Get the stack chain for a habit tooltip */
+  function getStackChain(h: Habit): string {
+    if (!h.stackAfterId || !h.stackAfterName) return '';
+    return `Stacked after: ${h.stackAfterName}`;
+  }
 
   let bestDay = $derived.by(() => {
     const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -152,11 +320,11 @@
 
     const undone = activeHabits.filter(h => !h.completedToday && !h.skippedToday);
     if (undone.length === 0) {
-      msgs.push({ emoji: "🌟", message: "Everything is done today. Take a moment to appreciate that." });
+      msgs.push({ emoji: "🌟", message: "Every box checked, every intention met. You showed up fully — that's how change happens." });
     } else if (undone.length <= 2) {
-      msgs.push({ emoji: "🍃", message: `Just ${undone.length} left — you've got this. No rush.` });
+      msgs.push({ emoji: "🍃", message: `Just ${undone.length} left — gentle pace. No rush, no pressure.` });
     } else {
-      msgs.push({ emoji: "💛", message: `${undone.length} remaining. Pick one, start there. That's enough.` });
+      msgs.push({ emoji: "💛", message: `${undone.length} remaining. Pick one, start there. That's enough for now.` });
     }
 
     const completed = activeHabits.filter(h => h.completedToday);
@@ -331,17 +499,43 @@
   let editingHabitId: string | null = $state(null);
   let isEditing = $derived(editingHabitId !== null);
   let newHabit = $state({
-    name: '', emoji: '⭐', color: 'var(--mod-accent)',
+    name: '', emoji: 'Star', color: 'var(--mod-accent)',
     kind: 'build' as HabitKind,
     completionType: 'binary' as CompletionType,
-    targetCount: 1, unit: '', frequency: 'daily' as Frequency, why: '',
+    targetCount: 1, unit: '', frequency: 'daily' as Frequency,
+    timeOfDay: 'anytime' as string,
+    why: '',
+    stackAfterId: '',
+    stackAfterName: '',
   });
-  const emojiOptions = ['⭐','🚶','📖','💧','🫁','📱','🎯','💪','🥗','😴','🎨','🎵','✍️','🌿','🧠','🧘','🏃','💻','🎧','☕'];
+  const habitIcons: Record<string, any> = {
+    'Star': StarIcon,
+    'Footprints': FootprintsIcon,
+    'BookOpen': BookOpenIcon,
+    'Droplet': DropletIcon,
+    'Wind': WindIcon,
+    'Smartphone': SmartphoneIcon,
+    'Target': TargetIcon,
+    'Dumbbell': DumbbellIcon,
+    'Apple': AppleIcon,
+    'Moon': MoonIcon,
+    'Palette': PaletteIcon,
+    'Music': MusicIcon,
+    'Pen': PenIcon,
+    'Leaf': LeafIcon,
+    'Brain': BrainIcon,
+    'Heart': HeartIcon,
+    'Zap': ZapIcon,
+    'Monitor': MonitorIcon,
+    'Headphones': HeadphonesIcon,
+    'Coffee': CoffeeIcon,
+  };
+  const iconOptions = Object.keys(habitIcons);
   const colorOptions = ['var(--mod-accent)','#7c3aed','#0284c7','#d97706','#16a34a','#dc2626','#e05a3a'];
 
   function openAddModal() {
     editingHabitId = null;
-    newHabit = { name: '', emoji: '⭐', color: 'var(--mod-accent)', kind: 'build', completionType: 'binary', targetCount: 1, unit: '', frequency: 'daily', why: '' };
+    newHabit = { name: '', emoji: 'Star', color: 'var(--mod-accent)', kind: 'build', completionType: 'binary', targetCount: 1, unit: '', frequency: 'daily', timeOfDay: 'anytime', why: '', stackAfterId: '', stackAfterName: '' };
     showAddModal = true;
   }
 
@@ -356,7 +550,10 @@
       targetCount: h.targetCount,
       unit: h.unit,
       frequency: h.frequency,
+      timeOfDay: h.timeOfDay,
       why: h.why,
+      stackAfterId: h.stackAfterId ?? '',
+      stackAfterName: h.stackAfterName,
     };
     showAddModal = true;
   }
@@ -364,7 +561,7 @@
   function closeAddModal() {
     showAddModal = false;
     editingHabitId = null;
-    newHabit = { name: '', emoji: '⭐', color: 'var(--mod-accent)', kind: 'build', completionType: 'binary', targetCount: 1, unit: '', frequency: 'daily', why: '' };
+    newHabit = { name: '', emoji: 'Star', color: 'var(--mod-accent)', kind: 'build', completionType: 'binary', targetCount: 1, unit: '', frequency: 'daily', timeOfDay: 'anytime', why: '', stackAfterId: '', stackAfterName: '' };
   }
 
   async function saveNewHabit() {
@@ -381,7 +578,10 @@
           targetCount: newHabit.targetCount,
           unit: newHabit.unit,
           frequency: newHabit.frequency,
+          timeOfDay: newHabit.timeOfDay,
           why: newHabit.why,
+          stackAfterId: newHabit.stackAfterId || null,
+          stackAfterName: newHabit.stackAfterName,
         },
       });
       closeAddModal();
@@ -396,9 +596,6 @@
   let heatmapHabit = $derived(activeHabits.find(h => h.id === heatmapHabitId) ?? activeHabits[0]);
   function hmOpacity(i: number) { return (0.3 + 0.7 * (i / 89)).toFixed(2); }
 
-  // ── Why modal ───────────────────────────────────────────────────
-  let whyHabitId: string | null = $state(null);
-  let whyHabit = $derived(activeHabits.find(h => h.id === whyHabitId));
 
   // ── Mood tagging ────────────────────────────────────────────────
   let habitMoods: Record<string, string> = $state({});
@@ -408,6 +605,15 @@
   let notifyMilestones = $state(true);
   let notifyWeeklyReview = $state(true);
 </script>
+
+{#snippet habitIcon(name: string, size = 16, color = "")}
+  {#if name && habitIcons[name]}
+    {@const Icon = habitIcons[name]}
+    <Icon {size} style={color ? `color:${color}` : "color:inherit"} />
+  {:else if name}
+    <span class="hb-icon-fallback" style="font-size:{size}px;line-height:1">{name}</span>
+  {/if}
+{/snippet}
 
 <main class="hb-workspace module-root" data-module="habits">
 
@@ -435,11 +641,29 @@
       </div>
       <div class="hb-page__actions">
         <Button onclick={openAddModal}><PlusIcon size={15}/>&nbsp;New</Button>
-        {#if activeHabits.length > 0}
-          <Button variant="outline" onclick={() => whyHabitId = activeHabits[0]?.id ?? null}><SparklesIcon size={15}/>&nbsp;Your Why</Button>
-        {/if}
       </div>
     </header>
+
+    <!-- Quick-log strip: one-tap emoji buttons for all undone habits -->
+    {#if undoneHabits.length > 0}
+      <section class="hb-quick-log">
+        <div class="hb-quick-log__inner">
+          {#each undoneHabits as h}
+            <button class="hb-quick-btn" style="--hc:{h.color}" title={h.name} aria-label={h.name}
+              onclick={async () => { await toggleComplete(h.id); }}>
+              <span class="hb-quick-icon">{@render habitIcon(h.emoji, 16)}</span>
+              <span class="hb-quick-label">{h.name}</span>
+            </button>
+          {/each}
+        </div>
+      </section>
+    {:else if activeHabits.length > 0}
+      <section class="hb-quick-log hb-quick-log--done">
+        <div class="hb-quick-log__inner">
+          <span class="hb-quick-all-done">🌟 Everything done today!</span>
+        </div>
+      </section>
+    {/if}
 
     <!-- Hero: ring + glance -->
     <section class="hb-hero-grid">
@@ -459,6 +683,7 @@
               centerNote={`${completedCount}/${totalHabits}`}
             />
           </div>
+          {#if progressNarrative}<p class="hb-ring-narrative">{progressNarrative}</p>{/if}
         </CardContent>
       </Card>
 
@@ -468,7 +693,7 @@
           <CardDescription>Your momentum, right now.</CardDescription>
         </CardHeader>
         <CardContent class="hb-glance">
-          <article><span>Top streak</span><strong>{topStreak} days</strong></article>
+          <article><span>Top streak</span><strong>{topStreak} days</strong>{#if streakMilestoneLabel}<span class="hb-milestone-note">{streakMilestoneLabel}</span>{/if}</article>
           <article><span>90-day rate</span><strong>{avgRate}%</strong></article>
           <article><span>Best day</span><strong>{bestDay}s</strong></article>
           <article><span>Freeze tokens</span><strong>{availableFreezeTokens} left</strong></article>
@@ -476,63 +701,125 @@
       </Card>
     </section>
 
+    <!-- Time-of-day tabs -->
+    <div class="hb-tod-tabs">
+      {#each timeOfDayTabs as tab}
+        <button class="hb-tod-tab" class:hb-tod-tab-on={selectedTimeTab === tab}
+          onclick={() => selectedTimeTab = tab}>
+          {#if tab === 'Now'}<span class="hb-tod-icon">⏰</span>
+          {:else if tab === 'Morning'}<span class="hb-tod-icon">🌅</span>
+          {:else if tab === 'Afternoon'}<span class="hb-tod-icon">☀️</span>
+          {:else if tab === 'Evening'}<span class="hb-tod-icon">🌙</span>
+          {:else}<span class="hb-tod-icon">📋</span>
+          {/if}
+          {tab}
+          {#if tab === 'Now'}<span class="hb-tod-count">{nowHabits.length}</span>
+          {:else if tab === 'All'}<span class="hb-tod-count">{undoneHabits.length}</span>
+          {/if}
+        </button>
+      {/each}
+    </div>
+
     <!-- Body: habit list + insights -->
     <section class="hb-body hb-grid--2col">
       <Card>
         <CardHeader>
-          <CardTitle>Your habits</CardTitle>
-          <CardDescription>Tap to log. Tap name to remember your why.</CardDescription>
+          <CardTitle>{selectedTimeTab === 'Now' ? "Due now" : selectedTimeTab === 'All' ? "All habits" : `${selectedTimeTab} habits`}</CardTitle>
+          <CardDescription>
+            {#if selectedTimeTab === 'Now'}
+              What's ready for you right now.
+            {:else}
+              Tap to log. Tap name to remember your why.
+            {/if}
+          </CardDescription>
         </CardHeader>
         <CardContent class="hb-list">
-          {#each activeHabits as h (h.id)}
-            <article class="hb-habit-row" class:hb-done={h.completedToday} class:hb-skip={h.skippedToday} style="--hc:{h.color}">
-              <button class="hb-check" class:hb-check-on={h.completedToday} onclick={() => toggleComplete(h.id)}>
-                {#if h.completedToday}<CheckIcon size={14}/>{/if}
-              </button>
-              <button class="hb-identity" onclick={() => whyHabitId = h.id}>
-                <span class="hb-emoji">{h.emoji}</span>
-                <div>
-                  <span class="hb-hname">{h.name}</span>
-                  <span class="hb-kind">{h.kind === 'quit' ? 'reducing' : h.frequency}</span>
+          {#if chainOrderedHabits.length > 0}
+            {#each chainOrderedHabits as h (h.id)}
+              <article class="hb-habit-row" class:hb-skip={blockedHabitIds.has(h.id)} style="--hc:{h.color}">
+                <button class="hb-check" aria-label="Toggle completion" onclick={() => toggleComplete(h.id)}>
+                  <CheckIcon size={14}/>
+                </button>
+                <div class="hb-identity">
+                  <span class="hb-icon">{@render habitIcon(h.emoji, 18, "var(--hc)")}</span>
+                  <div>
+                    <span class="hb-hname">{h.name}</span>
+                    {#if h.why}<span class="hb-why-peek">{h.why}</span>{/if}
+                    <span class="hb-kind">
+                      {#if h.stackAfterName}
+                        After {h.stackAfterName} ·
+                      {/if}
+                      {h.kind === 'quit' ? 'reducing' : h.frequency}
+                      {#if h.timeOfDay !== 'anytime' && selectedTimeTab === 'All'}
+                        · {h.timeOfDay}
+                      {/if}
+                    </span>
+                  </div>
                 </div>
-              </button>
-              {#if h.completionType !== 'binary'}
-                <div class="hb-count-block">
-                  <span>{h.currentCount}/{h.targetCount}&thinsp;{h.unit}</span>
-                  {#if !h.completedToday && !h.skippedToday}
-                    <button class="hb-inc" onclick={() => incrementCount(h.id)}>+1</button>
-                  {/if}
-                </div>
-              {/if}
-              <div class="hb-streak-pill" class:hb-frozen={h.frozenStreak} title={h.frozenStreak ? 'Frozen' : `Day ${h.streak}`}>
-                <span>{h.streak}</span><span class="hb-streak-unit">d</span>
-              </div>
-              <div class="hb-row-actions">
-                {#if !h.skippedToday && !h.completedToday}
-                  <button class="hb-icon-btn hb-icon-btn--subtle" title="Skip today — no guilt" onclick={() => skipHabit(h.id)}>
-                    <span class="hb-skip-icon">→</span>
-                  </button>
-                {/if}
-                {#if !h.frozenStreak && !h.completedToday && availableFreezeTokens > 0}
-                  <button class="hb-icon-btn hb-icon-btn--ice" title="Protect streak" onclick={() => freezeStreak(h.id)}>❄</button>
-                {/if}
-                {#if h.completedToday}
-                  <div class="hb-mood-group">
-                    {#each ['😤','😐','🙂','😊','🔥'] as mood}
-                      <button class="hb-mood-btn" class:hb-mood-on={habitMoods[h.id] === mood}
-                        onclick={() => habitMoods = {...habitMoods, [h.id]: mood}}>{mood}</button>
-                    {/each}
+                {#if h.completionType !== 'binary'}
+                  <div class="hb-count-block">
+                    <span>{h.currentCount}/{h.targetCount}&thinsp;{h.unit}</span>
+                    <button class="hb-inc" aria-label="Increment count" onclick={() => incrementCount(h.id)}>+1</button>
                   </div>
                 {/if}
-              </div>
-            </article>
-          {/each}
-          {#if activeHabits.length === 0}
+                {#if h.stackAfterName}
+                  <div class="hb-stack-badge hb-chain-badge" title={getStackChain(h)}>
+                    <span class="hb-stack-icon">🔗</span>
+                    <span class="hb-stack-label">{h.stackAfterName}</span>
+                  </div>
+                {/if}
+                <div class="hb-streak-pill" title={`Day ${h.streak}`}>
+                  <span>{h.streak}</span><span class="hb-streak-unit">d</span>
+                </div>
+                <div class="hb-row-actions">
+                  <button class="hb-icon-btn hb-icon-btn--subtle" title="Skip today — no guilt" aria-label="Skip today" onclick={() => skipHabit(h.id)}>
+                    <span class="hb-skip-icon" aria-hidden="true">→</span>
+                  </button>
+                  {#if availableFreezeTokens > 0}
+                    <button class="hb-icon-btn hb-icon-btn--ice" title="Protect streak" aria-label="Protect streak" onclick={() => freezeStreak(h.id)}><span aria-hidden="true">❄</span></button>
+                  {/if}
+                </div>
+              </article>
+            {/each}
+          {:else if activeHabits.length === 0}
             <div class="hb-empty">
-              <span>🌱</span>
-              <p>No habits yet. Start with one — small steps compound.</p>
+              <span>{emptyStateMessage.emoji}</span>
+              <p>{emptyStateMessage.message}</p>
               <button class="hb-add-inline" onclick={openAddModal}>+ Add your first habit</button>
             </div>
+          {:else}
+            <div class="hb-empty">
+              <span>🎉</span>
+              <p>All done for {selectedTimeTab === 'Now' ? 'right now' : selectedTimeTab.toLowerCase()}! Take a breath.</p>
+            </div>
+          {/if}
+
+          <!-- Show completed habits collapsed below -->
+          {#if completedTodayHabits.length > 0 && filteredHabits.length > 0}
+            <div class="hb-done-divider">✓ Done today</div>
+            {#each completedTodayHabits as h (h.id)}
+              <article class="hb-habit-row hb-done" style="--hc:{h.color}">
+                <button class="hb-check hb-check-on" aria-label="Undo completion" onclick={() => toggleComplete(h.id)}>
+                  <CheckIcon size={14}/>
+                </button>
+                <div class="hb-identity">
+                  <span class="hb-icon">{@render habitIcon(h.emoji, 18, "var(--hc)")}</span>
+                  <div>
+                    <span class="hb-hname">{h.name}</span>
+                    {#if h.why}<span class="hb-why-peek">{h.why}</span>{/if}
+                  </div>
+                </div>
+                <div class="hb-streak-pill hb-frozen" title={`Day ${h.streak}`}>
+                  <span>{h.streak}</span><span class="hb-streak-unit">d</span>
+                </div>
+                <div class="hb-mood-group">
+                  {#each [['😤','Frustrated'],['😐','Neutral'],['🙂','Slightly happy'],['😊','Happy'],['🔥','On fire']] as [mood, label]}
+                    <button class="hb-mood-btn" aria-label={label} class:hb-mood-on={habitMoods[h.id] === mood}
+                      onclick={() => habitMoods = {...habitMoods, [h.id]: mood}}>{mood}</button>
+                  {/each}
+                </div>
+              </article>
+            {/each}
           {/if}
         </CardContent>
       </Card>
@@ -549,10 +836,10 @@
               <p>{insight.message}</p>
             </article>
           {/each}
-          {#if activeHabits.length > 0}
+          {#if nowHabits.length > 0}
             <article class="hb-insight hb-insight--action">
               <span class="hb-insight-emoji">🎯</span>
-              <p>Start with <strong>{sortedByStreak[0]?.name}</strong> — it's your strongest momentum today.</p>
+              <p>Start with <strong>{nowHabits[0]?.name}</strong> — it's ready for you now.</p>
             </article>
           {/if}
           {#if activeHabits.length > 0 && completedCount === totalHabits && totalHabits > 1}
@@ -589,12 +876,12 @@
         <CardContent class="hb-streak-hero-content">
           <div class="hb-big-number">{topStreak}</div>
           <div class="hb-big-label">days</div>
-          {#if topStreak >= 7}
-            <div class="hb-badge-milestone">✨ Two-week momentum building</div>
-          {:else if topStreak >= 3}
-            <div class="hb-badge-milestone">💪 First week — the hardest part is behind you</div>
+          {#if streakMilestoneLabel}
+            <div class="hb-badge-milestone">✨ {streakMilestoneLabel}</div>
+          {:else if topStreak > 0}
+            <div class="hb-badge-milestone">🌱 Every streak starts with day one — you're on your way.</div>
           {:else}
-            <div class="hb-badge-milestone">🌱 Every streak starts with day one</div>
+            <div class="hb-badge-milestone">🌱 A streak begins the moment you start. No better day than today.</div>
           {/if}
         </CardContent>
       </Card>
@@ -625,7 +912,7 @@
         <CardContent class="hb-list">
           {#each sortedByStreak as h (h.id)}
             <article class="hb-streak-row" style="--hc:{h.color}">
-              <span class="hb-s-emoji">{h.emoji}</span>
+              <span class="hb-s-icon">{@render habitIcon(h.emoji, 18)}</span>
               <div class="hb-s-info">
                 <strong>{h.name}</strong>
                 <div class="hb-chain">
@@ -666,7 +953,7 @@
               (h.completionHistory.slice(-7).filter(Boolean).length / 7 * 0.2 * 100)
             ))}
             <article style="--hc:{h.color}">
-              <span>{h.emoji}&thinsp;{h.name}</span>
+              <span>{@render habitIcon(h.emoji, 16)}&thinsp;{h.name}</span>
               <div class="hb-strength-bar-wrap"><div class="hb-strength-bar" style="width:{score}%;background:{h.color}"></div></div>
               <strong>{score}</strong>
             </article>
@@ -728,7 +1015,7 @@
             {#each activeHabits as h}
               <button class="hb-hm-tab" class:hb-hm-tab-on={heatmapHabit?.id === h.id}
                 style="--hc:{h.color}" onclick={() => heatmapHabitId = h.id}>
-                {h.emoji}&thinsp;{h.name}
+                {@render habitIcon(h.emoji, 15)}&thinsp;{h.name}
               </button>
             {/each}
           </div>
@@ -761,7 +1048,7 @@
           {#each activeHabits as h}
             {const rate = Math.round(h.completionHistory.filter(Boolean).length / 90 * 100)}
             <article class="hb-perf-row">
-              <span class="hb-perf-emoji">{h.emoji}</span>
+              <span class="hb-perf-icon">{@render habitIcon(h.emoji, 16)}</span>
               <span class="hb-perf-name">{h.name}</span>
               <div class="hb-perf-track"><div class="hb-perf-fill" style="width:{rate}%;background:{h.color}"></div></div>
               <span class="hb-perf-pct">{rate}%</span>
@@ -814,7 +1101,7 @@
           <article><span>Completions this week</span><strong>{thisWeekTotal}</strong></article>
           <article><span>90-day rate</span><strong>{avgRate}%</strong></article>
           <article><span>Best day</span><strong>{bestDay}s</strong></article>
-          <article><span>Most consistent</span><strong>{bestHabit?.emoji} {bestHabit?.name}</strong></article>
+          <article><span>Most consistent</span><strong>{@render habitIcon(bestHabit?.emoji, 14)} {bestHabit?.name}</strong></article>
         </CardContent>
       </Card>
     </section>
@@ -844,7 +1131,7 @@
           {#each activeHabits as h}
             {const rate = Math.round(h.completionHistory.filter(Boolean).length / 90 * 100)}
             <article class="hb-bd-row" style="--hc:{h.color}">
-              <span>{h.emoji}</span>
+              <span>{@render habitIcon(h.emoji, 14)}</span>
               <div class="hb-bd-info">
                 <strong>{h.name}</strong>
                 <div class="hb-bd-bar"><div class="hb-bd-fill" style="width:{rate}%"></div></div>
@@ -884,16 +1171,16 @@
           {#each activeHabits as h (h.id)}
             <article style="--hc:{h.color}">
               <span class="hb-m-dot"></span>
-              <span class="hb-m-emoji">{h.emoji}</span>
+              <span class="hb-m-icon">{@render habitIcon(h.emoji, 16)}</span>
               <div class="hb-m-info">
                 <strong>{h.name}</strong>
                 <span>{h.kind === 'quit' ? 'Reducing' : 'Building'} · {h.frequency}</span>
               </div>
-              <button class="hb-icon-btn" title="Edit" onclick={() => openEditModal(h)}>
-                <PencilIcon size={13} style="opacity:0.5"/>
+              <button class="hb-icon-btn" title="Edit" aria-label="Edit habit" onclick={() => openEditModal(h)}>
+                <PencilIcon size={13} style="opacity:0.5" aria-hidden="true"/>
               </button>
-              <button class="hb-icon-btn hb-icon-btn--archive" title="Archive — pause without losing progress" onclick={() => archiveHabit(h.id)}>
-                <span style="font-size:13px;opacity:0.6">📦</span>
+              <button class="hb-icon-btn hb-icon-btn--archive" title="Archive — pause without losing progress" aria-label="Archive habit" onclick={() => archiveHabit(h.id)}>
+                <span style="font-size:13px;opacity:0.6" aria-hidden="true">📦</span>
               </button>
             </article>
           {/each}
@@ -969,17 +1256,17 @@
         <CardContent class="hb-list">
           {#each habits.filter(h => h.archived) as h}
             <article style="--hc:{h.color}">
-              <span class="hb-m-emoji">{h.emoji}</span>
+              <span class="hb-m-icon">{@render habitIcon(h.emoji, 16)}</span>
               <div class="hb-m-info">
                 <strong>{h.name}</strong>
                 <span>Paused — {h.streak}d streak saved</span>
               </div>
               <div class="hb-row-actions">
-                <button class="hb-icon-btn" title="Resume" onclick={() => unarchiveHabit(h.id)}>
-                  <span style="font-size:14px">↩</span>
+                <button class="hb-icon-btn" title="Resume" aria-label="Resume habit" onclick={() => unarchiveHabit(h.id)}>
+                  <span style="font-size:14px" aria-hidden="true">↩</span>
                 </button>
-                <button class="hb-icon-btn" title="Delete permanently" onclick={() => deleteHabit(h.id)}>
-                  <span style="font-size:13px;opacity:0.5">✕</span>
+                <button class="hb-icon-btn" title="Delete permanently" aria-label="Delete habit permanently" onclick={() => deleteHabit(h.id)}>
+                  <span style="font-size:13px;opacity:0.5" aria-hidden="true">✕</span>
                 </button>
               </div>
             </article>
@@ -993,13 +1280,20 @@
   {/if}
 </main>
 
+<!-- Hidden SVG clipPath for Apple-style 60% corner smoothing -->
+<svg width="0" height="0" style="position:absolute;pointer-events:none">
+  <clipPath id="hb-smooth" clipPathUnits="objectBoundingBox">
+    <path d="M 0 0.045 C 0 0.02 0.02 0 0.045 0 L 0.955 0 C 0.98 0 1 0.02 1 0.045 L 1 0.955 C 1 0.98 0.98 1 0.955 1 L 0.045 1 C 0.02 1 0 0.98 0 0.955 Z" />
+  </clipPath>
+</svg>
+
 <!-- ══ ADD HABIT MODAL ══════════════════════════════════════════════ -->
 {#if showAddModal}
 <div class="hb-overlay" onclick={(e) => { if (e.target === e.currentTarget) closeAddModal(); }} onkeydown={(e) => { if (e.key === 'Escape') closeAddModal(); }} role="dialog" aria-modal="true" tabindex="-1">
   <div class="hb-modal">
     <div class="hb-modal-head">
       <h3>{isEditing ? 'Edit habit' : 'New habit'}</h3>
-      <button class="hb-icon-btn" onclick={closeAddModal}><span style="font-size:18px">✕</span></button>
+      <button class="hb-icon-btn" onclick={closeAddModal} aria-label="Close"><span style="font-size:18px" aria-hidden="true">✕</span></button>
     </div>
     <div class="hb-modal-body">
       <div class="hb-field">
@@ -1011,9 +1305,9 @@
       </div>
       <div class="hb-field">
         <label class="hb-lbl">Icon</label>
-        <div class="hb-emoji-grid">
-          {#each emojiOptions as e}
-            <button class="hb-emoji-opt" class:hb-sel={newHabit.emoji === e} onclick={() => newHabit.emoji = e}>{e}</button>
+        <div class="hb-icon-grid">
+          {#each iconOptions as name}
+            <button class="hb-icon-opt" class:hb-sel={newHabit.emoji === name} onclick={() => newHabit.emoji = name} aria-label={name}>{@render habitIcon(name, 22)}</button>
           {/each}
         </div>
       </div>
@@ -1056,6 +1350,34 @@
         </div>
       </div>
       <div class="hb-field">
+        <label class="hb-lbl">Best time of day</label>
+        <div class="hb-chip-row">
+          {#each [{v:'morning',l:'🌅 Morning'},{v:'afternoon',l:'☀️ Afternoon'},{v:'evening',l:'🌙 Evening'},{v:'anytime',l:'🕐 Anytime'}] as opt}
+            <button class="hb-chip" class:hb-chip-on={newHabit.timeOfDay === opt.v}
+              onclick={() => newHabit.timeOfDay = opt.v}>{opt.l}</button>
+          {/each}
+        </div>
+      </div>
+      <div class="hb-field">
+        <label class="hb-lbl">Stack after (optional)</label>
+        <p class="hb-field-hint">Attach this habit to an existing routine. The habit appears after the anchor is done.</p>
+        <select class="hb-select" bind:value={newHabit.stackAfterId}>
+          <option value="">No stacking → standalone habit</option>
+          {#each [...activeHabits].filter(h => h.id !== editingHabitId).sort((a,b) => a.name.localeCompare(b.name)) as h}
+            <option value={h.id}>{h.name}</option>
+          {/each}
+        </select>
+        {#if newHabit.stackAfterId && newHabit.stackAfterId !== ''}
+          {const selectedStack = activeHabits.find(h => h.id === newHabit.stackAfterId)}
+          {#if selectedStack}
+            <div class="hb-stack-preview">
+              <span>🔗 After</span>
+              <span class="hb-stack-preview-name">{@render habitIcon(selectedStack?.emoji, 13)} {selectedStack?.name}</span>
+            </div>
+          {/if}
+        {/if}
+      </div>
+      <div class="hb-field">
         <label class="hb-lbl">Colour</label>
         <div class="hb-color-row">
           {#each colorOptions as c}
@@ -1073,30 +1395,7 @@
 </div>
 {/if}
 
-<!-- ══ WHY MODAL ════════════════════════════════════════════════════ -->
-{#if whyHabitId && whyHabit}
-<div class="hb-overlay" onclick={(e) => { if (e.target === e.currentTarget) whyHabitId = null; }} onkeydown={(e) => { if (e.key === 'Escape') whyHabitId = null; }} role="dialog" aria-modal="true" tabindex="-1">
-  <div class="hb-why-modal" style="--hc:{whyHabit.color}">
-    <button class="hb-icon-btn hb-why-close" onclick={() => whyHabitId = null}><span style="font-size:18px">✕</span></button>
-    <div class="hb-why-emoji">{whyHabit.emoji}</div>
-    <h3>{whyHabit.name}</h3>
-    <p class="hb-why-lbl">Your reason</p>
-    <p class="hb-why-text">"{whyHabit.why || 'No reason yet — add one in the settings.'}"</p>
-    <p class="hb-why-kind">{whyHabit.kind === 'quit' ? '🛑 Reducing this habit' : '🌱 Building this habit'}</p>        {#if whyHabit.completionHistory.filter(Boolean).length > 0}
-          <p class="hb-why-track-record">
-            You've done this <strong>{whyHabit.completionHistory.filter(Boolean).length} out of 90</strong> days ({Math.round(whyHabit.completionHistory.filter(Boolean).length / 90 * 100)}%).
-            {#if whyHabit.kind === 'quit'}
-            Every resisted moment is growth.
-            {/if}
-          </p>
-        {/if}
-        <div class="hb-why-stats">
-          <span>🔥 {whyHabit.streak}d streak</span>
-          <span>🏆 Best: {whyHabit.longestStreak}d</span>
-        </div>
-  </div>
-</div>
-{/if}
+
 
 <style>
 /* ════════════════════════════════════════════════════════════════════
@@ -1106,14 +1405,18 @@
    ════════════════════════════════════════════════════════════════════ */
 
 :global(.hb-workspace) {
-  --hb-bg: var(--background);
+  --hb-muted: var(--muted);
+  --hb-accent: var(--primary);
   --hb-surface: color-mix(in srgb, var(--surface) 96%, var(--background));
   --hb-surface-strong: color-mix(in srgb, var(--surface) 88%, var(--background));
   --hb-border: color-mix(in srgb, var(--border) 86%, transparent);
-  --hb-muted: var(--muted);
-  --hb-accent: var(--primary);
+  --hb-radius-sm: 6px;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
   height: 100%;
-  background: var(--hb-bg);
+  min-height: 0;
+  background: var(--background);
   color: var(--foreground);
   overflow: hidden;
   font-family: var(--font-body);
@@ -1124,15 +1427,18 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
-  padding: 28px 30px 36px;
   height: 100%;
   box-sizing: border-box;
   overflow-y: auto;
-  animation: hb-in .22s ease;
+  animation: hb-in .32s var(--ease-out);
 }
 @keyframes hb-in {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(.hb-page) { animation: none; }
 }
 
 /* ── Header ──────────────────────────────────────────────────────── */
@@ -1200,21 +1506,37 @@
 
 /* ── Cards ───────────────────────────────────────────────────────── */
 :global(.hb-page [data-slot="card"]) {
-  background: var(--card);
-  border: none;
+  border: 1px solid var(--hb-border);
   box-shadow: none;
+  clip-path: url(#hb-smooth);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--hb-surface) 98%, var(--background)),
+      color-mix(in srgb, var(--hb-surface) 86%, var(--background))
+    );
 }
 
 /* ── Ring content ────────────────────────────────────────────────── */
 :global(.hb-ring-content) {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   padding: 4px 0 12px;
 }
 :global(.hb-ring-wrap) {
   position: relative;
   width: 130px;
   height: 130px;
+}
+:global(.hb-ring-narrative) {
+  margin: 10px 0 4px;
+  font-size: 0.78rem;
+  color: var(--hb-muted);
+  text-align: center;
+  line-height: 1.5;
+  font-style: italic;
+  max-width: 180px;
 }
 
 /* ── Glance stats ────────────────────────────────────────────────── */
@@ -1227,9 +1549,11 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--hb-surface-strong) 88%, transparent);
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--hb-border) 92%, transparent);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--hb-surface-strong) 92%, transparent);
+  transition: background .15s var(--ease-out);
 }
 :global(.hb-glance article span) {
   font-size: 0.72rem;
@@ -1242,25 +1566,30 @@
   font-weight: 700;
   line-height: 1.2;
 }
+:global(.hb-milestone-note) {
+  font-size: 0.65rem;
+  color: var(--hb-accent);
+  line-height: 1.4;
+  margin-top: 2px;
+  font-weight: 500;
+}
 
 /* ── Lists ───────────────────────────────────────────────────────── */
 :global(.hb-list) {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 10px;
 }
-:global(.hb-list article) {
+:global(.hb-list > article) {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--hb-border) 50%, transparent);
-  background: transparent;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--hb-border) 92%, transparent);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--hb-surface-strong) 92%, transparent);
   font-size: 0.88rem;
   min-height: 44px;
-}
-:global(.hb-list article:last-child) {
-  border-bottom: none;
 }
 :global(.hb-list article > span:first-child) {
   color: var(--hb-muted);
@@ -1273,25 +1602,40 @@
 
 /* ── Habit rows ──────────────────────────────────────────────────── */
 :global(.hb-habit-row) {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  padding: 10px 12px !important;
-  margin: 0 -12px !important;
-  border-bottom: 1px solid color-mix(in srgb, var(--hb-border) 50%, transparent) !important;
-  background: transparent !important;
-  min-height: 48px !important;
-  border-radius: 10px !important;
-  transition: background .15s;
+  min-height: 48px;
+  transition: background .15s var(--ease-out), transform .15s var(--ease-out);
+  animation: hb-row-in .35s var(--ease-out) both;
 }
-:global(.hb-habit-row:hover) {
-  background: color-mix(in srgb, var(--foreground) 3%, transparent) !important;
+
+@keyframes hb-row-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to { opacity: 1; transform: none; }
 }
-:global(.hb-habit-row:last-child) {
-  border-bottom: none !important;
+
+:global(.hb-habit-row):nth-child(1) { animation-delay: 0ms; }
+:global(.hb-habit-row):nth-child(2) { animation-delay: 30ms; }
+:global(.hb-habit-row):nth-child(3) { animation-delay: 60ms; }
+:global(.hb-habit-row):nth-child(4) { animation-delay: 90ms; }
+:global(.hb-habit-row):nth-child(5) { animation-delay: 120ms; }
+:global(.hb-habit-row):nth-child(6) { animation-delay: 150ms; }
+:global(.hb-habit-row):nth-child(7) { animation-delay: 180ms; }
+:global(.hb-habit-row):nth-child(8) { animation-delay: 210ms; }
+:global(.hb-habit-row):nth-child(n+9) { animation-delay: 240ms; }
+
+@media (hover: hover) and (pointer: fine) {
+  :global(.hb-habit-row:hover) {
+    background: color-mix(in srgb, var(--foreground) 3%, transparent);
+  }
 }
-:global(.hb-habit-row.hb-done:hover) {
-  background: color-mix(in srgb, var(--hc) 4%, transparent) !important;
+
+@media (prefers-reduced-motion: reduce) {
+  :global(.hb-habit-row) { animation: none; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :global(.hb-habit-row.hb-done:hover) {
+    background: color-mix(in srgb, var(--hc) 4%, transparent);
+  }
 }
 :global(.hb-done) { opacity: 0.6; }
 :global(.hb-skip) { opacity: 0.4; }
@@ -1318,8 +1662,13 @@
   background: var(--hc, var(--hb-accent)) !important;
   color: #fff !important;
 }
-:global(.hb-check:hover:not(.hb-check-on)) {
-  background: color-mix(in srgb, var(--hc) 12%, transparent);
+@media (hover: hover) and (pointer: fine) {
+  :global(.hb-check:hover:not(.hb-check-on)) {
+    background: color-mix(in srgb, var(--hc) 12%, transparent);
+  }
+}
+:global(.hb-check:active) {
+  transform: scale(0.93);
 }
 
 :global(.hb-identity) {
@@ -1335,11 +1684,8 @@
   padding: 0;
   outline-offset: 3px;
 }
-:global(.hb-identity:focus-visible) {
-  outline: 2px solid var(--hb-accent);
-  border-radius: 6px;
-}
-:global(.hb-emoji) { font-size: 1.2rem; flex-shrink: 0; }
+:global(.hb-icon) { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 20px; height: 20px; }
+:global(.hb-icon-fallback) { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; line-height: 1; }
 :global(.hb-hname) {
   display: block;
   font-size: 0.88rem;
@@ -1355,6 +1701,26 @@
   color: var(--hb-muted);
   margin-top: 1px;
   text-transform: capitalize;
+}
+:global(.hb-why-peek) {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--hb-accent);
+  font-style: italic;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  max-height: 0;
+  transition: opacity 0.2s ease, max-height 0.2s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  :global(.hb-habit-row:hover .hb-why-peek),
+  :global(.hb-habit-row:focus-within .hb-why-peek) {
+    opacity: 1;
+    max-height: 1.2em;
+  }
 }
 
 :global(.hb-count-block) {
@@ -1380,10 +1746,14 @@
   color: var(--hc);
   font-size: 0.75rem;
   font-weight: 700;
+  transition: transform 120ms var(--ease-out), background 120ms var(--ease-out);
 }
 :global(.hb-inc:focus-visible) {
   outline: 2px solid var(--hc);
   outline-offset: 2px;
+}
+:global(.hb-inc:active) {
+  transform: scale(0.93);
 }
 
 /* Streak pill — gentle, not flashy */
@@ -1420,7 +1790,7 @@
 :global(.hb-icon-btn) {
   width: 30px;
   height: 30px;
-  border-radius: 8px;
+  border-radius: var(--hb-radius-sm);
   border: none;
   background: transparent;
   cursor: pointer;
@@ -1429,7 +1799,10 @@
   justify-content: center;
   color: var(--hb-muted);
   flex-shrink: 0;
-  transition: background .12s, color .12s;
+  transition: background .12s var(--ease-out), color .12s var(--ease-out), transform .12s var(--ease-out);
+}
+:global(.hb-icon-btn:active) {
+  transform: scale(0.93);
 }
 :global(.hb-icon-btn:focus-visible) {
   outline: 2px solid var(--hb-accent);
@@ -1457,7 +1830,7 @@
 :global(.hb-mood-btn) {
   width: 26px;
   height: 26px;
-  border-radius: 6px;
+  border-radius: var(--hb-radius-sm);
   border: 1px solid transparent;
   background: transparent;
   cursor: pointer;
@@ -1466,7 +1839,10 @@
   align-items: center;
   justify-content: center;
   opacity: 0.4;
-  transition: opacity .12s;
+  transition: opacity .12s var(--ease-out), transform .12s var(--ease-out);
+}
+:global(.hb-mood-btn:active) {
+  transform: scale(0.9);
 }
 :global(.hb-mood-btn:focus-visible) {
   outline: 2px solid var(--hb-accent);
@@ -1503,6 +1879,10 @@
   font-size: 0.84rem;
   font-weight: 600;
   cursor: pointer;
+  transition: transform 120ms var(--ease-out), background 120ms var(--ease-out), border-color 120ms var(--ease-out);
+}
+:global(.hb-add-inline:active) {
+  transform: scale(0.97);
 }
 
 /* Insights */
@@ -1587,12 +1967,9 @@
 :global(.hb-token-spent) { opacity: 0.2; filter: grayscale(1); }
 
 :global(.hb-streak-row) {
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-  padding: 12px 0 !important;
+  padding: 12px 16px;
 }
-:global(.hb-s-emoji) { font-size: 1.2rem; flex-shrink: 0; }
+:global(.hb-s-icon) { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 20px; height: 20px; }
 :global(.hb-s-info) {
   flex: 1;
   min-width: 0;
@@ -1645,6 +2022,10 @@
   color: #60a5fa;
   font-size: 0.78rem;
   font-weight: 600;
+  transition: transform 120ms var(--ease-out), background 120ms var(--ease-out);
+}
+:global(.hb-freeze-btn:active) {
+  transform: scale(0.95);
 }
 :global(.hb-frozen-lbl) { font-size: 0.78rem; color: #60a5fa; }
 
@@ -1704,7 +2085,10 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  transition: all .12s;
+  transition: background .12s var(--ease-out), border-color .12s var(--ease-out), color .12s var(--ease-out), transform .12s var(--ease-out);
+}
+:global(.hb-hm-tab:active) {
+  transform: scale(0.95);
 }
 :global(.hb-hm-tab-on) {
   background: color-mix(in srgb, var(--hc) 12%, transparent) !important;
@@ -1722,7 +2106,9 @@
   background: color-mix(in srgb, var(--hb-border) 70%, transparent);
   transition: transform .1s;
 }
-:global(.hb-hm-cell:hover) { transform: scale(1.3); }
+@media (hover: hover) and (pointer: fine) {
+  :global(.hb-hm-cell:hover) { transform: scale(1.3); }
+}
 :global(.hb-hm-on) {
   background: var(--hc, var(--hb-accent));
 }
@@ -1736,12 +2122,9 @@
 :global(.hb-lgnd-cell) { width: 11px; height: 11px; border-radius: 2px; }
 
 :global(.hb-perf-row) {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  padding: 10px 0 !important;
+  padding: 10px 16px;
 }
-:global(.hb-perf-emoji) { font-size: 1.1rem; flex-shrink: 0; }
+:global(.hb-perf-icon) { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 18px; height: 18px; }
 :global(.hb-perf-name) {
   font-size: 0.84rem;
   font-weight: 500;
@@ -1805,10 +2188,7 @@
 :global(.hb-week-num) { font-size: 0.72rem; font-weight: 600; }
 
 :global(.hb-bd-row) {
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-  padding: 11px 0 !important;
+  padding: 11px 16px;
 }
 :global(.hb-bd-info) {
   flex: 1;
@@ -1852,7 +2232,7 @@
   background: var(--hc, var(--hb-accent));
   flex-shrink: 0;
 }
-:global(.hb-m-emoji) { font-size: 1rem; flex-shrink: 0; }
+:global(.hb-m-icon) { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 18px; height: 18px; }
 :global(.hb-m-info) {
   flex: 1;
   min-width: 0;
@@ -1896,6 +2276,10 @@
   align-items: center;
   justify-content: center;
   color: var(--foreground);
+  transition: transform 120ms var(--ease-out), background 120ms var(--ease-out);
+}
+:global(.hb-stepper button:active) {
+  transform: scale(0.93);
 }
 :global(.hb-stepper strong) { font-size: 1rem; min-width: 24px; text-align: center; }
 
@@ -1914,9 +2298,7 @@
 }
 
 :global(.hb-toggle-row) {
-  justify-content: space-between !important;
-  align-items: center !important;
-  padding: 12px 0 !important;
+  justify-content: space-between;
 }
 :global(.hb-toggle-row > div) { display: flex; flex-direction: column; gap: 2px; }
 :global(.hb-toggle-row > div strong) { font-size: 0.86rem; font-weight: 600; }
@@ -1928,35 +2310,52 @@
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: color-mix(in srgb, var(--background) 55%, transparent);
+  background: color-mix(in srgb, var(--background) 60%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
+  animation: hb-overlay-in .22s var(--ease-out) both;
+}
+@keyframes hb-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :global(.hb-overlay) { animation: none; }
 }
 :global(.hb-modal) {
-  background: var(--card);
-  border: none;
-  border-radius: 20px;
-  width: 460px;
+  background: var(--background);
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  border-radius: 16px;
+  width: 480px;
   max-width: 100%;
   max-height: 88vh;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   box-shadow: none;
+  animation: hb-modal-in .32s var(--ease-out) both;
+}
+@keyframes hb-modal-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :global(.hb-modal) { animation: none; }
 }
 :global(.hb-modal-head) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 20px 14px;
-  border-bottom: 1px solid color-mix(in srgb, var(--hb-border) 60%, transparent);
+  padding: 20px 24px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--hb-border) 70%, transparent);
   flex-shrink: 0;
 }
-:global(.hb-modal-head h3) { font-size: 0.95rem; font-weight: 700; margin: 0; }
+:global(.hb-modal-head h3) { font-size: 1rem; font-weight: 700; margin: 0; }
 :global(.hb-modal-body) {
-  padding: 18px 20px;
+  padding: 18px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1964,12 +2363,14 @@
   min-height: 0;
   overflow-y: auto;
 }
+
 :global(.hb-modal-foot) {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 10px;
-  padding: 12px 20px 18px;
-  border-top: 1px solid color-mix(in srgb, var(--hb-border) 60%, transparent);
+  padding: 14px 24px 20px;
+  border-top: 1px solid color-mix(in srgb, var(--hb-border) 70%, transparent);
   flex-shrink: 0;
 }
 
@@ -1983,61 +2384,81 @@
   color: var(--hb-muted);
 }
 :global(.hb-input) {
-  padding: 10px 13px;
+  padding: 11px 14px;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--hb-border) 70%, transparent);
-  background: color-mix(in srgb, var(--foreground) 3%, transparent);
+  border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+  background: color-mix(in srgb, var(--foreground) 3%, var(--background));
   color: var(--foreground);
   font: inherit;
   font-size: 0.88rem;
   outline: none;
+  transition: border-color .12s var(--ease-out);
 }
 :global(.hb-input:focus) {
   border-color: var(--hb-accent);
-  outline: 2px solid color-mix(in srgb, var(--hb-accent) 25%, transparent);
-  outline-offset: 0;
 }
-:global(.hb-input::placeholder) { color: color-mix(in srgb, var(--hb-muted) 60%, transparent); }
+:global(.hb-input::placeholder) {
+  color: color-mix(in srgb, var(--foreground) 22%, transparent);
+}
 
-:global(.hb-emoji-grid) { display: flex; flex-wrap: wrap; gap: 5px; }
-:global(.hb-emoji-opt) {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--hb-border) 70%, transparent);
-  background: transparent;
+:global(.hb-icon-grid) { display: flex; flex-wrap: wrap; gap: 5px; }
+:global(.hb-icon-opt) {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  background: color-mix(in srgb, var(--foreground) 2%, var(--background));
   cursor: pointer;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 120ms var(--ease-out), border-color 120ms var(--ease-out), background 120ms var(--ease-out);
+}
+:global(.hb-icon-opt:active) {
+  transform: scale(0.93);
+}
+@media (hover: hover) and (pointer: fine) {
+  :global(.hb-icon-opt:hover) {
+    background: color-mix(in srgb, var(--foreground) 4%, var(--background));
+    border-color: color-mix(in srgb, var(--foreground) 12%, transparent);
+  }
 }
 :global(.hb-sel) {
   border-color: var(--hb-accent) !important;
-  background: color-mix(in srgb, var(--hb-accent) 10%, transparent) !important;
+  background: color-mix(in srgb, var(--hb-accent) 12%, transparent) !important;
 }
 
 :global(.hb-chip-row) { display: flex; gap: 7px; flex-wrap: wrap; }
 :global(.hb-chip) {
   display: inline-flex;
   align-items: center;
-  min-height: 32px;
-  padding: 5px 14px;
+  min-height: 34px;
+  padding: 5px 16px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--hb-border) 70%, transparent);
-  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  background: color-mix(in srgb, var(--foreground) 2%, var(--background));
   cursor: pointer;
   font: inherit;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  color: var(--hb-muted);
-  text-transform: capitalize;
-  transition: all .12s;
+  color: color-mix(in srgb, var(--foreground) 45%, transparent);
+  transition: background .12s var(--ease-out), border-color .12s var(--ease-out), color .12s var(--ease-out), transform .12s var(--ease-out);
+}
+:global(.hb-chip:active) {
+  transform: scale(0.95);
+}
+@media (hover: hover) and (pointer: fine) {
+  :global(.hb-chip:hover) {
+    background: color-mix(in srgb, var(--foreground) 4%, var(--background));
+    border-color: color-mix(in srgb, var(--foreground) 12%, transparent);
+    color: color-mix(in srgb, var(--foreground) 72%, transparent);
+  }
 }
 :global(.hb-chip-on) {
-  background: color-mix(in srgb, var(--hb-accent) 12%, transparent) !important;
-  border-color: color-mix(in srgb, var(--hb-accent) 45%, var(--hb-border)) !important;
-  color: var(--foreground) !important;
+  background: var(--hb-accent) !important;
+  border-color: var(--hb-accent) !important;
+  color: #fff !important;
 }
 
 :global(.hb-color-row) { display: flex; gap: 8px; }
@@ -2048,6 +2469,10 @@
   border: 2px solid transparent;
   cursor: pointer;
   outline-offset: 3px;
+  transition: transform 120ms var(--ease-out), border-color 120ms var(--ease-out);
+}
+:global(.hb-swatch:active) {
+  transform: scale(0.9);
 }
 :global(.hb-swatch-on) { outline: 2px solid var(--foreground) !important; }
 
@@ -2055,91 +2480,47 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 36px;
+  min-height: 38px;
   padding: 0 18px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--hb-border) 70%, transparent);
-  background: transparent;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--hb-border) 80%, transparent);
+  background: color-mix(in srgb, var(--hb-surface-strong) 92%, transparent);
   cursor: pointer;
   font: inherit;
   font-size: 0.86rem;
   font-weight: 600;
   color: var(--foreground);
+  transition: transform 120ms var(--ease-out), background 120ms var(--ease-out);
+}
+:global(.hb-btn-ghost:hover) {
+  background: color-mix(in srgb, var(--foreground) 4%, transparent);
+}
+:global(.hb-btn-ghost:active) {
+  transform: scale(0.97);
 }
 :global(.hb-btn-primary) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 36px;
+  min-height: 38px;
   padding: 0 20px;
-  border-radius: 999px;
-  border: none;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--hb-border) 80%, transparent);
   background: var(--hb-accent);
   cursor: pointer;
   font: inherit;
   font-size: 0.86rem;
   font-weight: 700;
   color: #fff;
+  transition: transform 120ms var(--ease-out), opacity 120ms var(--ease-out);
 }
-:global(.hb-btn-primary:disabled) { opacity: 0.38; cursor: not-allowed; }
-
-/* Why modal */
-:global(.hb-why-modal) {
-  background: var(--card);
-  border: none;
-  border-radius: 20px;
-  width: 340px;
-  max-width: 100%;
-  padding: 32px 28px 28px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  position: relative;
-  box-shadow: none;
+:global(.hb-btn-primary:hover) {
+  opacity: 0.9;
 }
-:global(.hb-why-close) { position: absolute; top: 12px; right: 12px; }
-:global(.hb-why-emoji) { font-size: 2.8rem; line-height: 1; margin-bottom: 10px; }
-:global(.hb-why-modal h3) { font-size: 1.1rem; font-weight: 700; margin: 0 0 14px; font-family: var(--font-display); }
-:global(.hb-why-lbl) {
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--hb-muted);
-  margin: 0 0 6px;
+:global(.hb-btn-primary:active) {
+  transform: scale(0.97);
 }
-:global(.hb-why-text) {
-  font-size: 0.95rem;
-  font-style: italic;
-  line-height: 1.7;
-  color: var(--foreground);
-  border-left: 3px solid var(--hc, var(--hb-accent));
-  padding: 2px 0 2px 14px;
-  text-align: left;
-  margin: 0 0 16px;
-  width: 100%;
-  box-sizing: border-box;
-}
-:global(.hb-why-track-record) {
-  font-size: 0.82rem;
-  color: var(--hb-muted);
-  margin: 0 0 16px;
-  line-height: 1.5;
-  text-align: center;
-}
-:global(.hb-why-kind) {
-  font-size: 0.78rem;
-  color: var(--hb-muted);
-  margin: 0 0 16px;
-}
-:global(.hb-why-stats) {
-  display: flex;
-  gap: 16px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--hb-accent);
-}
-:global(.hb-why-stats span) { display: flex; align-items: center; gap: 4px; }
+:global(.hb-btn-primary:disabled) { opacity: 0.38; cursor: not-allowed; transform: none !important; }
 
 /* ── Tip small ───────────────────────────────────────────────────── */
 :global(.hb-tip-small) {
@@ -2153,6 +2534,194 @@
   color: var(--hb-muted);
   margin: 0;
   line-height: 1.58;
+}
+
+/* ── Quick-log strip ────────────────────────────────────────────── */
+:global(.hb-quick-log) {
+  flex-shrink: 0;
+  overflow: hidden;
+}
+:global(.hb-quick-log__inner) {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0 8px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+:global(.hb-quick-log__inner::-webkit-scrollbar) { display: none; }
+:global(.hb-quick-btn) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px 8px 12px;
+  border-radius: 20px;
+  border: none;
+  background: var(--card);
+  cursor: pointer;
+  font: inherit;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background .12s var(--ease-out), transform .12s var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  :global(.hb-quick-btn:hover) {
+    background: color-mix(in srgb, var(--hc, var(--hb-accent)) 18%, transparent);
+  }
+}
+:global(.hb-quick-btn:active) {
+  transform: scale(0.95);
+}
+:global(.hb-quick-icon) { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 18px; height: 18px; }
+:global(.hb-quick-label) {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+:global(.hb-quick-log--done) {
+  opacity: 0.6;
+}
+:global(.hb-quick-all-done) {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--hb-accent);
+  padding: 7px 0;
+}
+
+/* ── Time-of-day tabs ───────────────────────────────────────────── */
+:global(.hb-tod-tabs) {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+:global(.hb-tod-tabs::-webkit-scrollbar) { display: none; }
+:global(.hb-tod-tab) {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--hb-border) 70%, transparent);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--hb-muted);
+  white-space: nowrap;
+  transition: background .12s var(--ease-out), border-color .12s var(--ease-out), color .12s var(--ease-out), transform .12s var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  :global(.hb-tod-tab:hover) {
+    border-color: var(--hb-accent);
+    color: var(--foreground);
+  }
+}
+:global(.hb-tod-tab:active) {
+  transform: scale(0.95);
+}
+:global(.hb-tod-tab-on) {
+  background: var(--hb-accent) !important;
+  border-color: var(--hb-accent) !important;
+  color: #fff !important;
+}
+:global(.hb-tod-icon) { font-size: 0.85rem; line-height: 1; }
+:global(.hb-tod-count) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--foreground) 12%, transparent);
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+}
+:global(.hb-tod-tab-on .hb-tod-count) {
+  background: color-mix(in srgb, #fff 20%, transparent);
+  color: #fff;
+}
+
+/* ── Stacking badge ─────────────────────────────────────────────── */
+:global(.hb-stack-badge) {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--foreground) 4%, transparent);
+  font-size: 0.7rem;
+  color: var(--hb-muted);
+  flex-shrink: 0;
+  max-width: 100px;
+}
+:global(.hb-chain-badge) {
+  background: color-mix(in srgb, var(--hc, var(--hb-accent)) 10%, transparent);
+  color: var(--hc, var(--hb-accent));
+}
+:global(.hb-stack-icon) { font-size: 0.65rem; }
+:global(.hb-stack-label) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Done divider ───────────────────────────────────────────────── */
+:global(.hb-done-divider) {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--hb-muted) 50%, transparent);
+  padding: 16px 0 4px;
+  border: none;
+}
+
+/* ── Modal additions ────────────────────────────────────────────── */
+:global(.hb-field-hint) {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--hb-muted);
+  line-height: 1.4;
+}
+:global(.hb-select) {
+  padding: 11px 14px;
+  padding-right: 36px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+  background: color-mix(in srgb, var(--foreground) 3%, var(--background));
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.88rem;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23666' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  transition: border-color .12s var(--ease-out);
+}
+:global(.hb-select:focus) {
+  border-color: var(--hb-accent);
+}
+:global(.hb-stack-preview) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--hb-accent) 6%, transparent);
+  font-size: 0.8rem;
+  color: var(--hb-accent);
+}
+:global(.hb-stack-preview-name) {
+  font-weight: 600;
 }
 
 /* ── Responsive ──────────────────────────────────────────────────── */

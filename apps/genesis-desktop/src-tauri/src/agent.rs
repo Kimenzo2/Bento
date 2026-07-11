@@ -140,8 +140,6 @@ static ORIGINAL_AGENT_WNDPROC: std::sync::atomic::AtomicUsize =
 /// Updated atomically by all show/hide operations.
 pub(crate) static AGENT_VISIBLE: AtomicBool = AtomicBool::new(false);
 
-static INITIAL_POSITION_SET: AtomicBool = AtomicBool::new(false);
-
 // ── Win32 FFI — functions not exported by windows-sys 0.52 ─────────────
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::Foundation::RECT;
@@ -158,100 +156,6 @@ extern "system" {
         lParam: isize,
     ) -> isize;
     fn DefWindowProcW(hWnd: isize, msg: u32, wParam: usize, lParam: isize) -> isize;
-}
-
-/// Extend the DWM frame into the client area with negative margins.
-/// This eliminates the thin DWM border that persists on undecorated windows
-/// even with `decorations(false)` + `transparent(true)` + `shadow(false)`.
-/// Must be called after the window HWND exists.
-#[cfg(target_os = "windows")]
-fn extend_frame_into_client_area(window: &WebviewWindow) -> Result<(), Box<dyn std::error::Error>> {
-    use raw_window_handle::HasWindowHandle;
-
-    #[repr(C)]
-    #[allow(non_snake_case)]
-    struct MARGINS {
-        cxLeftWidth: i32,
-        cxRightWidth: i32,
-        cyTopHeight: i32,
-        cyBottomHeight: i32,
-    }
-
-    #[link(name = "dwmapi")]
-    extern "system" {
-        fn DwmExtendFrameIntoClientArea(hwnd: isize, pMargins: *const MARGINS) -> i32;
-        fn DwmSetWindowAttribute(
-            hwnd: isize,
-            dwAttribute: u32,
-            pvAttribute: *const std::ffi::c_void,
-            cbAttribute: u32,
-        ) -> i32;
-    }
-
-    let handle = window.window_handle()?;
-    let raw_window_handle::RawWindowHandle::Win32(win) = handle.as_raw() else {
-        return Err("not a Win32 window".into());
-    };
-    let hwnd = win.hwnd.get();
-
-    unsafe {
-        // Extend frame into client area with negative margins to make DWM frame transparent
-        let margins = MARGINS {
-            cxLeftWidth: -1,
-            cxRightWidth: -1,
-            cyTopHeight: -1,
-            cyBottomHeight: -1,
-        };
-        let hr = DwmExtendFrameIntoClientArea(hwnd, &margins);
-        if hr != 0 {
-            eprintln!("[agent] DwmExtendFrameIntoClientArea failed: 0x{hr:08X}");
-        }
-
-        // Disable non-client rendering to remove the thin DWM border
-        // DWMWA_NCRENDERING_POLICY = 2, DWMNCRP_DISABLED = 2
-        let policy: u32 = 2;
-        let hr2 = DwmSetWindowAttribute(
-            hwnd,
-            2, // DWMWA_NCRENDERING_POLICY
-            &policy as *const u32 as *const std::ffi::c_void,
-            std::mem::size_of::<u32>() as u32,
-        );
-        if hr2 != 0 {
-            eprintln!("[agent] DwmSetWindowAttribute(NCRENDERING) failed: 0x{hr2:08X}");
-        }
-    }
-    Ok(())
-}
-
-/// Strip Win32 window styles that cause DWM to draw borders on undecorated windows.
-/// Removes WS_CAPTION, WS_THICKFRAME, WS_BORDER, WS_EX_WINDOWEDGE, and WS_EX_DLGMODALFRAME.
-#[cfg(target_os = "windows")]
-fn strip_window_borders(window: &WebviewWindow) -> Result<(), Box<dyn std::error::Error>> {
-    use raw_window_handle::HasWindowHandle;
-    use windows_sys::Win32::UI::WindowsAndMessaging::{
-        GetWindowLongW, SetWindowLongW, GWL_EXSTYLE, GWL_STYLE, WS_BORDER, WS_CAPTION,
-        WS_EX_DLGMODALFRAME, WS_EX_WINDOWEDGE, WS_THICKFRAME,
-    };
-
-    let handle = window.window_handle()?;
-    let raw_window_handle::RawWindowHandle::Win32(win) = handle.as_raw() else {
-        return Err("not a Win32 window".into());
-    };
-    let hwnd = win.hwnd.get();
-
-    unsafe {
-        // Remove frame/border styles from the window style
-        let style = GetWindowLongW(hwnd, GWL_STYLE);
-        let new_style =
-            style & !(WS_CAPTION as i32) & !(WS_THICKFRAME as i32) & !(WS_BORDER as i32);
-        SetWindowLongW(hwnd, GWL_STYLE, new_style);
-
-        // Remove extended styles that cause DWM to draw edges
-        let ex_style = GetWindowLongW(hwnd, GWL_EXSTYLE);
-        let new_ex_style = ex_style & !(WS_EX_WINDOWEDGE as i32) & !(WS_EX_DLGMODALFRAME as i32);
-        SetWindowLongW(hwnd, GWL_EXSTYLE, new_ex_style);
-    }
-    Ok(())
 }
 
 /// Remove the CS_DROPSHADOW class style from the window class.
@@ -285,35 +189,14 @@ fn init_agent_window(window: &tauri::WebviewWindow) {
         eprintln!("[agent] remove_class_shadow failed: {e}");
     });
 
-    #[cfg(target_os = "windows")]
-    extend_frame_into_client_area(window).unwrap_or_else(|e| {
-        eprintln!("[agent] extend_frame_into_client_area failed: {e}");
-    });
-
     if let Err(e) = window.set_background_color(Some(tauri::webview::Color(0, 0, 0, 0))) {
         eprintln!("[agent] set_background_color failed: {e}");
     }
-
-    #[cfg(target_os = "windows")]
-    {
-        let _ = window.eval("document.body.style.background='transparent'");
-    }
-
-    // Strip any residual Win32 border/frame styles that DWM may still render
-    #[cfg(target_os = "windows")]
-    strip_window_borders(window).unwrap_or_else(|e| {
-        eprintln!("[agent] strip_window_borders failed: {e}");
-    });
 
     #[cfg(target_os = "macos")]
     if let Err(e) = set_agent_macos_window_level(window) {
         eprintln!("[agent] macOS window level setup failed: {e}");
     }
-
-    position_bottom_right(window).unwrap_or_else(|e| {
-        eprintln!("[agent] initial positioning failed: {e}");
-    });
-    INITIAL_POSITION_SET.store(true, Ordering::SeqCst);
 }
 
 /// Setup the agent dock window — transparency, shadow removal, positioning.
@@ -446,31 +329,6 @@ fn set_agent_macos_window_level(window: &WebviewWindow) -> Result<(), Box<dyn st
     Ok(())
 }
 
-/// Position the agent window at bottom-right of the primary monitor.
-/// `expanded` accounts for the composer being open.
-fn position_bottom_right(window: &WebviewWindow) -> Result<(), Box<dyn std::error::Error>> {
-    let Some(monitor) = window.app_handle().primary_monitor()? else {
-        return Err("no primary monitor found".into());
-    };
-
-    let monitor_pos = monitor.position();
-    let physical_w = monitor.size().width as i32;
-    let physical_h = monitor.size().height as i32;
-    let scale = monitor.scale_factor();
-
-    let win_phys_w = (AGENT_CURRENT_W.load(Ordering::Relaxed) as f64 * scale) as i32;
-    let win_phys_h = (AGENT_CURRENT_H.load(Ordering::Relaxed) as f64 * scale) as i32;
-
-    let x = monitor_pos.x + physical_w - win_phys_w - (24.0 * scale) as i32;
-    let y = monitor_pos.y + physical_h - win_phys_h - (24.0 * scale) as i32;
-
-    window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
-        x: x.max(monitor_pos.x),
-        y: y.max(monitor_pos.y),
-    }))?;
-    Ok(())
-}
-
 /// Dynamic size for hit-test (set by ResizeObserver in frontend).
 static AGENT_CURRENT_W: AtomicI32 = AtomicI32::new(AGENT_W as i32);
 static AGENT_CURRENT_H: AtomicI32 = AtomicI32::new(AGENT_H as i32);
@@ -510,7 +368,6 @@ pub fn agent_set_size(app: AppHandle, width: f64, height: f64) -> Result<(), Str
             width: (w as f64 * scale) as u32,
             height: (h as f64 * scale) as u32,
         }));
-        let _ = position_bottom_right(&window);
     });
 
     #[cfg(debug_assertions)]
@@ -522,12 +379,6 @@ pub fn agent_set_size(app: AppHandle, width: f64, height: f64) -> Result<(), Str
 /// Creates the window if it doesn't exist yet (lazy init).
 fn show_agent_window_impl(app: &AppHandle) -> Result<(), String> {
     let window = get_or_create_agent_window(app)?;
-
-    if !INITIAL_POSITION_SET.swap(true, Ordering::SeqCst) {
-        position_bottom_right(&window).unwrap_or_else(|e| {
-            eprintln!("[agent] initial position on show failed: {e}");
-        });
-    }
 
     window.show().map_err(|e| e.to_string())?;
     AGENT_VISIBLE.store(true, Ordering::SeqCst);
@@ -661,9 +512,6 @@ pub fn set_agent_dock_enabled(app: AppHandle, enabled: bool) -> Result<(), Strin
     if enabled {
         AGENT_VISIBLE.store(true, Ordering::SeqCst);
         let _ = app.run_on_main_thread(move || {
-            if !INITIAL_POSITION_SET.swap(true, Ordering::SeqCst) {
-                let _ = position_bottom_right(&window);
-            }
             let _ = window.show();
         });
         eprintln!("[agent] set_agent_dock_enabled(true): complete");

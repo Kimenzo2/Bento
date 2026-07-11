@@ -545,17 +545,10 @@
             invoke("agent_set_size", { width: Math.ceil(w), height: Math.ceil(h) })
               .catch(() => {})
               .finally(() => {
-                resizeSuppressed = false;
-                // Re-check: if content changed while suppressed, schedule a follow-up.
+                // Wait one frame then release the guard so the next genuine
+                // resize from the WebView2 re-layout is not suppressed forever.
                 requestAnimationFrame(() => {
-                  if (!dockRootRef) return;
-                  const rect = dockRootRef.getBoundingClientRect();
-                  if (rect.width > 0 && rect.height > 0) {
-                    invoke("agent_set_size", {
-                      width: Math.ceil(rect.width),
-                      height: Math.ceil(rect.height),
-                    }).catch(() => {});
-                  }
+                  resizeSuppressed = false;
                 });
               });
           }

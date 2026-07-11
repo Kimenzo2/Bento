@@ -7,18 +7,9 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { islandStore } from "$lib/stores/island.store.svelte";
 
 // Note: The Dynamic Island runs in a separate Tauri webview window with its
-// own islandStore singleton. Voice MODE state is communicated to the island
-// exclusively via the Rust bridge (voice_set_island_state invoke →
-// voice:island-state-changed event). We do NOT call islandStore.activateModule()
-// from here because that would set state on the main window's store instance,
-// not the island's.
-//
-// However, islandStore IS still imported for islandStore.collapse() in the
-// complete() method — that call detects the main window's 3-second auto-reset
-// timeout and is intentionally scoped to the main window context.
+// own islandStore singleton. Voice state is NOT communicated to the island.
 
 // ─── Constants ───────────────────────────────────────────────────────
 
@@ -27,16 +18,6 @@ export const PTT_GRACE_MS = 160;
 
 /** Dictation writing style options. */
 export type DictationStyle = "standard" | "casual" | "formal";
-
-// ─── Island State Type (mirrors ActiveModuleState) ────────────────
-
-interface VoiceIslandState {
-  id: string;
-  label: string;
-  icon: string;
-  status: string;
-  activityType?: "recording" | "timer" | "active" | "playback";
-}
 
 interface LiveTranscriptEvent {
   noteId: string;
@@ -168,42 +149,6 @@ class VoiceEngineStore {
     const held = performance.now() - this.pttPressStart;
     this.pttPressStart = null;
     return held < PTT_GRACE_MS;
-  }
-
-  /**
-   * Update the island's voice module state via the cross-window Rust bridge.
-   *
-   * The Dynamic Island runs in a separate Tauri webview window with its own
-   * `islandStore` singleton. We communicate exclusively through Rust's
-   * `window.emit()` mechanism — the island window's event listener in
-   * `+page.svelte` receives `voice:island-state-changed` and applies it locally.
-   *
-   * We do NOT call `islandStore.activateModule()` here because that would set
-   * state on the main window's store instance, not the island's. The island
-   * window handles activation through its own event handler.
-   *
-   * Retry with exponential backoff if the bridge is temporarily unavailable
-   * (e.g., island window still initializing on first launch).
-   */
-  async #setIslandState(state: VoiceIslandState | null): Promise<void> {
-    const maxRetries = 3;
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        await invoke("voice_set_island_state", { state });
-        return;
-      } catch (err) {
-        if (attempt < maxRetries - 1) {
-          const delay = Math.pow(2, attempt + 1) * 500; // 1s, 2s, 4s
-          console.warn(
-            `[voice-engine] Island state update failed (attempt ${attempt + 1}/${maxRetries}), retrying in ${delay}ms:`,
-            err,
-          );
-          await new Promise((r) => setTimeout(r, delay));
-        } else {
-          console.warn("[voice-engine] Failed to update island state after all retries:", err);
-        }
-      }
-    }
   }
 
   // ── Constructor: register Tauri event listeners ────────────────
@@ -360,14 +305,6 @@ class VoiceEngineStore {
 
     this.session = session;
     this.#startElapsedTimer();
-
-    this.#setIslandState({
-      id: "voice",
-      label: mode === "meeting" ? "Meeting" : "Voice",
-      icon: "mic",
-      status: mode === "dictation" || mode === "agent_conversation" ? "Listening" : "Recording",
-      activityType: "recording",
-    });
 
     if (mode === "dictation" || mode === "agent_conversation") {
       await this.#startWebSpeech(mode);
@@ -546,14 +483,6 @@ class VoiceEngineStore {
       this.session = { ...this.session, status: "processing" };
     }
 
-    this.#setIslandState({
-      id: "voice",
-      label: "Voice",
-      icon: "refresh",
-      status: "Processing",
-      activityType: "active",
-    });
-
     await this.#classifyAndRouteSession();
   }
 
@@ -693,13 +622,6 @@ class VoiceEngineStore {
         if (this.session) {
           this.session = { ...this.session, status: "paused" };
         }
-        this.#setIslandState({
-          id: "voice",
-          label: "Voice",
-          icon: "mic",
-          status: "Paused",
-          activityType: "active",
-        });
       } catch (err) {
         console.warn("[voice-engine] Pause failed:", err);
       }
@@ -714,13 +636,6 @@ class VoiceEngineStore {
         if (this.session) {
           this.session = { ...this.session, status: "recording" };
         }
-        this.#setIslandState({
-          id: "voice",
-          label: "Voice",
-          icon: "mic",
-          status: "Recording",
-          activityType: "recording",
-        });
       } catch (err) {
         console.warn("[voice-engine] Resume failed:", err);
       }
@@ -754,19 +669,10 @@ class VoiceEngineStore {
     if (this.session) {
       this.session = { ...this.session, status: "completed", finalText, summary: summary ?? null };
     }
-    this.#setIslandState({
-      id: "voice",
-      label: "Voice",
-      icon: "check",
-      status: "Done",
-      activityType: "active",
-    });
     if (this.#autoResetTimeout) clearTimeout(this.#autoResetTimeout);
     this.#autoResetTimeout = setTimeout(() => {
       this.#autoResetTimeout = null;
       this.#reset();
-      islandStore.collapse();
-      this.#setIslandState(null);
     }, 3000);
   }
 

@@ -31,7 +31,10 @@ pub struct HabitRow {
     pub target_count: i32,
     pub unit: String,
     pub frequency: String, // 'daily' | 'weekdays' | 'weekends'
+    pub time_of_day: String, // 'morning' | 'afternoon' | 'evening' | 'anytime'
     pub why: String,
+    pub stack_after_id: Option<String>,
+    pub stack_after_name: String,
     pub sort_order: i32,
     pub created_at: i64,
     pub updated_at: i64,
@@ -50,7 +53,10 @@ pub struct HabitInput {
     pub target_count: i32,
     pub unit: String,
     pub frequency: String,
+    pub time_of_day: Option<String>,
     pub why: String,
+    pub stack_after_id: Option<String>,
+    pub stack_after_name: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -102,7 +108,7 @@ pub async fn habits_list(
     ensure_habits_tables(&state.db()).await?;
 
     let habits = sqlx::query(
-        "SELECT id, name, emoji, color, kind, archived, completion_type, target_count, unit, frequency, why, sort_order, created_at, updated_at
+        "SELECT id, name, emoji, color, kind, archived, completion_type, target_count, unit, frequency, time_of_day, why, stack_after_id, stack_after_name, sort_order, created_at, updated_at
          FROM habits ORDER BY sort_order ASC, created_at ASC",
     )
     .fetch_all(&state.db())
@@ -219,7 +225,10 @@ pub async fn habits_list(
                 target_count: row.get::<i64, _>("target_count") as i32,
                 unit: row.get("unit"),
                 frequency: row.get("frequency"),
+                time_of_day: row.get::<Option<String>, _>("time_of_day").unwrap_or_default(),
                 why: row.get("why"),
+                stack_after_id: row.get::<Option<String>, _>("stack_after_id"),
+                stack_after_name: row.get::<Option<String>, _>("stack_after_name").unwrap_or_default(),
                 sort_order: row.get::<i64, _>("sort_order") as i32,
                 created_at: row.get("created_at"),
                 updated_at: row.get("updated_at"),
@@ -256,8 +265,10 @@ pub async fn habits_save(
 
     if let Some(id) = input.id {
         // Update existing
+        let time_of_day = input.time_of_day.as_deref().unwrap_or("anytime");
+        let stack_after_name = input.stack_after_name.as_deref().unwrap_or("");
         sqlx::query(
-            "UPDATE habits SET name=?, emoji=?, color=?, kind=?, archived=?, completion_type=?, target_count=?, unit=?, frequency=?, why=?, updated_at=? WHERE id=?",
+            "UPDATE habits SET name=?, emoji=?, color=?, kind=?, archived=?, completion_type=?, target_count=?, unit=?, frequency=?, time_of_day=?, why=?, stack_after_id=?, stack_after_name=?, updated_at=? WHERE id=?",
         )
         .bind(&trimmed_name)
         .bind(&input.emoji)
@@ -268,7 +279,10 @@ pub async fn habits_save(
         .bind(input.target_count as i64)
         .bind(&input.unit)
         .bind(&input.frequency)
+        .bind(time_of_day)
         .bind(&input.why)
+        .bind(&input.stack_after_id)
+        .bind(stack_after_name)
         .bind(now)
         .bind(&id)
         .execute(&state.db())
@@ -277,7 +291,7 @@ pub async fn habits_save(
 
         // Return updated row
         let row = sqlx::query(
-            "SELECT id, name, emoji, color, kind, archived, completion_type, target_count, unit, frequency, why, sort_order, created_at, updated_at FROM habits WHERE id=?",
+            "SELECT id, name, emoji, color, kind, archived, completion_type, target_count, unit, frequency, time_of_day, why, stack_after_id, stack_after_name, sort_order, created_at, updated_at FROM habits WHERE id=?",
         )
         .bind(&id)
         .fetch_one(&state.db())
@@ -295,7 +309,10 @@ pub async fn habits_save(
             target_count: row.get::<i64, _>("target_count") as i32,
             unit: row.get("unit"),
             frequency: row.get("frequency"),
+            time_of_day: row.get::<Option<String>, _>("time_of_day").unwrap_or_default(),
             why: row.get("why"),
+            stack_after_id: row.get::<Option<String>, _>("stack_after_id"),
+            stack_after_name: row.get::<Option<String>, _>("stack_after_name").unwrap_or_default(),
             sort_order: row.get::<i64, _>("sort_order") as i32,
             created_at: row.get("created_at"),
             updated_at: row.get("updated_at"),
@@ -310,9 +327,11 @@ pub async fn habits_save(
             .await
             .map_err(|e| e.to_string())?;
 
+        let time_of_day = input.time_of_day.as_deref().unwrap_or("anytime");
+        let stack_after_name = input.stack_after_name.as_deref().unwrap_or("");
         sqlx::query(
-            "INSERT INTO habits (id, name, emoji, color, kind, archived, completion_type, target_count, unit, frequency, why, sort_order, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO habits (id, name, emoji, color, kind, archived, completion_type, target_count, unit, frequency, time_of_day, why, stack_after_id, stack_after_name, sort_order, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&id)
         .bind(&trimmed_name)
@@ -324,7 +343,10 @@ pub async fn habits_save(
         .bind(input.target_count as i64)
         .bind(&input.unit)
         .bind(&input.frequency)
+        .bind(time_of_day)
         .bind(&input.why)
+        .bind(&input.stack_after_id)
+        .bind(stack_after_name)
         .bind(max_order + 1)
         .bind(now)
         .bind(now)
@@ -343,7 +365,10 @@ pub async fn habits_save(
             target_count: input.target_count,
             unit: input.unit,
             frequency: input.frequency,
+            time_of_day: input.time_of_day.unwrap_or_else(|| "anytime".to_string()),
             why: input.why,
+            stack_after_id: input.stack_after_id,
+            stack_after_name: input.stack_after_name.unwrap_or_default(),
             sort_order: (max_order + 1) as i32,
             created_at: now,
             updated_at: now,
@@ -812,6 +837,9 @@ pub async fn ensure_habits_tables(pool: &sqlx::SqlitePool) -> Result<(), String>
         "ALTER TABLE habits ADD COLUMN why TEXT NOT NULL DEFAULT ''",
         "ALTER TABLE habits ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE habits ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE habits ADD COLUMN time_of_day TEXT NOT NULL DEFAULT 'anytime'",
+        "ALTER TABLE habits ADD COLUMN stack_after_id TEXT",
+        "ALTER TABLE habits ADD COLUMN stack_after_name TEXT NOT NULL DEFAULT ''",
     ];
 
     for stmt in habit_alter_statements {

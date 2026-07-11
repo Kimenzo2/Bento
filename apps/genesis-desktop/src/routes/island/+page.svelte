@@ -13,28 +13,6 @@
   import type { IslandItem } from "$lib/data/island-catalog";
   import { getModuleCatalogEntry } from "$lib/data/module-catalog";
 
-  /** Update island store from voice engine cross-window events. */
-  function applyVoiceState(state: {
-    id: string;
-    label: string;
-    icon: string;
-    status: string;
-    activityType?: string;
-  } | null) {
-    if (state) {
-      islandStore.activateModule({
-        id: state.id,
-        label: state.label,
-        icon: state.icon,
-        status: state.status,
-        activityType: state.activityType as "recording" | "timer" | "active" | "playback" | undefined,
-      });
-    } else if (islandStore.activeModule?.id === "voice") {
-      // Only clear the voice module — don't touch other active modules
-      islandStore.activeModule = null;
-    }
-  }
-
   function handleLaunch(item: IslandItem) {
     const entry = getModuleCatalogEntry(item.id);
     if (entry?.route) {
@@ -79,19 +57,7 @@
       const u3 = await listen("island:hide", () => {
         islandStore.collapse();
       });
-      const u4 = await listen<
-        | {
-            id: string;
-            label: string;
-            icon: string;
-            status: string;
-            activityType?: string;
-          }
-        | null
-      >("voice:island-state-changed", (event) => {
-        applyVoiceState(event.payload);
-      });
-      unlisteners.push(u1, u2, u3, u4);
+      unlisteners.push(u1, u2, u3);
     };
 
     setup();

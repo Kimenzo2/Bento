@@ -109,7 +109,10 @@ const VK_MEDIA_PREV_TRACK: u16 = 0xB1;
 
 #[cfg(target_os = "windows")]
 fn get_now_playing_windows() -> NowPlayingData {
+    use std::os::windows::process::CommandExt;
     use std::process::Command;
+
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
 
     let levels = get_audio_levels_internal();
 
@@ -142,6 +145,7 @@ fn get_now_playing_windows() -> NowPlayingData {
         .arg("-NoProfile")
         .arg("-Command")
         .arg(script)
+        .creation_flags(CREATE_NO_WINDOW)
         .output()
         .ok()
         .and_then(|o| {
@@ -506,15 +510,21 @@ pub fn activate_media_app(app_name: String) -> Result<(), String> {
 
     #[cfg(target_os = "windows")]
     {
+        use std::os::windows::process::CommandExt;
         use std::process::Command;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
         match app_name.to_lowercase().as_str() {
             "spotify" => {
                 let _ = Command::new("cmd")
+                    .creation_flags(CREATE_NO_WINDOW)
                     .args(["/C", "start", "spotify:"])
                     .spawn();
             }
             _ => {
-                let _ = Command::new("cmd").args(["/C", "start", &app_name]).spawn();
+                let _ = Command::new("cmd")
+                    .creation_flags(CREATE_NO_WINDOW)
+                    .args(["/C", "start", &app_name])
+                    .spawn();
             }
         }
         Ok(())

@@ -922,6 +922,14 @@
 
 <style>
   :global(.cd-root) { padding: 0 !important; gap: 0 !important; overflow: hidden; }
+  :global(.cd-root [data-slot="card"]) {
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface) 98%, var(--background)),
+        color-mix(in srgb, var(--surface) 86%, var(--background))
+      );
+  }
 
   /* ── Main scroll area ── */
   .cd-main {
@@ -1248,12 +1256,22 @@
 
   .cd-milestone-card {
     border-color: color-mix(in srgb, var(--cd-accent, var(--border)) 20%, var(--border));
-    background: color-mix(in srgb, var(--cd-accent, var(--surface)) 5%, var(--surface));
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--cd-accent, var(--surface)) 5%, var(--surface) 98%, var(--background)),
+        color-mix(in srgb, var(--cd-accent, var(--surface)) 3%, var(--surface) 86%, var(--background))
+      );
     transition: border-color 150ms, background 150ms;
   }
   .cd-milestone-card:hover {
     border-color: color-mix(in srgb, var(--cd-accent, var(--border)) 45%, var(--border));
-    background: color-mix(in srgb, var(--cd-accent, var(--surface)) 9%, var(--surface));
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--cd-accent, var(--surface)) 9%, var(--surface) 98%, var(--background)),
+        color-mix(in srgb, var(--cd-accent, var(--surface)) 5%, var(--surface) 86%, var(--background))
+      );
   }
   :global(.cd-milestone-card .card-content) { padding: 1.75rem !important; }
   .cd-progress-ring { width: 100px; height: 100px; flex-shrink: 0; }
