@@ -1,11 +1,41 @@
 {
   "version": 1,
   "skills": {
+    "better-colors": {
+      "source": "Kimenzo/skillsj",
+      "sourceType": "github",
+      "skillPath": "skills/better-colors/SKILL.md",
+      "computedHash": "a1a31d95c950b41a21549eec8534a121a0b73a1dd386048efeab0ac912f56b4d"
+    },
+    "better-typography": {
+      "source": "Kimenzo/skillsj",
+      "sourceType": "github",
+      "skillPath": "skills/better-typography/SKILL.md",
+      "computedHash": "f70768fd8bdb54eb6f788daee78ef54169a21ea92a1f286fa988b84b1c08872f"
+    },
+    "better-ui": {
+      "source": "Kimenzo/skillsj",
+      "sourceType": "github",
+      "skillPath": "skills/better-ui/SKILL.md",
+      "computedHash": "6c9fa842287018baf84cded48396ecec5c12e5ba151d47ac2a37fc008a5948db"
+    },
+    "emil-design-eng": {
+      "source": "emilkowalski/skills",
+      "sourceType": "github",
+      "skillPath": "skills/emil-design-eng/SKILL.md",
+      "computedHash": "ac3fc5b4e206488ffc408a2806f829bb2e5eaf518fded09be34790685c2b3a0d"
+    },
     "gabrielobholz-corner-smoothing": {
       "source": "gabrielobholz/corner-smoothing-skill",
       "sourceType": "github",
       "skillPath": "skills/gabrielobholz-corner-smoothing/SKILL.md",
       "computedHash": "fc0d6a8ac0ad7977127093796e34920396cfc91d97bc935bec6b3bc1d613bd1c"
+    },
+    "improve": {
+      "source": "shadcn/improve",
+      "sourceType": "github",
+      "skillPath": "skills/improve/SKILL.md",
+      "computedHash": "553713a1b9af40ec50c4018f75b8974bf728fe5abc8e125b748e2d718d5c31ea"
     }
   }
 }

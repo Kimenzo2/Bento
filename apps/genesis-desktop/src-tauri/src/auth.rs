@@ -21,7 +21,7 @@ use tauri_plugin_oauth::{start_with_config, OauthConfig};
 use tauri_plugin_opener::OpenerExt;
 use tokio::{
     sync::Mutex,
-    time::{sleep, Duration},
+    time::{sleep, timeout, Duration},
 };
 use url::Url;
 
@@ -136,6 +136,24 @@ const SUPABASE_REDIRECT_STATE_TTL_MS: i64 = 2 * 60 * 1000;
 const SUPABASE_REFRESH_CHECK_INTERVAL_MS: u64 = 5 * 60 * 1000;
 const SUPABASE_REFRESH_WINDOW_MS: i64 = 10 * 60 * 1000;
 const SUPABASE_OAUTH_PORT: u16 = 47832;
+
+// ── Connectivity monitor ──────────────────────────────────
+// Lightweight endpoints that return a minimal response (204 No Content or tiny body).
+// Used by the connectivity monitor to detect when network is restored.
+// Multiple fallback URLs ensure resilience across different network environments.
+const CONNECTIVITY_CHECK_URLS: &[&str] = &[
+    "https://clients3.google.com/generate_204",
+    "http://connectivitycheck.gstatic.com/generate_204",
+    "https://captive.apple.com/hotspot-detect.html",
+];
+
+/// Minimum interval between connectivity pings (fast detection when actively waiting).
+const CONNECTIVITY_MIN_INTERVAL_S: u64 = 5;
+/// Maximum interval — applied after sustained offline (battery/CPU friendly).
+const CONNECTIVITY_MAX_INTERVAL_S: u64 = 120;
+/// Number of consecutive offline pings before backing off to max interval.
+const CONNECTIVITY_BACKOFF_THRESHOLD: u64 = 6;
+
 const LOGIN_WINDOW_WIDTH: f64 = 400.0;
 const LOGIN_WINDOW_HEIGHT: f64 = 480.0;
 // Public desktop auth config. These values are safe to ship in the client.
@@ -758,6 +776,10 @@ struct AuthRuntimeState {
     session: Option<StoredAuthSession>,
     active_flow: Option<ActiveAuthFlow>,
     refresh_task_started: bool,
+    connectivity_task_started: bool,
+    /// Guards against concurrent token refresh from multiple paths
+    /// (connectivity monitor + refresh loop + explicit calls).
+    refresh_in_progress: bool,
 }
 
 impl Default for AuthRuntimeState {
@@ -767,6 +789,8 @@ impl Default for AuthRuntimeState {
             session: None,
             active_flow: None,
             refresh_task_started: false,
+            connectivity_task_started: false,
+            refresh_in_progress: false,
         }
     }
 }
@@ -847,9 +871,13 @@ impl AuthManager {
                             AuthBootstrapState::restored(session.user)
                         }
                         Err(_) => {
-                            self.clear_session().await;
-                            self.delete_session_from_keyring();
-                            AuthBootstrapState::login_required()
+                            // REFRESH FAILED — but DO NOT destroy the cached session.
+                            // The network may be flapping. Keep the keyring/file session
+                            // so the user stays logged in. The refresh loop will retry.
+                            eprintln!("[Auth] Bootstrap: refresh failed, keeping cached session from keyring.");
+                            self.set_session(session.clone()).await;
+                            self.ensure_refresh_loop(app.clone());
+                            AuthBootstrapState::restored(session.user)
                         }
                     }
                 } else {
@@ -1259,11 +1287,14 @@ impl AuthManager {
                 )
             }
             Err(error) => {
-                self.clear_session().await;
-                self.delete_session_from_keyring();
-                Err(format!(
-                    "Session expired. Sign in again before continuing: {error}"
-                ))
+                // REFRESH FAILED — but DO NOT destroy the session.
+                // Return the stale session anyway. The caller's downstream
+                // network calls will fail gracefully. The background refresh
+                // loop will retry on the next 5-minute tick.
+                eprintln!(
+                    "[Auth] current_valid_session: refresh failed, returning stale session: {error}"
+                );
+                Ok(session)
             }
         }
     }
@@ -1281,6 +1312,8 @@ impl AuthManager {
         state.session = None;
         state.active_flow = None;
         state.refresh_task_started = false;
+        state.connectivity_task_started = false;
+        state.refresh_in_progress = false;
     }
 
     /// Path to the file-based session fallback.
@@ -1348,7 +1381,7 @@ impl AuthManager {
         state.bootstrap = bootstrap;
     }
 
-    fn ensure_refresh_loop(&self, app: AppHandle) {
+    fn ensure_refresh_loop(&self, _app: AppHandle) {
         let manager = self.clone();
         tauri::async_runtime::spawn(async move {
             let should_start = {
@@ -1364,6 +1397,9 @@ impl AuthManager {
             if !should_start {
                 return;
             }
+
+            // Also start the connectivity monitor (has its own start-once guard)
+            manager.start_connectivity_monitor();
 
             loop {
                 sleep(Duration::from_millis(SUPABASE_REFRESH_CHECK_INTERVAL_MS)).await;
@@ -1381,6 +1417,16 @@ impl AuthManager {
                     continue;
                 }
 
+                // Check concurrency guard (connectivity monitor may be refreshing)
+                {
+                    let mut state = manager.inner.state.lock().await;
+                    if state.refresh_in_progress {
+                        eprintln!("[Auth] Refresh loop: skipped (refresh in progress by monitor)");
+                        continue;
+                    }
+                    state.refresh_in_progress = true;
+                }
+
                 match manager.try_refresh_session(&session.refresh_token).await {
                     Ok(Some(refreshed)) => {
                         if manager.persist_session(&refreshed).is_ok() {
@@ -1396,12 +1442,149 @@ impl AuthManager {
                         eprintln!("[Auth] Refresh loop: network error, will retry.");
                     }
                     Err(error) => {
-                        manager.clear_session().await;
-                        manager.delete_session_from_keyring();
-                        manager.emit_session_expired(&app, error).await;
+                        // REFRESH FAILED — but DO NOT destroy the session.
+                        // The network may be flapping. Keep the session in memory
+                        // so the user stays logged in. The loop continues and will
+                        // retry on the next tick (5 minutes).
+                        eprintln!(
+                            "[Auth] Refresh loop: server rejected refresh, but keeping session: {error}"
+                        );
+                    }
+                }
+
+                // Release concurrency guard
+                {
+                    let mut state = manager.inner.state.lock().await;
+                    state.refresh_in_progress = false;
+                }
+            }
+        });
+    }
+
+    fn start_connectivity_monitor(&self) {
+        let manager = self.clone();
+        tauri::async_runtime::spawn(async move {
+            // ── Start-once guard ────────────────────────────────────
+            {
+                let mut state = manager.inner.state.lock().await;
+                if state.connectivity_task_started {
+                    return;
+                }
+                state.connectivity_task_started = true;
+            }
+
+            eprintln!("[connectivity] Monitor started");
+
+            let client = match reqwest::Client::builder()
+                .timeout(Duration::from_secs(5))
+                .build()
+            {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("[connectivity] Failed to build HTTP client: {e}");
+                    return;
+                }
+            };
+
+            let mut was_offline = false;
+            let mut offline_count: u64 = 0;
+            let mut last_refresh_instant: Option<std::time::Instant> = None;
+            const FLAP_COOLDOWN: Duration = Duration::from_secs(30);
+
+            loop {
+                // ── Check connectivity with fallback URLs ───────────
+                let online = check_connectivity(&client).await;
+
+                if online && was_offline {
+                    // ── Network restored! ───────────────────────────
+                    // Check flap cooldown: skip refresh if we just refreshed
+                    let within_cooldown = last_refresh_instant
+                        .map(|last| last.elapsed() < FLAP_COOLDOWN)
+                        .unwrap_or(false);
+
+                    if within_cooldown {
+                        eprintln!("[connectivity] Network restored but within flap cooldown, skipping refresh.");
+                        // was_offline and offline_count are set correctly
+                        // at the bottom of the loop body — no need to touch them here.
+                    } else {
+                        eprintln!("[connectivity] Network restored — checking session...");
+                        if let Some(session) = manager.current_session().await {
+                            if session.expires_at_ms - unix_ms() <= 120_000 {
+                                // Prevent concurrent refresh (monitor + refresh loop racing)
+                                let should_refresh = {
+                                    let mut state = manager.inner.state.lock().await;
+                                    if state.refresh_in_progress {
+                                        false
+                                    } else {
+                                        state.refresh_in_progress = true;
+                                        true
+                                    }
+                                };
+
+                                if should_refresh {
+                                    eprintln!("[connectivity] Session near expiry, refreshing now...");
+                                    last_refresh_instant = Some(std::time::Instant::now());
+                                    match manager.try_refresh_session(&session.refresh_token).await {
+                                        Ok(Some(refreshed)) => {
+                                            let _ = manager.persist_session(&refreshed);
+                                            manager.set_session(refreshed.clone()).await;
+                                            manager
+                                                .set_bootstrap(AuthBootstrapState::restored(
+                                                    refreshed.user.clone(),
+                                                ))
+                                                .await;
+                                            eprintln!("[connectivity] Session refreshed on network restore.");
+                                        }
+                                        Ok(None) => {
+                                            eprintln!("[connectivity] Refresh blocked by network.");
+                                        }
+                                        Err(e) => {
+                                            eprintln!("[connectivity] Refresh failed on network restore: {e}");
+                                        }
+                                    }
+                                    // Release the concurrency guard
+                                    let mut state = manager.inner.state.lock().await;
+                                    state.refresh_in_progress = false;
+                                }
+                            } else {
+                                eprintln!("[connectivity] Session still fresh.");
+                            }
+                        }
+                        offline_count = 0;
+                    }
+                } else if !online {
+                    offline_count += 1;
+                }
+
+                was_offline = !online;
+
+                // ── Session cleared? (user signed out) ─────────────
+                {
+                    let state = manager.inner.state.lock().await;
+                    if state.session.is_none() {
+                        eprintln!("[connectivity] Session cleared, stopping.");
                         break;
                     }
                 }
+
+                // ── Exponential backoff with jitter ────────────────
+                // After sustained offline, back off to 2min interval.
+                // When online, use a shorter interval for fast detection.
+                let interval_s = if online {
+                    CONNECTIVITY_MIN_INTERVAL_S
+                } else {
+                    let backoff_steps = offline_count.min(CONNECTIVITY_BACKOFF_THRESHOLD);
+                    // SAFETY: backoff_steps is capped at CONNECTIVITY_BACKOFF_THRESHOLD (6),
+                // so 2^6 = 64 → well below u64 overflow. The .min(128) is a safety net.
+                let base_s = CONNECTIVITY_MIN_INTERVAL_S * (2u64.pow(backoff_steps as u32).min(128));
+                    base_s.min(CONNECTIVITY_MAX_INTERVAL_S)
+                };
+
+                // Add jitter: ±25% to desync from other timers
+                let jitter_factor = 0.75 + (rand::random::<f64>() * 0.5);
+                let actual_s = (interval_s as f64 * jitter_factor) as u64;
+
+                sleep(Duration::from_secs(actual_s.max(1))).await;
             }
         });
     }
@@ -1531,10 +1714,6 @@ impl AuthManager {
 
     async fn emit_error(&self, app: &AppHandle, message: String) {
         let _ = app.emit("auth:error", AuthErrorPayload { message });
-    }
-
-    async fn emit_session_expired(&self, app: &AppHandle, message: String) {
-        let _ = app.emit("auth:session_expired", AuthErrorPayload { message });
     }
 
     fn spawn_profile_sync(&self, session: StoredAuthSession) {
@@ -1750,59 +1929,107 @@ impl AuthManager {
     ///   Caller should keep the existing session and retry later.
     /// - `Err(String)` — permanent auth error (invalid/expired refresh token).
     ///   Caller should clear the session and force re-login.
+    ///
+    /// **Network-flap resilience:** On non-2xx response, waits 1 second and retries
+    /// exactly once. This handles the rare race where Supabase consumes the refresh
+    /// token (rotation) but the response is lost due to flapping WiFi. The brief delay
+    /// lets the connection stabilize and Supabase's token-reuse grace period (10s) to
+    /// pass so the retry gets fresh credentials.
     async fn try_refresh_session(
         &self,
         refresh_token: &str,
     ) -> Result<Option<StoredAuthSession>, String> {
-        let config = self.inner.config.clone();
-        let client = Client::builder()
-            .timeout(Duration::from_secs(15))
-            .build()
-            .map_err(|e| e.to_string())?;
-        let url = format!(
-            "{}/auth/v1/token?grant_type=refresh_token",
-            config.supabase_url.trim_end_matches('/')
-        );
-
-        let response = match client
-            .post(&url)
-            .header("apikey", &config.supabase_anon_key)
-            .header(
-                "Authorization",
-                format!("Bearer {}", config.supabase_anon_key),
-            )
-            .header("Content-Type", "application/json")
-            .json(&json!({
-                "refresh_token": refresh_token,
-            }))
-            .send()
-            .await
-        {
-            Ok(resp) => resp,
-            Err(error) => {
-                // Network error — transient. Don't clear session.
-                eprintln!("[Auth] Network error during token refresh: {error}");
-                return Ok(None);
+        let attempt = |token: String| async move {
+            // Helper: convert the builder error into the (bool, String) tuple
+            fn make_client() -> Result<Client, (bool, String)> {
+                Client::builder()
+                    .timeout(Duration::from_secs(15))
+                    .build()
+                    .map_err(|e| (false, e.to_string()))
             }
+            let config = self.inner.config.clone();
+            let client = make_client()?;
+            let url = format!(
+                "{}/auth/v1/token?grant_type=refresh_token",
+                config.supabase_url.trim_end_matches('/')
+            );
+
+            let response = match client
+                .post(&url)
+                .header("apikey", &config.supabase_anon_key)
+                .header(
+                    "Authorization",
+                    format!("Bearer {}", config.supabase_anon_key),
+                )
+                .header("Content-Type", "application/json")
+                .json(&json!({
+                    "refresh_token": &token,
+                }))
+                .send()
+                .await
+            {
+                Ok(resp) => resp,
+                Err(error) => {
+                    // Network error — transient.
+                    return Err((false, format!("{error}")));
+                }
+            };
+
+            if !response.status().is_success() {
+                let text = response.text().await.unwrap_or_default();
+                // Non-2xx — likely invalid/expired refresh token.
+                return Err((true, format!("Supabase refresh failed: {text}")));
+            }
+
+            let token_resp: SupabaseTokenResponse =
+                response.json().await.map_err(|error| (true, error.to_string()))?;
+
+            Ok(Some(StoredAuthSession {
+                access_token: token_resp.access_token,
+                refresh_token: token_resp.refresh_token,
+                expires_at_ms: token_resp
+                    .expires_at
+                    .map(|seconds| seconds.saturating_mul(1000))
+                    .unwrap_or_else(|| unix_ms() + (token_resp.expires_in.saturating_mul(1000))),
+                user: map_supabase_user(token_resp.user),
+            }))
         };
 
-        if !response.status().is_success() {
-            let text = response.text().await.unwrap_or_default();
-            // Permanent auth error (invalid/expired refresh token).
-            return Err(format!("Supabase refresh failed: {text}"));
+        // ── First attempt ────────────────────────────────────────────
+        let first = attempt(refresh_token.to_string()).await;
+
+        match first {
+            Ok(session) => return Ok(session),
+            Err((reached_server, msg)) => {
+                if !reached_server {
+                    // Pure network error (timeout, DNS, connection reset) — transient.
+                    eprintln!("[Auth] Network error during token refresh: {msg}");
+                    return Ok(None);
+                }
+
+                // Server responded with an error — could be a stale token after a
+                // network flap that consumed the token but lost the response.
+                // Wait 1 second and retry exactly once.
+                eprintln!(
+                    "[Auth] Refresh rejected by server, retrying once after 1s: {msg}"
+                );
+                tokio::time::sleep(Duration::from_secs(1)).await;
+            }
         }
 
-        let token: SupabaseTokenResponse =
-            response.json().await.map_err(|error| error.to_string())?;
-        Ok(Some(StoredAuthSession {
-            access_token: token.access_token,
-            refresh_token: token.refresh_token,
-            expires_at_ms: token
-                .expires_at
-                .map(|seconds| seconds.saturating_mul(1000))
-                .unwrap_or_else(|| unix_ms() + (token.expires_in.saturating_mul(1000))),
-            user: map_supabase_user(token.user),
-        }))
+        // ── Second (final) attempt ───────────────────────────────────
+        match attempt(refresh_token.to_string()).await {
+            Ok(session) => {
+                eprintln!("[Auth] Refresh succeeded on retry — network flap mitigated.");
+                Ok(session)
+            }
+            Err((_reached_server, msg)) => {
+                // Both attempts failed — genuinely invalid token.
+                eprintln!("[Auth] Refresh failed after retry: {msg}");
+                Err(msg)
+            }
+        }
+
     }
 
     async fn fetch_billing_profile(
@@ -2240,6 +2467,22 @@ pub(crate) fn effective_billing_tier(
     )
 }
 
+/// Check internet connectivity by probing multiple fallback endpoints.
+/// Returns `true` if ANY of the configured URLs returns a success (2xx).
+/// Uses short timeout per probe and stops at the first success.
+async fn check_connectivity(client: &reqwest::Client) -> bool {
+    const TIMEOUT: Duration = Duration::from_secs(4);
+    for url in CONNECTIVITY_CHECK_URLS {
+        let resp = timeout(TIMEOUT, client.get(*url).send()).await;
+        if let Ok(Ok(response)) = resp {
+            if response.status().is_success() {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 fn subscription_is_access_active(
     payment_provider: Option<&str>,
     subscription_status: Option<&str>,
@@ -2530,17 +2773,15 @@ pub async fn check_auth_session(
             Ok(AuthBootstrapState::restored(user.clone()))
         }
         Err(error) => {
-            // Permanent auth error — session is invalid.
+            // REFRESH FAILED — but DO NOT destroy the session.
+            // The network may be flapping (WiFi just came back). Keeping the
+            // cached session avoids a trust-breaking forced re-login. The
+            // background refresh loop (5-min interval) will retry and can
+            // handle eventual cleanup if the token is genuinely invalid.
             eprintln!(
-                "[Auth] check_auth_session: permanent refresh failure, clearing session: {error}"
+                "[Auth] check_auth_session: refresh failed, but keeping cached session: {error}"
             );
-            manager.clear_session().await;
-            manager.delete_session_from_keyring();
-            manager
-                .set_bootstrap(AuthBootstrapState::login_required())
-                .await;
-            manager.emit_session_expired(&app, error).await;
-            Ok(AuthBootstrapState::login_required())
+            Ok(AuthBootstrapState::restored(user.clone()))
         }
     }
 }

@@ -349,10 +349,12 @@ pub fn agent_set_size(app: AppHandle, width: f64, height: f64) -> Result<(), Str
     let w = width.max(AGENT_W as f64).min(max_w) as i32;
     let h = height.max(AGENT_H as f64).min(max_h) as i32;
 
-    // Only resize if dimensions actually changed (prevents resize loops).
+    // Only resize if dimensions changed significantly (prevents resize loops).
+    // 3px tolerance absorbs sub-pixel content flicker that causes rapid resize
+    // oscillation on WebView2 when content re-lays out after a native resize.
     let prev_w = AGENT_CURRENT_W.load(Ordering::Relaxed);
     let prev_h = AGENT_CURRENT_H.load(Ordering::Relaxed);
-    if w == prev_w && h == prev_h {
+    if (w - prev_w).abs() <= 3 && (h - prev_h).abs() <= 3 {
         return Ok(());
     }
 

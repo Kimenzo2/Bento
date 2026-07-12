@@ -399,7 +399,6 @@ async fn purge_local_user_content(pool: &SqlitePool) -> Result<(), String> {
         "sleep_goals",
         "dashboard_events",
         "performance_baselines",
-        "clipboard_items",
     ] {
         delete_from_table_if_exists(pool, table_name).await?;
     }

@@ -71,6 +71,10 @@ const CHANNEL_CAPACITY: usize = 50;
 /// Windows clipboard access is single-threaded — concurrent reads block
 /// each other and saturate the blocking thread pool, causing app freeze.
 static CLIPBOARD_SEM: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(1);
+/// Maximum number of clipboard items before auto-pruning oldest unpinned.
+const MAX_CLIPBOARD_ITEMS: i64 = 50_000;
+/// Run auto-prune check every N writer batches.
+const PRUNE_INTERVAL_BATCHES: u64 = 50;
 /// Tantivy index memory budget in bytes.
 // ─── Sensitive Detection Patterns ────────────────────────────────────────────
 
@@ -2009,6 +2013,120 @@ pub async fn clipboard_gc(
     Ok(removed)
 }
 
+// ─── Auto-Prune (Soft Cap) ───────────────────────────────────────────────────
+
+/// Auto-prune the clipboard when it exceeds MAX_CLIPBOARD_ITEMS.
+/// NEVER deletes pinned or favorited items. Only removes the oldest
+/// unpinned items (by created_at ASC) and cleans up their content files
+/// from disk. Also performs a WAL checkpoint to keep the DB file lean.
+pub async fn auto_prune_clipboard(app: &AppHandle, pool: &sqlx::SqlitePool) -> i64 {
+    let _start = Instant::now();
+
+    // Count total items
+    let total: i64 = match sqlx::query_scalar("SELECT COUNT(*) FROM clipboard_items")
+        .fetch_one(pool)
+        .await
+    {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("[clipboard::prune] count failed: {e}");
+            return 0;
+        }
+    };
+
+    if total <= MAX_CLIPBOARD_ITEMS {
+        log_timing("Clipboard::Prune", "under-limit", _start, format_args!("total={total}, max={MAX_CLIPBOARD_ITEMS}"));
+        return 0;
+    }
+
+    let excess = total - MAX_CLIPBOARD_ITEMS;
+    eprintln!(
+        "[clipboard::prune] total={total}, max={MAX_CLIPBOARD_ITEMS}, excess={excess}, removing oldest unpinned..."
+    );
+
+    // Collect hashes of items that will be deleted (for file cleanup)
+    let hashes: Vec<String> = match sqlx::query_scalar(
+        "SELECT content_hash FROM clipboard_items WHERE pinned = 0 AND favorite = 0 \
+         ORDER BY created_at ASC LIMIT ?"
+    )
+    .bind(excess)
+    .fetch_all(pool)
+    .await
+    {
+        Ok(h) => h,
+        Err(e) => {
+            eprintln!("[clipboard::prune] hash query failed: {e}");
+            return 0;
+        }
+    };
+
+    // Collect IDs for Tantivy cleanup
+    let ids: Vec<String> = match sqlx::query_scalar(
+        "SELECT id FROM clipboard_items WHERE pinned = 0 AND favorite = 0 \
+         ORDER BY created_at ASC LIMIT ?"
+    )
+    .bind(excess)
+    .fetch_all(pool)
+    .await
+    {
+        Ok(i) => i,
+        Err(e) => {
+            eprintln!("[clipboard::prune] id query failed: {e}");
+            return 0;
+        }
+    };
+
+    let pruned = hashes.len().min(ids.len()) as i64;
+    if pruned == 0 {
+        return 0;
+    }
+
+    // Delete the rows
+    match sqlx::query(
+        "DELETE FROM clipboard_items WHERE pinned = 0 AND favorite = 0 \
+         ORDER BY created_at ASC LIMIT ?"
+    )
+    .bind(excess)
+    .execute(pool)
+    .await
+    {
+        Ok(r) => {
+            let deleted = r.rows_affected() as i64;
+            eprintln!("[clipboard::prune] deleted {deleted} items");
+
+            // Clean up Tantivy index for each deleted item
+            if let Some(search) = app.try_state::<SearchService>() {
+                for id in &ids {
+                    let _ = search
+                        .delete_from_index("clipboard".to_string(), id.clone())
+                        .await;
+                }
+            }
+
+            // Clean up content files
+            if let Ok(data_dir) = app.path().app_data_dir() {
+                for hash in &hashes {
+                    if !hash.is_empty() {
+                        delete_content_file(&data_dir, hash).await;
+                    }
+                }
+            }
+
+            // Run a WAL checkpoint to keep the DB file lean after bulk delete
+            let _ = sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
+                .execute(pool)
+                .await;
+
+            log_timing("Clipboard::Prune", "completed", _start, format_args!("deleted={deleted}, excess={excess}"));
+            deleted
+        }
+        Err(e) => {
+            eprintln!("[clipboard::prune] delete failed: {e}");
+            0
+        }
+    }
+}
+
 // ─── Background Monitoring ───────────────────────────────────────────────────
 
 /// A change event from the clipboard poller.
@@ -2280,6 +2398,13 @@ async fn clipboard_writer_task(app: AppHandle, mut save_rx: mpsc::Receiver<Clipb
         let save_ms = save_start.elapsed().as_secs_f64() * 1000.0;
         total_save_time += save_start.elapsed();
         total_processed += 1;
+
+        // Run auto-prune every PRUNE_INTERVAL_BATCHES batches to enforce the
+        // 50,000-item soft cap. NEVER deletes pinned or favorited items.
+        if total_processed % PRUNE_INTERVAL_BATCHES == 0 {
+            let pool = state.db();
+            auto_prune_clipboard(&app, &pool).await;
+        }
 
         if save_ms > 50.0 {
             eprintln!("\u{26a0} [Clipboard::Writer] batch #{total_processed}: {batch_size} changes, save took {save_ms:.1}ms (total_save_time={:.1}s)",

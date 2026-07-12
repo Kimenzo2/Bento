@@ -39,7 +39,23 @@
   let choreoClass = $state<"goo-expand" | "goo-collapse" | "">("");
   // Track whether the current expand used choreography (for matching collapse)
   let usedChoreography = $state(false);
+  // Generation counter guards against stale RAF callbacks when expand/collapse
+  // are rapidly interleaved (e.g. collapse triggered before expand RAF fires).
+  let expandGeneration = $state(0);
+  // Guards the initial frame where mode=expanded but the Tauri window
+  // resize hasn't applied yet. The panel exists in the DOM but stays
+  // invisible until the goo animation starts via RAF.
+  let gooPending = $state(false);
+  let expandTimeout = $state<ReturnType<typeof setTimeout> | null>(null);
+  let collapseTimeout = $state<ReturnType<typeof setTimeout> | null>(null);
   let isIslandExpanded = $derived(islandStore.mode === "expanded" || choreoClass !== "");
+
+  // Must stay in sync with CSS transition duration (shell width/height: 0.55s)
+  // and the CSS @keyframes durations (goo-expand-keyframes: 500ms, goo-collapse-keyframes: 550ms).
+  const EXPAND_ANIM_MS = 500;
+  const COLLAPSE_ANIM_MS = 550;
+  const EXPAND_TIMEOUT_MS = EXPAND_ANIM_MS + 50;  // 50ms buffer after animation settles
+  const COLLAPSE_TIMEOUT_MS = COLLAPSE_ANIM_MS + 50;
 
   // SVG gooey filter — only active during transition to avoid perf hit
   let gooFilterActive = $state(false);
@@ -235,14 +251,26 @@
   function expandWithChoreography() {
     if (islandStore.mode === "expanded") return;
     usedChoreography = true;
-    choreoClass = "goo-expand";
-    gooFilterActive = true;
+    const gen = ++expandGeneration;
+    gooPending = true;
+    // Resize the Tauri window FIRST so the goo content isn't clipped
+    // inside the still-compact 260×50 window.
     islandStore.expand();
-    // Keep filter alive for the full detach + settle (~350ms), then remove.
-    setTimeout(() => {
+    // Wait one frame for the Tauri window resize to apply, THEN start
+    // the CSS goo animation. The panel exists in the DOM but stays
+    // hidden via CSS until gooPending is cleared below.
+    requestAnimationFrame(() => {
+      if (gen !== expandGeneration) return;
+      gooPending = false;
+      choreoClass = "goo-expand";
+      gooFilterActive = true;
+    });
+    expandTimeout = setTimeout(() => {
+      if (gen !== expandGeneration) return;
       choreoClass = "";
       gooFilterActive = false;
-    }, 380);
+      expandTimeout = null;
+    }, EXPAND_TIMEOUT_MS);
   }
 
   /**
@@ -252,14 +280,17 @@
    */
   function collapseWithChoreography() {
     if (islandStore.mode === "compact") return;
+    expandGeneration++; // cancel any pending expand RAF callback
+    gooPending = false;
     choreoClass = "goo-collapse";
     gooFilterActive = true;
-    setTimeout(() => {
+    collapseTimeout = setTimeout(() => {
       choreoClass = "";
       gooFilterActive = false;
       islandStore.collapse();
       usedChoreography = false;
-    }, 300);
+      collapseTimeout = null;
+    }, COLLAPSE_TIMEOUT_MS);
   }
 
   /** Collapse — dispatches to choreography or normal based on how we expanded. */
@@ -458,6 +489,14 @@
         delete (window as any).__stressIsland;
         delete (window as any).__stressIslandRapid;
       }
+      if (expandTimeout) {
+        clearTimeout(expandTimeout);
+        expandTimeout = null;
+      }
+      if (collapseTimeout) {
+        clearTimeout(collapseTimeout);
+        collapseTimeout = null;
+      }
       if (DIAG) console.log(`[island-diag] cleanup complete — keydown=${diagKeydownCount}, escape=${diagEscapeCount}, clickOutside=${diagClickListenerCount}, transitions=${diagTransitionCount}, interruptions=${diagTransitionInterruptions}`);
     };
   });
@@ -591,23 +630,36 @@
          liquid form connected by an organic stretched "neck" that
          appears automatically from the blur overlap.
          ════════════════════════════════════════════════════════ -->
-    <div class="goo-container" class:goo-active={gooFilterActive}>
+     <div class="goo-container" class:goo-active={gooFilterActive} style="--goo-expand-duration: {EXPAND_ANIM_MS}ms; --goo-collapse-duration: {COLLAPSE_ANIM_MS}ms">
       <!-- SVG filter: feGaussianBlur (soft edges) → feColorMatrix (crisp alpha with steep contrast, fusing overlapping blur into one connected shape) -->
       <svg class="goo-svg" aria-hidden="true">
         <defs>
-          <filter id="goo" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur" />
-            <feColorMatrix
-              in="blur"
-              mode="matrix"
-              values="1 0 0 0 0
-                      0 1 0 0 0
-                      0 0 1 0 0
-                      0 0 0 18 -7"
-              result="goo"
-            />
-            <feComposite in="SourceGraphic" in2="goo" operator="atop" />
-          </filter>
+            <!--
+              Goo filter: blur softens both shapes' edges; the color matrix
+              re-sharpens alpha with a steep slope so overlapping blurs fuse
+              into one connected form ("metaball" effect).
+
+              Alpha formula: A' = A * 19 - 8 → zero-cross at ~42% opacity.
+              Higher multiplier = tighter threshold = bridge forms later.
+              17-19 range avoids banding artifacts on Safari iOS (>20 triggers
+              banding). 19 -8 keeps the effective threshold close to the
+              original 22 -9 (zero-cross ~41%) while staying Safari-safe.
+              stdDeviation of 14 provides ~68px of effective blur overlap
+              for reliable connection at the animation's starting position.
+            -->
+            <filter id="goo" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="14" result="blur" />
+              <feColorMatrix
+                in="blur"
+                mode="matrix"
+                values="1 0 0 0 0
+                        0 1 0 0 0
+                        0 0 1 0 0
+                        0 0 0 19 -8"
+                result="goo"
+              />
+              <feComposite in="SourceGraphic" in2="goo" operator="over" />
+            </filter>
         </defs>
       </svg>
       <div
@@ -615,6 +667,7 @@
         class:island-notch--normal={!islandStore.activeModule}
         class:island-notch--hidden={!!islandStore.activeModule}
         class:island-notch--compact={islandStore.mode === "compact"}
+        class:notch-morph={choreoClass === "goo-expand"}
       >
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
@@ -676,6 +729,7 @@
         class:island-panel--widget={!!islandStore.activeModule}
         class:island-panel--task={islandStore.activeModule?.id === "tasks"}
         class:island-panel--shell={!islandStore.activeModule}
+        class:island-panel--goo-pending={gooPending}
         onmousedown={(e) => e.stopPropagation()}
         onclick={(e) => e.stopPropagation()}
       >
@@ -809,6 +863,9 @@
     .expanded-body {
       animation: none;
     }
+    .goo-active {
+      filter: none !important;
+    }
   }
 
   .island-shell--expanded {
@@ -900,6 +957,22 @@
     display: none;
   }
 
+  /* Keep the notch as a fixed absolute pill in compact mode so it doesn't
+     visually "resettle" when the shell shrinks from expanded → compact
+     after the goo collapse animation. Overrides --normal's static fill. */
+  .island-notch--compact {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 260px;
+    height: 40px;
+    background: #0d0d0d;
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-top: none;
+    border-radius: 0 0 14px 14px;
+  }
+
   .island-notch:hover {
     border-color: rgba(255, 255, 255, 0.12);
   }
@@ -983,6 +1056,11 @@
     border-radius: 0;
   }
 
+  .island-panel--goo-pending {
+    opacity: 0;
+    pointer-events: none;
+  }
+
   /* ════════════════════════════════════════════════════════════════════
      GOOEY DETACHMENT CONTAINER & SVG FILTER
      ════════════════════════════════════════════════════════════════════ */
@@ -1023,6 +1101,7 @@
      When inactive: zero filter cost, crisp normal rendering. */
   .goo-active {
     filter: url(#goo);
+    will-change: filter;
     /* Don't clip — the panel animates away from the notch during the gooey
        detachment; overflow:hidden would clip the moving panel and break the
        liquid-connection visual effect. The filter bounds are expanded to
@@ -1036,6 +1115,45 @@
   .goo-active .island-panel {
     background: transparent;
     border: none;
+    /* The panel's absolute position puts it below the notch. The goo animation
+       translates the inner .goo-panel upward to overlap the notch, creating the
+       liquid bridge. Without overflow:visible, the moving panel gets clipped at
+       the island-panel's border box, massively reducing the blur overlap (and
+       thus the goo effect strength). The blur needs ~68px of overlap for the
+       metaball connection at 14px stdDeviation; clipping to ~28px weakens it
+       significantly. */
+    overflow: visible;
+  }
+
+  /* ── Notch must stay visible during goo so the filter can fuse both shapes ── */
+  .goo-active .island-notch--hidden {
+    opacity: 1;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .goo-active .island-notch--normal {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 260px;
+    height: 40px;
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-top: none;
+    border-radius: 0 0 14px 14px;
+    background: #0d0d0d;
+  }
+
+  .notch-morph {
+    animation: notch-morph 500ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+
+  @keyframes notch-morph {
+    0%   { height: 40px; border-radius: 0 0 14px 14px; }
+    20%  { height: 90px; border-radius: 0 0 26px 26px; }
+    45%  { height: 60px; border-radius: 0 0 18px 18px; }
+    100% { height: 40px; border-radius: 0 0 14px 14px; }
   }
 
   /* ════════════════════════════════════════════════════════════════════
@@ -1051,15 +1169,29 @@
        then springs downward and outward to its floating position ── */
   @keyframes goo-expand-keyframes {
     0% {
-      transform: translateY(-44px) scale(0.59, 0.22);
+      transform: translateY(-44px) scale(0.55, 0.15);
+      opacity: 0;
+    }
+    15% {
+      transform: translateY(-40px) scale(0.62, 0.35);
+      opacity: 1;
+    }
+    35% {
+      transform: translateY(-30px) scale(0.75, 0.55);
+      opacity: 1;
+    }
+    60% {
+      transform: translateY(-14px) scale(0.9, 0.82);
+      opacity: 1;
     }
     100% {
       transform: translateY(0) scale(1, 1);
+      opacity: 1;
     }
   }
 
   .goo-expand {
-    animation: goo-expand-keyframes 350ms cubic-bezier(0.23, 1, 0.32, 1) both;
+    animation: goo-expand-keyframes var(--goo-expand-duration, 500ms) cubic-bezier(0.23, 1, 0.32, 1) both;
   }
 
   /* ── COLLAPSE: reverse — panel springs back into the notch,
@@ -1067,14 +1199,28 @@
   @keyframes goo-collapse-keyframes {
     0% {
       transform: translateY(0) scale(1, 1);
+      opacity: 1;
+    }
+    40% {
+      transform: translateY(-14px) scale(0.9, 0.82);
+      opacity: 1;
+    }
+    65% {
+      transform: translateY(-30px) scale(0.75, 0.55);
+      opacity: 0.8;
+    }
+    85% {
+      transform: translateY(-40px) scale(0.62, 0.35);
+      opacity: 0.5;
     }
     100% {
-      transform: translateY(-44px) scale(0.59, 0.22);
+      transform: translateY(-44px) scale(0.55, 0.15);
+      opacity: 0;
     }
   }
 
   .goo-collapse {
-    animation: goo-collapse-keyframes 280ms cubic-bezier(0.55, 0, 0.67, 1) both;
+    animation: goo-collapse-keyframes var(--goo-collapse-duration, 550ms) cubic-bezier(0.55, 0, 0.67, 1) both;
   }
 
   .compact-body {
