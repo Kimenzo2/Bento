@@ -48,11 +48,16 @@ export default defineConfig({
         "./src/lib/shell-theme.ts",
         "./src/lib/components/DatabaseUnlockGate.svelte",
       ],
-      // Pre-load the SvelteKit SSR runtime at startup so Vite's module
-      // runner doesn't hit the hard-coded 60-second IPC transport timeout
-      // when resolving it lazily through bun's .bun/ store junctions on
-      // Windows (each junction hop adds latency that can exceed the limit).
-      ssrFiles: ["./node_modules/@sveltejs/kit/src/runtime/server/index.js"],
+      // Pre-load the SvelteKit SSR runtime deps at startup so Vite's module
+      // runner doesn't hit the 60-second IPC transport timeout on Windows
+      // when resolving through bun's .bun/ store junctions.
+      // Must include the full chain: index.js -> page/index.js -> render.js -> hash.js
+      ssrFiles: [
+        "./node_modules/@sveltejs/kit/src/runtime/server/index.js",
+        "./node_modules/@sveltejs/kit/src/runtime/server/page/index.js",
+        "./node_modules/@sveltejs/kit/src/runtime/server/page/render.js",
+        "./node_modules/@sveltejs/kit/src/utils/hash.js",
+      ],
     },
   },
   // ── Custom dep cache (survives bun install) ────────────────────
@@ -97,11 +102,7 @@ export default defineConfig({
       // Zod schema validation
       "zod",
     ],
-    // Excluded packages intentionally omitted: Svelte component
-    // libraries like shadcn-svelte ship pre-compiled ESM and are
-    // handled correctly by default. Excluding them would force
-    // bare-import resolution which fails when the package doesn't
-    // export a root (".") entry.
+
   },
   build: {
     // Disable asset inlining — in a Tauri desktop app all assets are

@@ -16,11 +16,7 @@
   import Trash2Icon from "@lucide/svelte/icons/trash-2";
   import XIcon from "@lucide/svelte/icons/x";
 
-  import OpenAiIcon from "$lib/components/icons/OpenAiIcon.svelte";
-  import AnthropicIcon from "$lib/components/icons/AnthropicIcon.svelte";
-  import GeminiIcon from "$lib/components/icons/GeminiIcon.svelte";
-  import GrokIcon from "$lib/components/icons/GrokIcon.svelte";
-  import OllamaIcon from "$lib/components/icons/OllamaIcon.svelte";
+  import BrandIcon from "$lib/components/icons/BrandIcon.svelte";
 
   import {
     byokSettings,
@@ -194,17 +190,7 @@
     await updateByokSettings({ baseUrlOverrides: overrides });
   }
 
-  // ── Provider Icons ─────────────────────────────────────────────────────────
-  function providerIcon(provider: string) {
-    const icons: Record<string, any> = {
-      openai: OpenAiIcon,
-      anthropic: AnthropicIcon,
-      gemini: GeminiIcon,
-      grok: GrokIcon,
-      ollama: OllamaIcon,
-    };
-    return icons[provider] ?? KeyIcon;
-  }
+
 
   const providerColors: Record<string, string> = {
     openai: "#10a37f",
@@ -324,9 +310,9 @@
               aria-expanded={showProviderMenu ? 'true' : 'false'}
             >
               {#if $byokSettings.activeProvider}
-                {const Icon = providerIcon($byokSettings.activeProvider)}
-                <span class="byok-provider-dot" style={`background:${providerColors[$byokSettings.activeProvider] ?? "#666"}`}></span>
-                <Icon size={16} />
+                {const providerName = $byokSettings.activeProvider}
+                <span class="byok-provider-dot" style={`background:${providerColors[providerName] ?? "#666"}`}></span>
+                <BrandIcon name={providerName} size={16} class="byok-provider-svg" />
                 <span>{providerDisplayName($byokSettings.activeProvider)}</span>
                 {#if $byokSettings.activeModel}
                   <span class="byok-active-model-badge">{$byokSettings.activeModel}</span>
@@ -352,10 +338,8 @@
                       class:byok-select-option--active={$byokSettings.activeProvider === provider.provider}
                       onclick={() => void handleSelectProvider(provider.provider)}
                     >
-                      {#each [providerIcon(provider.provider)] as Icon}
-                        <span class="byok-provider-dot" style={`background:${providerColors[provider.provider] ?? "#666"}`}></span>
-                        <Icon size={14} />
-                      {/each}
+                      <span class="byok-provider-dot" style={`background:${providerColors[provider.provider] ?? "#666"}`}></span>
+                      <BrandIcon name={provider.provider} size={14} class="byok-provider-svg" />
                       <span>{provider.displayName}</span>
                       {#if provider.provider === "ollama"}
                         <span class="byok-provider-badge">Local</span>
@@ -466,12 +450,11 @@
 
           <div class="byok-provider-list">
             {#each $byokProviders as provider}
-              {const Icon = providerIcon(provider.provider)}
               <div class="byok-provider-card" class:byok-provider-card--expanded={addingKeyProvider === provider.provider || editingKeyProvider === provider.provider}>
                 <div class="byok-provider-card__main">
                   <div class="byok-provider-card__info">
                     <span class="byok-provider-dot byok-provider-dot--lg" style={`background:${providerColors[provider.provider] ?? "#666"}`}></span>
-                    <Icon size={18} />
+                    <BrandIcon name={provider.provider} size={18} class="byok-provider-svg" />
                     <div class="byok-provider-card__names">
                       <strong>{provider.displayName}</strong>
                       {#if provider.isConfigured}
@@ -1306,6 +1289,14 @@
   .byok-disclaimer__cost svg {
     color: #d97706;
     margin-top: 0.05rem;
+  }
+
+  /* ── Provider brand SVGs (native brand colors, no extra styling needed) ─ */
+  .byok-provider-svg {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   /* ── Animations ──────────────────────────────────────────────────────────── */

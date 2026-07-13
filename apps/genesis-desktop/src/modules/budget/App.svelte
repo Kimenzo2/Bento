@@ -7,6 +7,9 @@
     Calendar, DollarSign, BarChart3, Target, Receipt, CreditCard, LineChart,
     Landmark, TrendingUp as TrendingUpIcon
   } from 'lucide-svelte';
+  import BrandIcon from '$lib/components/icons/BrandIcon.svelte';
+  import { fade, fly } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
   import { getModuleSectionLabel, ensureModuleSection, moduleSectionStore } from '$lib/stores/module-sections.store';
   import ForecastingChart from './ForecastingChart.svelte';
   import * as Table from '$lib/components/ui/table/index.js';
@@ -94,18 +97,18 @@
     'Gemini': '#4285F4', 'DeepSeek': '#4D6BFE', 'GitHub Copilot': '#181717',
   };
   const POPULAR_SERVICES = [
-    { name: 'Netflix',         color: '#E50914', icon: '🎬' },
-    { name: 'Spotify',         color: '#1DB954', icon: '🎵' },
-    { name: 'YouTube Premium', color: '#FF0000', icon: '▶️' },
-    { name: 'Claude',          color: '#D97706', icon: '🤖' },
-    { name: 'ChatGPT',         color: '#10A37F', icon: '💬' },
-    { name: 'Cursor',          color: '#6366f1', icon: '⌨️' },
-    { name: 'iCloud+',         color: '#3693F3', icon: '☁️' },
-    { name: 'GitHub Copilot',  color: '#181717', icon: '🐙' },
-    { name: 'Notion',          color: '#000000', icon: '📝' },
-    { name: 'Figma',           color: '#F24E1E', icon: '🎨' },
-    { name: 'Linear',          color: '#5E6AD2', icon: '📋' },
-    { name: 'Duolingo',        color: '#58CC02', icon: '🦉' },
+    { name: 'Netflix',         color: '#E50914' },
+    { name: 'Spotify',         color: '#1DB954' },
+    { name: 'YouTube Premium', color: '#FF0000' },
+    { name: 'Claude',          color: '#D97706' },
+    { name: 'ChatGPT',         color: '#10A37F' },
+    { name: 'Cursor',          color: '#6366f1' },
+    { name: 'iCloud+',         color: '#3693F3' },
+    { name: 'GitHub Copilot',  color: '#181717' },
+    { name: 'Notion',          color: '#1C1C1C' },
+    { name: 'Figma',           color: '#F24E1E' },
+    { name: 'Linear',          color: '#5E6AD2' },
+    { name: 'Duolingo',        color: '#58CC02' },
   ];
 
   // ── Calendar constants (computed once, never change) ─────────────
@@ -138,6 +141,11 @@
   let showAddBill = $state(false);
   let showAddAi = $state(false);
   let showEditBudget = $state<string | null>(null);
+
+  // Submit loading (prevents double-submit + gives visual feedback)
+  let submittingTx = $state(false);
+  let submittingBill = $state(false);
+  let submittingAi = $state(false);
 
   // New transaction form
   let newTx = $state({ categoryId: '', amount: 0, txType: 'expense', note: '', dateKey: new Date().toISOString().slice(0, 10), project: '', recurring: false });
@@ -203,6 +211,7 @@
 
   // ── Actions ───────────────────────────────────────────────────────
   async function addTransaction() {
+    submittingTx = true;
     try {
       await invoke('budget_add_transaction', {
         tx: {
@@ -219,6 +228,7 @@
       resetNewTx();
       await Promise.all([loadTransactions(), loadOverview(), loadCategories()]);
     } catch (e) { error = String(e); }
+    submittingTx = false;
   }
 
   async function deleteTransaction(id: string) {
@@ -227,6 +237,7 @@
   }
 
   async function addBill() {
+    submittingBill = true;
     try {
       await invoke('budget_add_bill', {
         bill: { name: newBill.name, amount: newBill.amount, dueDay: newBill.dueDay, categoryId: newBill.categoryId || null, autoPay: newBill.autoPay }
@@ -235,6 +246,7 @@
       resetNewBill();
       await loadBills();
     } catch (e) { error = String(e); }
+    submittingBill = false;
   }
 
   async function toggleBillPaid(id: string) {
@@ -248,6 +260,7 @@
   }
 
   async function addAiCost() {
+    submittingAi = true;
     try {
       await invoke('budget_add_ai_cost', {
         entry: {
@@ -260,6 +273,7 @@
       resetNewAi();
       await loadAiCosts();
     } catch (e) { error = String(e); }
+    submittingAi = false;
   }
 
   async function deleteAiCost(id: string) {
@@ -337,6 +351,101 @@
     'Export':       { eyebrow: "Take your data",       title: "Download everything, keep it forever.",       subtitle: "CSV for your spreadsheet. PDF for your accountant. It's your data — take it." },
   };
   let currentHeader = $derived(sectionHeaders[selectedSection as string] ?? sectionHeaders['Overview']);
+
+  // ── Modal scrollbar + contain: layout manager ────────────────────
+  // When a modal opens we need to:
+  //   1. Remove `contain: layout paint` from `.desktop-workspace__main`
+  //      (it creates a containing block for `position: fixed` that breaks
+  //      the modal's centering — the modal appears "clipped at the scroll
+  //      position" because fixed resolves against the scrolled container).
+  //   2. Lock the main area scrollbar (overflow: hidden) and compensate
+  //      width with padding-right so the layout doesn't shift.
+  //
+  // We do NOT portal to <body> — the modal stays inside .bg-workspace
+  // so CSS variables (`--bg-surface`, `--bg-accent`, etc.) inherit
+  // naturally without needing to copy them programmatically.
+  //
+  // ── Modal scrollbar + contain + focus + a11y manager ────────────
+  // When a modal opens we need to:
+  //   1. Remove `contain: layout paint` from `.desktop-workspace__main`
+  //      (it creates a containing block for `position: fixed` that breaks
+  //      the modal's centering).
+  //   2. Lock the main area scrollbar (overflow: hidden) + paddingRight
+  //      compensation so the layout width doesn't shift.
+  //   3. Focus-trap: move focus into the modal (first focusable element)
+  //      and restore it on close.
+  //   4. Set aria-hidden on the main workspace so screen readers
+  //      don't traverse background content.
+  //
+  function modalLock(node: HTMLElement) {
+    // Save the element that had focus before the modal opened
+    const prevFocused = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+
+    const main = document.querySelector('.desktop-workspace__main');
+    const switcher = document.querySelector('.module-switcher');
+    const sidebar = document.querySelector('.desktop-sidebar');
+    let origContain = '';
+    if (main instanceof HTMLElement) {
+      // Use getComputedStyle for the actual CSS cascade value
+      origContain = getComputedStyle(main).contain;
+      main.style.contain = 'none';
+      
+      // Lock scrollbar with width compensation
+      const scrollbarWidth = main.offsetWidth - main.clientWidth;
+      main.style.overflow = 'hidden';
+      if (scrollbarWidth > 0) {
+        main.style.paddingRight = scrollbarWidth + 'px';
+      }
+
+      // Hide background from screen readers
+      main.setAttribute('aria-hidden', 'true');
+    }
+    // Module switcher is outside desktop-workspace__main (fixed position),
+    // so we need to hide it separately for a11y completeness
+    if (switcher instanceof HTMLElement) {
+      switcher.setAttribute('aria-hidden', 'true');
+    }
+    // Sidebar is also fixed, outside desktop-workspace__main
+    if (sidebar instanceof HTMLElement) {
+      sidebar.setAttribute('aria-hidden', 'true');
+    }
+
+    // Focus-trap: find the first focusable element inside the dialog
+    const focusable = node.querySelector<HTMLElement>(
+      'input, select, textarea, button, [tabindex]:not([tabindex="-1"])'
+    );
+    // Use requestAnimationFrame to let Svelte mount the inner elements first
+    requestAnimationFrame(() => {
+      focusable?.focus();
+    });
+
+    
+    return {
+      destroy() {
+        if (main instanceof HTMLElement) {
+          // Restore contain using the computed value
+          main.style.contain = origContain;
+          // Restore scrollbar
+          main.style.overflow = '';
+          main.style.paddingRight = '';
+          // Restore aria-hidden
+          main.removeAttribute('aria-hidden');
+        }
+        if (switcher instanceof HTMLElement) {
+          switcher.removeAttribute('aria-hidden');
+        }
+        if (sidebar instanceof HTMLElement) {
+          sidebar.removeAttribute('aria-hidden');
+        }
+        // Return focus to the trigger element
+        if (prevFocused && document.contains(prevFocused)) {
+          prevFocused.focus();
+        }
+      }
+    };
+  }
 
   // ── Init ──────────────────────────────────────────────────────────
   $effect(() => { loadAll(); });
@@ -512,10 +621,10 @@
 
       <!-- Add Transaction Modal -->
       {#if showAddTx}
-        <div class="bg-modal-overlay" onclick={() => showAddTx = false} onkeydown={(e) => { if (e.key === 'Escape') showAddTx = false; }}>
-          <div class="bg-modal-sheet" onclick={(e) => e.stopPropagation()} role="dialog" tabindex="-1">
+        <div class="bg-modal-overlay" use:modalLock in:fade={{ duration: 200 }} out:fade={{ duration: 150 }} onclick={() => showAddTx = false} onkeydown={(e) => { if (e.key === 'Escape') showAddTx = false; }}>
+          <div class="bg-modal-sheet" in:fly={{ y: 20, duration: 300, opacity: 0, easing: cubicOut }} out:fly={{ y: 20, duration: 200, opacity: 0 }} onclick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="bg-modal-title-tx" tabindex="-1">
             <div class="bg-modal-handle"></div>
-            <h3>New Transaction</h3>
+            <h3 id="bg-modal-title-tx">New Transaction</h3>
             <div class="bg-modal-form">
               <div class="bg-type-toggle">
                 <button class="bg-type-btn" class:bg-type-btn--active={newTx.txType === 'expense'} onclick={() => newTx.txType = 'expense'}>
@@ -554,8 +663,13 @@
                 <input type="checkbox" bind:checked={newTx.recurring} />
                 <span>Recurring transaction</span>
               </label>
-              <button class="bg-submit-btn" onclick={addTransaction}>
-                <CheckCircle2 size={16} /> Save Transaction
+              <button class="bg-submit-btn" onclick={addTransaction} disabled={submittingTx}>
+                {#if submittingTx}
+                  <span class="bg-spinner"></span>
+                {:else}
+                  <CheckCircle2 size={16} />
+                {/if}
+                Save Transaction
               </button>
             </div>
           </div>
@@ -705,7 +819,7 @@
                             onclick={() => selectedBill = selectedBill?.id === bill.id ? null : bill}
                             title="{bill.name} — €{bill.amount.toFixed(2)}"
                           >
-                            {bill.name.charAt(0).toUpperCase()}
+                            <BrandIcon name={bill.name} size={11} class="bg-brand-mono" />
                           </button>
                         {/each}
                         {#if dayBills.length > 2}
@@ -732,8 +846,8 @@
                 {const sbColor = SUB_COLORS[sb.name] ?? '#6b7280'}
                 <div class="subs-detail" style="--sb:{sbColor}">
                   <div class="subs-detail-hd">
-                    <div class="subs-detail-icon" style="background:{sbColor}">
-                      {sb.name.charAt(0).toUpperCase()}
+                    <div class="subs-detail-icon" style="background:{sbColor}18">
+                      <BrandIcon name={sb.name} size={18} />
                     </div>
                     <div class="subs-detail-meta">
                       <span class="subs-detail-name">{sb.name}</span>
@@ -801,7 +915,7 @@
                       onclick={() => selectedBill = selectedBill?.id === bill.id ? null : bill}
                     >
                       <div class="subs-row-icon" style="background:{SUB_COLORS[bill.name] ?? '#6b7280'}">
-                        {bill.name.charAt(0).toUpperCase()}
+                        <BrandIcon name={bill.name} size={13} class="bg-brand-mono" />
                       </div>
                       <div class="subs-row-info">
                         <span class="subs-row-name">{bill.name}</span>
@@ -832,10 +946,10 @@
 
       <!-- Add subscription modal — popular services grid -->
       {#if showAddBill}
-        <div class="bg-modal-overlay" onclick={() => showAddBill = false} onkeydown={(e) => { if (e.key === 'Escape') showAddBill = false; }}>
-          <div class="bg-modal-sheet" onclick={(e) => e.stopPropagation()} role="dialog" tabindex="-1">
+        <div class="bg-modal-overlay" use:modalLock in:fade={{ duration: 200 }} out:fade={{ duration: 150 }} onclick={() => showAddBill = false} onkeydown={(e) => { if (e.key === 'Escape') showAddBill = false; }}>
+          <div class="bg-modal-sheet" in:fly={{ y: 20, duration: 300, opacity: 0, easing: cubicOut }} out:fly={{ y: 20, duration: 200, opacity: 0 }} onclick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="bg-modal-title-bill" tabindex="-1">
             <div class="bg-modal-handle"></div>
-            <h3>Add Subscription</h3>
+            <h3 id="bg-modal-title-bill">Add Subscription</h3>
 
             <!-- Popular services -->
             <div class="bg-popular-services">
@@ -843,7 +957,7 @@
               <div class="bg-popular-grid">
                 {#each POPULAR_SERVICES as svc}
                   <button class="bg-popular-btn" onclick={() => { newBill.name = svc.name; }}>
-                    <span class="bg-popular-icon" style="background:{svc.color}">{svc.icon}</span>
+                    <span class="bg-popular-icon" style="background:{svc.color}"><BrandIcon name={svc.name} size={12} class="bg-brand-mono" /></span>
                     <span class="bg-popular-name">{svc.name}</span>
                   </button>
                 {/each}
@@ -876,8 +990,13 @@
                 <input type="checkbox" bind:checked={newBill.autoPay} />
                 <span>Auto-pay enabled</span>
               </label>
-              <button class="bg-submit-btn" onclick={addBill}>
-                <CheckCircle2 size={15} /> Add Subscription
+              <button class="bg-submit-btn" onclick={addBill} disabled={submittingBill}>
+                {#if submittingBill}
+                  <span class="bg-spinner"></span>
+                {:else}
+                  <CheckCircle2 size={15} />
+                {/if}
+                Add Subscription
               </button>
             </div>
           </div>
@@ -969,10 +1088,10 @@
       </section>
 
       {#if showAddAi}
-        <div class="bg-modal-overlay" onclick={() => showAddAi = false} onkeydown={(e) => { if (e.key === 'Escape') showAddAi = false; }}>
-          <div class="bg-modal-sheet" onclick={(e) => e.stopPropagation()} role="dialog" tabindex="-1">
+        <div class="bg-modal-overlay" use:modalLock in:fade={{ duration: 200 }} out:fade={{ duration: 150 }} onclick={() => showAddAi = false} onkeydown={(e) => { if (e.key === 'Escape') showAddAi = false; }}>
+          <div class="bg-modal-sheet" in:fly={{ y: 20, duration: 300, opacity: 0, easing: cubicOut }} out:fly={{ y: 20, duration: 200, opacity: 0 }} onclick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="bg-modal-title-ai" tabindex="-1">
             <div class="bg-modal-handle"></div>
-            <h3>Log AI Cost</h3>
+            <h3 id="bg-modal-title-ai">Log AI Cost</h3>
             <div class="bg-modal-form">
               <div class="bg-form-field">
                 <label for="ai-provider">Provider</label>
@@ -1014,7 +1133,14 @@
                 <label for="ai-note">Note</label>
                 <input id="ai-note" type="text" bind:value={newAi.note} placeholder="What was this for?" />
               </div>
-              <button class="bg-submit-btn" onclick={addAiCost}><CheckCircle2 size={16} /> Log Cost</button>
+              <button class="bg-submit-btn" onclick={addAiCost} disabled={submittingAi}>
+                {#if submittingAi}
+                  <span class="bg-spinner"></span>
+                {:else}
+                  <CheckCircle2 size={16} />
+                {/if}
+                Log Cost
+              </button>
             </div>
           </div>
         </div>
@@ -1145,12 +1271,36 @@
     --bg-border:             color-mix(in srgb, var(--border) 86%, transparent);
     --bg-ink:                var(--foreground);
     --bg-muted:              var(--muted);
+
+    /* Easing curves (Emil: stronger than built-in) */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+    /* Typography: no faked weights, font smoothing */
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
     height:     100%;
     background: var(--bg-bg);
     color:      var(--bg-ink);
     overflow:   hidden;
     font-family: var(--font-body);
     box-sizing: border-box;
+  }
+
+  /* Selection style (better-typography: subtle brand hint) */
+  :global(.bg-workspace) ::selection {
+    background: color-mix(in srgb, var(--bg-accent) 25%, transparent);
+    color: var(--bg-ink);
+  }
+
+  /* Interface chrome: user-select none on interactive controls */
+  :global(.bg-workspace) button,
+  :global(.bg-workspace) [role="button"],
+  :global(.bg-workspace) input,
+  :global(.bg-workspace) select {
+    user-select: none;
   }
 
   /* ── Page Layout ──────────────────────────────────────────────────── */
@@ -1173,8 +1323,8 @@
     display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
     color: var(--bg-muted); font-size: 0.82rem; letter-spacing: 0.18em; text-transform: uppercase;
   }
-  :global(.bg-page__intro) h1 { margin: 0; font-size: clamp(1.7rem, 2.5vw, 2.6rem); line-height: 1.05; }
-  :global(.bg-page__intro) p  { margin: 12px 0 0; max-width: 42rem; color: var(--bg-muted); font-size: 0.97rem; line-height: 1.55; }
+  :global(.bg-page__intro) h1 { margin: 0; font-size: clamp(1.7rem, 2.5vw, 2.6rem); line-height: 1.05; letter-spacing: -0.02em; text-wrap: balance; }
+  :global(.bg-page__intro) p  { margin: 12px 0 0; max-width: 42rem; color: var(--bg-muted); font-size: 0.97rem; line-height: 1.55; text-wrap: pretty; }
   :global(.bg-page__actions) { display: flex; gap: 12px; flex-shrink: 0; align-items: center; }
 
   /* ── Hero Grid ──────────────────────────────────────────────────── */
@@ -1212,7 +1362,7 @@
     border-radius: 14px; border: 1px solid color-mix(in srgb, var(--bg-border) 80%, transparent);
     background: color-mix(in srgb, var(--bg-surface-strong) 88%, transparent);
   }
-  :global(.bg-score-meta) strong { font-size: 0.93rem; font-weight: 600; }
+  :global(.bg-score-meta) strong { font-size: 0.93rem; font-weight: 600; font-variant-numeric: tabular-nums; }
   :global(.bg-score-meta) span   { color: var(--bg-muted); font-size: 0.72rem; }
 
   :global(.bg-hero-list) { display: grid; gap: 7px; }
@@ -1276,11 +1426,18 @@
   :global(.bg-tx-income-row) { background: color-mix(in srgb, var(--bg-green) 6%, transparent); }
   :global(.bg-icon-btn) {
     background: transparent; border: none; color: var(--bg-muted);
-    cursor: pointer; padding: 6px; border-radius: 8px;
-    transition: all 0.15s; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 160ms var(--ease-out), background 160ms var(--ease-out), color 160ms var(--ease-out);
+    -webkit-tap-highlight-color: transparent;
   }
-  :global(.bg-icon-btn:hover) { background: color-mix(in srgb, var(--bg-ink) 8%, var(--bg-surface)); color: var(--bg-ink); }
-  :global(.bg-icon-btn--danger:hover) { color: var(--bg-red); background: color-mix(in srgb, var(--bg-red) 12%, transparent); }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.bg-icon-btn:hover) { background: color-mix(in srgb, var(--bg-ink) 8%, var(--bg-surface)); color: var(--bg-ink); }
+    :global(.bg-icon-btn--danger:hover) { color: var(--bg-red); background: color-mix(in srgb, var(--bg-red) 12%, transparent); }
+  }
+  :global(.bg-icon-btn:active) {
+    transform: scale(0.96);
+  }
 
   /* ── Budget Groups ──────────────────────────────────────────────── */
   :global(.bg-budget-group) { margin-bottom: 24px; }
@@ -1292,16 +1449,25 @@
   :global(.bg-budget-card) {
     border-color: color-mix(in srgb, var(--bg-border) 88%, transparent);
   }
-  :global(.bg-budget-card:hover) { border-color: color-mix(in srgb, var(--bg-cat-color) 40%, var(--bg-border)); }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.bg-budget-card:hover) { border-color: color-mix(in srgb, var(--bg-cat-color) 40%, var(--bg-border)); }
+  }
   :global(.bg-budget-card-header) {
     display: flex; align-items: center; gap: 8px;
   }
   :global(.bg-budget-cat-name) { flex: 1; font-size: 14px; font-weight: 600; }
   :global(.bg-budget-cat-amount) { font-size: 13px; font-weight: 700; }
   :global(.bg-edit-budget-btn) {
-    background: none; border: none; color: var(--bg-muted); cursor: pointer; transition: color 0.2s;
+    background: none; border: none; color: var(--bg-muted); cursor: pointer;
+    transition: transform 160ms var(--ease-out), color 160ms var(--ease-out);
+    -webkit-tap-highlight-color: transparent;
   }
-  :global(.bg-edit-budget-btn:hover) { color: var(--bg-ink); }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.bg-edit-budget-btn:hover) { color: var(--bg-ink); }
+  }
+  :global(.bg-edit-budget-btn:active) {
+    transform: scale(0.96);
+  }
   :global(.bg-budget-bar-track) {
     height: 6px;
     background: color-mix(in srgb, var(--bg-border) 70%, transparent);
@@ -1324,8 +1490,13 @@
     padding: 6px 10px; border-radius: 8px; color: var(--bg-ink); font-size: 13px;
   }
   :global(.bg-save-mini) {
-    padding: 6px 14px; border-radius: 8px; border: none;
+    padding: 8px 16px; height: 40px; border-radius: 10px; border: none;
     background: var(--bg-accent); color: white; font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: transform 160ms var(--ease-out), background 160ms var(--ease-out);
+    -webkit-tap-highlight-color: transparent;
+  }
+  :global(.bg-save-mini:active) {
+    transform: scale(0.96);
   }
 
   /* ── Loading & Empty ────────────────────────────────────────────── */
@@ -1353,7 +1524,13 @@
     background: color-mix(in srgb, var(--bg-red) 12%, transparent); color: var(--bg-red); font-size: 13px;
   }
   :global(.bg-dismiss-btn) {
-    margin-left: auto; background: none; border: none; color: inherit; cursor: pointer; font-size: 18px; padding: 0 4px;
+    margin-left: auto; background: none; border: none; color: inherit; cursor: pointer; font-size: 18px;
+    width: 32px; height: 32px; display: grid; place-items: center;
+    transition: transform 160ms var(--ease-out);
+    -webkit-tap-highlight-color: transparent;
+  }
+  :global(.bg-dismiss-btn:active) {
+    transform: scale(0.96);
   }
 
   /* ── AI Costs ──────────────────────────────────────────────────── */
@@ -1365,15 +1542,23 @@
   }
   :global(.bg-ai-provider) { display: flex; align-items: center; gap: 8px; }
   :global(.bg-ai-name) { font-size: 13px; font-weight: 600; }
-  :global(.bg-ai-total) { font-size: 22px; font-weight: 700; }
+  :global(.bg-ai-total) { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
   :global(.bg-ai-tokens) { font-size: 12px; color: var(--bg-muted); display: flex; flex-direction: column; gap: 2px; }
   :global(.bg-ai-months) { font-size: 11px; }
 
   /* ── Export Cards ──────────────────────────────────────────────── */
   :global(.bg-export-card) {
-    cursor: pointer; transition: all 0.2s; border-color: var(--bg-border);
+    cursor: pointer;
+    transition: transform 160ms var(--ease-out), border-color 160ms var(--ease-out);
+    border-color: var(--bg-border);
+    -webkit-tap-highlight-color: transparent;
   }
-  :global(.bg-export-card:hover) { border-color: var(--bg-accent); }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.bg-export-card:hover) { border-color: var(--bg-accent); }
+  }
+  :global(.bg-export-card:active) {
+    transform: scale(0.97);
+  }
   :global(.bg-export-card) p { margin: 0; font-size: 13px; color: var(--bg-muted); line-height: 1.5; }
   :global(.bg-export-hint) { font-size: 11px; color: var(--bg-muted); font-style: italic; }
 
@@ -1383,16 +1568,20 @@
     background: color-mix(in srgb, var(--bg-bg) 70%, transparent);
     backdrop-filter: blur(4px); z-index: 100;
     display: flex; align-items: center; justify-content: center;
-    animation: bg-fade-in 0.2s ease;
   }
-  @keyframes bg-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
   :global(.bg-modal-sheet) {
     background: var(--bg-surface); border: 1px solid var(--bg-border);
     width: min(440px, 92vw); max-height: 85vh; overflow-y: auto;
     border-radius: 24px; padding: 24px 28px 32px;
-    animation: bg-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
-  @keyframes bg-slide-up { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  :global(.bg-modal-sheet)::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
   :global(.bg-modal-handle) {
     width: 40px; height: 4px; background: var(--bg-border); border-radius: 4px; margin: 0 auto 20px;
   }
@@ -1416,20 +1605,51 @@
   :global(.bg-type-toggle) { display: flex; gap: 8px; }
   :global(.bg-type-btn) {
     flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
-    padding: 10px; border-radius: 10px; border: 1px solid var(--bg-border);
+    height: 40px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--bg-border);
     background: transparent; color: var(--bg-muted); font-size: 13px; font-weight: 600;
-    cursor: pointer; transition: all 0.2s;
+    cursor: pointer;
+    transition: transform 160ms var(--ease-out), background 160ms var(--ease-out), border-color 160ms var(--ease-out);
+    -webkit-tap-highlight-color: transparent;
   }
   :global(.bg-type-btn--active) {
     background: var(--bg-accent); color: white; border-color: var(--bg-accent);
   }
+  :global(.bg-type-btn:active) {
+    transform: scale(0.96);
+  }
   :global(.bg-submit-btn) {
     display: flex; align-items: center; justify-content: center; gap: 8px;
-    padding: 12px; border-radius: 12px; border: none;
+    padding: 12px; min-height: 44px; border-radius: 12px; border: none;
     background: var(--bg-accent); color: white; font-size: 14px; font-weight: 700;
-    cursor: pointer; margin-top: 4px; transition: background 0.2s;
+    cursor: pointer; margin-top: 4px;
+    transition: transform 160ms var(--ease-out), background 160ms var(--ease-out);
+    -webkit-tap-highlight-color: transparent;
   }
-  :global(.bg-submit-btn:hover) { background: color-mix(in srgb, var(--bg-accent) 85%, black); }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.bg-submit-btn:hover) { background: color-mix(in srgb, var(--bg-accent) 85%, #0a0a0a); }
+  }
+  :global(.bg-submit-btn:active) {
+    transform: scale(0.96);
+  }
+  :global(.bg-submit-btn:disabled) {
+    opacity: 0.7;
+    cursor: default;
+    pointer-events: none;
+  }
+  :global(.bg-submit-btn:disabled:active) {
+    transform: none;
+  }
+
+  /* ── Submit spinner ─────────────────────────────────────────────── */
+  :global(.bg-spinner) {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    border: 2px solid color-mix(in srgb, white 60%, transparent);
+    border-top-color: white;
+    animation: bg-spin 0.6s linear infinite;
+  }
 
   /* ── Bills — Subscription Day Calendar ────────────────────────── */
   :global(.subs-shell) {
@@ -1451,7 +1671,7 @@
   :global(.subs-badge--paid) { background: color-mix(in srgb, var(--bg-green) 15%, transparent); color: var(--bg-green); }
   :global(.subs-badge--unpaid) { background: color-mix(in srgb, var(--bg-amber) 15%, transparent); color: var(--bg-amber); }
   :global(.subs-month-total) { text-align: right; }
-  :global(.subs-total-amt) { font-size: 22px; font-weight: 800; }
+  :global(.subs-total-amt) { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
   :global(.subs-total-label) { font-size: 11px; color: var(--bg-muted); margin-left: 4px; }
   :global(.subs-dow) {
     display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
@@ -1462,7 +1682,7 @@
   }
   :global(.subs-cell) {
     aspect-ratio: 1; display: flex; flex-direction: column; align-items: center;
-    padding: 4px; border-radius: 12px; position: relative; gap: 2px;
+    padding: 4px; border-radius: 16px; position: relative; gap: 2px;
   }
   :global(.subs-cell--empty) { opacity: 0; }
   :global(.subs-cell--today) { background: color-mix(in srgb, var(--bg-accent) 12%, transparent); }
@@ -1475,21 +1695,34 @@
     display: flex; gap: 2px; flex-wrap: wrap; justify-content: center;
   }
   :global(.subs-sqircle) {
-    width: 22px; height: 22px; border-radius: 8px; border: none;
+    width: 26px; height: 26px; border-radius: 999px; border: none;
     color: white; font-size: 10px; font-weight: 700; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    transition: transform 0.15s, opacity 0.15s;
+    transition: transform 160ms var(--ease-out), opacity 160ms var(--ease-out);
+    -webkit-tap-highlight-color: transparent;
   }
-  :global(.subs-sqircle:hover) { transform: scale(1.15); }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.subs-sqircle:hover) { transform: scale(1.15); }
+  }
   :global(.subs-sqircle--paid) { opacity: 0.4; }
+  :global(.subs-sqircle:active) {
+    transform: scale(0.96);
+  }
   :global(.subs-overflow) { font-size: 9px; color: var(--bg-muted); font-weight: 600; }
   :global(.subs-add-btn) {
     display: flex; align-items: center; gap: 6px; justify-content: center;
-    padding: 10px; border-radius: 12px; border: 1px dashed var(--bg-border);
+    padding: 10px; min-height: 40px; border-radius: 12px; border: 1px dashed var(--bg-border);
     background: transparent; color: var(--bg-muted); font-size: 13px; font-weight: 600;
-    cursor: pointer; transition: all 0.2s; margin-top: auto;
+    cursor: pointer; margin-top: auto;
+    transition: transform 160ms var(--ease-out), border-color 160ms var(--ease-out), color 160ms var(--ease-out);
+    -webkit-tap-highlight-color: transparent;
   }
-  :global(.subs-add-btn:hover) { border-color: var(--bg-accent); color: var(--bg-accent); }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.subs-add-btn:hover) { border-color: var(--bg-accent); color: var(--bg-accent); }
+  }
+  :global(.subs-add-btn:active) {
+    transform: scale(0.96);
+  }
 
   :global(.subs-side) { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
   :global(.subs-detail) {
@@ -1499,19 +1732,26 @@
   }
   :global(.subs-detail-hd) { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
   :global(.subs-detail-icon) {
-    width: 40px; height: 40px; border-radius: 12px;
+    width: 40px; height: 40px; border-radius: 999px;
     display: flex; align-items: center; justify-content: center;
-    color: white; font-size: 16px; font-weight: 700;
+    font-size: 16px; font-weight: 700;
   }
   :global(.subs-detail-meta) { flex: 1; }
   :global(.subs-detail-name) { font-size: 16px; font-weight: 700; display: block; }
   :global(.subs-detail-cycle) { font-size: 12px; color: var(--bg-muted); }
   :global(.subs-close) {
-    width: 28px; height: 28px; border-radius: 999px; border: none;
+    width: 36px; height: 36px; border-radius: 999px; border: none;
     background: transparent; color: var(--bg-muted); font-size: 18px;
     cursor: pointer; display: grid; place-items: center;
+    transition: transform 160ms var(--ease-out), background 160ms var(--ease-out);
+    -webkit-tap-highlight-color: transparent;
   }
-  :global(.subs-close:hover) { background: color-mix(in srgb, var(--bg-ink) 8%, transparent); }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.subs-close:hover) { background: color-mix(in srgb, var(--bg-ink) 8%, transparent); }
+  }
+  :global(.subs-close:active) {
+    transform: scale(0.96);
+  }
   :global(.subs-detail-rows) { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
   :global(.subs-dr) {
     display: flex; justify-content: space-between; font-size: 13px;
@@ -1523,21 +1763,35 @@
   :global(.subs-detail-actions) { display: flex; gap: 8px; }
   :global(.subs-pay-btn) {
     flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
-    padding: 10px; border-radius: 12px; border: 1px solid var(--bg-border);
+    padding: 10px; min-height: 40px; border-radius: 12px; border: 1px solid var(--bg-border);
     background: transparent; color: var(--bg-ink); font-size: 13px; font-weight: 600;
-    cursor: pointer; transition: all 0.2s;
+    cursor: pointer;
+    transition: transform 160ms var(--ease-out), border-color 160ms var(--ease-out), color 160ms var(--ease-out);
+    -webkit-tap-highlight-color: transparent;
   }
-  :global(.subs-pay-btn:hover) { border-color: var(--bg-green); color: var(--bg-green); }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.subs-pay-btn:hover) { border-color: var(--bg-green); color: var(--bg-green); }
+  }
   :global(.subs-pay-btn--paid) {
     background: color-mix(in srgb, var(--bg-green) 12%, transparent);
     border-color: var(--bg-green); color: var(--bg-green);
   }
-  :global(.subs-del-btn) {
-    width: 40px; border-radius: 12px; border: 1px solid var(--bg-border);
-    background: transparent; color: var(--bg-muted); cursor: pointer;
-    display: grid; place-items: center; transition: all 0.2s;
+  :global(.subs-pay-btn:active) {
+    transform: scale(0.96);
   }
-  :global(.subs-del-btn:hover) { border-color: var(--bg-red); color: var(--bg-red); }
+  :global(.subs-del-btn) {
+    width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--bg-border);
+    background: transparent; color: var(--bg-muted); cursor: pointer;
+    display: grid; place-items: center;
+    transition: transform 160ms var(--ease-out), border-color 160ms var(--ease-out), color 160ms var(--ease-out);
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.subs-del-btn:hover) { border-color: var(--bg-red); color: var(--bg-red); }
+  }
+  :global(.subs-del-btn:active) {
+    transform: scale(0.96);
+  }
 
   :global(.subs-analytics) {
     padding: 18px; border-radius: 20px;
@@ -1548,24 +1802,31 @@
   :global(.subs-stats) { display: grid; gap: 8px; margin-bottom: 16px; }
   :global(.subs-stat) {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 8px 12px; border-radius: 10px;
+    padding: 8px 12px; border-radius: 12px;
     background: color-mix(in srgb, var(--bg-surface-strong) 88%, transparent);
   }
   :global(.subs-stat--full) { grid-column: 1 / -1; }
   :global(.subs-stat-lbl) { font-size: 12px; color: var(--bg-muted); }
-  :global(.subs-stat-val) { font-size: 14px; font-weight: 700; }
+  :global(.subs-stat-val) { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
   :global(.subs-list) { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
   :global(.subs-row) {
     display: flex; align-items: center; gap: 10px; width: 100%;
     padding: 10px 12px; border-radius: 12px; border: 1px solid transparent;
     background: color-mix(in srgb, var(--bg-surface-strong) 88%, transparent);
-    cursor: pointer; transition: all 0.15s; text-align: left; font: inherit;
+    cursor: pointer; text-align: left; font: inherit;
+    transition: transform 160ms var(--ease-out), border-color 160ms var(--ease-out);
+    -webkit-tap-highlight-color: transparent;
   }
-  :global(.subs-row:hover) { border-color: color-mix(in srgb, var(--bg-border) 88%, transparent); }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.subs-row:hover) { border-color: color-mix(in srgb, var(--bg-border) 88%, transparent); }
+  }
   :global(.subs-row--sel) { border-color: var(--bg-accent); }
-  :global(.subs-row--paid) { opacity: 0.5; }
+  :global(.subs-row--paid) { opacity: 0.72; }
+  :global(.subs-row:active) {
+    transform: scale(0.97);
+  }
   :global(.subs-row-icon) {
-    width: 28px; height: 28px; border-radius: 8px;
+    width: 28px; height: 28px; border-radius: 999px;
     display: flex; align-items: center; justify-content: center;
     color: white; font-size: 12px; font-weight: 700; flex-shrink: 0;
   }
@@ -1573,7 +1834,7 @@
   :global(.subs-row-name) { font-size: 13px; font-weight: 600; display: block; }
   :global(.subs-row-due) { font-size: 11px; color: var(--bg-muted); }
   :global(.subs-row-right) { display: flex; align-items: center; gap: 6px; }
-  :global(.subs-row-amt) { font-size: 14px; font-weight: 700; }
+  :global(.subs-row-amt) { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
   :global(.subs-empty) {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 8px; padding: 30px 20px; color: var(--bg-muted); text-align: center;
@@ -1587,14 +1848,72 @@
   }
   :global(.bg-popular-grid) { display: flex; flex-wrap: wrap; gap: 6px; }
   :global(.bg-popular-btn) {
-    display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+    display: flex; align-items: center; gap: 6px; padding: 6px 12px; min-height: 32px;
     border: 1px solid var(--bg-border); border-radius: 100px;
     background: color-mix(in srgb, var(--bg-surface-strong) 88%, transparent);
-    color: var(--bg-ink); font-size: 12px; cursor: pointer; transition: all 0.15s;
+    color: var(--bg-ink); font-size: 12px; cursor: pointer;
+    transition: transform 160ms var(--ease-out), border-color 160ms var(--ease-out), background 160ms var(--ease-out);
+    -webkit-tap-highlight-color: transparent;
   }
-  :global(.bg-popular-btn:hover) { border-color: var(--bg-accent); }
-  :global(.bg-popular-icon) { font-size: 14px; }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.bg-popular-btn:hover) { border-color: var(--bg-accent); }
+  }
+  :global(.bg-popular-btn:active) {
+    transform: scale(0.96);
+  }
+  :global(.bg-popular-icon) {
+    width: 22px; height: 22px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ── Brand SVG mono filter (white on brand-color bg) ──────────── */
+  :global(.bg-brand-mono) {
+    filter: brightness(0) invert(1);
+  }
   :global(.bg-popular-name) { font-weight: 500; }
+
+  /* ── Reduced Motion ────────────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    :global(.bg-icon-btn),
+    :global(.bg-edit-budget-btn),
+    :global(.bg-save-mini),
+    :global(.bg-type-btn),
+    :global(.bg-submit-btn),
+    :global(.bg-export-card),
+    :global(.bg-dismiss-btn),
+    :global(.bg-popular-btn),
+    :global(.subs-sqircle),
+    :global(.subs-add-btn),
+    :global(.subs-close),
+    :global(.subs-pay-btn),
+    :global(.subs-del-btn),
+    :global(.subs-row) {
+      transition: none !important;
+    }
+    :global(.bg-icon-btn:active),
+    :global(.bg-edit-budget-btn:active),
+    :global(.bg-save-mini:active),
+    :global(.bg-type-btn:active),
+    :global(.bg-submit-btn:active),
+    :global(.bg-export-card:active),
+    :global(.bg-dismiss-btn:active),
+    :global(.bg-popular-btn:active),
+    :global(.subs-sqircle:active),
+    :global(.subs-add-btn:active),
+    :global(.subs-close:active),
+    :global(.subs-pay-btn:active),
+    :global(.subs-del-btn:active),
+    :global(.subs-row:active) {
+      transform: none !important;
+    }
+    :global(.bg-loading__orb) {
+      animation: none;
+    }
+    :global(.subs-sqircle:hover) {
+      transform: none !important;
+    }
+  }
 
   /* ── Responsive ────────────────────────────────────────────────── */
   @media (max-width: 768px) {
