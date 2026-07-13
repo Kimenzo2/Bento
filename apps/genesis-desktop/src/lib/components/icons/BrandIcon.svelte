@@ -21,6 +21,7 @@
     siDeepseek,
     siGooglegemini,
   } from 'simple-icons';
+  import { EXTRA_SVGS } from './brand-svgs';
 
   let {
     name = '',
@@ -84,6 +85,18 @@
   {@html renderSvg(siHeadspace.svg, size, className, name)}
 {:else if key === 'gemini'}
   {@html renderSvg(siGooglegemini.svg, size, className, name)}
+{:else if key === 'chatgpt' || key === 'openai' || key === 'openaichatgpt'}
+  {@html renderSvg(EXTRA_SVGS.openai, size, className, name)}
+{:else if key === 'grok'}
+  {@html renderSvg(EXTRA_SVGS.grok, size, className, name)}
+{:else if key === 'slack'}
+  {@html renderSvg(EXTRA_SVGS.slack, size, className, name)}
+{:else if key === 'linkedin'}
+  {@html renderSvg(EXTRA_SVGS.linkedin, size, className, name)}
+{:else if key === 'adobe' || key === 'adobecreativecloud'}
+  {@html renderSvg(EXTRA_SVGS.adobe, size, className, name)}
+{:else if key === 'midjourney'}
+  {@html renderSvg(EXTRA_SVGS.midjourney, size, className, name)}
 {:else}
   <!-- Fallback: first letter when no SVG available -->
   <span style="font-size: {size}px; line-height: 1; font-weight: 700;" class={className}>
