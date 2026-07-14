@@ -67,7 +67,7 @@ export default function ThemeToggle() {
         color: 'var(--color-ink)',
         border: '1px solid var(--color-border)',
         cursor: 'pointer',
-        transition: 'background 0.15s ease, color 0.15s ease',
+        transition: 'background 200ms cubic-bezier(0.23, 1, 0.32, 1), color 200ms cubic-bezier(0.23, 1, 0.32, 1)',
         fontSize: '1rem',
         lineHeight: 1,
       }}

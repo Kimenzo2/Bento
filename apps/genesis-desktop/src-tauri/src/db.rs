@@ -751,6 +751,17 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), String> {
         r#"
         CREATE INDEX IF NOT EXISTS idx_tasks_sort_order ON tasks(sort_order ASC)
         "#,
+        // Batch 12: Wiki links / backlinks
+        r#"
+        CREATE TABLE IF NOT EXISTS note_links (id TEXT PRIMARY KEY, source_note_id TEXT NOT NULL REFERENCES note_objects(id) ON DELETE CASCADE, target_note_id TEXT REFERENCES note_objects(id) ON DELETE SET NULL, target_title TEXT NOT NULL, created_at INTEGER NOT NULL);
+        CREATE INDEX IF NOT EXISTS idx_note_links_target ON note_links(target_note_id);
+        CREATE INDEX IF NOT EXISTS idx_note_links_target_title ON note_links(target_title);
+        CREATE INDEX IF NOT EXISTS idx_note_links_source ON note_links(source_note_id)
+        "#,
+        // Batch 13: Note templates
+        r#"
+        CREATE TABLE IF NOT EXISTS note_templates (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', icon TEXT NOT NULL DEFAULT '📄', blocks_json TEXT NOT NULL DEFAULT '[]', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)
+        "#,
     ];
 
     for batch in &batches {

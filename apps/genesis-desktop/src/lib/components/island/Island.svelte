@@ -804,6 +804,7 @@
     user-select: none;
     -webkit-user-select: none;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+    font-optical-sizing: auto;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -859,8 +860,7 @@
       transition: none;
     }
     .compact-body,
-    .island-panel,
-    .expanded-body {
+    .island-panel {
       animation: none;
     }
     .goo-active {
@@ -1271,6 +1271,7 @@
     gap: 5px;
     font-size: 10px;
     font-weight: 400;
+    font-variant-numeric: tabular-nums;
     color: rgba(255, 255, 255, 0.3);
     margin-left: auto;
     white-space: nowrap;
@@ -1336,145 +1337,6 @@
   @keyframes live-pulse {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.3; transform: scale(0.7); }
-  }
-
-  .expanded-body {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    height: 100%;
-  }
-
-  .expanded-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 12px 6px;
-    flex-shrink: 0;
-  }
-
-  .header-tabs {
-    display: flex;
-    align-items: center;
-  }
-
-  .tab-track {
-    position: relative;
-    display: flex;
-    background: rgba(255, 255, 255, 0.05);
-    border: 0.5px solid rgba(255, 255, 255, 0.06);
-    border-radius: 18px;
-    padding: 4px 2px 2px;
-    height: 38px;
-    width: 72px;
-  }
-
-  .tab-indicator {
-    position: absolute;
-    top: 4px;
-    left: 2px;
-    width: calc(50% - 2px);
-    height: calc(100% - 6px);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    background: #2b2b2b;
-    border-radius: 16px;
-  }
-
-  .tab-btn {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1px;
-    z-index: 1;
-    cursor: pointer;
-    border: none;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.65);
-    padding: 0;
-  }
-
-  .tab-btn--active {
-    color: #fff;
-  }
-
-  .tab-label {
-    font-size: 6.5px;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    line-height: 1;
-    opacity: 0.55;
-  }
-
-  .tab-btn--active .tab-label {
-    opacity: 0.9;
-  }
-
-  .header-actions {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 0.5px solid rgba(255, 255, 255, 0.06);
-    border-radius: 18px;
-    padding: 2px;
-    height: 28px;
-  }
-
-  .search-icon-btn,
-  .close-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 16px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: rgba(255, 255, 255, 0.7);
-    transition: background 0.15s, color 0.15s;
-  }
-
-  .search-icon-btn:hover,
-  .search-icon-btn--active,
-  .close-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
-  }
-
-  .search-icon-btn:active,
-  .close-btn:active {
-    background: rgba(255, 255, 255, 0.18);
-    color: #fff;
-  }
-
-  .search-active {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    margin: 0 12px 8px;
-    padding: 7px 10px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 0.5px solid rgba(255, 255, 255, 0.06);
-    flex-shrink: 0;
-  }
-
-  .search-active-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.85);
-    font-family: inherit;
-  }
-
-  .search-active-input::placeholder {
-    color: rgba(255, 255, 255, 0.2);
   }
 
   .shell-body {

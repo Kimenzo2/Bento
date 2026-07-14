@@ -1084,12 +1084,23 @@
     --hl-ink:            var(--foreground);
     --hl-muted:          var(--muted);
     --hl-accent:         var(--primary);
-    height:     100%;
-    background: var(--hl-bg);
-    color:      var(--hl-ink);
-    overflow:   hidden;
-    font-family: var(--font-body);
-    box-sizing: border-box;
+    --ease-out:          cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-spring:       cubic-bezier(0.34, 1.56, 0.64, 1);
+    height:          100%;
+    background:     var(--hl-bg);
+    color:           var(--hl-ink);
+    overflow:        hidden;
+    font-family:     var(--font-body);
+    font-synthesis:  none;
+    -webkit-font-smoothing:  antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    box-sizing:      border-box;
+  }
+
+  /* Selection */
+  :global(.hl-workspace) ::selection {
+    background: color-mix(in srgb, var(--hl-accent) 22%, transparent);
+    color: var(--hl-ink);
   }
 
   :global(.hl-page) {
@@ -1112,8 +1123,8 @@
     display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
     color: var(--hl-muted); font-size: 0.82rem; letter-spacing: 0.18em; text-transform: uppercase;
   }
-  :global(.hl-page__intro) h1 { margin: 0; font-size: clamp(1.7rem,2.5vw,2.6rem); line-height: 1.05; }
-  :global(.hl-page__intro) p  { margin: 12px 0 0; max-width: 42rem; color: var(--hl-muted); font-size: 0.97rem; line-height: 1.55; }
+  :global(.hl-page__intro) h1 { margin: 0; font-size: clamp(1.7rem,2.5vw,2.6rem); line-height: 1.05; letter-spacing: -0.02em; text-wrap: balance; }
+  :global(.hl-page__intro) p  { margin: 12px 0 0; max-width: 42rem; color: var(--hl-muted); font-size: 0.97rem; line-height: 1.55; text-wrap: pretty; }
   :global(.hl-page__actions) { display: flex; gap: 12px; flex-shrink: 0; }
 
   /* Hero grid */
@@ -1147,7 +1158,7 @@
   :global(.hl-orb--bp) {
     background: conic-gradient(var(--hl-accent) 63%, color-mix(in srgb, var(--hl-border) 80%, transparent) 0);
   }
-  :global(.hl-score-orb) strong { font-size: 2.2rem; line-height: 1; }
+  :global(.hl-score-orb) strong { font-size: 2.2rem; line-height: 1; font-variant-numeric: tabular-nums; }
   :global(.hl-score-orb) small  { color: var(--hl-muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
 
   :global(.hl-score-meta) { display: grid; grid-template-columns: repeat(2,1fr); gap: 9px; }
@@ -1156,7 +1167,7 @@
     border-radius: 14px; border: 1px solid color-mix(in srgb, var(--hl-border) 80%, transparent);
     background: color-mix(in srgb, var(--hl-surface-strong) 88%, transparent);
   }
-  :global(.hl-score-meta) strong { font-size: 0.93rem; font-weight: 600; }
+  :global(.hl-score-meta) strong { font-size: 0.93rem; font-weight: 600; font-variant-numeric: tabular-nums; }
   :global(.hl-score-meta) span   { color: var(--hl-muted); font-size: 0.72rem; }
 
   :global(.hl-hero-list) { display: grid; gap: 7px; }
@@ -1165,7 +1176,7 @@
     border-radius: 13px; background: color-mix(in srgb, var(--hl-surface-strong) 88%, transparent); display: grid; gap: 4px;
   }
   :global(.hl-hero-list) span   { color: var(--hl-muted); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.1em; }
-  :global(.hl-hero-list) strong { font-size: 0.93rem; font-weight: 600; }
+  :global(.hl-hero-list) strong { font-size: 0.93rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 
   :global(.hl-hero-bar) {
     height: 5px; border-radius: 999px;
@@ -1212,13 +1223,42 @@
   :global(.hl-spin) { animation: hl-spin 0.8s linear infinite; }
   @keyframes hl-spin { to { transform: rotate(360deg); } }
 
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    :global(.hl-workspace),
+    :global(.hl-mood-btn),
+    :global(.hl-energy-btn),
+    :global(.hl-symptom-btn),
+    :global(.hl-stepper) button,
+    :global(.hl-med__check),
+    :global(.hl-med__delete),
+    :global(.hl-table-row),
+    :global(.hl-timeline__item),
+    :global(.hl-bar-chart) i,
+    :global(.hl-bp-sys),
+    :global(.hl-bp-dia),
+    :global(.hl-meter) i {
+      transition: none !important;
+      animation: none !important;
+    }
+    :global(.hl-mood-btn):active,
+    :global(.hl-energy-btn):active,
+    :global(.hl-symptom-btn):active,
+    :global(.hl-stepper) button:active,
+    :global(.hl-med__check):active {
+      transform: none !important;
+    }
+  }
+
   /* Timeline */
   :global(.hl-timeline) { display: grid; gap: 2px; overflow: auto; }
   :global(.hl-timeline__item) {
     display: grid; grid-template-columns: 56px 10px 1fr;
     gap: 0 12px; align-items: center; padding: 10px 12px; border-radius: 12px; transition: background 0.15s;
   }
-  :global(.hl-timeline__item:hover) { background: color-mix(in srgb, var(--hl-surface-strong) 80%, transparent); }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.hl-timeline__item:hover) { background: color-mix(in srgb, var(--hl-surface-strong) 80%, transparent); }
+  }
   :global(.hl-timeline__time) { font-size: 0.78rem; color: var(--hl-muted); font-variant: tabular-nums; text-align: right; }
   :global(.hl-timeline__dot) { width: 10px; height: 10px; border-radius: 999px; background: var(--hl-accent); flex-shrink: 0; }
   :global(.hl-dot--vitals)  { background: color-mix(in srgb, red 60%,    var(--hl-accent)); }
@@ -1242,7 +1282,7 @@
     transition: height 0.4s ease;
   }
   :global(.hl-bar-chart) span   { font-size: 0.72rem; color: var(--hl-muted); }
-  :global(.hl-bar-chart) strong { font-size: 0.75rem; }
+  :global(.hl-bar-chart) strong { font-size: 0.75rem; font-variant-numeric: tabular-nums; }
 
   /* Daily Log */
   :global(.hl-log-form)  { display: grid; gap: 16px; overflow: auto; }
@@ -1253,8 +1293,13 @@
   :global(.hl-mood-btn) {
     padding: 12px 6px; border: 1px solid var(--hl-border); border-radius: 14px;
     background: color-mix(in srgb, var(--hl-surface-strong) 88%, transparent); color: var(--hl-ink);
-    display: grid; justify-items: center; gap: 5px; cursor: pointer; transition: all 0.15s; font: inherit;
+    display: grid; justify-items: center; gap: 5px; cursor: pointer;
+    transition: border-color 0.15s var(--ease-out), background 0.15s var(--ease-out), color 0.15s var(--ease-out);
+    font: inherit;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
+  :global(.hl-mood-btn):active { transform: scale(0.96); }
   :global(.hl-mood-btn) span  { font-size: 1.5rem; }
   :global(.hl-mood-btn) small { font-size: 0.72rem; color: var(--hl-muted); }
   :global(.hl-mood-btn--active) {
@@ -1266,8 +1311,13 @@
   :global(.hl-energy-btn) {
     flex: 1; padding: 9px 0; border: 1px solid var(--hl-border); border-radius: 10px;
     background: color-mix(in srgb, var(--hl-surface-strong) 88%, transparent); color: var(--hl-muted);
-    font: inherit; font-size: 0.82rem; cursor: pointer; transition: all 0.15s; text-align: center;
+    font: inherit; font-size: 0.82rem; cursor: pointer;
+    transition: border-color 0.15s var(--ease-out), background 0.15s var(--ease-out), color 0.15s var(--ease-out);
+    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
+  :global(.hl-energy-btn):active { transform: scale(0.96); }
   :global(.hl-energy-btn--active) {
     border-color: var(--hl-accent); background: color-mix(in srgb, var(--hl-accent) 16%, var(--hl-surface));
     color: var(--hl-ink); font-weight: 600;
@@ -1277,18 +1327,28 @@
   :global(.hl-stepper) button {
     width: 34px; height: 34px; border: 1px solid var(--hl-border); border-radius: 999px;
     background: color-mix(in srgb, var(--hl-surface-strong) 88%, transparent); color: var(--hl-ink);
-    font-size: 1.1rem; cursor: pointer; display: grid; place-items: center; transition: background 0.15s;
+    font-size: 1.1rem; cursor: pointer; display: grid; place-items: center;
+    transition: background 0.15s var(--ease-out);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
-  :global(.hl-stepper) button:hover { background: color-mix(in srgb, var(--hl-accent) 12%, var(--hl-surface)); }
-  :global(.hl-stepper) strong { font-size: 1rem; }
+  :global(.hl-stepper) button:active { transform: scale(0.96); }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.hl-stepper) button:hover { background: color-mix(in srgb, var(--hl-accent) 12%, var(--hl-surface)); }
+  }
+  :global(.hl-stepper) strong { font-size: 1rem; font-variant-numeric: tabular-nums; }
 
   :global(.hl-symptoms-panel) { display: grid; gap: 14px; overflow: auto; }
   :global(.hl-symptom-grid)   { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; }
   :global(.hl-symptom-btn) {
     padding: 11px 10px; border: 1px solid var(--hl-border); border-radius: 11px;
     background: color-mix(in srgb, var(--hl-surface-strong) 88%, transparent); color: var(--hl-muted);
-    font: inherit; font-size: 0.82rem; cursor: pointer; text-align: left; transition: all 0.15s;
+    font: inherit; font-size: 0.82rem; cursor: pointer; text-align: left;
+    transition: border-color 0.15s var(--ease-out), background 0.15s var(--ease-out), color 0.15s var(--ease-out);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
+  :global(.hl-symptom-btn):active { transform: scale(0.96); }
   :global(.hl-symptom-btn--active) {
     border-color: color-mix(in srgb, var(--hl-accent) 60%, var(--hl-border));
     background:   color-mix(in srgb, var(--hl-accent) 14%, var(--hl-surface)); color: var(--hl-ink);
@@ -1325,7 +1385,9 @@
     background: color-mix(in srgb, var(--hl-surface-strong) 68%, transparent);
     font-size: 0.86rem; transition: background 0.12s;
   }
-  :global(.hl-table-row:hover) { background: color-mix(in srgb, var(--hl-surface) 88%, transparent); }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.hl-table-row):hover { background: color-mix(in srgb, var(--hl-surface) 88%, transparent); }
+  }
 
   /* Insights */
   :global(.hl-correlations) { display: grid; gap: 10px; overflow: auto; }
@@ -1334,7 +1396,7 @@
     border-radius: 16px; background: color-mix(in srgb, var(--hl-surface-strong) 88%, transparent); display: grid; gap: 7px;
   }
   :global(.hl-correlation__top) { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-  :global(.hl-correlation__top) strong { font-size: 0.88rem; }
+  :global(.hl-correlation__top) strong { font-size: 0.88rem; font-variant-numeric: tabular-nums; }
   :global(.hl-correlation) p { margin: 0; font-size: 0.82rem; color: var(--hl-muted); }
 
   :global(.hl-export-list) { display: grid; gap: 10px; overflow: auto; }
@@ -1356,23 +1418,32 @@
     transition: opacity 0.2s;
   }
   :global(.hl-med--taken)  { opacity: 0.52; }
+
+  @media (hover: hover) and (pointer: fine) {
+    :global(.hl-med__check):hover { border-color: var(--hl-accent); background: color-mix(in srgb, var(--hl-accent) 12%, transparent); }
+  }
+  :global(.hl-med__check--done) { background: var(--hl-accent); border-color: var(--hl-accent); color: var(--hl-bg); }
+  :global(.hl-med__copy) strong { font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+  :global(.hl-med__copy) p      { margin: 2px 0 0; font-size: 0.78rem; color: var(--hl-muted); }
+  :global(.hl-med__right) { display: flex; align-items: center; gap: 8px; }
   :global(.hl-med__check) {
     width: 30px; height: 30px; border: 2px solid var(--hl-border); border-radius: 999px;
     background: transparent; color: var(--hl-bg); cursor: pointer;
-    display: grid; place-items: center; transition: all 0.15s; flex-shrink: 0;
+    display: grid; place-items: center; transition: border-color 0.15s var(--ease-out), background 0.15s var(--ease-out), color 0.15s var(--ease-out);
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
-  :global(.hl-med__check:hover) { border-color: var(--hl-accent); background: color-mix(in srgb, var(--hl-accent) 12%, transparent); }
-  :global(.hl-med__check--done) { background: var(--hl-accent); border-color: var(--hl-accent); color: var(--hl-bg); }
-  :global(.hl-med__copy) strong { font-size: 0.88rem; }
-  :global(.hl-med__copy) p      { margin: 2px 0 0; font-size: 0.78rem; color: var(--hl-muted); }
-  :global(.hl-med__right) { display: flex; align-items: center; gap: 8px; }
+  :global(.hl-med__check):active { transform: scale(0.96); }
   :global(.hl-med__delete) {
     width: 22px; height: 22px; border-radius: 999px; border: none;
     background: transparent; color: var(--hl-muted); font-size: 1rem;
     cursor: pointer; display: grid; place-items: center; opacity: 0; transition: opacity 0.15s;
   }
-  :global(.hl-med__item:hover) :global(.hl-med__delete) { opacity: 1; }
-  :global(.hl-med__delete:hover) { color: color-mix(in srgb, red 70%, var(--hl-ink)); }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.hl-med__item:hover) :global(.hl-med__delete) { opacity: 1; }
+    :global(.hl-med__delete):hover { color: color-mix(in srgb, red 70%, var(--hl-ink)); }
+  }
 
   :global(.hl-add-med) { display: grid; gap: 14px; overflow: auto; }
 
@@ -1393,7 +1464,7 @@
   :global(.hl-adherence__orb) strong { font-size: 1.4rem; line-height: 1; }
   :global(.hl-adherence__orb) small  { font-size: 0.68rem; color: var(--hl-muted); text-transform: uppercase; }
   :global(.hl-adherence__meta) { display: flex; flex-direction: column; gap: 4px; }
-  :global(.hl-adherence__meta) strong { font-size: 1.1rem; }
+  :global(.hl-adherence__meta) strong { font-size: 1.1rem; font-variant-numeric: tabular-nums; }
   :global(.hl-adherence__breakdown) { display: grid; gap: 8px; overflow: auto; }
   :global(.hl-adherence__row) {
     display: grid; grid-template-columns: 1fr 100px auto;

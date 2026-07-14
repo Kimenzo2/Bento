@@ -43,10 +43,12 @@ export default function SocialProof() {
           {stats.map((stat, i) => (
             <div
               key={stat.label}
+              className="stagger-item"
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '24px',
+                animationDelay: `${i * 80}ms`,
               }}
             >
               <div style={{ textAlign: 'center' }}>
@@ -58,6 +60,7 @@ export default function SocialProof() {
                     letterSpacing: '-0.03em',
                     margin: 0,
                     lineHeight: 1.1,
+                    fontVariantNumeric: 'tabular-nums',
                   }}
                 >
                   {stat.value}

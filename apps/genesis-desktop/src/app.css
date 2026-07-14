@@ -1040,6 +1040,7 @@ textarea {
   padding: 1.5rem 1.5rem 2rem;
   contain: layout paint;
   min-height: 0;
+  border-radius: inherit;
 }
 
 .desktop-workspace__main--notes {
@@ -1091,6 +1092,7 @@ textarea {
   background-clip: content-box;
 }
 
+
 .desktop-workspace__main--mini-app > :where(main) {
   width: 100%;
   max-width: 100%;
@@ -1116,6 +1118,7 @@ textarea {
   box-shadow: inset -1px 0 0 color-mix(in srgb, white 4%, transparent);
   transition:
     width 150ms ease,
+    left 250ms cubic-bezier(0.16, 1, 0.3, 1),
     transform 180ms ease,
     opacity 180ms ease,
     top 180ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -2798,6 +2801,8 @@ body.sidebar-dragging * {
     inset 0 -1px 0 color-mix(in srgb, black 2%, transparent);
   transition:
     width 150ms ease,
+    left 250ms cubic-bezier(0.16, 1, 0.3, 1),
+    right 250ms cubic-bezier(0.16, 1, 0.3, 1),
     transform 180ms ease,
     opacity 180ms ease;
 }
@@ -2808,6 +2813,54 @@ body.sidebar-dragging * {
 
 .desktop-sidebar.sidebar-collapsed ~ .desktop-workspace__content {
   margin-left: 5.25rem;
+}
+
+/* ── Agent panel overrides (must come after premium mini-app pass) ── */
+/* Sidebar moves to far right when agent panel is open */
+.desktop-workspace--agent-panel-open .desktop-sidebar {
+  left: auto;
+  right: 0;
+}
+
+/* Content only offsets for agent panel — sidebar is on the right edge */
+.desktop-workspace--agent-panel-open .desktop-workspace__content {
+  margin-left: var(--agent-panel-width, 420px);
+}
+
+.desktop-workspace--agent-panel-open .sidebar-collapsed ~ .desktop-workspace__content {
+  margin-left: var(--agent-panel-width, 420px);
+}
+
+/* Override the !important sidebar-hidden rules — content stays put when agent panel is open */
+.desktop-workspace--agent-panel-open.desktop-workspace--sidebar-hidden .desktop-workspace__content {
+  margin-left: var(--agent-panel-width, 420px) !important;
+  width: auto !important;
+}
+
+.desktop-workspace--agent-panel-open.desktop-workspace--no-topbar .desktop-workspace__content,
+.desktop-workspace--agent-panel-open.desktop-workspace--mini-app .desktop-workspace__content {
+  margin-left: var(--agent-panel-width, 420px);
+}
+
+/* Sidebar hidden: slide right instead of left when agent panel is open */
+.desktop-workspace--agent-panel-open.desktop-workspace--sidebar-hidden .desktop-sidebar {
+  transform: translateX(calc(100% + 1.25rem));
+}
+
+/* ── Container: thin visible outline around content when agent panel is open ── */
+.desktop-workspace--agent-panel-open .desktop-workspace__content {
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  margin-top: 0.5rem;
+  margin-right: 0;
+  margin-bottom: 0.5rem;
+}
+
+/* ── Global col-resize cursor during agent panel drag ── */
+body.col-resize,
+body.col-resize * {
+  cursor: col-resize !important;
+  user-select: none !important;
 }
 
 .desktop-sidebar__move-handle {

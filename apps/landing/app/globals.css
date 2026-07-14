@@ -18,7 +18,7 @@ html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
   font-size: 16px;
-  transition: background-color 0.3s ease;
+  transition: background-color 300ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 /* Scroll offset for fixed nav (46px) */
@@ -30,6 +30,12 @@ html {
 #download,
 #main-content {
   scroll-margin-top: 80px;
+}
+
+/* ── Easing curves (Emil Kowalski / better-ui) ── */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 /* ── Light mode (default) ── */
@@ -102,8 +108,8 @@ body {
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
   transition:
-    background-color 0.3s ease,
-    color 0.3s ease;
+    background-color 300ms var(--ease-out),
+    color 300ms var(--ease-out);
 }
 
 a {
@@ -127,7 +133,7 @@ button {
 }
 
 .theme-toggle {
-  transition: transform 0.15s ease;
+  transition: transform 160ms var(--ease-out);
 }
 
 :focus:not(:focus-visible) {
@@ -153,8 +159,8 @@ button {
 
 .cta-primary {
   transition:
-    background 0.2s ease,
-    transform 0.15s ease;
+    background 200ms var(--ease-out),
+    transform 160ms var(--ease-out);
 }
 
 [data-slot='button']:hover {
@@ -163,7 +169,7 @@ button {
 }
 
 [data-slot='button']:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
 }
 
 [data-slot='button'].btn-accent:hover {
@@ -171,7 +177,7 @@ button {
 }
 
 .footer-link {
-  transition: color 0.15s ease;
+  transition: color 160ms var(--ease-out);
 }
 
 .footer-link:hover {
@@ -179,7 +185,7 @@ button {
 }
 
 .showcase-card {
-  transition: background 0.2s ease;
+  transition: background 200ms var(--ease-out);
   min-width: 0;
 }
 
@@ -224,7 +230,7 @@ button {
   font-weight: 600;
   text-decoration: none;
   color: var(--color-accent);
-  transition: text-decoration 0.15s;
+  transition: text-decoration 160ms var(--ease-out);
 }
 
 .text-body a:hover {
@@ -309,7 +315,7 @@ button {
   font-weight: 500;
   z-index: 100;
   text-decoration: none;
-  transition: top 0.15s ease;
+  transition: top 160ms var(--ease-out);
 }
 
 .skip-link:focus {
@@ -325,7 +331,7 @@ button {
 
 /* ── WhyBento section CTAs ── */
 .why-cta {
-  transition: opacity 0.15s ease;
+  transition: opacity 160ms var(--ease-out);
 }
 .why-cta:hover {
   opacity: 0.7;
@@ -386,6 +392,7 @@ button {
   letter-spacing: -0.05em;
   color: #1a1a1a;
   text-align: center;
+  text-wrap: balance;
 }
 
 .hero-heading .hero-accent {
@@ -407,4 +414,60 @@ button {
     font-size: clamp(1.8rem, 7vw, 2.5rem);
     letter-spacing: -0.04em;
   }
+}
+
+/* ── Stagger animation keyframes (better-ui / emil-design-eng) ── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.stagger-item {
+  opacity: 0;
+  animation: fadeInUp 400ms var(--ease-out) forwards;
+}
+
+.stagger-item:nth-child(1) { animation-delay: 0ms; }
+.stagger-item:nth-child(2) { animation-delay: 80ms; }
+.stagger-item:nth-child(3) { animation-delay: 160ms; }
+.stagger-item:nth-child(4) { animation-delay: 240ms; }
+.stagger-item:nth-child(5) { animation-delay: 320ms; }
+.stagger-item:nth-child(6) { animation-delay: 400ms; }
+
+/* ── Hero section stagger (faster, no blur) ── */
+@keyframes heroFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-stagger {
+  opacity: 0;
+  animation: heroFadeIn 500ms var(--ease-out) forwards;
+}
+
+.hero-stagger:nth-child(1) { animation-delay: 0ms; }
+.hero-stagger:nth-child(2) { animation-delay: 100ms; }
+.hero-stagger:nth-child(3) { animation-delay: 200ms; }
+.hero-stagger:nth-child(4) { animation-delay: 300ms; }
+.hero-stagger:nth-child(5) { animation-delay: 400ms; }
+
+/* ── FAQ accordion smoother transition ── */
+.faq-answer {
+  transition:
+    max-height 350ms var(--ease-out),
+    opacity 250ms var(--ease-out);
 }

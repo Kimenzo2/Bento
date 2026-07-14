@@ -487,6 +487,7 @@
   }
   .pill-btn {
     padding: 5px 14px;
+    min-height: 32px;
     border-radius: 100px;
     border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
     background: transparent;
@@ -494,8 +495,9 @@
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), border-color 160ms ease, color 160ms ease, background 160ms ease;
     font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
   }
   .pill-btn:hover:not(.active) {
     border-color: var(--foreground);
@@ -505,6 +507,9 @@
     background: var(--fc-income-actual);
     color: white;
     border-color: var(--fc-income-actual);
+  }
+  .pill-btn:active {
+    transform: scale(0.96);
   }
 
   /* ── Chart container ──────────────────────────────────────────────── */

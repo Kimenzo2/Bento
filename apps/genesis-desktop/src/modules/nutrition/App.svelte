@@ -773,12 +773,28 @@
     --nutrition-ink: var(--foreground);
     --nutrition-muted: var(--muted);
     --nutrition-accent: var(--primary);
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     height: 100%;
     padding: 28px 30px;
     background: var(--nutrition-bg);
     color: var(--nutrition-ink);
     overflow: hidden;
     font-family: "Space Grotesk", sans-serif;
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  :global(.nutrition-workspace) button,
+  :global(.nutrition-workspace) input,
+  :global(.nutrition-workspace) select {
+    user-select: none;
+  }
+
+  :global(.nutrition-workspace) ::selection {
+    background: color-mix(in srgb, var(--nutrition-accent) 22%, transparent);
+    color: var(--nutrition-ink);
   }
 
   :global(.nutrition-shell) {
@@ -815,12 +831,15 @@
     margin: 0;
     font-size: clamp(1.8rem, 3vw, 2.8rem);
     line-height: 1.04;
+    text-wrap: balance;
+    letter-spacing: -0.02em;
   }
 
   :global(.nutrition-shell__intro) p {
     margin: 12px 0 0;
     color: var(--nutrition-muted);
     max-width: 42rem;
+    text-wrap: pretty;
   }
 
   :global(.nutrition-shell__actions) {
@@ -1135,13 +1154,21 @@
     font-size: 0.82rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: transform 160ms var(--ease-spring), background 160ms ease, border-color 160ms ease;
     white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
 
-  :global(.nutrition-quick-add__pill:hover:not(:disabled)) {
-    background: color-mix(in srgb, var(--nutrition-accent) 22%, var(--nutrition-surface));
-    border-color: var(--nutrition-accent);
+  @media (hover: hover) and (pointer: fine) {
+    :global(.nutrition-quick-add__pill:hover:not(:disabled)) {
+      background: color-mix(in srgb, var(--nutrition-accent) 22%, var(--nutrition-surface));
+      border-color: var(--nutrition-accent);
+    }
+  }
+
+  :global(.nutrition-quick-add__pill:active:not(:disabled)) {
+    transform: scale(0.96);
   }
 
   :global(.nutrition-quick-add__pill:disabled) {
@@ -1325,14 +1352,22 @@
     background: transparent;
     color: var(--nutrition-muted);
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: transform 160ms var(--ease-spring), background 160ms ease, border-color 160ms ease, color 160ms ease;
     flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
 
-  :global(.nutrition-reminder-delete:hover:not(:disabled)) {
-    border-color: color-mix(in srgb, var(--destructive, #e74c3c) 50%, transparent);
-    color: var(--destructive, #e74c3c);
-    background: color-mix(in srgb, var(--destructive, #e74c3c) 10%, transparent);
+  @media (hover: hover) and (pointer: fine) {
+    :global(.nutrition-reminder-delete:hover:not(:disabled)) {
+      border-color: color-mix(in srgb, var(--destructive, #e74c3c) 50%, transparent);
+      color: var(--destructive, #e74c3c);
+      background: color-mix(in srgb, var(--destructive, #e74c3c) 10%, transparent);
+    }
+  }
+
+  :global(.nutrition-reminder-delete:active:not(:disabled)) {
+    transform: scale(0.92);
   }
 
   :global(.nutrition-reminder-delete:disabled) {
@@ -1741,13 +1776,21 @@
     font-size: 0.78rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: transform 160ms var(--ease-spring), background 160ms ease, border-color 160ms ease;
     white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
 
-  :global(.nutrition-hydration-btn:hover:not(:disabled)) {
-    background: color-mix(in srgb, var(--nutrition-accent) 22%, var(--nutrition-surface));
-    border-color: var(--nutrition-accent);
+  @media (hover: hover) and (pointer: fine) {
+    :global(.nutrition-hydration-btn:hover:not(:disabled)) {
+      background: color-mix(in srgb, var(--nutrition-accent) 22%, var(--nutrition-surface));
+      border-color: var(--nutrition-accent);
+    }
+  }
+
+  :global(.nutrition-hydration-btn:active:not(:disabled)) {
+    transform: scale(0.96);
   }
 
   :global(.nutrition-hydration-btn:disabled) {
@@ -1779,5 +1822,21 @@
 
   @media (max-width: 860px) {
     .nj-bento { grid-template-columns: 1fr; }
+  }
+
+  /* ── Reduced Motion ─────────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    :global(.nutrition-quick-add__pill),
+    :global(.nutrition-hydration-btn),
+    :global(.nutrition-reminder-delete),
+    :global(.nutrition-reminder-toggle),
+    :global(.nutrition-reminder-toggle__thumb) {
+      transition: none !important;
+    }
+    :global(.nutrition-quick-add__pill:active:not(:disabled)),
+    :global(.nutrition-hydration-btn:active:not(:disabled)),
+    :global(.nutrition-reminder-delete:active:not(:disabled)) {
+      transform: none !important;
+    }
   }
 </style>

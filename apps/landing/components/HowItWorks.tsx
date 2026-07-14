@@ -199,9 +199,10 @@ export default function HowItWorks() {
             gap: '16px',
           }}
         >
-          {categories.map((cat) => (
+          {categories.map((cat, i) => (
             <div
               key={cat.title}
+              className="stagger-item"
               style={{
                 background: 'var(--color-surface)',
                 borderRadius: '20px',
@@ -209,13 +210,14 @@ export default function HowItWorks() {
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '12px',
+                animationDelay: `${i * 80}ms`,
               }}
             >
               <div
                 style={{
                   width: '40px',
                   height: '40px',
-                  borderRadius: '12px',
+                  borderRadius: '10px',
                   background: 'var(--color-highlight)',
                   display: 'flex',
                   alignItems: 'center',

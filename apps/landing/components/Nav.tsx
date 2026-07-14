@@ -31,7 +31,7 @@ const btn = {
   border: 'none',
   cursor: 'pointer',
   textDecoration: 'none',
-  transition: 'color 0.15s ease, box-shadow 0.15s ease',
+  transition: 'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
 } as const;
 
 export default function Nav({ platforms }: { platforms: Record<Platform, PlatformInfo> }) {
@@ -116,7 +116,7 @@ export default function Nav({ platforms }: { platforms: Record<Platform, Platfor
             border: scrolled ? '1px solid var(--color-border)' : '1px solid transparent',
             boxShadow: scrolled ? 'inset 0 1px 0 var(--color-accent-line)' : 'none',
             transition:
-              'background 300ms ease, backdrop-filter 300ms ease, border 300ms ease, box-shadow 300ms ease, padding 300ms ease',
+              'background 300ms cubic-bezier(0.23, 1, 0.32, 1), backdrop-filter 300ms cubic-bezier(0.23, 1, 0.32, 1), padding 300ms cubic-bezier(0.23, 1, 0.32, 1)',
           }}
         >
           <button
@@ -258,7 +258,7 @@ export default function Nav({ platforms }: { platforms: Record<Platform, Platfor
                 background: scrolled ? 'var(--color-ink)' : '#1a1a1a',
                 borderRadius: '10px',
                 marginBottom: '5px',
-                transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s',
+                transition: 'transform 250ms cubic-bezier(0.23, 1, 0.32, 1), opacity 200ms cubic-bezier(0.23, 1, 0.32, 1)',
                 transform: open ? 'rotate(45deg) translateY(5.5px)' : 'none',
               }}
             />
@@ -271,7 +271,7 @@ export default function Nav({ platforms }: { platforms: Record<Platform, Platfor
                 borderRadius: '10px',
                 marginBottom: '5px',
                 opacity: open ? 0 : 1,
-                transition: 'opacity 0.2s',
+                transition: 'opacity 200ms cubic-bezier(0.23, 1, 0.32, 1)',
               }}
             />
             <span
@@ -281,7 +281,7 @@ export default function Nav({ platforms }: { platforms: Record<Platform, Platfor
                 height: '2.5px',
                 background: scrolled ? 'var(--color-ink)' : '#1a1a1a',
                 borderRadius: '10px',
-                transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s',
+                transition: 'transform 250ms cubic-bezier(0.23, 1, 0.32, 1), opacity 200ms cubic-bezier(0.23, 1, 0.32, 1)',
                 transform: open ? 'rotate(-45deg) translateY(-5.5px)' : 'none',
               }}
             />

@@ -96,7 +96,7 @@
     min-height: 120px;
     background: color-mix(in srgb, var(--cb-ink) 4%, transparent);
     border-radius: inherit;
-    animation: cb-pulse 1.5s ease-in-out infinite;
+    animation: cb-pulse 1.5s var(--ease-in-out, ease-in-out) infinite;
   }
 
   :global(.cb-image-fallback) {
@@ -107,6 +107,13 @@
     background: color-mix(in srgb, var(--cb-ink) 4%, transparent);
     border-radius: inherit;
     opacity: 0.3;
+  }
+
+  /* better-ui: outline (1px solid), not box-shadow — no layout shift, no shadow-like behavior */
+  /* Theme-aware via --cb-ink (tasks.css pattern: color-mix with foreground) */
+  :global(.cb-workspace) img {
+    outline: 1px solid color-mix(in srgb, var(--cb-ink) 12%, transparent);
+    outline-offset: -1px;
   }
 
   @keyframes cb-pulse {

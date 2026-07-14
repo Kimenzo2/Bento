@@ -16,6 +16,7 @@
   import { demoProjects } from "$lib/data/app-data";
   import { getStarterModuleEntry } from "$lib/data/module-catalog";
   import { ensureModuleSection, getModuleSectionLabel, moduleSectionStore, setModuleSection } from "$lib/stores/module-sections.store";
+  import { toggleAgentPanel, agentPanelOpen } from "$lib/stores/agent-panel.store";
   import TasksRecurringPanel from "$lib/components/tasks/TasksRecurringPanel.svelte";
   import TasksTagsPanel from "$lib/components/tasks/TasksTagsPanel.svelte";
   import TasksViewsPanel from "$lib/components/tasks/TasksViewsPanel.svelte";
@@ -418,6 +419,25 @@
       <button aria-label={_t('navGoToDashboard')} class="desktop-sidebar__brand" type="button" onclick={() => goto("/")}>
         <span class="font-[var(--font-heading)] text-xl" style="font-family: 'Biscotti', var(--font-heading), system-ui, sans-serif; font-weight: 400;">Bento</span>
       </button>
+      <Tooltip>
+        <TooltipTrigger>
+          {#snippet child({ props })}
+            <Button
+              {...props}
+              class="rounded-full"
+              size="icon-sm"
+              variant="ghost"
+              aria-label={$agentPanelOpen ? 'Close agent panel' : 'Open agent panel'}
+              onclick={toggleAgentPanel}
+            >
+              <BotIcon size={16} />
+            </Button>
+          {/snippet}
+        </TooltipTrigger>
+        <TooltipContent side="right" sideOffset={10}>
+          {$agentPanelOpen ? 'Close agent' : 'Open agent'}
+        </TooltipContent>
+      </Tooltip>
       <Tooltip>
         <TooltipTrigger>
           {#snippet child({ props })}

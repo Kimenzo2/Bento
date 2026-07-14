@@ -88,9 +88,10 @@ export default function Pricing() {
             gap: '20px',
           }}
         >
-          {plans.map((plan) => (
+          {plans.map((plan, i) => (
             <div
               key={plan.key}
+              className="stagger-item"
               style={{
                 flex: '1',
                 borderRadius: '1.5rem',
@@ -99,6 +100,7 @@ export default function Pricing() {
                 borderTop: '2px solid transparent',
                 display: 'flex',
                 flexDirection: 'column',
+                animationDelay: `${i * 100}ms`,
               }}
             >
               <p
@@ -133,6 +135,7 @@ export default function Pricing() {
                     color: tokens.ink,
                     letterSpacing: '-0.03em',
                     lineHeight: 1.1,
+                    fontVariantNumeric: 'tabular-nums',
                   }}
                 >
                   {plan.price}
@@ -205,7 +208,7 @@ export default function Pricing() {
                     border: 'none',
                     cursor: 'pointer',
                     textDecoration: 'none',
-                    transition: 'color 0.15s ease, box-shadow 0.15s ease',
+                    transition: 'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
                     width: '100%',
                   }}
                 >

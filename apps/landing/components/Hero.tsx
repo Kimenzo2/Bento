@@ -71,7 +71,7 @@ export default function Hero({
           padding: '56px 28px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="hero-stagger" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <Image
             src="/bento-icon.png"
             alt=""
@@ -94,7 +94,7 @@ export default function Hero({
 
         <h1
           id="hero-heading"
-          className="hero-heading"
+          className="hero-heading hero-stagger"
           style={{
             fontFamily: tokens.fontFamilyHero,
             fontSize: tokens.heroSize,
@@ -104,6 +104,7 @@ export default function Hero({
             margin: 0,
             maxWidth: '720px',
             textAlign: 'center',
+            textWrap: 'balance',
           }}
         >
           Take back{' '}
@@ -121,6 +122,7 @@ export default function Hero({
         </h1>
 
         <p
+          className="hero-stagger"
           style={{
             fontFamily: tokens.fontFamilyDisplay,
             fontSize: tokens.subheadSize,
@@ -134,6 +136,7 @@ export default function Hero({
         </p>
 
         <div
+          className="hero-stagger"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -166,7 +169,7 @@ export default function Hero({
                   cursor: detecting ? 'default' : 'pointer',
                   textDecoration: 'none',
                   opacity: detecting ? 0.6 : 1,
-                  transition: 'color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease',
+                  transition: 'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
                   pointerEvents: detecting ? ('none' as const) : undefined,
                 }}
               >
@@ -203,7 +206,7 @@ export default function Hero({
                   border: 'none',
                   cursor: 'pointer',
                   textDecoration: 'none',
-                  transition: 'color 0.15s ease, box-shadow 0.15s ease',
+                  transition: 'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
                 }}
               >
                 Pricing & Plans
@@ -231,7 +234,7 @@ export default function Hero({
                   border: 'none',
                   cursor: 'pointer',
                   textDecoration: 'none',
-                  transition: 'color 0.15s ease, box-shadow 0.15s ease',
+                  transition: 'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
                 }}
               >
                 Get started
@@ -258,7 +261,7 @@ export default function Hero({
                   cursor: detecting ? 'default' : 'pointer',
                   textDecoration: 'none',
                   opacity: detecting ? 0.6 : 1,
-                  transition: 'color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease',
+                  transition: 'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1), opacity 160ms ease',
                   pointerEvents: detecting ? ('none' as const) : undefined,
                 }}
               >
@@ -281,6 +284,7 @@ export default function Hero({
 
         {/* Meta tags row */}
         <div
+          className="hero-stagger"
           style={{
             display: 'flex',
             flexWrap: 'wrap',
@@ -328,7 +332,7 @@ export default function Hero({
                 gap: '6px',
                 whiteSpace: 'nowrap',
                 letterSpacing: '0.02em',
-                transition: 'color 0.15s ease, box-shadow 0.15s ease',
+                transition: 'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
               }}
             >
               {p.label}
@@ -353,6 +357,8 @@ export default function Hero({
             borderRadius: '12px',
             overflow: 'hidden',
             background: tokens.surface,
+            outline: '1px solid rgba(0, 0, 0, 0.1)',
+            outlineOffset: '-1px',
           }}
         >
           <Image

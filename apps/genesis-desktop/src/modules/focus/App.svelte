@@ -566,12 +566,28 @@
     --focus-ink: var(--foreground);
     --focus-muted: var(--muted);
     --focus-accent: var(--primary);
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     height: 100%;
     padding: 0;
     background: var(--focus-bg);
     color: var(--focus-ink);
     overflow: hidden;
     font-family: var(--font-body);
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  :global(.focus-workspace) button,
+  :global(.focus-workspace) input,
+  :global(.focus-workspace) select {
+    user-select: none;
+  }
+
+  :global(.focus-workspace) ::selection {
+    background: color-mix(in srgb, var(--focus-accent) 22%, transparent);
+    color: var(--focus-ink);
   }
 
   :global(.focus-shell) {
@@ -609,6 +625,7 @@
     font-size: clamp(1.1rem, 1.8vw, 1.4rem);
     line-height: 1.3;
     font-weight: 600;
+    text-wrap: balance;
   }
 
   :global(.focus-shell__intro) p {
@@ -616,6 +633,7 @@
     max-width: 42rem;
     color: var(--focus-muted);
     font-size: 0.85rem;
+    text-wrap: pretty;
   }
 
   :global(.focus-status-banner) {
@@ -748,16 +766,20 @@
     justify-content: center;
     border-radius: 999px;
     cursor: pointer;
-    transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+    transition: transform 160ms var(--ease-spring), background-color 160ms ease, border-color 160ms ease;
     flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
 
-  :global(.focus-controls__button:hover) {
-    transform: translateY(-1px);
+  @media (hover: hover) and (pointer: fine) {
+    :global(.focus-controls__button:hover) {
+      transform: translateY(-1px);
+    }
   }
 
   :global(.focus-controls__button:active) {
-    transform: translateY(0) scale(0.97);
+    transform: translateY(0) scale(0.96);
   }
 
   :global(.focus-controls__button--reset) {
@@ -826,12 +848,20 @@
     color: var(--focus-ink);
     font: inherit;
     cursor: pointer;
-    transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+    transition: border-color 160ms ease, background-color 160ms ease;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
 
-  :global(.focus-sound-card:hover) {
-    border-color: color-mix(in srgb, var(--focus-accent) 40%, var(--focus-border));
-    background: color-mix(in srgb, var(--focus-accent) 8%, var(--focus-surface-strong));
+  @media (hover: hover) and (pointer: fine) {
+    :global(.focus-sound-card:hover) {
+      border-color: color-mix(in srgb, var(--focus-accent) 40%, var(--focus-border));
+      background: color-mix(in srgb, var(--focus-accent) 8%, var(--focus-surface-strong));
+    }
+  }
+
+  :global(.focus-sound-card:active) {
+    transform: scale(0.96);
   }
 
   :global(.focus-sound-card--active) {
@@ -986,7 +1016,9 @@
     color: inherit;
     font: inherit;
     cursor: pointer;
-    transition: border-color 160ms ease, background-color 160ms ease;
+    transition: transform 160ms var(--ease-spring), border-color 160ms ease, background-color 160ms ease;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
 
   :global(.focus-preset-btn--active) {
@@ -1000,9 +1032,15 @@
     cursor: default;
   }
 
-  :global(.focus-preset-grid) button:not(:disabled):hover {
-    border-color: color-mix(in srgb, var(--focus-accent) 60%, var(--focus-border));
-    background: color-mix(in srgb, var(--focus-accent) 16%, var(--focus-surface));
+  @media (hover: hover) and (pointer: fine) {
+    :global(.focus-preset-grid) button:not(:disabled):hover {
+      border-color: color-mix(in srgb, var(--focus-accent) 60%, var(--focus-border));
+      background: color-mix(in srgb, var(--focus-accent) 16%, var(--focus-surface));
+    }
+  }
+
+  :global(.focus-preset-grid) button:active:not(:disabled) {
+    transform: scale(0.96);
   }
 
   :global(.focus-preset-grid) button p {
@@ -1065,4 +1103,24 @@
     align-items: center;
   }
 
+  /* ── Reduced Motion ─────────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    :global(.focus-controls__button),
+    :global(.focus-sound-card),
+    :global(.focus-preset-grid) button {
+      transition: none !important;
+    }
+    :global(.focus-controls__button:active),
+    :global(.focus-sound-card:active),
+    :global(.focus-preset-grid) button:active:not(:disabled) {
+      transform: none !important;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      :global(.focus-controls__button:hover),
+      :global(.focus-sound-card:hover),
+      :global(.focus-preset-grid) button:not(:disabled):hover {
+        transform: none !important;
+      }
+    }
+  }
 </style>

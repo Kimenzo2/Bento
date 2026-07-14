@@ -14,7 +14,7 @@ function PlusIcon({ open }: { open: boolean }) {
         position: 'relative',
         flexShrink: 0,
         transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
-        transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        transition: 'transform 300ms cubic-bezier(0.23, 1, 0.32, 1)',
         willChange: 'transform',
       }}
     >
@@ -97,7 +97,7 @@ function AccordionItem({
           opacity: open ? 1 : 0,
           overflow: 'hidden',
           transition:
-            'max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            'max-height 350ms cubic-bezier(0.23, 1, 0.32, 1), opacity 250ms cubic-bezier(0.23, 1, 0.32, 1)',
         }}
       >
         <div

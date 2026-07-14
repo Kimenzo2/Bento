@@ -195,13 +195,13 @@
   // ═══════════════════════════════════════════════════════
 
   const weekColors = [
-    '#6366f1',  // Mon - indigo
-    '#7c3aed',  // Tue - violet
-    '#a855f7',  // Wed - purple
-    '#818cf8',  // Thu - light indigo
-    '#6366f1',  // Fri - indigo
-    '#8b5cf6',  // Sat - medium violet
-    '#a78bfa',  // Sun - soft violet
+    'oklch(0.585 0.204 277.117)',  // Mon - indigo
+    'oklch(0.541 0.247 293.009)',  // Tue - violet
+    'oklch(0.627 0.233 303.900)',  // Wed - purple
+    'oklch(0.680 0.158 276.935)',  // Thu - light indigo
+    'oklch(0.585 0.204 277.117)',  // Fri - indigo
+    'oklch(0.606 0.219 292.717)',  // Sat - medium violet
+    'oklch(0.709 0.159 293.541)',  // Sun - soft violet
   ];
 
   // Most recent completed session (last night)
@@ -674,13 +674,21 @@
                     <strong>{step.title}</strong>
                     <p>{step.note}</p>
                   </div>
-                  <button class="sl-routine-toggle" class:sl-routine--done={step.status === 'Done'} onclick={() => toggleRoutine(step.id)}>
-                    {step.status === 'Done' ? '✓' : '○'}
+                  <button class="sl-routine-toggle" class:sl-routine--done={step.status === 'Done'} onclick={() => toggleRoutine(step.id)} aria-label={step.status === 'Done' ? 'Mark incomplete' : 'Mark complete'}>
+                    {#if step.status === 'Done'}
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="14" height="14"><path d="M5 13l4 4L19 7"/></svg>
+                    {:else}
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="9"/></svg>
+                    {/if}
                   </button>
                 </article>
               {/each}
               {#if routines.length === 0}
-                <p style="text-align:center;color:var(--muted);padding:12px;">No routine items yet.</p>
+                <div class="sleep-empty-state">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32" opacity="0.3"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 7v5l3 3"/></svg>
+                  <p>No routine items yet.</p>
+                  <span>Add your wind-down steps above to build a consistent bedtime routine.</span>
+                </div>
               {/if}
             </CardContent>
           </Card>
@@ -733,21 +741,29 @@
             </div>
             {#each routineWithStatus as step, index}
               <article>
-                <div class="sleep-routine-board__count">{index + 1}</div>
+                <div class="sleep-routine-board__count" class:sr-count--done={step.status === 'Done'}>{index + 1}</div>
                 <div>
-                  <strong>{step.title}</strong>
+                  <strong class:sr-title--done={step.status === 'Done'}>{step.title}</strong>
                   <p>{step.note}</p>
                 </div>
                 <div class="sr-actions">
-                  <button class="sl-routine-toggle" class:sl-routine--done={step.status === 'Done'} onclick={() => toggleRoutine(step.id)}>
-                    {step.status === 'Done' ? '✓' : '○'}
+                  <button class="sl-routine-toggle" class:sl-routine--done={step.status === 'Done'} onclick={() => toggleRoutine(step.id)} aria-label={step.status === 'Done' ? 'Mark incomplete' : 'Mark complete'}>
+                    {#if step.status === 'Done'}
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="13" height="13"><path d="M5 13l4 4L19 7"/></svg>
+                    {:else}
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="9"/></svg>
+                    {/if}
                   </button>
                   <button class="sr-del" onclick={() => deleteRoutine(step.id)} aria-label="Delete routine"><Trash2Icon size={14} /></button>
                 </div>
               </article>
             {/each}
             {#if routines.length === 0}
-              <p style="text-align:center;color:var(--muted);padding:20px;">No routine items set up yet.</p>
+              <div class="sleep-empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32" opacity="0.3"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 7v5l3 3"/></svg>
+                <p>No routine items set up yet.</p>
+                <span>Add your bedtime steps above to build a consistent wind-down routine.</span>
+              </div>
             {/if}
           </CardContent>
         </Card>
@@ -957,7 +973,7 @@
                       <div class="ss-row-bar-wrap">
                         <div
                           class="ss-row-bar"
-                          style="width:{(session.durationMin / (sleepGoal?.targetDurationMin ?? 480)) * 100}%;background:{session.qualityScore != null && session.qualityScore >= 70 ? 'var(--sleep-accent)' : session.qualityScore != null && session.qualityScore >= 40 ? '#f59e0b' : '#ef4444'}">
+                          style="width:{(session.durationMin / (sleepGoal?.targetDurationMin ?? 480)) * 100}%;background:{session.qualityScore != null && session.qualityScore >= 70 ? 'var(--sleep-accent)' : session.qualityScore != null && session.qualityScore >= 40 ? 'oklch(0.769 0.165 70.080)' : 'oklch(0.637 0.208 25.331)'}">
                         </div>
                       </div>
                       <span class="ss-row-time">{formatDuration(session.durationMin)}</span>
@@ -1051,14 +1067,34 @@
     --sleep-border: color-mix(in srgb, var(--border) 86%, transparent);
     --sleep-ink: var(--foreground);
     --sleep-muted: var(--muted);
-    --sleep-accent: var(--primary);
-    --sleep-accent-soft: color-mix(in srgb, var(--accent) 36%, var(--primary));
+    --sleep-accent: oklch(0.708 0.152 269.741);
+    --sleep-accent-soft: color-mix(in srgb, oklch(0.708 0.152 269.741) 36%, var(--primary));
+    --sleep-accent-bg: color-mix(in srgb, oklch(0.708 0.152 269.741) 12%, var(--background));
+    --sleep-green: oklch(0.800 0.182 151.711);
+    --sleep-amber: oklch(0.837 0.164 84.429);
+    --sleep-red: oklch(0.711 0.166 22.216);
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     height: 100%;
     padding: 28px 30px;
     background: var(--sleep-bg);
     color: var(--sleep-ink);
     overflow: hidden;
     font-family: var(--font-body);
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  :global(.sleep-workspace) button,
+  :global(.sleep-workspace) input,
+  :global(.sleep-workspace) select {
+    user-select: none;
+  }
+
+  :global(.sleep-workspace) ::selection {
+    background: color-mix(in srgb, var(--sleep-accent) 22%, transparent);
+    color: var(--sleep-ink);
   }
 
   :global(.sleep-shell) {
@@ -1102,6 +1138,8 @@
     margin: 0;
     font-size: clamp(1.9rem, 3.2vw, 3rem);
     line-height: 1.02;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
   }
 
   :global(.sleep-shell__intro) p {
@@ -1109,6 +1147,7 @@
     margin: 12px 0 0;
     color: var(--sleep-muted);
     font-size: 0.98rem;
+    text-wrap: pretty;
   }
 
   :global(.sleep-hero-grid) {
@@ -1142,17 +1181,35 @@
     width: 180px;
     aspect-ratio: 1;
     border-radius: 999px;
-    background: conic-gradient(var(--sleep-accent) 50%, color-mix(in srgb, var(--border) 80%, transparent) 0);
-    box-shadow: none;
+    background: conic-gradient(var(--sleep-accent) 50%, var(--sleep-accent-bg) 0);
+    box-shadow: 0 0 40px color-mix(in srgb, var(--sleep-accent) 20%, transparent), inset 0 2px 4px color-mix(in srgb, var(--sleep-accent) 30%, transparent);
+    position: relative;
+  }
+
+  :global(.sleep-orb)::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border-radius: 999px;
+    background: var(--sleep-bg);
+    z-index: 0;
   }
 
   :global(.sleep-orb) strong {
+    position: relative;
+    z-index: 1;
     display: block;
     font-size: 3.15rem;
     line-height: 1;
+    color: var(--sleep-accent);
   }
 
-  :global(.sleep-orb) small,
+  :global(.sleep-orb) small {
+    position: relative;
+    z-index: 1;
+    color: var(--sleep-muted);
+  }
+
   :global(.sleep-meta) span,
   :global(.sleep-list) p,
   :global(.sleep-routine-list) p,
@@ -1169,6 +1226,7 @@
   :global(.sleep-meta) strong {
     display: block;
     font-size: 1.35rem;
+    font-variant-numeric: tabular-nums;
   }
 
   :global(.sleep-summary-list),
@@ -1213,6 +1271,7 @@
     display: block;
     margin-top: 6px;
     font-size: 1.2rem;
+    font-variant-numeric: tabular-nums;
   }
 
   :global(.sleep-shell__body) {
@@ -1306,6 +1365,7 @@
     display: block;
     margin-top: 12px;
     font-size: 2rem;
+    font-variant-numeric: tabular-nums;
   }
 
   :global(.sleep-routine-board) {
@@ -1428,12 +1488,16 @@
     font-size: 0.82rem;
     font-weight: 600;
     cursor: pointer;
-    transition: opacity 0.15s;
     white-space: nowrap;
+    transition: transform 160ms var(--ease-spring), opacity 160ms ease;
+    -webkit-tap-highlight-color: transparent;
   }
 
   :global(.sr-add-btn:disabled) { opacity: 0.5; cursor: not-allowed; }
-  :global(.sr-add-btn:hover:not(:disabled)) { opacity: 0.85; }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.sr-add-btn:hover:not(:disabled)) { background: color-mix(in srgb, var(--sleep-accent) 85%, #0a0a0a); }
+  }
+  :global(.sr-add-btn:active:not(:disabled)) { transform: scale(0.96); }
 
   /* ── Alarm add form ── */
   :global(.sa-add-form) {
@@ -1506,12 +1570,16 @@
     font-size: 0.82rem;
     font-weight: 600;
     cursor: pointer;
-    transition: opacity 0.15s;
     white-space: nowrap;
+    transition: transform 160ms var(--ease-spring), opacity 160ms ease;
+    -webkit-tap-highlight-color: transparent;
   }
 
   :global(.sa-add-btn:disabled) { opacity: 0.5; cursor: not-allowed; }
-  :global(.sa-add-btn:hover:not(:disabled)) { opacity: 0.85; }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.sa-add-btn:hover:not(:disabled)) { background: color-mix(in srgb, var(--sleep-accent) 85%, #0a0a0a); }
+  }
+  :global(.sa-add-btn:active:not(:disabled)) { transform: scale(0.96); }
 
   :global(.sleep-alarm-list) article {
     grid-template-columns: 1fr auto auto;
@@ -1540,12 +1608,14 @@
     padding: 6px;
     border-radius: 8px;
     color: var(--sleep-accent);
-    transition: all 0.15s;
+    transition: transform 160ms var(--ease-spring), background 160ms ease;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  :global(.sa-toggle:hover) {
-    background: color-mix(in srgb, var(--sleep-accent) 14%, transparent);
+  @media (hover: hover) and (pointer: fine) {
+    :global(.sa-toggle:hover) { background: color-mix(in srgb, var(--sleep-accent) 14%, transparent); }
   }
+  :global(.sa-toggle:active) { transform: scale(0.92); }
 
   :global(.sr-del) {
     background: none;
@@ -1554,13 +1624,14 @@
     padding: 6px;
     border-radius: 8px;
     color: var(--sleep-muted);
-    transition: all 0.15s;
+    transition: transform 160ms var(--ease-spring), background 160ms ease, color 160ms ease;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  :global(.sr-del:hover) {
-    background: color-mix(in srgb, #ef4444 14%, transparent);
-    color: #ef4444;
+  @media (hover: hover) and (pointer: fine) {
+    :global(.sr-del:hover) { background: color-mix(in srgb, oklch(0.637 0.208 25.331) 14%, transparent); color: oklch(0.637 0.208 25.331); }
   }
+  :global(.sr-del:active) { transform: scale(0.92); }
 
   :global(.sleep-loading) {
     height: 200px;
@@ -1622,9 +1693,9 @@
     margin-top: 4px;
   }
 
-  :global(.ss-stat--good) { color: #22c55e; }
-  :global(.ss-stat--warn) { color: #f59e0b; }
-  :global(.ss-stat--bad) { color: #ef4444; }
+  :global(.ss-stat--good) { color: oklch(0.723 0.192 149.579); }
+  :global(.ss-stat--warn) { color: oklch(0.769 0.165 70.080); }
+  :global(.ss-stat--bad) { color: oklch(0.637 0.208 25.331); }
 
   :global(.sleep-session-list) {
     display: flex;
@@ -1655,6 +1726,11 @@
     border-radius: 14px;
     border: 1px solid color-mix(in srgb, var(--sleep-border) 92%, transparent);
     background: color-mix(in srgb, var(--sleep-surface-strong) 94%, transparent);
+    transition: border-color 160ms ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    :global(.ss-row:hover) { border-color: color-mix(in srgb, var(--sleep-border) 60%, transparent); }
   }
 
   :global(.ss-row-main) {
@@ -1703,14 +1779,15 @@
     padding: 6px;
     border-radius: 8px;
     color: var(--sleep-muted);
-    transition: all 0.15s;
+    transition: transform 160ms var(--ease-spring), background 160ms ease, color 160ms ease;
     flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  :global(.ss-row-delete:hover) {
-    background: color-mix(in srgb, #ef4444 14%, transparent);
-    color: #ef4444;
+  @media (hover: hover) and (pointer: fine) {
+    :global(.ss-row-delete:hover) { background: color-mix(in srgb, oklch(0.637 0.208 25.331) 14%, transparent); color: oklch(0.637 0.208 25.331); }
   }
+  :global(.ss-row-delete:active) { transform: scale(0.92); }
 
   :global(.ss-manual-form) {
     display: flex;
@@ -1847,5 +1924,28 @@
 
   @media (max-width: 860px) {
     :global(.sleep-grid-sessions) { grid-template-columns: 1fr; }
+  }
+
+  /* ── Reduced Motion ─────────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    :global(.sr-add-btn),
+    :global(.sa-add-btn),
+    :global(.sa-toggle),
+    :global(.sr-del),
+    :global(.ss-row-delete),
+    :global(.ss-row) {
+      transition: none !important;
+    }
+    :global(.sr-add-btn:active:not(:disabled)),
+    :global(.sa-add-btn:active:not(:disabled)),
+    :global(.sa-toggle:active),
+    :global(.sr-del:active),
+    :global(.ss-row-delete:active),
+    :global(.ss-row:hover) {
+      transform: none !important;
+    }
+    :global(.sleep-loading) {
+      animation: none;
+    }
   }
 </style>

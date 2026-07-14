@@ -575,10 +575,26 @@
     --mood-muted: var(--muted);
     --mood-accent-warm: color-mix(in srgb, var(--primary) 30%, var(--surface));
     --mood-accent-cool: color-mix(in srgb, var(--accent) 34%, var(--surface));
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     height: 100%;
     background: var(--mood-bg);
     font-family: var(--font-body);
     overflow: hidden;
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  :global(.mood-workspace) button,
+  :global(.mood-workspace) input,
+  :global(.mood-workspace) select {
+    user-select: none;
+  }
+
+  :global(.mood-workspace) ::selection {
+    background: color-mix(in srgb, var(--primary) 22%, transparent);
+    color: var(--foreground);
   }
 
   :global(.mood-shell) {
@@ -620,6 +636,8 @@
     font-size: clamp(1.4rem, 2vw, 2.2rem);
     line-height: 1.15;
     font-weight: 600;
+    text-wrap: balance;
+    letter-spacing: -0.02em;
   }
 
   :global(.mood-shell__intro) p {
@@ -627,6 +645,7 @@
     line-height: 1.5;
     color: var(--mood-muted);
     font-size: 0.92rem;
+    text-wrap: pretty;
   }
 
   /* ════════════════════════════════════════
@@ -755,12 +774,19 @@
     color: var(--mood-muted);
     font: inherit;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+    transition: transform 160ms var(--ease-spring), background 160ms ease, color 160ms ease;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
 
-  :global(.mood-picker__item):hover {
-    background: color-mix(in srgb, var(--mood-surface-strong) 90%, transparent);
-    transform: translateY(-2px);
+  @media (hover: hover) and (pointer: fine) {
+    :global(.mood-picker__item):hover {
+      background: color-mix(in srgb, var(--mood-surface-strong) 90%, transparent);
+    }
+  }
+
+  :global(.mood-picker__item):active {
+    transform: scale(0.96);
   }
 
   :global(.mood-picker__item--active) {
@@ -1036,14 +1062,21 @@
     font: inherit;
     font-size: 0.82rem;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: transform 160ms var(--ease-spring), background 160ms ease, color 160ms ease;
     text-align: left;
     overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
 
-  :global(.mood-act-btn):hover {
-    background: color-mix(in srgb, var(--accent) 10%, var(--mood-surface-strong));
-    transform: translateY(-1px);
+  @media (hover: hover) and (pointer: fine) {
+    :global(.mood-act-btn):hover {
+      background: color-mix(in srgb, var(--accent) 10%, var(--mood-surface-strong));
+    }
+  }
+
+  :global(.mood-act-btn):active {
+    transform: scale(0.96);
   }
 
   :global(.mood-act-btn--selected) {
@@ -1194,6 +1227,28 @@
 
   @keyframes mood-spin {
     to { transform: rotate(360deg); }
+  }
+
+  /* ── Reduced Motion ─────────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    :global(.mood-picker__item),
+    :global(.mood-act-btn),
+    :global(.mood-act-btn__del),
+    :global(.mood-timeline__del),
+    :global(.mood-avatar),
+    :global(.mood-timeline__item) {
+      transition: none !important;
+    }
+    :global(.mood-picker__item):active,
+    :global(.mood-act-btn):active {
+      transform: none !important;
+    }
+    :global(.mood-avatar):hover {
+      transform: none !important;
+    }
+    :global(.mood-spin) {
+      animation: none !important;
+    }
   }
 
   /* ════════════════════════════════════════

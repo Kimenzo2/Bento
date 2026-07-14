@@ -82,11 +82,12 @@ export default function AppShowcase() {
                 return (
                   <div
                     key={app.name}
-                    className="showcase-card"
+                    className="showcase-card stagger-item"
                     style={{
                       borderRadius: '1.5rem',
                       background: tokens.elevated,
                       padding: '12px 16px',
+                      animationDelay: `${i * 60}ms`,
                     }}
                   >
                     <div

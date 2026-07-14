@@ -6,6 +6,8 @@
   import FeedbackModal from "$lib/components/FeedbackModal.svelte";
   import type { PageKey } from "$lib/router/routes";
   import { workspaceStore } from "$lib/stores/workspace.store";
+  import AgentPanel from "$lib/components/agent/AgentPanel.svelte";
+  import { agentPanelOpen, agentPanelWidth } from "$lib/stores/agent-panel.store";
 
   let {
     page,
@@ -79,9 +81,11 @@
   class:desktop-workspace--mini-app={!!activeAppId}
   class:desktop-workspace--sidebar-hidden={$workspaceStore.sidebarHidden}
   class:desktop-workspace--no-topbar={!showTopbar}
+  class:desktop-workspace--agent-panel-open={$agentPanelOpen}
   class="desktop-workspace"
-  style={`--desktop-sidebar-top:${$workspaceStore.sidebarTop}px`}
+  style={`--desktop-sidebar-top:${$workspaceStore.sidebarTop}px;--agent-panel-width:${$agentPanelWidth}px`}
 >
+  <AgentPanel />
   {#if showSidebar}
     <ShellSidebar currentPage={page} {activeAppId} />
   {/if}
