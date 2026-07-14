@@ -2850,7 +2850,7 @@ body.sidebar-dragging * {
 /* ── Container: thin visible outline around content when agent panel is open ── */
 .desktop-workspace--agent-panel-open .desktop-workspace__content {
   border-radius: 16px;
-  border: 1px solid var(--border);
+  border: 0.5px solid color-mix(in srgb, var(--border) 80%, transparent);
   margin-top: 0.5rem;
   margin-right: 0;
   margin-bottom: 0.5rem;
