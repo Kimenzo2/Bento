@@ -1,14 +1,24 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
-  import { Plus, Heading1, Heading2, Heading3, List, ListOrdered, Quote, Code2, CheckSquare, Minus, Bold, Italic, Underline, Strikethrough, Link2, GripVertical, Trash2, Copy } from 'lucide-svelte';
+  import { Plus, Heading1, Heading2, Heading3, List, ListOrdered, Quote, Code2, CheckSquare, Minus, Bold, Italic, Underline, Strikethrough, Link2, GripVertical, Trash2, Copy, RotateCcw, RotateCw, Search, Link as LinkIcon } from 'lucide-svelte';
   import { BlockRenderer } from './components/blocks/index.js';
   import { editorStore, getRootBlocks, getTitleBlock, getFocusedBlock, getIsEditorLoading, getObjectId } from '$lib/local-store/store.js';
+  import FindInPage from '$lib/components/FindInPage.svelte';
+  import BacklinksPanel from '$lib/components/BacklinksPanel.svelte';
 
   let rootBlocks = $derived(getRootBlocks());
   let titleBlock = $derived(getTitleBlock());
   let focusedBlock = $derived(getFocusedBlock());
   let isEditorLoading = $derived(getIsEditorLoading());
+  let wordCount = $derived(rootBlocks.reduce((acc, b) => {
+    const text = typeof b.content?.text === 'string' ? b.content.text : '';
+    return acc + (text.trim() ? text.trim().split(/\s+/).length : 0);
+  }, 0));
+  let charCount = $derived(rootBlocks.reduce((acc, b) => {
+    const text = typeof b.content?.text === 'string' ? b.content.text : '';
+    return acc + text.length;
+  }, 0));
   import { TextStyle, MarkType } from '$lib/local-store/block.js';
   import type { Block, ContentText, Mark, TextRange } from '$lib/local-store/block.js';
   import { isTextBlock, isTextCode, isTextTitle, isTextDescription, isTextHeader, canHaveMarks } from '$lib/local-store/block.js';
@@ -24,6 +34,26 @@
   let showFormatToolbar = $state(false);
   let formatToolbarStyle = $state({ top: '0px', left: '0px' });
   let formatBlockId = $state<string | null>(null);
+  let showColorPicker = $state(false);
+  let showHighlightPicker = $state(false);
+
+  const TEXT_COLORS = [
+    { id: 'gray', label: 'Gray', color: '#626f86' },
+    { id: 'brown', label: 'Brown', color: '#9f6b53' },
+    { id: 'orange', label: 'Orange', color: '#d9730d' },
+    { id: 'yellow', label: 'Yellow', color: '#cb912f' },
+    { id: 'green', label: 'Green', color: '#448361' },
+    { id: 'blue', label: 'Blue', color: '#0c66e4' },
+    { id: 'purple', label: 'Purple', color: '#7e5bef' },
+    { id: 'red', label: 'Red', color: '#e03e3e' },
+  ];
+
+  const HIGHLIGHT_COLORS = [
+    { id: 'yellow', label: 'Yellow', color: '#f0b429' },
+    { id: 'blue', label: 'Blue', color: '#3b9bdc' },
+    { id: 'green', label: 'Green', color: '#3ccf8e' },
+    { id: 'red', label: 'Red', color: '#f97066' },
+  ];
   let showSlashMenu = $state(false);
   let slashMenuStyle = $state({ top: '0px', left: '0px' });
   let slashQuery = $state('');
@@ -32,6 +62,213 @@
   let showLinkDialog = $state(false);
   let linkUrl = $state('');
   let editorEl = $state<HTMLDivElement>();
+
+  // ── Find in Page state ─────────────────────────────────────────
+  let showFindBar = $state(false);
+  let findQuery = $state('');
+  let findMatches = $state<{ blockId: string; start: number; end: number }[]>([]);
+  let findCurrentIndex = $state(0);
+
+  function openFindBar() {
+    showFindBar = true;
+    findQuery = '';
+    findMatches = [];
+    findCurrentIndex = 0;
+  }
+
+  function closeFindBar() {
+    showFindBar = false;
+    findQuery = '';
+    findMatches = [];
+    findCurrentIndex = 0;
+    clearFindHighlights();
+  }
+
+  function handleFind(query: string) {
+    findQuery = query;
+    if (!query.trim()) {
+      findMatches = [];
+      findCurrentIndex = 0;
+      clearFindHighlights();
+      return;
+    }
+    const q = query.toLowerCase();
+    const matches: { blockId: string; start: number; end: number }[] = [];
+    for (const block of rootBlocks) {
+      if (!block.id) continue;
+      const text = (block.content as ContentText)?.text ?? '';
+      const lower = text.toLowerCase();
+      let idx = 0;
+      while (true) {
+        const pos = lower.indexOf(q, idx);
+        if (pos === -1) break;
+        matches.push({ blockId: block.id, start: pos, end: pos + q.length });
+        idx = pos + 1;
+      }
+    }
+    findMatches = matches;
+    findCurrentIndex = matches.length > 0 ? 0 : -1;
+    highlightMatches(q);
+    if (matches.length > 0) scrollToMatch(0);
+  }
+
+  function highlightMatches(query: string) {
+    document.querySelectorAll('.find-highlight').forEach(el => {
+      const span = el as HTMLSpanElement;
+      const parent = span.parentNode;
+      if (parent) {
+        const text = document.createTextNode(span.textContent || '');
+        parent.replaceChild(text, span);
+        parent.normalize();
+      }
+    });
+    if (!query) return;
+    const blocks = document.querySelectorAll('[data-block-id] .editable');
+    blocks.forEach(el => {
+      const blockId = el.closest('[data-block-id]')?.getAttribute('data-block-id');
+      if (!blockId) return;
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      const textNodes: Text[] = [];
+      let node: Text | null;
+      while ((node = walker.nextNode() as Text | null)) textNodes.push(node);
+      for (const textNode of textNodes) {
+        const content = textNode.textContent || '';
+        const lower = content.toLowerCase();
+        let idx = 0;
+        const fragments: (string | HTMLSpanElement)[] = [];
+        while (true) {
+          const pos = lower.indexOf(query.toLowerCase(), idx);
+          if (pos === -1) { fragments.push(content.slice(idx)); break; }
+          fragments.push(content.slice(idx, pos));
+          const mark = document.createElement('span');
+          mark.className = 'find-highlight';
+          mark.textContent = content.slice(pos, pos + query.length);
+          fragments.push(mark);
+          idx = pos + query.length;
+        }
+        if (fragments.some(f => typeof f !== 'string')) {
+          const parent = textNode.parentNode;
+          if (!parent) continue;
+          const range = document.createRange();
+          range.selectNode(textNode);
+          range.deleteContents();
+          for (const frag of fragments) {
+            if (typeof frag === 'string') {
+              parent.appendChild(document.createTextNode(frag));
+            } else {
+              parent.appendChild(frag);
+            }
+          }
+          parent.normalize();
+        }
+      }
+    });
+    highlightCurrentMatch();
+  }
+
+  function clearFindHighlights() {
+    document.querySelectorAll('.find-highlight').forEach(el => {
+      const span = el as HTMLSpanElement;
+      const parent = span.parentNode;
+      if (parent) {
+        const text = document.createTextNode(span.textContent || '');
+        parent.replaceChild(text, span);
+        parent.normalize();
+      }
+    });
+    document.querySelectorAll('.find-highlight-current').forEach(el => {
+      el.classList.remove('find-highlight-current');
+    });
+  }
+
+  function highlightCurrentMatch() {
+    document.querySelectorAll('.find-highlight-current').forEach(el => el.classList.remove('find-highlight-current'));
+    const match = findMatches[findCurrentIndex];
+    if (!match) return;
+    const highlights = document.querySelectorAll('.find-highlight');
+    let idx = 0;
+    for (const block of rootBlocks) {
+      if (!block.id) continue;
+      const text = (block.content as ContentText)?.text ?? '';
+      const lower = text.toLowerCase();
+      let pos = 0;
+      while (true) {
+        const p = lower.indexOf(findQuery.toLowerCase(), pos);
+        if (p === -1) break;
+        if (block.id === match.blockId && p === match.start) {
+          highlights[idx]?.classList.add('find-highlight-current');
+          return;
+        }
+        idx++;
+        pos = p + 1;
+      }
+    }
+  }
+
+  function scrollToMatch(index: number) {
+    const match = findMatches[index];
+    if (!match) return;
+    const el = document.querySelector(`[data-block-id="${match.blockId}"]`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function findNext() {
+    if (findMatches.length === 0) return;
+    findCurrentIndex = (findCurrentIndex + 1) % findMatches.length;
+    highlightCurrentMatch();
+    scrollToMatch(findCurrentIndex);
+  }
+
+  function findPrevious() {
+    if (findMatches.length === 0) return;
+    findCurrentIndex = (findCurrentIndex - 1 + findMatches.length) % findMatches.length;
+    highlightCurrentMatch();
+    scrollToMatch(findCurrentIndex);
+  }
+
+  // ── Backlinks panel state ────────────────────────────────────
+  let showBacklinks = $state(false);
+
+  function toggleBacklinks() {
+    showBacklinks = !showBacklinks;
+  }
+
+  function handleBacklinkNavigate(id: string) {
+    showBacklinks = false;
+    // Reload the editor with the target note
+    window.dispatchEvent(new CustomEvent('command:open-note', { detail: { id } }));
+  }
+
+  // ── Wiki link indexing ────────────────────────────────────────
+  async function indexWikilinks() {
+    if (!objectId) return;
+    try {
+      await invoke('notes_index_wikilinks', { noteId: objectId });
+    } catch (err) {
+      // Non-critical, links will be resolved on next save
+    }
+  }
+
+  // ── Undo/Redo ──────────────────────────────────────────────────
+  async function handleUndo() {
+    if (!objectId) return;
+    try {
+      await invoke('notes_undo', { noteId: objectId });
+      await editorStore.init(objectId);
+    } catch (err) {
+      console.error('[notes] undo failed:', err);
+    }
+  }
+
+  async function handleRedo() {
+    if (!objectId) return;
+    try {
+      await invoke('notes_redo', { noteId: objectId });
+      await editorStore.init(objectId);
+    } catch (err) {
+      console.error('[notes] redo failed:', err);
+    }
+  }
 
   // ── Drag reorder state ──────────────────────────────────────────
   let dragBlockId = $state<string | null>(null);
@@ -118,7 +355,56 @@
     slashQuery = '';
     slashMenuIndex = 0;
     slashAnchorBlockId = null;
+    showFindBar = false;
+    findQuery = '';
+    findMatches = [];
     void editorStore.init(id);
+  });
+
+  // ── Global keyboard shortcuts ──────────────────────────────────
+  $effect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const isMod = e.metaKey || e.ctrlKey;
+      if (isMod && e.key === 'f' && !e.shiftKey) {
+        if (objectId) {
+          e.preventDefault();
+          openFindBar();
+        }
+        return;
+      }
+      if (isMod && e.key === 'z' && !e.shiftKey) {
+        if (objectId) {
+          e.preventDefault();
+          void handleUndo();
+        }
+        return;
+      }
+      if (isMod && e.key === 'z' && e.shiftKey) {
+        if (objectId) {
+          e.preventDefault();
+          void handleRedo();
+        }
+        return;
+      }
+      if (isMod && e.key === 'y') {
+        if (objectId) {
+          e.preventDefault();
+          void handleRedo();
+        }
+        return;
+      }
+    }
+
+    function handleCommandFind() {
+      if (objectId) openFindBar();
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('command:find', handleCommandFind);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('command:find', handleCommandFind);
+    };
   });
 
   // ── DOM focus helper ──────────────────────────────────────────────
@@ -327,7 +613,10 @@
     if (!el) { showFormatToolbar = false; return; }
     const rect = sel.getRangeAt(0).getBoundingClientRect();
     const edRect = editorEl.getBoundingClientRect();
-    formatToolbarStyle = { top: `${rect.top - edRect.top - 40}px`, left: `${(rect.left - edRect.left) + (rect.width / 2)}px` };
+    const toolbarW = 380;
+    let left = (rect.left - edRect.left) + (rect.width / 2) - (toolbarW / 2);
+    left = Math.max(8, Math.min(left, edRect.width - toolbarW - 8));
+    formatToolbarStyle = { top: `${rect.top - edRect.top - 44}px`, left: `${left}px` };
     formatBlockId = blockId;
     showFormatToolbar = true;
   }
@@ -336,6 +625,25 @@
     if (!formatBlockId) return;
     await editorStore.applyMarkToSelection(formatBlockId, markType);
     showFormatToolbar = false;
+  }
+
+  async function handleColorAction(markType: MarkType, param: string) {
+    if (!formatBlockId) return;
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.rangeCount) return;
+    const el = document.querySelector(`[data-block-id="${formatBlockId}"] .editable`);
+    if (!el) return;
+    const r = sel.getRangeAt(0);
+    const pre = document.createRange();
+    pre.selectNodeContents(el);
+    pre.setEnd(r.startContainer, r.startOffset);
+    const from = pre.toString().length;
+    const to = from + r.toString().length;
+    if (from === to) return;
+    await editorStore.toggleMark(formatBlockId, markType, { from, to }, param);
+    showFormatToolbar = false;
+    showColorPicker = false;
+    showHighlightPicker = false;
   }
 
   async function addBlockBelow(blockId?: string) {
@@ -358,11 +666,12 @@
   onmousedown={handleEditorMouseDown}
 >
   {#if isEditorLoading}
-    <div class="editor-loading">
+    <div class="editor-loading" style="flex:1;">
       <div class="loading-spinner"></div>
       <p>Loading document...</p>
     </div>
   {:else}
+    <div class="editor-scroll">
     <div class="editor-header">
       {#if titleBlock}
         <BlockRenderer block={titleBlock} rootId="root" blockIndex={0}
@@ -372,20 +681,42 @@
       {/if}
     </div>
 
-    {#each rootBlocks as block, i (block.id)}
-      {#if block.content && 'style' in block.content && isTextDescription((block.content as ContentText).style)}
-        <div class="editor-description">
-          <BlockRenderer {block} rootId="root" blockIndex={i}
-            onUpdate={handleUpdate} onFocus={handleFocus} onBlur={handleBlur}
-            onKeyDown={handleKeyDown} onKeyUp={handleKeyUp}
-            onToggle={handleToggle} onStyleConvert={handleStyleConvert} />
-        </div>
-      {/if}
-    {/each}
+    {#if showFindBar}
+      <FindInPage
+        show={showFindBar}
+        query={findQuery}
+        matchCount={findMatches.length}
+        currentMatch={findCurrentIndex}
+        onClose={closeFindBar}
+        onFind={handleFind}
+        onNext={findNext}
+        onPrevious={findPrevious}
+      />
+    {/if}
+
+    <div class="editor-toolbar">
+      <button class="toolbar-btn" onclick={handleUndo} disabled={!objectId} aria-label="Undo" title="Undo (Ctrl+Z)" type="button">
+        <RotateCcw size={14} />
+      </button>
+      <button class="toolbar-btn" onclick={handleRedo} disabled={!objectId} aria-label="Redo" title="Redo (Ctrl+Shift+Z)" type="button">
+        <RotateCw size={14} />
+      </button>
+      <div class="toolbar-sep"></div>
+      <button class="toolbar-btn" onclick={openFindBar} disabled={!objectId} aria-label="Find in note" title="Find in note (Ctrl+F)" type="button">
+        <Search size={14} />
+      </button>
+      <div class="toolbar-sep"></div>
+      <button class="toolbar-btn" onclick={toggleBacklinks} class:active={showBacklinks} disabled={!objectId} aria-label="Backlinks" title="Backlinks" type="button">
+        <LinkIcon size={14} />
+      </button>
+      <div class="toolbar-sep"></div>
+      <button class="toolbar-btn" onclick={() => window.dispatchEvent(new CustomEvent('command:toggle-properties'))} disabled={!objectId} aria-label="Properties" title="Note properties" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      </button>
+    </div>
 
     <div class="editor-blocks">
       {#each rootBlocks as block, i (block.id)}
-        {#if !('style' in (block.content ?? {})) || (!isTextTitle((block.content as ContentText).style) && !isTextDescription((block.content as ContentText).style))}
           <div
             class="block-wrapper"
             class:is-dragging={dragBlockId === block.id}
@@ -413,7 +744,6 @@
               onKeyDown={handleKeyDown} onKeyUp={handleKeyUp}
               onToggle={handleToggle} onStyleConvert={handleStyleConvert} />
           </div>
-        {/if}
       {/each}
 
       {#if rootBlocks.length === 0}
@@ -422,6 +752,18 @@
         </div>
       {/if}
     </div>
+
+    </div>
+
+    <div class="editor-footer">
+      <span class="editor-stats">{wordCount} words · {charCount} characters</span>
+    </div>
+
+    {#if showBacklinks}
+      <div class="backlinks-sidebar">
+        <BacklinksPanel noteId={objectId} onNavigateTo={handleBacklinkNavigate} onClose={() => showBacklinks = false} />
+      </div>
+    {/if}
 
     {#if showSlashMenu}
       <div class="slash-menu" style="top: {slashMenuStyle.top}; left: {slashMenuStyle.left};"
@@ -456,6 +798,33 @@
         <div class="format-toolbar-sep"></div>
         <button class="format-toolbar-btn" type="button" aria-label="Code" onclick={() => handleFormatAction(MarkType.Code)}><Code2 size={14} /></button>
         <button class="format-toolbar-btn" type="button" aria-label="Link" onclick={() => handleFormatAction(MarkType.Link)}><Link2 size={14} /></button>
+        <div class="format-toolbar-sep"></div>
+        <div class="color-btn-wrap">
+          <button class="format-toolbar-btn" type="button" aria-label="Text color" onclick={() => { showColorPicker = !showColorPicker; showHighlightPicker = false; }}>
+            <span style="width:14px;height:14px;display:grid;place-items:center;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px;"><path d="M12 3L5.5 21M12 3l6.5 18M8.5 15h7"/></svg></span>
+          </button>
+          {#if showColorPicker}
+            <div class="color-picker-popup">
+              {#each TEXT_COLORS as c}
+                <button class="color-swatch" style="background:{c.color}" title={c.label} onclick={() => handleColorAction(MarkType.Color, c.id)} type="button"></button>
+              {/each}
+              <button class="color-swatch" style="background:transparent;border:1px dashed var(--muted);" title="Remove color" onclick={() => handleColorAction(MarkType.Color, '')} type="button"><span style="color:var(--muted);font-size:10px;">✕</span></button>
+            </div>
+          {/if}
+        </div>
+        <div class="color-btn-wrap">
+          <button class="format-toolbar-btn" type="button" aria-label="Highlight" onclick={() => { showHighlightPicker = !showHighlightPicker; showColorPicker = false; }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px;"><path d="M3 21l2-2 3-3 4-4 4-4 3-3-2-2-3 3-4 4-4 4-3 3z"/></svg>
+          </button>
+          {#if showHighlightPicker}
+            <div class="color-picker-popup">
+              {#each HIGHLIGHT_COLORS as c}
+                <button class="color-swatch" style="background:{c.color}" title={c.label} onclick={() => handleColorAction(MarkType.BgColor, c.id)} type="button"></button>
+              {/each}
+              <button class="color-swatch" style="background:transparent;border:1px dashed var(--muted);" title="Remove highlight" onclick={() => handleColorAction(MarkType.BgColor, '')} type="button"><span style="color:var(--muted);font-size:10px;">✕</span></button>
+            </div>
+          {/if}
+        </div>
       </div>
     {/if}
 
@@ -481,13 +850,37 @@
 <style>
   .notes-editor {
     display: flex;
+    flex-direction: row;
+    gap: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .editor-scroll {
+    display: flex;
     flex-direction: column;
     gap: 4px;
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     max-width: 740px;
     margin: 0 auto;
     padding: 40px 24px 120px 80px;
-    min-height: 100%;
+    overflow-y: auto;
+    height: 100%;
+  }
+
+  .backlinks-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    border-left: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+    overflow-y: auto;
+    animation: slide-in-right 0.15s ease;
+  }
+
+  @keyframes slide-in-right {
+    from { opacity: 0; transform: translateX(8px); }
+    to { opacity: 1; transform: translateX(0); }
   }
   .editor-header { margin-bottom: 8px; }
   .editor-description { margin-bottom: 16px; opacity: 0.7; }
@@ -535,8 +928,37 @@
   .editor-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 24px; gap: 16px; color: var(--muted); }
   .loading-spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-    .editor-blocks :global([contenteditable]) { font-family: var(--notes-body-font, 'Instrument Serif', serif); font-size: 16px; font-weight: 400; line-height: 1.75; }
+    .editor-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+    flex-shrink: 0;
+  }
+
+  .toolbar-btn {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: color-mix(in srgb, var(--foreground) 40%, transparent);
+    cursor: pointer;
+    transition: background 100ms ease, color 100ms ease;
+  }
+  .toolbar-btn:hover { background: color-mix(in srgb, var(--foreground) 6%, transparent); color: var(--foreground); }
+  .toolbar-btn:disabled { opacity: 0.3; cursor: default; }
+  .toolbar-btn.active { background: color-mix(in srgb, var(--primary) 15%, transparent); color: var(--primary); }
+  .toolbar-sep { width: 1px; height: 18px; background: color-mix(in srgb, var(--foreground) 6%, transparent); margin: 0 4px; }
+
+  .editor-blocks :global([contenteditable]) { font-family: var(--notes-body-font, 'Instrument Serif', serif); font-size: 16px; font-weight: 400; line-height: 1.75; }
   .editor-blocks :global(code), .editor-blocks :global(pre) { font-family: var(--font-mono, 'JetBrains Mono Variable', ui-monospace, monospace); font-size: 13px; }
+  .editor-blocks :global(.find-highlight) { background: color-mix(in srgb, var(--primary) 30%, transparent); border-radius: 2px; }
+  .editor-blocks :global(.find-highlight-current) { background: color-mix(in srgb, var(--primary) 60%, transparent); }
   .slash-menu { position: absolute; z-index: 100; width: 260px; background: var(--background); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; }
   .slash-menu-header { padding: 8px 12px; font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
   .slash-menu-items { display: flex; flex-direction: column; padding: 4px; max-height: 300px; overflow-y: auto; }
@@ -548,9 +970,15 @@
   .format-toolbar-btn { all: unset; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 4px; cursor: default; color: var(--muted); transition: background 120ms ease, color 120ms ease; }
   .format-toolbar-btn:hover { background: color-mix(in srgb, var(--foreground) 6%, transparent); color: var(--foreground); }
   .format-toolbar-sep { width: 1px; height: 20px; background: var(--border); margin: 0 2px; }
+  .color-btn-wrap { position: relative; }
+  .color-picker-popup { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 4px; display: flex; gap: 2px; padding: 4px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); z-index: 10; }
+  .color-swatch { width: 20px; height: 20px; border: none; border-radius: 4px; cursor: pointer; display: grid; place-items: center; transition: transform 80ms ease; }
+  .color-swatch:hover { transform: scale(1.2); }
   .block-actions { position: absolute; z-index: 100; display: flex; flex-direction: column; gap: 2px; padding: 4px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); min-width: 120px; }
   .block-actions-btn { all: unset; display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 4px; cursor: default; font-size: 13px; color: var(--foreground); transition: background 120ms ease; }
   .block-actions-btn:hover { background: color-mix(in srgb, var(--foreground) 6%, transparent); }
-  .block-actions-btn.danger { color: var(--destructive, #ef4444); }
-  .block-actions-btn.danger:hover { background: color-mix(in srgb, var(--destructive, #ef4444) 10%, transparent); }
+  .block-actions-btn.danger { color: var(--destructive); }
+  .block-actions-btn.danger:hover { background: color-mix(in srgb, var(--destructive) 10%, transparent); }
+  .editor-footer { flex-shrink: 0; display: flex; align-items: center; justify-content: flex-end; padding: 4px 16px; border-top: 1px solid color-mix(in srgb, var(--foreground) 4%, transparent); }
+  .editor-stats { font-size: 11px; color: color-mix(in srgb, var(--foreground) 30%, transparent); }
 </style>

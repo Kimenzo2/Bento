@@ -853,6 +853,22 @@ export async function setBlockBgColor(blockId: string, bgColor: string) {
   }
 }
 
+export async function setBlockFields(blockId: string, fields: Record<string, any>) {
+  const b = blocks.get(blockId);
+  if (b) {
+    blocks.set(blockId, { ...b, fields: { ...b.fields, ...fields } });
+  }
+  try {
+    await invoke("notes_set_block_fields", {
+      noteId: getCurrentObjectId(),
+      blockId,
+      fields,
+    });
+  } catch (e) {
+    console.error("[editor-state] setBlockFields", e);
+  }
+}
+
 export async function setBlockAlign(blockId: string, align: string) {
   const aMap: Record<string, number> = { left: 0, center: 1, right: 2, justify: 3 };
   const b = blocks.get(blockId);
@@ -964,6 +980,7 @@ export const editorStore = {
   setBlockColor,
   setBlockBgColor,
   setBlockAlign,
+  setBlockFields,
   clearBlockStyle,
   persistBlockText,
   syncBlockTextToStore,

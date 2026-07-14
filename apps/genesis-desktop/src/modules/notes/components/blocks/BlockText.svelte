@@ -2,11 +2,11 @@
   import { onMount, tick } from 'svelte';
   import type { Block, TextStyle, Mark, TextRange, ContentText } from '$lib/local-store/block';
   import { TextStyle as TS, MarkType, DivStyle } from '$lib/local-store/block';
-  import { isTextBlock, isTextCode, isTextTitle, isTextDescription, isTextHeader, isTextToggle, canHaveMarks } from '$lib/local-store/block';
+  import { isTextBlock, isTextCode, isTextTitle, isTextDescription, isTextHeader, isTextToggle } from '$lib/local-store/block';
   import { editorStore } from '$lib/local-store/store';
-  import { Link2, Unlink2 } from 'lucide-svelte';
+  
 
-  let { block, rootId, readonly = false, blockIndex = 0, softEnter = false, onUpdate = () => {}, onFocus = () => {}, onBlur = () => {}, onKeyDown = () => {}, onKeyUp = () => {}, onToggle = () => {}, onStyleConvert = () => {}, onOpenLinkDialog = () => {} }: {
+  let { block, rootId, readonly = false, blockIndex = 0, softEnter = false, onUpdate = () => {}, onFocus = () => {}, onBlur = () => {}, onKeyDown = () => {}, onKeyUp = () => {}, onToggle = () => {}, onStyleConvert = () => {} }: {
     block: Block;
     rootId: string;
     readonly?: boolean;
@@ -19,7 +19,6 @@
     onKeyUp?: (e: any, value: string, marks: Mark[], range: any, props: any) => void;
     onToggle?: (e?: any) => void;
     onStyleConvert?: (blockId: string, style: TextStyle) => void;
-    onOpenLinkDialog?: (blockId: string) => void;
   } = $props();
 
   // ── Derived from block content (reactive to prop changes) ───────────
@@ -512,6 +511,34 @@
   };
 
   let styleClass = $derived(styleClassMap[style] || 'style-paragraph');
+
+  // ── Code block language selector ────────────────────────────────────
+  const CODE_LANGUAGES = [
+    { id: 'plaintext', label: 'Plain Text' },
+    { id: 'bash', label: 'Bash' },
+    { id: 'html', label: 'HTML' },
+    { id: 'javascript', label: 'JavaScript' },
+    { id: 'typescript', label: 'TypeScript' },
+    { id: 'json', label: 'JSON' },
+    { id: 'markdown', label: 'Markdown' },
+    { id: 'mermaid', label: 'Mermaid' },
+    { id: 'python', label: 'Python' },
+    { id: 'rust', label: 'Rust' },
+    { id: 'svg', label: 'SVG' },
+    { id: 'xml', label: 'XML' },
+    { id: 'yaml', label: 'YAML' },
+  ];
+  import { setBlockFields } from '$lib/local-store/editor-state.svelte';
+
+  let showLangSelector = $state(false);
+  let codeLanguage = $derived((block.fields?.codeLanguage as string) || 'plaintext');
+  let langLabel = $derived(CODE_LANGUAGES.find(l => l.id === codeLanguage)?.label || 'Plain Text');
+
+  function selectLanguage(lang: string) {
+    showLangSelector = false;
+    if (lang === codeLanguage) return;
+    void setBlockFields(block.id!, { codeLanguage: lang });
+  }
 </script>
 
 <div
@@ -558,6 +585,26 @@
 
   {#if style === TS.Callout && (iconEmoji || iconImage)}
     <span class="callout-icon">{iconEmoji || '💡'}</span>
+  {/if}
+
+  {#if style === TS.Code}
+    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+    <div class="code-lang-bar" onclick={() => showLangSelector = !showLangSelector} role="button" tabindex="0" onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showLangSelector = !showLangSelector; } }} aria-label="Code language: {langLabel}">
+      <span class="code-lang-label">{langLabel}</span>
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    {#if showLangSelector}
+      <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+      <div class="code-lang-dropdown" onclick={() => showLangSelector = false}>
+        {#each CODE_LANGUAGES as lang}
+          <button
+            class="code-lang-option"
+            class:is-active={lang.id === codeLanguage}
+            onclick={(e) => { e.stopPropagation(); selectLanguage(lang.id); }}
+          >{lang.label}</button>
+        {/each}
+      </div>
+    {/if}
   {/if}
 
   <div
@@ -628,6 +675,7 @@
   .style-paragraph .editable {
     font-size: 1rem;
     line-height: 1.7;
+    text-wrap: pretty;
   }
 
   .style-h1 .editable {
@@ -635,6 +683,7 @@
     font-weight: 700;
     line-height: 1.2;
     letter-spacing: -0.03em;
+    text-wrap: balance;
   }
 
   .style-h2 .editable {
@@ -642,6 +691,7 @@
     font-weight: 700;
     line-height: 1.3;
     letter-spacing: -0.02em;
+    text-wrap: balance;
   }
 
   .style-h3 .editable {
@@ -649,12 +699,14 @@
     font-weight: 600;
     line-height: 1.4;
     letter-spacing: -0.01em;
+    text-wrap: balance;
   }
 
   .style-h4 .editable {
     font-size: 1.1rem;
     font-weight: 600;
     line-height: 1.5;
+    text-wrap: balance;
   }
 
   .style-title .editable {
@@ -662,6 +714,7 @@
     font-weight: 700;
     line-height: 1.1;
     letter-spacing: -0.04em;
+    text-wrap: balance;
   }
 
   .style-quote .editable {
@@ -671,6 +724,68 @@
     border-left: 3px solid var(--border);
     color: var(--muted);
     font-style: italic;
+    text-wrap: pretty;
+  }
+
+  .style-code {
+    position: relative;
+    flex-direction: column;
+    gap: 0;
+  }
+  .code-lang-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    margin: 4px 0 0 12px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-family: inherit;
+    color: var(--muted);
+    background: var(--surface);
+    cursor: pointer;
+    user-select: none;
+    align-self: flex-start;
+    transition: background 0.15s;
+  }
+  .code-lang-bar:hover {
+    background: var(--hover);
+    color: var(--foreground);
+  }
+  .code-lang-label { text-transform: capitalize; }
+  .code-lang-dropdown {
+    position: absolute;
+    top: 28px;
+    left: 12px;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    padding: 4px;
+    z-index: 100;
+    max-height: 240px;
+    overflow-y: auto;
+    min-width: 130px;
+  }
+  .code-lang-option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--foreground);
+    font-size: 0.8rem;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .code-lang-option:hover { background: var(--hover); }
+  .code-lang-option.is-active {
+    background: var(--primary);
+    color: var(--primary-foreground);
   }
 
   .style-code .editable {
@@ -701,35 +816,41 @@
   .style-toggle .editable {
     font-size: 1rem;
     line-height: 1.7;
+    text-wrap: pretty;
   }
 
   .style-toggle-h1 .editable {
     font-size: 1.8rem;
     font-weight: 700;
     line-height: 1.2;
+    text-wrap: balance;
   }
 
   .style-toggle-h2 .editable {
     font-size: 1.5rem;
     font-weight: 700;
     line-height: 1.3;
+    text-wrap: balance;
   }
 
   .style-toggle-h3 .editable {
     font-size: 1.25rem;
     font-weight: 600;
     line-height: 1.4;
+    text-wrap: balance;
   }
 
   .style-bulleted .editable,
   .style-numbered .editable {
     font-size: 1rem;
     line-height: 1.7;
+    text-wrap: pretty;
   }
 
   .style-checkbox .editable {
     font-size: 1rem;
     line-height: 1.7;
+    text-wrap: pretty;
   }
 
   .is-checked .editable {

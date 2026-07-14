@@ -19,10 +19,10 @@ use super::service::{
     block_create, clear_text_content, clear_text_style, create_note_object, delete_note_object,
     duplicate_blocks, get_note_full_cached, get_note_object, list_note_objects, merge_block,
     move_blocks, object_duplicate, redo, replace_block, set_align, set_background_color,
-    set_layout, set_text_checked, set_text_color, set_text_content, set_text_mark, set_text_style,
-    split_block, turn_into, undo, unlink_block, update_note_object, BlockCreateParams,
-    CreateNoteParams, DuplicateBlocksParams, HistoryInfo, MoveBlocksParams, NoteObject,
-    NoteSummary, NoteWithBlocks, SetMarkParams, UpdateNoteParams,
+    set_block_fields, set_layout, set_text_checked, set_text_color, set_text_content, set_text_mark,
+    set_text_style, split_block, turn_into, undo, unlink_block, update_note_object,
+    BlockCreateParams, CreateNoteParams, DuplicateBlocksParams, HistoryInfo, MoveBlocksParams,
+    NoteObject, NoteSummary, NoteWithBlocks, SetMarkParams, UpdateNoteParams,
 };
 use super::undo::HistoryRegistry;
 
@@ -519,6 +519,433 @@ pub async fn notes_get_blocks(
         .map_err(|e| e.message)
 }
 
+/// Get all backlinks (wiki links that point to this note).
+#[tauri::command]
+pub async fn notes_get_backlinks(
+    state: State<'_, BentoAppState>,
+    note_id: String,
+) -> Result<Vec<serde_json::Value>, String> {
+    use sqlx::Row;
+    let db = db(&state);
+    let rows = sqlx::query(
+        r#"
+        SELECT nl.id, nl.source_note_id, nl.target_title, nl.created_at,
+               no.title AS source_title, no.icon AS source_icon
+        FROM note_links nl
+        LEFT JOIN note_objects no ON nl.source_note_id = no.id
+        WHERE nl.target_note_id = ?
+        ORDER BY nl.created_at DESC
+        "#,
+    )
+    .bind(&note_id)
+    .fetch_all(&db)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let backlinks: Vec<serde_json::Value> = rows.into_iter().map(|row| {
+        serde_json::json!({
+            "id": row.try_get::<String, _>("id").unwrap_or_default(),
+            "sourceNoteId": row.try_get::<String, _>("source_note_id").unwrap_or_default(),
+            "sourceTitle": row.try_get::<String, _>("source_title").unwrap_or_else(|_| "Untitled".to_string()),
+            "sourceIcon": row.try_get::<Option<String>, _>("source_icon").ok().flatten(),
+            "targetTitle": row.try_get::<String, _>("target_title").unwrap_or_default(),
+            "createdAt": row.try_get::<i64, _>("created_at").unwrap_or(0),
+        })
+    }).collect();
+
+    Ok(backlinks)
+}
+
+/// Find a note by exact title match (for wiki link resolution).
+#[tauri::command]
+pub async fn notes_find_by_title(
+    state: State<'_, BentoAppState>,
+    title: String,
+) -> Result<Option<serde_json::Value>, String> {
+    use sqlx::Row;
+    let db = db(&state);
+    let row = sqlx::query(
+        r#"
+        SELECT id, title, icon
+        FROM note_objects
+        WHERE LOWER(title) = LOWER(?) AND is_archived = 0
+        LIMIT 1
+        "#,
+    )
+    .bind(&title)
+    .fetch_optional(&db)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(row.map(|r| {
+        serde_json::json!({
+            "id": r.try_get::<String, _>("id").unwrap_or_default(),
+            "title": r.try_get::<String, _>("title").unwrap_or_default(),
+            "icon": r.try_get::<Option<String>, _>("icon").ok().flatten(),
+        })
+    }))
+}
+
+/// Search notes by title prefix (for wiki link autocomplete).
+#[tauri::command]
+pub async fn notes_search_by_title(
+    state: State<'_, BentoAppState>,
+    query: String,
+    limit: Option<i64>,
+) -> Result<Vec<serde_json::Value>, String> {
+    use sqlx::Row;
+    let db = db(&state);
+    let q = format!("%{}%", query);
+    let limit = limit.unwrap_or(10);
+    let rows = sqlx::query(
+        r#"
+        SELECT id, title, icon
+        FROM note_objects
+        WHERE LOWER(title) LIKE LOWER(?) AND is_archived = 0
+        ORDER BY
+            CASE WHEN LOWER(title) = LOWER(?) THEN 0
+                 WHEN LOWER(title) LIKE LOWER(?) THEN 1
+                 ELSE 2
+            END,
+            updated_at DESC
+        LIMIT ?
+        "#,
+    )
+    .bind(&q)
+    .bind(&query)
+    .bind(&format!("{}%", query))
+    .bind(limit)
+    .fetch_all(&db)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let results: Vec<serde_json::Value> = rows.into_iter().map(|row| {
+        serde_json::json!({
+            "id": row.try_get::<String, _>("id").unwrap_or_default(),
+            "title": row.try_get::<String, _>("title").unwrap_or_default(),
+            "icon": row.try_get::<Option<String>, _>("icon").ok().flatten(),
+        })
+    }).collect();
+
+    Ok(results)
+}
+
+/// Index wiki links found in a note's blocks (call after saving).
+#[tauri::command]
+pub async fn notes_index_wikilinks(
+    state: State<'_, BentoAppState>,
+    note_id: String,
+) -> Result<i64, String> {
+    use sqlx::Row;
+    let db = db(&state);
+
+    // Clear existing links for this note
+    sqlx::query("DELETE FROM note_links WHERE source_note_id = ?")
+        .bind(&note_id)
+        .execute(&db)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // Get all text blocks for this note
+    let blocks = sqlx::query(
+        "SELECT id, content FROM blocks WHERE object_id = ? AND type = 'text'",
+    )
+    .bind(&note_id)
+    .fetch_all(&db)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let link_re = regex::Regex::new(r"\[\[([^\]\n]+?)(?:\|([^\]\n]+))?\]\]").unwrap();
+    let mut count = 0i64;
+    let now = chrono::Utc::now().timestamp_millis();
+
+    for block in &blocks {
+        let content_str: String = block.try_get("content").unwrap_or_default();
+        if let Ok(content_val) = serde_json::from_str::<serde_json::Value>(&content_str) {
+            let text = content_val.get("text").and_then(|v| v.as_str()).unwrap_or("");
+            for cap in link_re.captures_iter(text) {
+                let target_title = cap.get(1).map(|m| m.as_str().trim()).unwrap_or("").to_string();
+                if target_title.is_empty() { continue; }
+
+                // Resolve the target note
+                let target = sqlx::query(
+                    "SELECT id FROM note_objects WHERE LOWER(title) = LOWER(?) AND is_archived = 0 LIMIT 1",
+                )
+                .bind(&target_title)
+                .fetch_optional(&db)
+                .await
+                .map_err(|e| e.to_string())?;
+
+                let link_id = uuid::Uuid::new_v4().to_string();
+                let target_id: Option<String> = target.map(|r| r.try_get("id").unwrap_or_default());
+
+                sqlx::query(
+                    "INSERT INTO note_links (id, source_note_id, target_note_id, target_title, created_at) VALUES (?, ?, ?, ?, ?)",
+                )
+                .bind(&link_id)
+                .bind(&note_id)
+                .bind(&target_id)
+                .bind(&target_title)
+                .bind(now)
+                .execute(&db)
+                .await
+                .map_err(|e| e.to_string())?;
+
+                count += 1;
+            }
+        }
+    }
+
+    Ok(count)
+}
+
+/// Get or create today's daily note.
+#[tauri::command]
+pub async fn notes_daily_note(
+    state: State<'_, BentoAppState>,
+    history: State<'_, Arc<HistoryRegistry>>,
+    search: State<'_, SearchService>,
+    cache: State<'_, Arc<super::NoteFullCache>>,
+) -> Result<NoteWithBlocks, String> {
+    use sqlx::Row;
+    let db = db(&state);
+    let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+    let title = format!("Daily Note - {}", today);
+
+    // Try to find existing daily note
+    let existing = sqlx::query(
+        "SELECT id FROM note_objects WHERE title = ? AND is_archived = 0 LIMIT 1",
+    )
+    .bind(&title)
+    .fetch_optional(&db)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    if let Some(row) = existing {
+        let note_id: String = row.try_get("id").map_err(|e| e.to_string())?;
+        crate::notes::service::get_note_full_cached(&db, cache.inner().as_ref(), &note_id)
+            .await
+            .map_err(|e| e.message)
+    } else {
+        // Create today's daily note
+        let params = crate::notes::service::CreateNoteParams {
+            title: title.clone(),
+            icon: Some("📅".to_string()),
+            tags: vec!["daily".to_string()],
+            pinned: false,
+        };
+        crate::notes::service::create_note_object(
+            &db,
+            &history,
+            &search,
+            cache.inner().as_ref(),
+            params,
+        )
+        .await
+        .map_err(|e| e.message)
+    }
+}
+
+/// List all note templates.
+#[tauri::command]
+pub async fn notes_templates_list(
+    state: State<'_, BentoAppState>,
+) -> Result<Vec<serde_json::Value>, String> {
+    use sqlx::Row;
+    let db = db(&state);
+    let rows = sqlx::query(
+        "SELECT id, name, description, icon, created_at FROM note_templates ORDER BY name ASC",
+    )
+    .fetch_all(&db)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let templates: Vec<serde_json::Value> = rows.into_iter().map(|row| {
+        serde_json::json!({
+            "id": row.try_get::<String, _>("id").unwrap_or_default(),
+            "name": row.try_get::<String, _>("name").unwrap_or_default(),
+            "description": row.try_get::<String, _>("description").unwrap_or_default(),
+            "icon": row.try_get::<String, _>("icon").unwrap_or_else(|_| "📄".to_string()),
+            "createdAt": row.try_get::<i64, _>("created_at").unwrap_or(0),
+        })
+    }).collect();
+
+    Ok(templates)
+}
+
+/// Create a note template from an existing note's blocks.
+#[tauri::command]
+pub async fn notes_template_create(
+    state: State<'_, BentoAppState>,
+    name: String,
+    description: String,
+    icon: String,
+    source_note_id: String,
+) -> Result<serde_json::Value, String> {
+    use sqlx::Row;
+    let db = db(&state);
+
+    // Get blocks from source note
+    let blocks = sqlx::query(
+        "SELECT id, type, content, fields, align, bg_color, position FROM blocks WHERE object_id = ? ORDER BY position ASC",
+    )
+    .bind(&source_note_id)
+    .fetch_all(&db)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let blocks_json: Vec<serde_json::Value> = blocks.into_iter().map(|row| {
+        let content_str: String = row.try_get("content").unwrap_or_else(|_| "{}".to_string());
+        let content_val: serde_json::Value = serde_json::from_str(&content_str).unwrap_or(serde_json::json!({}));
+        serde_json::json!({
+            "type": row.try_get::<String, _>("type").unwrap_or_default(),
+            "content": content_val,
+            "style": content_val.get("style"),
+        })
+    }).collect();
+
+    let id = uuid::Uuid::new_v4().to_string();
+    let now = chrono::Utc::now().timestamp_millis();
+    let blocks_str = serde_json::to_string(&blocks_json).unwrap_or_else(|_| "[]".to_string());
+
+    sqlx::query(
+        "INSERT INTO note_templates (id, name, description, icon, blocks_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(&id)
+    .bind(&name)
+    .bind(&description)
+    .bind(&icon)
+    .bind(&blocks_str)
+    .bind(now)
+    .bind(now)
+    .execute(&db)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(serde_json::json!({
+        "id": id,
+        "name": name,
+        "description": description,
+        "icon": icon,
+        "createdAt": now,
+    }))
+}
+
+/// Create a note from a template.
+#[tauri::command]
+pub async fn notes_create_from_template(
+    state: State<'_, BentoAppState>,
+    history: State<'_, Arc<HistoryRegistry>>,
+    search: State<'_, SearchService>,
+    cache: State<'_, Arc<super::NoteFullCache>>,
+    template_id: String,
+    title: String,
+) -> Result<NoteWithBlocks, String> {
+    use sqlx::Row;
+    let db = db(&state);
+
+    // Get template
+    let template = sqlx::query(
+        "SELECT blocks_json FROM note_templates WHERE id = ?",
+    )
+    .bind(&template_id)
+    .fetch_optional(&db)
+    .await
+    .map_err(|e| e.to_string())?
+    .ok_or_else(|| "Template not found".to_string())?;
+
+    let blocks_json_str: String = template.try_get("blocks_json").unwrap_or_else(|_| "[]".to_string());
+
+    // Create the note
+    let params = crate::notes::service::CreateNoteParams {
+        title: if title.is_empty() { "Untitled".to_string() } else { title },
+        icon: Some("📄".to_string()),
+        tags: vec![],
+        pinned: false,
+    };
+
+    let created = crate::notes::service::create_note_object(
+        &db,
+        &history,
+        &search,
+        cache.inner().as_ref(),
+        params,
+    )
+    .await
+    .map_err(|e| e.message)?;
+
+    // Parse template blocks and create them in the new note
+    if let Ok(blocks) = serde_json::from_str::<Vec<serde_json::Value>>(&blocks_json_str) {
+        let now = chrono::Utc::now().timestamp_millis();
+        for (pos_i, block_data) in blocks.iter().enumerate() {
+            let pos = pos_i as i64;
+            let block_type = block_data.get("type").and_then(|v| v.as_str()).unwrap_or("text");
+            let content = block_data.get("content").cloned().unwrap_or(serde_json::json!({}));
+
+            let block_id = uuid::Uuid::new_v4().to_string();
+            let content_str = serde_json::to_string(&content).unwrap_or_else(|_| "{}".to_string());
+
+            sqlx::query(
+                "INSERT INTO blocks (id, object_id, parent_id, type, content, fields, align, bg_color, position, created_at, updated_at) VALUES (?, ?, NULL, ?, ?, '{}', 0, '', ?, ?, ?)",
+            )
+            .bind(&block_id)
+            .bind(&created.note.id)
+            .bind(block_type)
+            .bind(&content_str)
+            .bind(pos)
+            .bind(now)
+            .bind(now)
+            .execute(&db)
+            .await
+            .map_err(|e| e.to_string())?;
+
+            // Link child
+            if pos == 0 {
+                sqlx::query(
+                    "INSERT INTO object_children (object_id, block_id, child_id, position) VALUES (?, ?, ?, ?)",
+                )
+                .bind(&created.note.id)
+                .bind(&created.note.id)
+                .bind(&block_id)
+                .bind(pos)
+                .execute(&db)
+                .await
+                .map_err(|e| e.to_string())?;
+            }
+
+            if pos > 0 {
+                let prev = sqlx::query(
+                    "SELECT child_id FROM object_children WHERE object_id = ? AND block_id = ? ORDER BY position DESC LIMIT 1",
+                )
+                .bind(&created.note.id)
+                .bind(&created.note.id)
+                .fetch_optional(&db)
+                .await
+                .map_err(|e| e.to_string())?;
+
+                if let Some(prev_row) = prev {
+                    let prev_child: String = prev_row.try_get("child_id").map_err(|e| e.to_string())?;
+                    sqlx::query(
+                        "INSERT INTO object_children (object_id, block_id, child_id, position) VALUES (?, ?, ?, ?)",
+                    )
+                    .bind(&created.note.id)
+                    .bind(&prev_child)
+                    .bind(&block_id)
+                    .bind(pos)
+                    .execute(&db)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                }
+            }
+        }
+    }
+
+    // Return the created note
+    crate::notes::service::get_note_full_cached(&db, cache.inner().as_ref(), &created.note.id)
+        .await
+        .map_err(|e| e.message)
+}
+
 /// Search notes by title and content.
 /// Go source: objectstore.SpaceIndex.QueryObjectIds + FTS
 #[tauri::command]
@@ -575,4 +1002,109 @@ pub async fn notes_search(
         .collect();
 
     Ok(summaries)
+}
+
+/// List all tags with note counts, sorted by count descending.
+#[tauri::command]
+pub async fn notes_tags_list(
+    state: State<'_, BentoAppState>,
+) -> Result<Vec<serde_json::Value>, String> {
+    use sqlx::Row;
+    let db = db(&state);
+    let rows = sqlx::query(
+        r#"
+        SELECT DISTINCT j.value AS tag,
+               COUNT(*) OVER (PARTITION BY j.value) AS count
+        FROM note_objects,
+             json_each(COALESCE(note_objects.tags, '[]')) AS j
+        WHERE note_objects.is_archived = 0
+        ORDER BY count DESC, tag ASC
+        "#,
+    )
+    .fetch_all(&db)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let tags: Vec<serde_json::Value> = rows.into_iter().map(|row| {
+        serde_json::json!({
+            "name": row.try_get::<String, _>("tag").unwrap_or_default(),
+            "count": row.try_get::<i64, _>("count").unwrap_or(0),
+        })
+    }).collect();
+
+    Ok(tags)
+}
+
+/// Rename a tag across all notes.
+#[tauri::command]
+pub async fn notes_tags_rename(
+    state: State<'_, BentoAppState>,
+    old_name: String,
+    new_name: String,
+) -> Result<(), String> {
+    let db = db(&state);
+    let notes = sqlx::query_as::<_, (String, String)>(
+        "SELECT id, tags FROM note_objects WHERE is_archived = 0",
+    )
+    .fetch_all(&db)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    for (note_id, tags_str) in notes {
+        if let Ok(mut tags) = serde_json::from_str::<Vec<String>>(&tags_str) {
+            if let Some(pos) = tags.iter().position(|t| t == &old_name) {
+                tags[pos] = new_name.clone();
+                let updated = serde_json::to_string(&tags).unwrap_or(tags_str);
+                sqlx::query("UPDATE note_objects SET tags = ? WHERE id = ?")
+                    .bind(&updated)
+                    .bind(&note_id)
+                    .execute(&db)
+                    .await
+                    .map_err(|e| e.to_string())?;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Delete a tag from all notes.
+#[tauri::command]
+pub async fn notes_tags_delete(
+    state: State<'_, BentoAppState>,
+    name: String,
+) -> Result<(), String> {
+    let db = db(&state);
+    let notes = sqlx::query_as::<_, (String, String)>(
+        "SELECT id, tags FROM note_objects WHERE is_archived = 0",
+    )
+    .fetch_all(&db)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    for (note_id, tags_str) in notes {
+        if let Ok(mut tags) = serde_json::from_str::<Vec<String>>(&tags_str) {
+            tags.retain(|t| t != &name);
+            let updated = serde_json::to_string(&tags).unwrap_or(tags_str);
+            sqlx::query("UPDATE note_objects SET tags = ? WHERE id = ?")
+                .bind(&updated)
+                .bind(&note_id)
+                .execute(&db)
+                .await
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn notes_set_block_fields(
+    state: State<'_, BentoAppState>,
+    history: State<'_, Arc<HistoryRegistry>>,
+    note_id: String,
+    block_id: String,
+    fields: serde_json::Value,
+) -> Result<crate::local_store::block::BlockRow, String> {
+    set_block_fields(&db(&state), &history, &note_id, &block_id, fields)
+        .await
+        .map_err(|e| e.message)
 }
