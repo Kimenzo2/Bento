@@ -1,18 +1,13 @@
 <script lang="ts">
+  import type { Snippet } from "svelte";
   import type { ChartConfig } from "./types.js";
 
-  let {
-    config,
-    class: className = "",
-    children,
-  }: {
+  let { config, class: className, children }: {
     config: ChartConfig;
     class?: string;
-    children?: import("svelte").Snippet;
+    children: Snippet;
   } = $props();
 
-  // Inject CSS colour variables so chart slices can reference
-  // var(--color-chrome) etc. without extra setup in every callsite.
   const cssVars = $derived(
     Object.entries(config)
       .filter(([, v]) => v.color)
@@ -21,10 +16,6 @@
   );
 </script>
 
-<div
-  data-slot="chart-container"
-  class={className}
-  style={cssVars}
->
-  {@render children?.()}
+<div class={className} style={cssVars}>
+  {@render children()}
 </div>

@@ -8,7 +8,7 @@ import { routePatterns } from "$lib/router/route-patterns";
 export const pageMeta = {
   dashboard: {
     title: "Dashboard",
-    subtitle: "Recent work, quick actions, and local orchestration health.",
+    subtitle: "Recent work, quick actions, and app health.",
   },
   project: {
     title: "Project View",
@@ -28,7 +28,7 @@ export const pageMeta = {
   },
   settings: {
     title: "Settings",
-    subtitle: "Theme, language, update, shell, and local-preference controls.",
+    subtitle: "Theme, language, update, and local preferences.",
   },
   pricing: {
     title: "Pricing",
@@ -56,7 +56,7 @@ export const pageMeta = {
   },
   starterApp: {
     title: "Bento Apps",
-    subtitle: "Focused offline-first personal tools inside the desktop shell.",
+    subtitle: "Focused offline-first personal tools inside the desktop app.",
   },
   notes: {
     title: "Notes",

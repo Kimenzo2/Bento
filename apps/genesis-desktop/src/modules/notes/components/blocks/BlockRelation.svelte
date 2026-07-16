@@ -45,7 +45,7 @@
 
   const formatIcons: Record<string, string> = {
     text: '📝', longtext: '📃', number: '#', select: '◉',
-    multiselect: '◉', date: '📅', file: '📎', checkbox: '☑',
+    multiselect: '◉', date: 'date-cal', file: '📎', checkbox: '☑',
     url: '🔗', email: '✉️', phone: '📞',
   };
 
@@ -62,7 +62,13 @@
     <div class="relation-row">
       <!-- Left: name + format icon -->
       <div class="relation-info">
-        <span class="relation-icon" aria-hidden="true">{icon}</span>
+        {#if icon === 'date-cal'}
+          <span class="relation-icon" aria-hidden="true" style="display:inline-flex;align-items:center;">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 3.5C2 3.22 2.22 3 2.5 3H13.5C13.78 3 14 3.22 14 3.5V13C14 13.28 13.78 13.5 13.5 13.5H2.5C2.22 13.5 2 13.28 2 13V3.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 6H14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M5.5 1.5V4.5M10.5 1.5V4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="10" r="1.2" stroke="currentColor" stroke-width="1.4"/></svg>
+          </span>
+        {:else}
+          <span class="relation-icon" aria-hidden="true">{icon}</span>
+        {/if}
         <span class="relation-name">{relationName || relationKey}</span>
       </div>
 

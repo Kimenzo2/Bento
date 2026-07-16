@@ -284,6 +284,7 @@ h3 {
   font-weight: var(--font-weight-extrabold);
   letter-spacing: var(--letter-spacing-tight);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Mono font — JetBrains Mono Variable ────────────────────────────
@@ -760,19 +761,21 @@ body {
 .global-settings__nav button {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 8px;
   min-height: 2.45rem;
   border: 0;
-  border-radius: 0.95rem;
+  border-radius: 8px;
   background: transparent;
-  padding: 0 0.85rem;
-  color: var(--muted);
-  font-weight: 750;
+  padding: 7px 10px;
+  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 470;
   text-align: left;
 }
 
 .global-settings__nav button:hover:not(.global-settings__nav-active) {
-  background: color-mix(in srgb, var(--foreground) 7%, var(--background));
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
   color: var(--foreground);
 }
 
@@ -908,6 +911,9 @@ body {
   gap: 0.65rem;
   color: var(--foreground);
   line-height: 1.65;
+  overflow: hidden;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .streaming-markdown__block :where(p, ul, ol, pre, blockquote) {
@@ -919,33 +925,14 @@ body {
   border-radius: 0.75rem;
   background: color-mix(in srgb, var(--foreground) 8%, transparent);
   padding: 0.9rem;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .streaming-markdown__block :where(code) {
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
 }
 
-.streaming-markdown__caret {
-  display: inline-block;
-  width: 0.48rem;
-  height: 1em;
-  margin-left: 0.16rem;
-  transform: translateY(0.12em);
-  border-radius: 999px;
-  background: var(--primary);
-  animation: bento-caret-pulse 900ms steps(2, jump-none) infinite;
-}
-
-@keyframes bento-caret-pulse {
-  0%,
-  45% {
-    opacity: 1;
-  }
-  46%,
-  100% {
-    opacity: 0;
-  }
-}
 
 html[dir="rtl"] body,
 html[dir="rtl"] input,
@@ -1236,9 +1223,9 @@ body.sidebar-dragging * {
   margin: 0.65rem 0 0.25rem;
   padding: 0 0.9rem;
   color: var(--muted);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -1250,7 +1237,7 @@ body.sidebar-dragging * {
 .desktop-sidebar__project {
   border: none;
   background: transparent;
-  color: var(--muted);
+  color: color-mix(in srgb, var(--foreground) 55%, transparent);
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
@@ -1260,6 +1247,8 @@ body.sidebar-dragging * {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 14px;
+  font-weight: 470;
   transition:
     background-color 150ms ease,
     color 150ms ease;
@@ -1306,7 +1295,7 @@ body.sidebar-dragging * {
 
 .desktop-sidebar__nav-item--app {
   padding-block: 0.62rem;
-  font-size: 0.88rem;
+  font-size: 14px;
 }
 
 .desktop-sidebar__nav-item--flyout {
@@ -2955,8 +2944,10 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   margin: 1.1rem 0 0.4rem;
   padding: 0 0.95rem;
   color: color-mix(in srgb, var(--muted) 74%, transparent);
-  font-size: 0.66rem;
-  letter-spacing: 0.2em;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .desktop-sidebar__nav-item {
@@ -2964,8 +2955,9 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   border: none;
   border-radius: 0.5rem;
   padding: 0.3rem 0.7rem;
-  color: color-mix(in srgb, var(--foreground) 46%, var(--muted));
-  font-size: 0.875rem;
+  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+  font-size: 14px;
+  font-weight: 470;
   letter-spacing: -0.018em;
   transition:
     background-color 150ms ease,
@@ -5123,7 +5115,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 
 .subs-total-label {
   font-size: 13px;
-  color: color-mix(in srgb, var(--foreground) 40%, transparent);
+  color: color-mix(in srgb, var(--foreground) 55%, transparent);
 }
 
 /* Day-of-week headers */
@@ -5464,6 +5456,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   letter-spacing: -0.02em;
   color: var(--foreground);
   line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Subscription list */
@@ -5937,7 +5930,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 }
 .subs-total-label {
   font-size: 13px;
-  color: color-mix(in srgb, var(--foreground) 40%, transparent);
+  color: color-mix(in srgb, var(--foreground) 55%, transparent);
 }
 
 /* DOW headers */
@@ -6061,7 +6054,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   border: 1.5px dashed color-mix(in srgb, var(--foreground) 14%, transparent);
   border-radius: 10px;
   background: transparent;
-  color: color-mix(in srgb, var(--foreground) 40%, transparent);
+  color: color-mix(in srgb, var(--foreground) 55%, transparent);
   font: inherit;
   font-size: 13px;
   font-weight: 600;

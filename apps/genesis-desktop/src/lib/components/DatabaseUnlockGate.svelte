@@ -102,7 +102,7 @@
       </button>
 
       <p class="db-gate__footnote">
-        Your data is encrypted at rest with AES-256 SQLCipher.
+        Your data is encrypted at rest with AES-256 encryption.
         The key exists only in memory during your session.
       </p>
     </div>

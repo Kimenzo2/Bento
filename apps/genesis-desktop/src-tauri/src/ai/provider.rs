@@ -126,6 +126,14 @@ pub fn create_provider(
                 .unwrap_or_else(|| "https://generativelanguage.googleapis.com/v1beta".to_string());
             Ok(AiProvider::Gemini(GeminiProvider::new(base_url)))
         }
+        "openrouter" => {
+            // OpenRouter uses the OpenAI-compatible API format.
+            let base_url = base_url_overrides
+                .get("openrouter")
+                .cloned()
+                .unwrap_or_else(|| "https://openrouter.ai/api/v1".to_string());
+            Ok(AiProvider::OpenAI(OpenAIProvider::new(base_url)))
+        }
         other => Err(format!("Unknown AI provider: {other}")),
     }
 }

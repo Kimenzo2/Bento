@@ -70,7 +70,7 @@
 {/if}
 
 <style>
-  .gs-overlay { position: fixed; inset: 0; z-index: 9993; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, #000 30%, transparent); }
+  .gs-overlay { position: fixed; inset: 0; z-index: 9993; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--background) 60%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
   .gs-pane { width: 340px; background: var(--background); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.15); padding: 32px 24px 20px; position: relative; display: flex; flex-direction: column; align-items: center; gap: 16px; }
   .gs-close { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 28px; height: 28px; border: none; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
   .gs-close:hover { background: color-mix(in srgb, var(--foreground) 6%, transparent); color: var(--foreground); }

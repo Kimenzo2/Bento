@@ -915,7 +915,7 @@
               <span class="hb-s-icon">{@render habitIcon(h.emoji, 18)}</span>
               <div class="hb-s-info">
                 <strong>{h.name}</strong>
-                <div class="hb-chain">
+                <div class="hb-chain" role="img" aria-label="Last 21 days: {h.completionHistory.slice(-21).filter(Boolean).length} completed, {h.completionHistory.slice(-21).filter(d => !d).length} missed">
                   {#each h.completionHistory.slice(-21) as day}
                     <div class="hb-dot" class:hb-dot-on={day}></div>
                   {/each}
@@ -954,7 +954,7 @@
             ))}
             <article style="--hc:{h.color}">
               <span>{@render habitIcon(h.emoji, 16)}&thinsp;{h.name}</span>
-              <div class="hb-strength-bar-wrap"><div class="hb-strength-bar" style="width:{score}%;background:{h.color}"></div></div>
+              <div class="hb-strength-bar-wrap"><div class="hb-strength-bar" style="width:{score}%;background:{h.color}" role="meter" aria-label="Habit strength" aria-valuemin={0} aria-valuemax={100} aria-valuenow={score}></div></div>
               <strong>{score}</strong>
             </article>
           {/each}
@@ -1020,7 +1020,7 @@
             {/each}
           </div>
           {#if heatmapHabit}
-            <div class="hb-hm-grid" style="--hc:{heatmapHabit.color}">
+            <div class="hb-hm-grid" style="--hc:{heatmapHabit.color}" role="img" aria-label="90-day activity heatmap for {heatmapHabit.name}: {heatmapHabit.completionHistory.filter(Boolean).length} days completed">
               {#each heatmapHabit.completionHistory as day, i}
                 <div class="hb-hm-cell" class:hb-hm-on={day}
                   style={day ? `opacity:${hmOpacity(i)}` : ''}
@@ -1028,6 +1028,19 @@
                 ></div>
               {/each}
             </div>
+            <!-- Screen reader table -->
+            <table class="hb-sr-only">
+              <caption>{heatmapHabit.name} — 90-day activity</caption>
+              <thead><tr><th>Date</th><th>Completed</th></tr></thead>
+              <tbody>
+                {#each heatmapHabit.completionHistory as day, i}
+                  <tr>
+                    <td>{new Date(Date.now()-(89-i)*86400000).toLocaleDateString()}</td>
+                    <td>{day ? 'Yes' : 'No'}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
             <div class="hb-hm-legend">
               <span>Less</span>
               {#each [0.2,0.4,0.6,0.8,1] as op}
@@ -1050,7 +1063,7 @@
             <article class="hb-perf-row">
               <span class="hb-perf-icon">{@render habitIcon(h.emoji, 16)}</span>
               <span class="hb-perf-name">{h.name}</span>
-              <div class="hb-perf-track"><div class="hb-perf-fill" style="width:{rate}%;background:{h.color}"></div></div>
+              <div class="hb-perf-track"><div class="hb-perf-fill" style="width:{rate}%;background:{h.color}" role="meter" aria-label="{h.name} completion rate" aria-valuemin={0} aria-valuemax={100} aria-valuenow={rate}></div></div>
               <span class="hb-perf-pct">{rate}%</span>
             </article>
           {/each}
@@ -1077,18 +1090,63 @@
           <CardDescription>Completion across the last 7 days.</CardDescription>
         </CardHeader>
         <CardContent class="hb-week-content">
-          {#each ['M','T','W','T','F','S','S'] as d, i}
-            {const dayTotal = activeHabits.reduce((s,h) => {
-              const idx = 89 - (6 - i);
-              return s + (h.completionHistory[idx] ? 1 : 0);
-            }, 0)}
-            {const pct = totalHabits > 0 ? dayTotal / totalHabits : 0}
-            <div class="hb-week-col">
-              <div class="hb-week-bar-wrap"><div class="hb-week-bar" style="height:{Math.max(pct * 100, 4)}%"></div></div>
-              <span class="hb-week-day">{d}</span>
-              <span class="hb-week-num">{dayTotal}</span>
+          {#if activeHabits.length === 0}
+            <div class="hl-wc-empty">
+              <span>No habits yet</span>
+              <small>Create a habit to see your weekly trend</small>
             </div>
-          {/each}
+          {:else}
+            {@const srRows = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map((day, i) => { const dayTotal = activeHabits.reduce((s,h) => { const idx = 89 - (6 - i); return s + (h.completionHistory[idx] ? 1 : 0); }, 0); return `${day} ${dayTotal}`; }).join(', ')}
+            <div class="hl-wc" role="img" aria-label="Weekly habit completion: {srRows}">
+              <div class="hl-wc-y" aria-hidden="true">
+                <span>{totalHabits}</span><span>{Math.round(totalHabits * 0.75)}</span><span>{Math.round(totalHabits * 0.5)}</span><span>{Math.round(totalHabits * 0.25)}</span><span>0</span>
+                <span class="hl-wc-ytitle">Completed</span>
+              </div>
+              <div class="hl-wc-body">
+                <div class="hl-wc-grid" aria-hidden="true">
+                  {#each [100, 75, 50, 25, 0] as lv}
+                    <div class="hl-wc-line" style="bottom:{lv}%"></div>
+                  {/each}
+                </div>
+                <div class="hl-wc-bars">
+                  {#each ['M','T','W','T','F','S','S'] as d, i}
+                    {const dayTotal = activeHabits.reduce((s,h) => { const idx = 89 - (6 - i); return s + (h.completionHistory[idx] ? 1 : 0); }, 0)}
+                    {const pct = totalHabits > 0 ? dayTotal / totalHabits : 0}
+                    <div class="hl-wc-col">
+                      {#if dayTotal > 0}
+                        <span class="hl-wc-val">{dayTotal}</span>
+                      {/if}
+                      <div class="hl-wc-bar"
+                        style="height:{Math.max(4, pct * 100)}%"
+                        tabindex="0"
+                        role="meter" aria-label="{d}: {dayTotal} of {totalHabits} habits completed"
+                        aria-valuemin="0" aria-valuemax={totalHabits} aria-valuenow={dayTotal}
+                        data-empty={dayTotal === 0 || undefined}>
+                        <span class="hl-wc-tip">{d}: {dayTotal}/{totalHabits}</span>
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              </div>
+            </div>
+            <div class="hl-wc-x" aria-hidden="true">
+              {#each ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] as d}
+                <span>{d}</span>
+              {/each}
+            </div>
+          {/if}
+          <table class="hb-sr-only">
+            <caption>Weekly habit completion</caption>
+            <thead><tr><th>Day</th><th>Completed</th></tr></thead>
+            <tbody>
+              {#each ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] as day, i}
+                <tr>
+                  <td>{day}</td>
+                  <td>{activeHabits.reduce((s,h) => { const idx = 89 - (6 - i); return s + (h.completionHistory[idx] ? 1 : 0); }, 0)}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
         </CardContent>
       </Card>
 
@@ -1134,7 +1192,7 @@
               <span>{@render habitIcon(h.emoji, 14)}</span>
               <div class="hb-bd-info">
                 <strong>{h.name}</strong>
-                <div class="hb-bd-bar"><div class="hb-bd-fill" style="width:{rate}%"></div></div>
+                <div class="hb-bd-bar"><div class="hb-bd-fill" style="width:{rate}%" role="meter" aria-label="{h.name} 90-day rate" aria-valuemin={0} aria-valuemax={100} aria-valuenow={rate}></div></div>
               </div>
               <div class="hb-bd-nums">
                 <span>{rate}%</span>
@@ -1211,7 +1269,7 @@
             </div>
           </article>
           <article><span>Used this month</span><strong>{usedFreezeTokens} / {freezeTokens}</strong></article>
-          <div class="hb-token-bar"><div class="hb-token-bar-fill" style="width:{freezeTokens > 0 ? (usedFreezeTokens/freezeTokens*100) : 0}%"></div></div>
+          <div class="hb-token-bar"><div class="hb-token-bar-fill" style="width:{freezeTokens > 0 ? (usedFreezeTokens/freezeTokens*100) : 0}%" role="meter" aria-label="Freeze token usage" aria-valuemin={0} aria-valuemax={freezeTokens} aria-valuenow={usedFreezeTokens}></div></div>
         </CardContent>
       </Card>
 
@@ -1946,6 +2004,7 @@
   line-height: 1;
   font-family: var(--font-display);
   letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
 }
 :global(.hb-big-label) {
   font-size: 0.9rem;
@@ -2157,35 +2216,10 @@
 /* ── Review ──────────────────────────────────────────────────────── */
 :global(.hb-week-content) {
   display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  height: 120px;
-  padding-bottom: 4px;
-}
-:global(.hb-week-col) {
-  flex: 1;
-  display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  height: 100%;
+  gap: 6px;
+  overflow: hidden;
 }
-:global(.hb-week-bar-wrap) {
-  flex: 1;
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-:global(.hb-week-bar) {
-  width: 55%;
-  min-height: 4px;
-  border-radius: 3px 3px 0 0;
-  background: var(--hb-accent);
-  transition: height .4s ease;
-}
-:global(.hb-week-day) { font-size: 0.65rem; font-weight: 700; color: var(--hb-muted); text-transform: uppercase; }
-:global(.hb-week-num) { font-size: 0.72rem; font-weight: 600; }
 
 :global(.hb-bd-row) {
   padding: 11px 16px;
@@ -2735,5 +2769,18 @@
   :global(.hb-hero-grid--4) { grid-template-columns: repeat(2, 1fr); }
   :global(.hb-grid--3col) { grid-template-columns: 1fr; }
   :global(.hb-page__header) { flex-direction: column; gap: 12px; }
+}
+
+/* ── Screen reader only ─────────────────────────────────────────────── */
+:global(.hb-sr-only) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 </style>

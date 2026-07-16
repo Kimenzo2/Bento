@@ -20,7 +20,7 @@
   });
 </script>
 
-<div class="streaming-markdown">
+<div class="streaming-markdown" style="overflow:hidden;max-width:100%;min-width:0;">
   {#each blocks as block (block.index)}
     <MarkdownBlock raw={block.raw} streaming={block.streaming} />
   {/each}

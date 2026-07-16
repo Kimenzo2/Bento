@@ -112,7 +112,7 @@
 </div>
 
 <style>
-  .settings-overlay { position: fixed; inset: 0; z-index: 9996; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, #000 30%, transparent); }
+  .settings-overlay { position: fixed; inset: 0; z-index: 9996; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--background) 60%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
   .settings { width: 420px; max-height: 520px; background: var(--background); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); display: flex; flex-direction: column; overflow: hidden; }
   .settings-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
   .settings-title { font-size: 14px; font-weight: 600; color: var(--foreground); }

@@ -428,7 +428,7 @@
     const name = prompt('Template name:', notes.find(n => n.id === noteId)?.title || 'Untitled');
     if (!name) return;
     try {
-      await invoke('notes_template_create', { name, description: '', icon: '📄', sourceNoteId: noteId });
+      await invoke('notes_template_create', { name, description: '', icon: 'note-doc', sourceNoteId: noteId });
       showError('Template created!');
     } catch (err) {
       showError('Could not create template.');
@@ -563,7 +563,9 @@
         {:else}
           {#each archivedNotes as note (note.id)}
             <div class="note-row" role="option" aria-selected={false} tabindex="0">
-              <div class="note-row-icon">{note.icon ?? '\u{1F4C4}'}</div>
+              <div class="note-row-icon">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 1.5C3.5 1.22 3.72 1 4 1H10.5L12.5 3V4.5H12C11.72 4.5 11.5 4.72 11.5 5V14.5H4C3.72 14.5 3.5 14.28 3.5 14V1.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.5 1V3H12.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 6.5H10M5.5 9H10M5.5 11.5H8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              </div>
               <div class="note-row-body">
                 <span class="note-row-title">{note.title.trim() || 'Untitled'}</span>
                 <span class="note-row-date">{formatDate(note.updatedAt)}</span>
@@ -597,7 +599,7 @@
             {/if}
           </div>
           <button class="new-note-btn" onclick={openDailyNote} aria-label="Daily note" title="Daily note" type="button">
-            <span style="font-size:13px; line-height:1;">📅</span>
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="position:relative;top:-1px;" aria-hidden="true"><path d="M2 3.5C2 3.22 2.22 3 2.5 3H13.5C13.78 3 14 3.22 14 3.5V13C14 13.28 13.78 13.5 13.5 13.5H2.5C2.22 13.5 2 13.28 2 13V3.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 6H14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M5.5 1.5V4.5M10.5 1.5V4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="10" r="1.2" stroke="currentColor" stroke-width="1.4"/></svg>
           </button>
           <button class="new-note-btn" onclick={openTemplatePicker} aria-label="Templates" title="Create from template" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
@@ -636,7 +638,7 @@
             <div class="list-group-label">Pinned</div>
             {#each pinnedNotes as note (note.id)}
               <div class="note-row" class:active={activeId === note.id} role="option" aria-selected={activeId === note.id} tabindex="0" onclick={() => selectNote(note.id)} onkeydown={(e) => e.key === 'Enter' && selectNote(note.id)} oncontextmenu={(e) => openContextMenu(e, note.id)}>
-                <div class="note-row-icon">{note.icon ?? '\u{1F4C4}'}</div>
+                <div class="note-row-icon"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 1.5C3.5 1.22 3.72 1 4 1H10.5L12.5 3V4.5H12C11.72 4.5 11.5 4.72 11.5 5V14.5H4C3.72 14.5 3.5 14.28 3.5 14V1.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.5 1V3H12.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 6.5H10M5.5 9H10M5.5 11.5H8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
                 <div class="note-row-body">
                   <span class="note-row-title">{note.title.trim() || 'Untitled'}</span>
                   <span class="note-row-sub">
@@ -657,7 +659,7 @@
             {#if pinnedNotes.length > 0}<div class="list-group-label">All Notes</div>{/if}
             {#each otherNotes as note (note.id)}
               <div class="note-row" class:active={activeId === note.id} role="option" aria-selected={activeId === note.id} tabindex="0" onclick={() => selectNote(note.id)} onkeydown={(e) => e.key === 'Enter' && selectNote(note.id)} oncontextmenu={(e) => openContextMenu(e, note.id)}>
-                <div class="note-row-icon">{note.icon ?? '\u{1F4C4}'}</div>
+                <div class="note-row-icon"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 1.5C3.5 1.22 3.72 1 4 1H10.5L12.5 3V4.5H12C11.72 4.5 11.5 4.72 11.5 5V14.5H4C3.72 14.5 3.5 14.28 3.5 14V1.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.5 1V3H12.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 6.5H10M5.5 9H10M5.5 11.5H8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
                 <div class="note-row-body">
                   <span class="note-row-title">{note.title.trim() || 'Untitled'}</span>
                   <span class="note-row-sub">
@@ -872,7 +874,7 @@
   .filter-input-wrap { width: 0; overflow: hidden; transition: width 200ms cubic-bezier(0.55, 0, 1, 0.45); flex-shrink: 0; }
   .filter-input { display: block; height: 28px; width: 158px; padding: 0 2px 0 0; border: none; background: transparent; color: var(--foreground); font: inherit; font-size: 12.5px; outline: none; white-space: nowrap; }
   .filter-input::placeholder { color: color-mix(in srgb, var(--foreground) 30%, transparent); }
-  .filter-clear-btn { display: grid; place-items: center; flex-shrink: 0; width: 20px; height: 20px; border: none; border-radius: 50%; background: transparent; color: color-mix(in srgb, var(--foreground) 40%, transparent); cursor: pointer; padding: 0; margin-right: 4px; transition: color 120ms ease; }
+  .filter-clear-btn { display: grid; place-items: center; flex-shrink: 0; width: 20px; height: 20px; border: none; border-radius: 50%; background: transparent; color: color-mix(in srgb, var(--foreground) 55%, transparent); cursor: pointer; padding: 0; margin-right: 4px; transition: color 120ms ease; }
   .filter-clear-btn:hover { color: var(--foreground); }
   .filter-wrap.filter-active { background: color-mix(in srgb, var(--foreground) 8%, transparent); }
   .filter-wrap.filter-active .filter-icon-btn { color: var(--foreground); }
@@ -883,7 +885,7 @@
   .new-note-btn:active { transform: scale(0.93); }
   .new-note-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .tag-filter-bar { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 10px 8px; flex-shrink: 0; }
-  .tag-chip { display: inline-flex; align-items: center; padding: 3px 8px; border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent); border-radius: 12px; background: transparent; color: color-mix(in srgb, var(--foreground) 40%, transparent); font: inherit; font-size: 11px; cursor: pointer; transition: background 120ms ease, color 120ms ease, border-color 120ms ease; white-space: nowrap; }
+  .tag-chip { display: inline-flex; align-items: center; padding: 3px 8px; border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent); border-radius: 12px; background: transparent; color: color-mix(in srgb, var(--foreground) 55%, transparent); font: inherit; font-size: 11px; cursor: pointer; transition: background 120ms ease, color 120ms ease, border-color 120ms ease; white-space: nowrap; }
   .tag-chip:hover { background: color-mix(in srgb, var(--foreground) 4%, transparent); color: var(--foreground); }
   .tag-chip.tag-active { background: color-mix(in srgb, var(--primary) 15%, transparent); border-color: color-mix(in srgb, var(--primary) 30%, transparent); color: var(--primary); }
   .note-list { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 2px 6px 16px; scrollbar-width: none; }
@@ -895,7 +897,7 @@
   .note-row:hover { background: color-mix(in srgb, var(--foreground) 5%, transparent); }
   .note-row:hover .note-row-menu { opacity: 1; }
   .note-row.active { background: color-mix(in srgb, var(--foreground) 9%, transparent); }
-  .note-row-icon { font-size: 16px; flex-shrink: 0; line-height: 1; width: 20px; text-align: center; }
+  .note-row-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 20px; height: 20px; text-align: center; color: var(--muted); }
   .note-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
   .note-row-title { font-size: 13px; font-weight: 500; color: var(--foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
   .note-row-sub { display: flex; align-items: center; gap: 5px; min-width: 0; }
@@ -903,14 +905,14 @@
   .note-row-preview { font-size: 11px; color: color-mix(in srgb, var(--foreground) 30%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .note-row-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 2px; }
   .note-tag { display: inline-flex; padding: 1px 5px; border-radius: 4px; background: color-mix(in srgb, var(--primary) 12%, transparent); color: color-mix(in srgb, var(--primary) 70%, transparent); font-size: 10px; font-weight: 500; line-height: 1.3; }
-  .note-row-menu { flex-shrink: 0; display: grid; place-items: center; width: 22px; height: 22px; border: none; border-radius: 6px; background: transparent; color: color-mix(in srgb, var(--foreground) 40%, transparent); cursor: pointer; opacity: 0; transition: background 100ms ease, opacity 100ms ease; }
+  .note-row-menu { flex-shrink: 0; display: grid; place-items: center; width: 22px; height: 22px; border: none; border-radius: 6px; background: transparent; color: color-mix(in srgb, var(--foreground) 55%, transparent); cursor: pointer; opacity: 0; transition: background 100ms ease, opacity 100ms ease; }
   .note-row-menu:hover { background: color-mix(in srgb, var(--foreground) 10%, transparent); }
   .archive-actions { display: flex; gap: 2px; flex-shrink: 0; }
-  .archive-action-btn { display: grid; place-items: center; width: 24px; height: 24px; border: none; border-radius: 6px; background: transparent; color: color-mix(in srgb, var(--foreground) 40%, transparent); cursor: pointer; transition: background 100ms ease, color 100ms ease; }
+  .archive-action-btn { display: grid; place-items: center; width: 24px; height: 24px; border: none; border-radius: 6px; background: transparent; color: color-mix(in srgb, var(--foreground) 55%, transparent); cursor: pointer; transition: background 100ms ease, color 100ms ease; }
   .archive-action-btn:hover { background: color-mix(in srgb, var(--foreground) 6%, transparent); color: var(--foreground); }
   .archive-action-btn.danger:hover { background: color-mix(in srgb, var(--destructive) 10%, transparent); color: var(--destructive); }
   .sidebar-footer { flex-shrink: 0; padding: 6px 10px; border-top: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent); display: flex; flex-direction: column; gap: 2px; }
-  .sidebar-footer-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 10px; border: none; border-radius: 8px; background: transparent; color: color-mix(in srgb, var(--foreground) 40%, transparent); font: inherit; font-size: 12px; cursor: pointer; transition: background 120ms ease, color 120ms ease; }
+  .sidebar-footer-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 10px; border: none; border-radius: 8px; background: transparent; color: color-mix(in srgb, var(--foreground) 55%, transparent); font: inherit; font-size: 14px; font-weight: 470; cursor: pointer; transition: background 120ms ease, color 120ms ease; }
   .sidebar-footer-btn:hover { background: color-mix(in srgb, var(--foreground) 6%, transparent); color: var(--foreground); }
   .sidebar-loading, .sidebar-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 32px 16px; color: color-mix(in srgb, var(--foreground) 35%, transparent); font-size: 12px; text-align: center; }
   .spinner { width: 18px; height: 18px; border: 2px solid color-mix(in srgb, var(--foreground) 12%, transparent); border-top-color: color-mix(in srgb, var(--foreground) 50%, transparent); border-radius: 50%; animation: spin 0.7s linear infinite; }
@@ -941,7 +943,7 @@
   .ctx-item.ctx-danger { color: var(--destructive); }
   .ctx-item.ctx-danger:hover { background: color-mix(in srgb, var(--destructive) 8%, transparent); }
   .ctx-sep { height: 1px; margin: 3px 6px; background: color-mix(in srgb, var(--foreground) 8%, transparent); }
-  .modal-overlay { position: fixed; inset: 0; z-index: 9998; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, #000 40%, transparent); animation: fade-in 0.12s ease; }
+  .modal-overlay { position: fixed; inset: 0; z-index: 9998; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--background) 60%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); animation: fade-in 0.12s ease; }
   @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
   .modal { width: 360px; max-height: 480px; border-radius: 14px; background: var(--background); border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; }
   .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }

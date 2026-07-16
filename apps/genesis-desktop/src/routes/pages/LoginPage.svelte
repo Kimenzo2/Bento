@@ -5,6 +5,7 @@
   import { openExternal } from "$lib/desktop/open-external";
   import AuthLogo from "$lib/components/auth/AuthLogo.svelte";
   import { trackPageView, trackEvent } from "$lib/ipc";
+  import { sanitizeError } from "$lib/utils/logger";
 
   onMount(() => {
     trackPageView("login");
@@ -27,7 +28,7 @@
       const { isTauri, invoke } = await import("@tauri-apps/api/core");
       if (!isTauri()) {
         console.warn("[LoginPage] Not in Tauri environment — can't start Google OAuth");
-        setAuthError("Desktop auth requires the Tauri runtime.");
+        setAuthError("Desktop auth requires the desktop app runtime.");
         setAuthLoginLoading(false);
         return;
       }
@@ -53,7 +54,8 @@
       } else if (rawMessage.includes("network") || rawMessage.includes("connection")) {
         friendlyMessage = "Could not reach the sign-in server. Please check your internet connection.";
       } else {
-        friendlyMessage = rawMessage.length > 120 ? "Sign-in failed unexpectedly. Please try again." : rawMessage;
+        const sanitized = sanitizeError(rawMessage);
+        friendlyMessage = sanitized.length > 120 ? "Sign-in failed unexpectedly. Please try again." : sanitized;
       }
 
       setAuthError(friendlyMessage);

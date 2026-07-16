@@ -1,16 +1,14 @@
-//! Bento AI Backend — provider implementations and Tauri commands.
+//! Bento AI Backend — provider implementations, multi-turn chat, and Tauri commands.
 //!
-//! This module provides the five AI provider implementations (Anthropic, OpenAI,
-//! Grok, Ollama, Gemini) and the Tauri commands that wire them together with
-//! keychain-based API key storage and user-configured settings.
-//!
-//! Architecture:
-//!   - Each provider implements `complete` (non-streaming) and `stream` (streaming)
-//!   - The `AiProvider` enum in `provider.rs` dispatches to the right provider
-//!   - `stream.rs` handles SSE and newline-delimited JSON parsing
-//!   - Tauri commands read active provider/model from settings, get key from keychain
+//! This module provides:
+//! - Five AI provider implementations (Anthropic, OpenAI, Grok, Ollama, Gemini)
+//! - A multi-turn chat engine with tool calling support (`chat`)
+//! - Agent conversation memory persistence (`agent_memory`)
+//! - Tauri commands for streaming and non-streaming chat, tools, and memory
 
+pub mod agent_memory;
 pub mod anthropic;
+pub mod chat;
 pub mod gemini;
 pub mod grok;
 pub mod ollama;
@@ -19,11 +17,14 @@ pub mod provider;
 pub mod stream;
 
 use serde::{Deserialize, Serialize};
-use tauri::{ipc::Channel, AppHandle};
+use tauri::{ipc::Channel, AppHandle, Manager};
 use tokio::sync::mpsc;
 
 use crate::byok;
+use crate::byok::ByokProvider;
+use crate::db::BentoAppState;
 use crate::settings;
+use chat::ChatEvent;
 use provider::create_provider;
 
 /// Result of querying all provider statuses.
@@ -64,17 +65,15 @@ pub async fn ai_complete(app: AppHandle, prompt: String) -> Result<String, Strin
 
     let overrides = &settings.byok.base_url_overrides;
 
-    // Get the provider instance
     let provider = create_provider(&provider_name, overrides)?;
 
-    // Get the API key from keychain (Ollama doesn't need one)
     let api_key = if provider_name != "ollama" {
         Some(
-            byok::get_api_key(&provider_name)?
+            byok::get_api_key(&provider_name, &settings.byok)?
                 .ok_or_else(|| format!("No API key configured for {provider_name}"))?,
         )
     } else {
-        None // Ollama — no key needed
+        None
     };
 
     provider.complete(&model, api_key.as_deref(), &prompt).await
@@ -111,36 +110,31 @@ pub async fn ai_stream(
 
     let provider = create_provider(&provider_name, overrides)?;
 
-    // Get the API key (Ollama doesn't need one)
     let api_key = if provider_name != "ollama" {
         Some(
-            byok::get_api_key(&provider_name)?
+            byok::get_api_key(&provider_name, &settings.byok)?
                 .ok_or_else(|| format!("No API key for {provider_name}"))?,
         )
     } else {
         None
     };
 
-    // Create a channel to bridge provider stream → Tauri Channel
     let (tx, mut rx) = mpsc::unbounded_channel::<String>();
 
-    // Spawn the streaming task
     let provider_clone = provider;
     let model_clone = model.clone();
     let key_clone = api_key.as_deref().map(String::from);
     let prompt_clone = prompt.clone();
 
     tokio::spawn(async move {
-        let result = provider_clone
+        if let Err(e) = provider_clone
             .stream(&model_clone, key_clone.as_deref(), &prompt_clone, tx)
-            .await;
-        if let Err(_e) = result {
-            // If stream() returns an error, make sure we signal it
-            // (stream() itself sends __ERROR__ before returning Err)
+            .await
+        {
+            eprintln!("[ai] stream error: {e}");
         }
     });
 
-    // Forward tokens from the mpsc channel to Tauri's Channel
     while let Some(token) = rx.recv().await {
         let _ = on_token.send(token.clone());
         if token == "__DONE__" || token.starts_with("__ERROR__:") {
@@ -152,9 +146,6 @@ pub async fn ai_stream(
 }
 
 /// List available models for a given provider.
-///
-/// For Ollama, this dynamically fetches the list from the local server.
-/// For all others, returns the known model list (or fetches via API if key is set).
 #[tauri::command]
 pub async fn list_ai_models(app: AppHandle, provider_name: String) -> Result<Vec<String>, String> {
     let settings = settings::current_settings(&app);
@@ -163,7 +154,9 @@ pub async fn list_ai_models(app: AppHandle, provider_name: String) -> Result<Vec
     let provider = create_provider(&provider_name, overrides)?;
 
     let api_key = if provider_name != "ollama" {
-        byok::get_api_key(&provider_name).ok().flatten()
+        byok::get_api_key(&provider_name, &settings.byok)
+            .ok()
+            .flatten()
     } else {
         None
     };
@@ -172,9 +165,6 @@ pub async fn list_ai_models(app: AppHandle, provider_name: String) -> Result<Vec
 }
 
 /// Get the status of all AI providers.
-///
-/// Returns a list of `AiProviderStatus` with info about whether
-/// each provider has a key configured, needs a key, and is the active provider.
 #[tauri::command]
 pub async fn get_ai_provider_status(app: AppHandle) -> Result<Vec<AiProviderStatus>, String> {
     let settings = settings::current_settings(&app);
@@ -187,7 +177,7 @@ pub async fn get_ai_provider_status(app: AppHandle) -> Result<Vec<AiProviderStat
             .and_then(|v| v.as_str().map(String::from))
             .unwrap_or_default();
 
-        let has_key = byok::has_api_key(&name);
+        let has_key = byok::has_api_key(&name, &settings.byok);
 
         results.push(AiProviderStatus {
             provider: name.clone(),
@@ -201,4 +191,284 @@ pub async fn get_ai_provider_status(app: AppHandle) -> Result<Vec<AiProviderStat
     }
 
     Ok(results)
+}
+
+// ── Multi-turn chat commands ─────────────────────────────────────────────────
+
+/// Stream a multi-turn chat response with tool calling support.
+///
+/// Sends `ChatEvent` objects through the channel:
+///   - `{ type: "token", content: "..." }` — text token
+///   - `{ type: "tool_call", id, name, args, autoExecute }` — tool invocation
+///   - `{ type: "tool_result", id, name, result, isError }` — tool execution result
+///   - `{ type: "error", message: "..." }` — error
+///   - `{ type: "done", finishReason, usage }` — stream complete
+///
+/// Automatically executes tools flagged with `autoExecute: true` and feeds
+/// results back to the model. Tools flagged `autoExecute: false` are sent
+/// to the frontend for user approval.
+#[tauri::command]
+pub async fn ai_chat_stream(
+    app: AppHandle,
+    messages: Vec<chat::ChatMessage>,
+    system: Option<String>,
+    model: Option<String>,
+    provider: Option<String>,
+    temperature: Option<f64>,
+    max_tokens: Option<u64>,
+    top_p: Option<f64>,
+    top_k: Option<u64>,
+    presence_penalty: Option<f64>,
+    frequency_penalty: Option<f64>,
+    stop_sequences: Option<Vec<String>>,
+    enable_tools: Option<bool>,
+    on_event: Channel<ChatEvent>,
+) -> Result<(), String> {
+    let settings = settings::current_settings(&app);
+    let pool = {
+        let state = app.state::<BentoAppState>();
+        state.db()
+    };
+
+    let provider_name = provider
+        .unwrap_or_else(|| {
+            settings
+                .byok
+                .active_provider
+                .clone()
+                .unwrap_or_else(|| "openai".to_string())
+        });
+    let model_name = model
+        .unwrap_or_else(|| {
+            settings
+                .byok
+                .active_model
+                .clone()
+                .unwrap_or_else(|| "gpt-4o".to_string())
+        });
+
+    let api_key = if provider_name != "ollama" {
+        Some(
+            byok::get_api_key(&provider_name, &settings.byok)?
+                .ok_or_else(|| format!("No API key configured for {provider_name}"))?,
+        )
+    } else {
+        None
+    };
+
+    let base_url = resolve_base_url(&provider_name, &settings.byok);
+
+    let params = chat::ChatParams {
+        messages,
+        system,
+        model: model_name,
+        provider: provider_name,
+        temperature,
+        max_tokens,
+        top_p,
+        top_k,
+        presence_penalty,
+        frequency_penalty,
+        stop_sequences,
+        enable_tools,
+        api_key,
+        base_url,
+    };
+
+    let (tx, mut rx) = mpsc::unbounded_channel::<ChatEvent>();
+
+    let error_tx = tx.clone();
+    tokio::spawn(async move {
+        if let Err(e) = chat::stream_chat(params, pool, tx).await {
+            eprintln!("[ai] chat stream error: {e}");
+            let _ = error_tx.send(ChatEvent::Error { message: e });
+        }
+    });
+
+    while let Some(event) = rx.recv().await {
+        if on_event.send(event.clone()).is_err() {
+            // Frontend disconnected — drop the tx to stop the spawned task
+            break;
+        }
+        if matches!(event, ChatEvent::Done { .. } | ChatEvent::Error { .. }) {
+            break;
+        }
+    }
+
+    Ok(())
+}
+
+/// Perform a non-streaming multi-turn chat completion.
+#[tauri::command]
+pub async fn ai_chat_complete(
+    app: AppHandle,
+    messages: Vec<chat::ChatMessage>,
+    system: Option<String>,
+    model: Option<String>,
+    provider: Option<String>,
+    temperature: Option<f64>,
+    max_tokens: Option<u64>,
+    top_p: Option<f64>,
+    top_k: Option<u64>,
+    presence_penalty: Option<f64>,
+    frequency_penalty: Option<f64>,
+    stop_sequences: Option<Vec<String>>,
+) -> Result<String, String> {
+    let settings = settings::current_settings(&app);
+    let pool = {
+        let state = app.state::<BentoAppState>();
+        state.db()
+    };
+
+    let provider_name = provider
+        .unwrap_or_else(|| {
+            settings
+                .byok
+                .active_provider
+                .clone()
+                .unwrap_or_else(|| "openai".to_string())
+        });
+    let model_name = model
+        .unwrap_or_else(|| {
+            settings
+                .byok
+                .active_model
+                .clone()
+                .unwrap_or_else(|| "gpt-4o".to_string())
+        });
+
+    let api_key = if provider_name != "ollama" {
+        Some(
+            byok::get_api_key(&provider_name, &settings.byok)?
+                .ok_or_else(|| format!("No API key configured for {provider_name}"))?,
+        )
+    } else {
+        None
+    };
+
+    let base_url = resolve_base_url(&provider_name, &settings.byok);
+
+    let params = chat::ChatParams {
+        messages,
+        system,
+        model: model_name,
+        provider: provider_name,
+        temperature,
+        max_tokens,
+        top_p,
+        top_k,
+        presence_penalty,
+        frequency_penalty,
+        stop_sequences,
+        enable_tools: Some(false),
+        api_key,
+        base_url,
+    };
+
+    chat::complete_chat(params, pool).await
+}
+
+// ── Helper ───────────────────────────────────────────────────────────────────
+
+/// Resolve the base URL for a provider: check overrides first, then fall back
+/// to the provider's known default base URL.
+fn resolve_base_url(provider_name: &str, byok: &byok::ByokSettings) -> Option<String> {
+    if let Some(override_url) = byok.base_url_overrides.get(provider_name) {
+        return Some(override_url.clone());
+    }
+    // Fall back to the provider's well-known default
+    provider_name.parse::<ByokProvider>().ok().map(|p| p.default_base_url().to_string())
+}
+
+// ── Agent memory commands ────────────────────────────────────────────────────
+
+/// List saved conversations.
+#[tauri::command]
+pub async fn ai_conversation_list(
+    app: AppHandle,
+    limit: Option<i64>,
+    offset: Option<i64>,
+) -> Result<Vec<agent_memory::ConversationSummary>, String> {
+    let pool = {
+        let state = app.state::<BentoAppState>();
+        state.db()
+    };
+    agent_memory::list_conversations(&pool, limit.unwrap_or(50), offset.unwrap_or(0)).await
+}
+
+/// Get a single conversation with all messages.
+#[tauri::command]
+pub async fn ai_conversation_get(
+    app: AppHandle,
+    id: String,
+) -> Result<Option<agent_memory::Conversation>, String> {
+    let pool = {
+        let state = app.state::<BentoAppState>();
+        state.db()
+    };
+    agent_memory::get_conversation(&pool, &id).await
+}
+
+/// Delete a conversation.
+#[tauri::command]
+pub async fn ai_conversation_delete(app: AppHandle, id: String) -> Result<(), String> {
+    let pool = {
+        let state = app.state::<BentoAppState>();
+        state.db()
+    };
+    agent_memory::delete_conversation(&pool, &id).await
+}
+
+/// Save or append messages to a conversation.
+/// When `append` is true, messages are added without deleting existing ones.
+#[tauri::command]
+pub async fn ai_conversation_save(
+    app: AppHandle,
+    id: String,
+    messages: Vec<chat::ChatMessage>,
+    append: Option<bool>,
+) -> Result<(), String> {
+    let pool = {
+        let state = app.state::<BentoAppState>();
+        state.db()
+    };
+    if append.unwrap_or(false) {
+        agent_memory::append_messages(&pool, &id, &messages).await
+    } else {
+        agent_memory::save_messages(&pool, &id, &messages).await
+    }
+}
+
+/// Update a conversation's title.
+#[tauri::command]
+pub async fn ai_conversation_rename(
+    app: AppHandle,
+    id: String,
+    title: String,
+) -> Result<(), String> {
+    let pool = {
+        let state = app.state::<BentoAppState>();
+        state.db()
+    };
+    agent_memory::update_conversation_title(&pool, &id, &title).await
+}
+
+/// Search conversations by title or message content.
+#[tauri::command]
+pub async fn ai_conversation_search(
+    app: AppHandle,
+    query: String,
+    limit: Option<i64>,
+) -> Result<Vec<agent_memory::ConversationSummary>, String> {
+    let pool = {
+        let state = app.state::<BentoAppState>();
+        state.db()
+    };
+    agent_memory::search_conversations(&pool, &query, limit.unwrap_or(20)).await
+}
+
+/// List available tool definitions for the agent.
+#[tauri::command]
+pub async fn ai_tools_list() -> Result<Vec<chat::ToolDefinition>, String> {
+    Ok(chat::default_tool_definitions().to_vec())
 }

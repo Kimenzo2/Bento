@@ -1,5 +1,6 @@
 pub mod actors;
 pub mod agent;
+pub mod agent_core;
 pub mod ai;
 pub mod audio;
 pub mod auth;
@@ -729,6 +730,14 @@ pub fn run() {
         };
         app.manage(BentoAppState::new(db_writer, db_reader));
 
+        // ── Agent memory tables (non-fatal) ──────────────────────────
+        {
+            let pool = app.state::<BentoAppState>().inner().db();
+            if let Err(e) = tauri::async_runtime::block_on(crate::ai::agent_memory::ensure_tables(&pool)) {
+                eprintln!("[ai] failed to create agent memory tables: {e}");
+            }
+        }
+
         // ── Encryption service ────────────────────────────────────────
         t0 = Instant::now();
         let crypto = CryptoService::new(data_dir.clone());
@@ -888,6 +897,11 @@ pub fn run() {
         }
         log_phase("phase=15 production_deep_link_setup", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
+        // ── Agent core — state channel (additive, non-fatal) ────────
+        t0 = Instant::now();
+        crate::agent_core::setup(app.handle());
+        log_phase("phase=16 agent_core_setup", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
+
         t0 = Instant::now();
         crate::scheduler::spawn_scheduler_worker(
             app.state::<BentoAppState>().inner().clone(),
@@ -908,6 +922,16 @@ pub fn run() {
         }
         crate::clipboard::spawn_clipboard_monitor(app.handle().clone());
 
+        // ── Agent action log table (moved to DB init later, but ensure here too) ─
+        {
+            let pool = app.state::<BentoAppState>().inner().db();
+            if let Err(e) = tauri::async_runtime::block_on(
+                crate::agent_core::action_gate::ensure_action_log_table(&pool),
+            ) {
+                eprintln!("[agent_core] failed to create action_log table: {e}");
+            }
+        }
+
         // ── Spawn MCP Streamable HTTP server ────────────────────────────
         {
             let pool = app.state::<BentoAppState>().inner().db();
@@ -924,10 +948,10 @@ pub fn run() {
                 }
             });
         }
-        log_phase("phase=16 background_workers", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
+        log_phase("phase=17 background_workers", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
         write_startup_log("setup complete — app is running");
-        eprintln!("[init] phase=17 setup_complete");
+        eprintln!("[init] phase=18 setup_complete");
 
         // Startup sentinel: mark as clean so crash recovery knows
         // the next boot wasn't a crash.
@@ -1094,6 +1118,18 @@ pub fn run() {
             crate::ai::ai_stream,
             crate::ai::list_ai_models,
             crate::ai::get_ai_provider_status,
+            // AI — Multi-turn chat with tool calling
+            crate::ai::ai_chat_stream,
+            crate::ai::ai_chat_complete,
+            // AI — Agent conversation memory
+            crate::ai::ai_conversation_list,
+            crate::ai::ai_conversation_get,
+            crate::ai::ai_conversation_delete,
+            crate::ai::ai_conversation_save,
+            crate::ai::ai_conversation_rename,
+            crate::ai::ai_conversation_search,
+            // AI — Tool definitions
+            crate::ai::ai_tools_list,
             // BYOK — Bring Your Own Key
             crate::byok::commands::byok_save_key,
             crate::byok::commands::byok_get_key_preview,
@@ -1104,6 +1140,7 @@ pub fn run() {
             crate::byok::commands::byok_update_settings,
             crate::byok::commands::byok_toggle_enabled,
             crate::byok::commands::byok_dismiss_onboarding,
+            crate::byok::commands::byok_validate_key,
             // Clipboard Manager
             crate::clipboard::clipboard_list,
             crate::clipboard::clipboard_get,
@@ -1454,6 +1491,10 @@ pub fn run() {
             crate::agent::set_agent_dock_enabled,
             crate::island::focus_main_window,
             get_startup_degraded_state,
+            // Agent Core — Action Layer (deep exposure)
+            crate::agent_core::action_gate::confirm_agent_action,
+            crate::agent_core::action_gate::cancel_agent_action,
+            crate::agent_core::action_gate::get_agent_action_log,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|error| {

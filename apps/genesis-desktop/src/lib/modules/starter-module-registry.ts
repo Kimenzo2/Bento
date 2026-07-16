@@ -22,12 +22,9 @@ export const starterModuleLoaders = {
     import("../../modules/flashcards/App.svelte") as unknown as Promise<StarterModule>,
   grocery: () => import("../../modules/grocery/App.svelte") as unknown as Promise<StarterModule>,
   recipes: () => import("../../modules/recipes/App.svelte") as unknown as Promise<StarterModule>,
-  time: () => import("../../modules/time/App.svelte") as unknown as Promise<StarterModule>,
   goals: () => import("../../modules/goals/App.svelte") as unknown as Promise<StarterModule>,
   clipboard: () =>
     import("../../modules/clipboard/App.svelte") as unknown as Promise<StarterModule>,
-  breathing: () =>
-    import("../../modules/breathing/App.svelte") as unknown as Promise<StarterModule>,
   "voice-memos": () =>
     import("../../modules/voice-memos/App.svelte") as unknown as Promise<StarterModule>,
   countdown: () =>

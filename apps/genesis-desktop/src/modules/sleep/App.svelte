@@ -6,9 +6,8 @@
   import Trash2Icon from "@lucide/svelte/icons/trash-2";
   import BellIcon from "@lucide/svelte/icons/bell";
   import BellOffIcon from "@lucide/svelte/icons/bell-off";
-  import MoonIcon from "@lucide/svelte/icons/moon";
   import { exportContentToFile } from "$lib/services/task-service";
-  import { getActiveAmbient, startAmbient, stopAmbientImmediate, playAlarmSound, stopAlarmSound, ensureAudioContext, type SoundName } from "$lib/services/sounds";
+  import { playAlarmSound, stopAlarmSound, type SoundName } from "$lib/services/sounds";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import {
@@ -183,8 +182,9 @@
   }
 
   function formatDuration(minutes: number): string {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
+    const rounded = Math.round(minutes * 100) / 100;
+    const h = Math.floor(rounded / 60);
+    const m = Math.round(rounded % 60);
     if (h === 0) return `${m}m`;
     if (m === 0) return `${h}h`;
     return `${h}h ${m}m`;
@@ -614,9 +614,20 @@
           <CardDescription>{lastNightDesc}</CardDescription>
         </CardHeader>
         <CardContent class="sleep-orb-card__content">
-          <div class="sleep-orb" style="background: conic-gradient(var(--sleep-accent) {Math.round(lastNight?.qualityScore ?? 0)}%, color-mix(in srgb, var(--border) 80%, transparent) 0);">
-            <strong>{Math.round(lastNight?.qualityScore ?? 0)}</strong>
-            <small>{_t('moduleSleepScore')}</small>
+          {@const score = Math.round(lastNight?.qualityScore ?? 0)}
+          {@const arcR = 80}
+          {@const arcStroke = 14}
+          {@const arcCircumference = 2 * Math.PI * arcR}
+          {@const arcFilled = (score / 100) * arcCircumference}
+          <div class="sleep-orb" role="img" aria-label="Sleep quality score: {score} out of 100">
+            <svg viewBox="0 0 200 200" class="sleep-orb-svg">
+              <circle cx="100" cy="100" r={arcR} fill="none" stroke="color-mix(in srgb, var(--sleep-border) 60%, transparent)" stroke-width={arcStroke} />
+              <circle cx="100" cy="100" r={arcR} fill="none" stroke="var(--sleep-accent)" stroke-width={arcStroke} stroke-linecap="round" stroke-dasharray="{arcFilled} {arcCircumference - arcFilled}" transform="rotate(-90 100 100)" />
+            </svg>
+            <div class="sleep-orb-center">
+              <strong>{score}</strong>
+              <small>{_t('moduleSleepScore')}</small>
+            </div>
           </div>
           <div class="sleep-meta">
             <div><strong>{lastNight && sleepStats ? lastNight.durationMin >= sleepStats.avgDurationMin ? `+${Math.round((lastNight.durationMin / sleepStats.avgDurationMin - 1) * 100)}%` : `${Math.round((lastNight.durationMin / sleepStats.avgDurationMin - 1) * 100)}%` : '--'}</strong><span>{_t('moduleSleepBetterThanAvg')}</span></div>
@@ -708,7 +719,7 @@
                     <span>{sub.value}</span>
                     <p>{sub.desc}</p>
                   </div>
-                  <div class="sleep-meter"><i style={`--fill:${sub.fill}%`}></i></div>
+                  <div class="sleep-meter" role="meter" aria-label="{sub.label} score" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(sub.fill)}><i style={`--fill:${sub.fill}%`}></i></div>
                 </article>
               {/each}
             </CardContent>
@@ -775,7 +786,7 @@
               <CardDescription>{_t('moduleSleepWeeklyTrendDesc')}</CardDescription>
             </CardHeader>
             <CardContent class="sleep-trend-chart">
-              <svg viewBox="0 0 240 240" class="sleep-arc-svg" aria-label="Weekly sleep score rings">
+              <svg viewBox="0 0 240 240" class="sleep-arc-svg" role="img" aria-label="Weekly sleep score rings: {arcSegments.map(s => `${s.day} ${s.score}`).join(', ')}">
                 {#each arcSegments as seg}
                   <circle
                     cx={seg.cx} cy={seg.cy} r={seg.r}
@@ -802,6 +813,16 @@
                   AVG
                 </text>
               </svg>
+              <!-- Screen reader table -->
+              <table class="sleep-sr-only">
+                <caption>Weekly sleep scores</caption>
+                <thead><tr><th>Day</th><th>Score</th></tr></thead>
+                <tbody>
+                  {#each arcSegments as seg}
+                    <tr><td>{seg.day}</td><td>{seg.score}</td></tr>
+                  {/each}
+                </tbody>
+              </table>
               <div class="sleep-arc-legend">
                 {#each arcSegments as seg}
                   <span class="sleep-arc-legend-item">
@@ -973,7 +994,13 @@
                       <div class="ss-row-bar-wrap">
                         <div
                           class="ss-row-bar"
-                          style="width:{(session.durationMin / (sleepGoal?.targetDurationMin ?? 480)) * 100}%;background:{session.qualityScore != null && session.qualityScore >= 70 ? 'var(--sleep-accent)' : session.qualityScore != null && session.qualityScore >= 40 ? 'oklch(0.769 0.165 70.080)' : 'oklch(0.637 0.208 25.331)'}">
+                          style="width:{(session.durationMin / (sleepGoal?.targetDurationMin ?? 480)) * 100}%;background:{session.qualityScore != null && session.qualityScore >= 70 ? 'var(--sleep-accent)' : session.qualityScore != null && session.qualityScore >= 40 ? 'oklch(0.769 0.165 70.080)' : 'oklch(0.637 0.208 25.331)'}"
+                          role="meter"
+                          aria-label="Sleep duration: {formatDuration(session.durationMin)}"
+                          aria-valuemin={0}
+                          aria-valuemax={sleepGoal?.targetDurationMin ?? 480}
+                          aria-valuenow={session.durationMin}
+                        >
                         </div>
                       </div>
                       <span class="ss-row-time">{formatDuration(session.durationMin)}</span>
@@ -1070,10 +1097,6 @@
     --sleep-accent: oklch(0.708 0.152 269.741);
     --sleep-accent-soft: color-mix(in srgb, oklch(0.708 0.152 269.741) 36%, var(--primary));
     --sleep-accent-bg: color-mix(in srgb, oklch(0.708 0.152 269.741) 12%, var(--background));
-    --sleep-green: oklch(0.800 0.182 151.711);
-    --sleep-amber: oklch(0.837 0.164 84.429);
-    --sleep-red: oklch(0.711 0.166 22.216);
-    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
     --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     height: 100%;
     padding: 28px 30px;
@@ -1136,8 +1159,9 @@
 
   :global(.sleep-shell__intro) h1 {
     margin: 0;
-    font-size: clamp(1.9rem, 3.2vw, 3rem);
-    line-height: 1.02;
+    font-size: clamp(1.7rem, 2.5vw, 2.6rem);
+    line-height: 1.05;
+    font-family: var(--font-display);
     letter-spacing: -0.02em;
     text-wrap: balance;
   }
@@ -1176,38 +1200,40 @@
   }
 
   :global(.sleep-orb) {
-    display: grid;
-    place-items: center;
+    position: relative;
     width: 180px;
-    aspect-ratio: 1;
-    border-radius: 999px;
-    background: conic-gradient(var(--sleep-accent) 50%, var(--sleep-accent-bg) 0);
-    box-shadow: 0 0 40px color-mix(in srgb, var(--sleep-accent) 20%, transparent), inset 0 2px 4px color-mix(in srgb, var(--sleep-accent) 30%, transparent);
-    position: relative;
+    height: 180px;
+    flex-shrink: 0;
   }
 
-  :global(.sleep-orb)::before {
-    content: '';
-    position: absolute;
-    inset: 6px;
-    border-radius: 999px;
-    background: var(--sleep-bg);
-    z-index: 0;
-  }
-
-  :global(.sleep-orb) strong {
-    position: relative;
-    z-index: 1;
+  :global(.sleep-orb-svg) {
+    width: 100%;
+    height: 100%;
     display: block;
-    font-size: 3.15rem;
+  }
+
+  :global(.sleep-orb-center) {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+
+  :global(.sleep-orb-center) strong {
+    font-size: 3rem;
     line-height: 1;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
     color: var(--sleep-accent);
   }
 
-  :global(.sleep-orb) small {
-    position: relative;
-    z-index: 1;
+  :global(.sleep-orb-center) small {
     color: var(--sleep-muted);
+    font-size: 0.8rem;
   }
 
   :global(.sleep-meta) span,
@@ -1365,6 +1391,8 @@
     display: block;
     margin-top: 12px;
     font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums;
   }
 
@@ -1408,6 +1436,7 @@
     font-weight: 700;
     fill: var(--sleep-ink);
     font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
   }
 
   :global(.sleep-arc-label) {
@@ -1586,7 +1615,9 @@
   }
 
   :global(.sleep-alarm-list__time) {
-    font: 600 1.4rem "JetBrains Mono", monospace;
+    font: 700 1.4rem "JetBrains Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
   }
 
   :global(.sa-time--inactive) {
@@ -1947,5 +1978,72 @@
     :global(.sleep-loading) {
       animation: none;
     }
+  }
+
+  /* ── Screen reader only ─────────────────────────────────────────────── */
+  :global(.sleep-sr-only) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* ── Routine toggle button ─────────────────────────────────────────── */
+  :global(.sl-routine-toggle) {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    border: 2px solid color-mix(in srgb, var(--sleep-accent) 40%, transparent);
+    background: transparent;
+    color: var(--sleep-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+  :global(.sl-routine-toggle:hover) {
+    border-color: var(--sleep-accent);
+    color: var(--sleep-accent);
+  }
+  :global(.sl-routine--done) {
+    background: var(--sleep-accent);
+    border-color: var(--sleep-accent);
+    color: white;
+  }
+
+  /* ── Routine board step states ─────────────────────────────────────── */
+  :global(.sr-count--done) {
+    background: var(--sleep-accent);
+    color: white;
+  }
+  :global(.sr-title--done) {
+    text-decoration: line-through;
+    opacity: 0.6;
+  }
+
+  /* ── Empty state ───────────────────────────────────────────────────── */
+  :global(.sleep-empty-state) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 24px;
+    text-align: center;
+    color: var(--sleep-muted);
+  }
+  :global(.sleep-empty-state p) {
+    margin: 0;
+    font-weight: 500;
+    color: var(--sleep-ink);
+  }
+  :global(.sleep-empty-state span) {
+    font-size: 0.82rem;
+    max-width: 260px;
   }
 </style>

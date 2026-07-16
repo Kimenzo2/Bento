@@ -730,7 +730,7 @@ pub async fn notes_daily_note(
         // Create today's daily note
         let params = crate::notes::service::CreateNoteParams {
             title: title.clone(),
-            icon: Some("📅".to_string()),
+            icon: Some("daily-note".to_string()),
             tags: vec!["daily".to_string()],
             pinned: false,
         };
@@ -765,7 +765,7 @@ pub async fn notes_templates_list(
             "id": row.try_get::<String, _>("id").unwrap_or_default(),
             "name": row.try_get::<String, _>("name").unwrap_or_default(),
             "description": row.try_get::<String, _>("description").unwrap_or_default(),
-            "icon": row.try_get::<String, _>("icon").unwrap_or_else(|_| "📄".to_string()),
+            "icon": row.try_get::<String, _>("icon").unwrap_or_else(|_| "note-doc".to_string()),
             "createdAt": row.try_get::<i64, _>("created_at").unwrap_or(0),
         })
     }).collect();
@@ -859,7 +859,7 @@ pub async fn notes_create_from_template(
     // Create the note
     let params = crate::notes::service::CreateNoteParams {
         title: if title.is_empty() { "Untitled".to_string() } else { title },
-        icon: Some("📄".to_string()),
+            icon: Some("note-doc".to_string()),
         tags: vec![],
         pinned: false,
     };

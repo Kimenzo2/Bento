@@ -78,7 +78,7 @@
   function showAbout() {
     logoMenuOpen = false;
     toast.info("Bento Desktop v1 foundation", {
-      description: "Tauri v2, Rust, Svelte, local-first shell architecture.",
+      description: "Local-first architecture with 20+ built-in apps.",
     });
   }
 

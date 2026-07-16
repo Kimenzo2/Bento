@@ -633,9 +633,9 @@
 
   :global(.mood-shell__intro) h1 {
     margin: 0;
-    font-size: clamp(1.4rem, 2vw, 2.2rem);
-    line-height: 1.15;
-    font-weight: 600;
+    font-size: clamp(1.7rem, 2.5vw, 2.6rem);
+    line-height: 1.05;
+    font-family: var(--font-display);
     text-wrap: balance;
     letter-spacing: -0.02em;
   }
@@ -739,6 +739,7 @@
     font-size: 1.35rem;
     line-height: 1;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
   }
 
   :global(.mood-stat) span {

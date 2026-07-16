@@ -4,7 +4,7 @@ import { get, writable } from "svelte/store";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-export type ByokProviderId = "openai" | "anthropic" | "gemini" | "grok" | "ollama";
+export type ByokProviderId = "openai" | "anthropic" | "gemini" | "grok" | "openrouter" | "ollama";
 
 export interface ProviderKeyStatus {
   provider: string;
@@ -91,6 +91,9 @@ export async function validateKey(provider: string, key: string): Promise<number
 }
 
 export async function testConnection(provider: string): Promise<ConnectionTestResult> {
+  if (!isAvailable()) {
+    return { ok: false, error: { code: "Offline", message: "Not in Tauri environment", statusCode: null }, latencyMs: null, availableModels: [] };
+  }
   byokTesting.update((state) => ({ ...state, [provider]: "testing" }));
   try {
     const result = await invoke<ConnectionTestResult>("byok_test_connection", { provider });
@@ -178,6 +181,7 @@ export function providerDisplayName(provider: string): string {
     anthropic: "Anthropic",
     gemini: "Gemini (Google)",
     grok: "Grok (xAI)",
+    openrouter: "OpenRouter",
     ollama: "Ollama (Local)",
   };
   return names[provider] ?? provider;
@@ -190,6 +194,7 @@ export function providerIcon(provider: string): string {
     anthropic: "bot",
     gemini: "star",
     grok: "zap",
+    openrouter: "infinity",
     ollama: "server",
   };
   return icons[provider] ?? "key";
@@ -201,6 +206,7 @@ export function providerColor(provider: string): string {
     anthropic: "#d4a574",
     gemini: "#4285f4",
     grok: "#1da1f2",
+    openrouter: "#ff6b35",
     ollama: "#9b59b6",
   };
   return colors[provider] ?? "#666";
@@ -226,6 +232,20 @@ export function providerKnownModels(provider: string): string[] {
     ],
     gemini: ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"],
     grok: ["grok-3", "grok-3-mini", "grok-2"],
+    openrouter: [
+      "openai/gpt-4o",
+      "openai/gpt-4o-mini",
+      "openai/gpt-4.1",
+      "openai/gpt-4.1-mini",
+      "anthropic/claude-sonnet-4",
+      "anthropic/claude-haiku-4.5",
+      "google/gemini-2.5-pro",
+      "google/gemini-2.5-flash",
+      "meta-llama/llama-4-scout",
+      "meta-llama/llama-4-maverick",
+      "deepseek/deepseek-chat",
+      "mistral/mistral-large-latest",
+    ],
     ollama: [], // Dynamically fetched
   };
   return models[provider] ?? [];

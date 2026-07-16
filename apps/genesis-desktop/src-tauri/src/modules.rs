@@ -10,6 +10,7 @@ use tauri::{
     AppHandle, Manager, Runtime, State, UriSchemeContext,
 };
 
+use crate::agent_core::state_channel::{StateChannel, StateEvent};
 use crate::auth::AuthManager;
 use crate::commands::{emit_main_window_event, DashboardCache};
 use crate::db::{is_builtin_module_id, write_runtime_state, BentoAppState};
@@ -352,6 +353,9 @@ pub async fn set_active_module(
 
     write_runtime_state(&state.db(), "last_active_module", &module_id).await?;
     state.set_active_module(module_id.clone());
+    if let Some(channel) = app.try_state::<StateChannel>() {
+        channel.publish(StateEvent::ActiveModule { module_id: module_id.clone() });
+    }
     cache.invalidate();
     let _ = emit_main_window_event(&app, "bento://dashboard-refresh", module_id.clone());
     Ok(module_id)

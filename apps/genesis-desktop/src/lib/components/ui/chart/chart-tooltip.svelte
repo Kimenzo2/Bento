@@ -1,18 +1,9 @@
 <script lang="ts">
-  let {
-    hideLabel = false,
-    class: className = "",
-    children,
-  }: {
-    hideLabel?: boolean;
-    class?: string;
-    children?: import("svelte").Snippet;
-  } = $props();
+  let { hideLabel = false }: { hideLabel?: boolean } = $props();
 </script>
 
-<div
-  data-slot="chart-tooltip"
-  class={`rounded-xl bg-[var(--background)] px-3 py-2 text-sm ${className}`}
->
-  {@render children?.()}
+<div class="text-sm">
+  {#if !hideLabel}
+    <div class="font-medium"></div>
+  {/if}
 </div>

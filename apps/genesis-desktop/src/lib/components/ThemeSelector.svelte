@@ -2,6 +2,7 @@
   import { desktopThemes, type ThemeId } from "$lib/data/themes";
   import { activeTheme, mode, effectiveMode, setTheme, toggleMode } from "$lib/stores/theme.store";
   import { toast } from "svelte-sonner";
+  import { sanitizeError } from "$lib/utils/logger";
 
   const currentThemeId = $derived($activeTheme.id);
   const currentMode = $derived($mode);
@@ -15,7 +16,7 @@
       toast.success(`Theme switched to ${desktopThemes.find((theme) => theme.id === themeId)?.name ?? themeId}.`);
     } catch (error) {
       console.error("[Bento Desktop] Theme card selection failed", error);
-      toast.error(error instanceof Error ? error.message : "Theme selection failed.");
+      toast.error(error instanceof Error ? sanitizeError(error.message) : "Theme selection failed.");
     }
   };
 
@@ -31,7 +32,7 @@
       toast.success(`Theme switched to ${nextLabel}.`);
     } catch (error) {
       console.error("[Bento Desktop] Settings theme toggle failed", error);
-      toast.error(error instanceof Error ? error.message : "Theme toggle failed.");
+      toast.error(error instanceof Error ? sanitizeError(error.message) : "Theme toggle failed.");
     }
   };
 </script>

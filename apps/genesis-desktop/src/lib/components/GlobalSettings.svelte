@@ -42,6 +42,7 @@
   import { invoke, isTauri } from "@tauri-apps/api/core";
   import { browser } from "$app/environment";
   import { trackEvent, trackSetting, trackPageView } from "$lib/ipc";
+  import { sanitizeError } from "$lib/utils/logger";
   import {
     needsSetup,
     setupMasterPassword,
@@ -185,7 +186,7 @@
       await setupMasterPassword(encSetupPw);
       encSuccess = "Encryption enabled. All local data is now AES-256 encrypted.";
       encSetupPw = ""; encSetupConfirm = "";
-    } catch (e) { encError = String(e); }
+    } catch (e) { encError = sanitizeError(String(e)); }
     finally { encLoading = false; }
   }
 
@@ -197,9 +198,9 @@
     encLoading = true;
     try {
       const backup = await changeMasterPassword(encChangeCurrent, encChangeNew);
-      encSuccess = `Password changed. Backup at: ${backup.path}`;
+      encSuccess = "Password changed successfully. A backup was created automatically.";
       encChangeCurrent = ""; encChangeNew = ""; encChangeConfirm = "";
-    } catch (e) { encError = String(e); }
+    } catch (e) { encError = sanitizeError(String(e)); }
     finally { encLoading = false; }
   }
 
@@ -212,7 +213,7 @@
       clearBillingProfile();
       setAuthLoginRequired();
       hide();
-    } catch (e) { toast.error("Sign out failed: " + String(e)); }
+    } catch (e) { toast.error(sanitizeError("Sign out failed: " + String(e))); }
   }
 
   async function handleDeleteAccount() {
@@ -222,7 +223,7 @@
       clearBillingProfile();
       setAuthLoginRequired();
       hide();
-    } catch (e) { toast.error("Delete account failed: " + String(e)); }
+    } catch (e) { toast.error(sanitizeError("Delete account failed: " + String(e))); }
   }
 
   async function refreshCloudBackupState() {
@@ -282,7 +283,7 @@
         sizeBytes: number;
         storageUsageBytes: number | null;
       }>("backup_now");
-      cloudBackupSuccess = `Backed up ${result.sizeBytes} bytes to ${result.objectPath}.`;
+      cloudBackupSuccess = `Backed up ${result.sizeBytes} bytes successfully.`;
       await refreshCloudBackupState();
     } catch (error) {
       cloudBackupError = String(error);
@@ -443,7 +444,7 @@
   >
     <header class="global-settings__header">
       <div>
-        <p class="global-settings__eyebrow">Bento Shell</p>
+        <p class="global-settings__eyebrow">Bento Desktop</p>
         <h2>{_t('settingsTitle')}</h2>
       </div>
       {#if surface !== "page"}
@@ -617,7 +618,7 @@
             {#if $needsSetup}
               <div class="gs-enc-card">
                 <p class="global-settings__muted" style="margin:0 0 0.75rem">
-                  Encrypt all local databases with AES-256 SQLCipher. Your master password is never stored — only derived keys exist in memory during your session.
+                  Encrypt all local databases with AES-256 encryption. Your master password is never stored — only derived keys exist in memory during your session.
                 </p>
                 <input type="password" class="gs-enc-input" placeholder="Choose a master password (min 8 chars)…" bind:value={encSetupPw} autocomplete="new-password" />
                 <input type="password" class="gs-enc-input" placeholder="Confirm password…" bind:value={encSetupConfirm} autocomplete="new-password" />
@@ -629,7 +630,7 @@
               <div class="gs-enc-card">
                 <div class="gs-enc-status">
                   <ShieldIcon size={15} />
-                  <span>AES-256 SQLCipher — Active</span>
+                  <span>AES-256 Encryption — Active</span>
                   <span class="gs-enc-badge">✓ Encrypted</span>
                 </div>
                 <input type="password" class="gs-enc-input" placeholder="Current password…" bind:value={encChangeCurrent} autocomplete="current-password" />
@@ -640,7 +641,7 @@
                     {encLoading ? "Updating…" : "Change Password"}
                   </button>
                   <button type="button" class="gs-enc-btn gs-enc-btn--sec" onclick={() => void lockDatabase()}>Lock Now</button>
-                  <button type="button" class="gs-enc-btn gs-enc-btn--sec" onclick={() => void createBackup().then(b => { encSuccess = `Backup: ${b.path}`; })}>Backup</button>
+                  <button type="button" class="gs-enc-btn gs-enc-btn--sec" onclick={() => void createBackup().then(() => { encSuccess = "Backup created successfully."; })}>Backup</button>
                 </div>
               </div>
             {/if}
@@ -756,7 +757,7 @@
                       toast.success("You're up to date");
                     }
                   } catch (e) {
-                    const msg = e instanceof Error ? e.message : String(e);
+                    const msg = e instanceof Error ? sanitizeError(e.message) : sanitizeError(String(e));
                     toast.error(`Update check failed: ${msg}`);
                   } finally {
                     setUpdateChecking(false);

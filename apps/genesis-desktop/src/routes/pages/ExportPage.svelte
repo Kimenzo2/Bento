@@ -8,13 +8,14 @@
   import { Card, CardContent, CardHeader, CardTitle } from "$lib/components/ui/card/index.js";
   import { pickExportDirectory, saveExportManifest } from "$lib/desktop/runtime";
   import { desktopSettings, updateDesktopSettings } from "$lib/desktop/settings";
+  import { sanitizeError } from "$lib/utils/logger";
 
   let isExporting = $state(false);
   let isChoosingFolder = $state(false);
 
   const startExport = async () => {
     if (!browser || !isTauri()) {
-      toast.info("Run this view inside the desktop shell to write export bundles.");
+      toast.info("Run this view inside the desktop app to write export bundles.");
       return;
     }
 
@@ -29,12 +30,12 @@
       });
 
       if (savedPath) {
-        toast.success(`Export manifest saved to ${savedPath}`);
+        toast.success("Export manifest saved successfully.");
       } else {
         toast.info("Export cancelled.");
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to write export manifest.");
+      toast.error(error instanceof Error ? sanitizeError(error.message) : "Failed to write export manifest.");
     } finally {
       isExporting = false;
     }
@@ -42,7 +43,7 @@
 
   const chooseExportDirectory = async () => {
     if (!browser || !isTauri()) {
-      toast.info("Run this view inside the desktop shell to choose an export folder.");
+      toast.info("Run this view inside the desktop app to choose an export folder.");
       return;
     }
 
@@ -63,9 +64,9 @@
         },
       }));
 
-      toast.success(`Bento export folder set to ${directory}`);
+      toast.success("Export folder updated.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update the export folder.");
+      toast.error(error instanceof Error ? sanitizeError(error.message) : "Failed to update the export folder.");
     } finally {
       isChoosingFolder = false;
     }
@@ -114,7 +115,7 @@
         <div class="rounded-2xl app-surface p-4">
           <p class="font-semibold text-[var(--foreground)]">{task}</p>
           <p class="mt-1 text-sm text-[var(--muted)]">
-            Filesystem write access is scoped through Tauri capabilities for export-safe destinations.
+            Filesystem write access is scoped through desktop capabilities for export-safe destinations.
           </p>
         </div>
       {/each}

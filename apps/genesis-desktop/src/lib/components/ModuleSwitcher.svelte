@@ -5,6 +5,7 @@ import { beginAppLaunch, signalAppLaunchError } from "$lib/stores/app-launch.sto
 import { activeBundle, createTranslator } from "$lib/i18n";
 import { billingProfile } from "$lib/stores/billing.store";
 import { isModuleVisibleByPlan } from "$lib/desktop/billing-access";
+import { sanitizeError } from "$lib/utils/logger";
 
   let _t = $derived.by(() => createTranslator($activeBundle));
 
@@ -126,7 +127,7 @@ import { isModuleVisibleByPlan } from "$lib/desktop/billing-access";
       switching = null;
       signalAppLaunchError(moduleId, error);
       console.error("[Bento Desktop] Module switch failed", error);
-      toast.error(error instanceof Error ? error.message : _t('switcherSwitchFailed'));
+      toast.error(error instanceof Error ? sanitizeError(error.message) : _t('switcherSwitchFailed'));
     }
   }
 </script>

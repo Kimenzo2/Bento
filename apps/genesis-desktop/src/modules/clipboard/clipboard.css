@@ -86,16 +86,16 @@
   gap: 10px;
   margin-bottom: 14px;
   color: var(--cb-muted);
-  font-size: 0.78rem;
-  letter-spacing: 0.15em;
+  font-size: 0.82rem;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
 :global(.cb-shell__intro) h1 {
   margin: 0;
-  font-size: clamp(1.8rem, 3vw, 2.6rem);
-  font-weight: 650;
+  font-size: clamp(1.7rem, 2.5vw, 2.6rem);
   line-height: 1.05;
+  font-family: var(--font-display);
   letter-spacing: -0.02em;
   text-wrap: balance;
 }

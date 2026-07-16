@@ -10,7 +10,7 @@
 
   let {
     show = false,
-    query: initialQuery = '',
+    query: _initialQuery = '',
     onClose = () => {},
     onFind = (query: string) => {},
     onNext = () => {},
@@ -19,8 +19,9 @@
     currentMatch = 0,
   } = $props();
 
-  let query = $state(initialQuery);
-  let inputEl: HTMLInputElement;
+  // svelte-ignore state_referenced_locally
+  let query = $state(_initialQuery);
+  let inputEl = $state<HTMLInputElement | null>(null);
 
   let findTimer: ReturnType<typeof setTimeout>;
   function handleInput(val: string) {
@@ -136,7 +137,7 @@
 
   .find-count {
     font-size: 11px;
-    color: color-mix(in srgb, var(--foreground) 40%, transparent);
+    color: color-mix(in srgb, var(--foreground) 55%, transparent);
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -155,7 +156,7 @@
     border: none;
     border-radius: 6px;
     background: transparent;
-    color: color-mix(in srgb, var(--foreground) 40%, transparent);
+    color: color-mix(in srgb, var(--foreground) 55%, transparent);
     cursor: pointer;
     transition: background 100ms ease, color 100ms ease;
     padding: 0;

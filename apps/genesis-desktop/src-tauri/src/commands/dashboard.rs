@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 use std::time::Instant;
 
-use chrono::Timelike;
+use chrono::{Datelike, Timelike};
 use serde::{Deserialize, Serialize};
 use sqlx::{Row, SqlitePool};
 use tauri::Manager;
@@ -227,12 +227,101 @@ fn today_end_ms() -> i64 {
 }
 
 fn compute_greeting(name: &str) -> String {
-    let hour = chrono::Local::now().hour();
+    use chrono::Local;
+    let now = Local::now();
+    let hour = now.hour();
+    let day_of_year = now.ordinal();
+
+    // Deterministic rotation: different greeting each day, cycles every ~60 days
+    let idx = (day_of_year as usize) % 8;
+
     let base = match hour {
-        0..=11 => "Good morning",
-        12..=17 => "Good afternoon",
-        _ => "Good evening",
+        // Night: 12am–5am
+        0..=5 => {
+            let greetings = [
+                "Still up? Respect the grind",
+                "The world is quiet — you should be too",
+                "Late night sessions build empires",
+                "Sleep is a power-up, not a timeout",
+                "The night is yours — but so is tomorrow",
+                "Burning midnight oil? Make it count",
+                "Even the stars take turns resting",
+                "Your best ideas come after rest",
+            ];
+            greetings[idx]
+        }
+        // Early morning: 6am–8am
+        6..=8 => {
+            let greetings = [
+                "Rise and shine — today has plans for you",
+                "The early light hits different, doesn't it?",
+                "Another chance to make it happen",
+                "Morning air is fresh — so is your perspective",
+                "The sun showed up. So did you.",
+                "A new day, a clean slate, a fresh start",
+                "Dawn is nature's way of saying try again",
+                "First light, first breath, first move",
+            ];
+            greetings[idx]
+        }
+        // Mid-morning: 9am–11am
+        9..=11 => {
+            let greetings = [
+                "Good morning — the day is yours to shape",
+                "You're up and the world is better for it",
+                "Fresh eyes, sharp mind, let's go",
+                "The morning is young and so are your ideas",
+                "Coffee in hand, world on track",
+                "Mornings like these are built, not found",
+                "The best time to start was yesterday. The next best time is now",
+                "You showed up — that's half the battle",
+            ];
+            greetings[idx]
+        }
+        // Afternoon: 12pm–5pm
+        12..=17 => {
+            let greetings = [
+                "Good afternoon — still going strong",
+                "The day is half done. How's the other half looking?",
+                "Afternoon energy hits different when you're on track",
+                "Keep the momentum — you're doing great",
+                "Halfway through and still standing tall",
+                "The afternoon stretch — where real work happens",
+                "You've got the whole second half ahead of you",
+                "Steady wins the race. Keep going.",
+            ];
+            greetings[idx]
+        }
+        // Evening: 6pm–9pm
+        18..=21 => {
+            let greetings = [
+                "Good evening — you earned this moment",
+                "The day is winding down. How'd it go?",
+                "Evenings are for reflection and recharge",
+                "You made it through another one. That counts.",
+                "The golden hour — literally and figuratively",
+                "Rest is productive too. Remember that.",
+                "The sun sets, but your progress doesn't",
+                "Evening calm is the reward for a day well spent",
+            ];
+            greetings[idx]
+        }
+        // Late night: 10pm–11pm
+        _ => {
+            let greetings = [
+                "Winding down? Tomorrow is a fresh page",
+                "Night mode activated — time to recharge",
+                "The best rest comes after the best effort",
+                "You did enough today. Let go and recharge.",
+                "Sleep is the secret weapon. Use it.",
+                "Close the tabs — mental and digital",
+                "Tomorrow's wins start with tonight's rest",
+                "The night is for restoration, not decoration",
+            ];
+            greetings[idx]
+        }
     };
+
     if name.is_empty() {
         base.to_string()
     } else {

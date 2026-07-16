@@ -1,0 +1,23 @@
+<script lang="ts" module>
+  import { cn } from "$lib/utils";
+  import type { HTMLAttributes } from "svelte/elements";
+  import type { Snippet } from "svelte";
+
+  export interface CheckpointProps extends HTMLAttributes<HTMLDivElement> {
+    children?: Snippet;
+  }
+</script>
+
+<script lang="ts">
+  import { Separator } from "$lib/components/ui/separator";
+
+  let { class: className, children, ...restProps }: CheckpointProps = $props();
+</script>
+
+<div
+  class={cn("flex items-center gap-0.5 overflow-hidden text-muted-foreground", className)}
+  {...restProps}
+>
+  {@render children?.()}
+  <Separator />
+</div>

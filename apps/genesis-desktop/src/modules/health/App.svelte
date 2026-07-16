@@ -39,6 +39,13 @@
 
   let _t = $derived.by(() => createTranslator($activeBundle));
 
+  const healthGreeting = $derived.by(() => {
+    const hour = new Date().getHours();
+    if (hour >= 0 && hour < 12) return "Good morning";
+    if (hour >= 12 && hour < 18) return "Good afternoon";
+    return "Good evening";
+  });
+
   // ── Types mirroring Rust structs ──────────────────────────────
   type DailyLogRow = {
     id: string; mood: string; energy: number; waterGlasses: number;
@@ -313,13 +320,13 @@
     return items;
   });
 
-  let weeklyChartData = $derived.by((): {day:string; score:number}[] => {
+  let weeklyChartData = $derived.by((): {day:string; wellness:number}[] => {
     const days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
     const map = new Map(weekLogs.map(l => [new Date(l.loggedAt).toLocaleDateString("en-US",{weekday:"short"}), l]));
     return days.map(day => {
       const l = map.get(day);
       const score = l ? Math.round((l.energy / 10 * 40) + (Math.min(l.sleepHours,9)/9*30) + (Math.min(l.waterGlasses,10)/10*30)) : 0;
-      return { day, score };
+      return { day, wellness: score };
     });
   });
 
@@ -446,7 +453,7 @@
       <header class="hl-page__header">
         <div class="hl-page__intro">
           <div class="hl-page__eyebrow"><ActivityIcon size={13}/><span>{_t('moduleHealthHealthTracker')}</span><Badge variant="outline">{_t('moduleHealthSectionDashboard')}</Badge></div>
-          <h1>{_t('moduleHealthGoodMorning')}</h1>
+          <h1>{healthGreeting} — here's everything about your health today.</h1>
           <p>{_t('moduleHealthDashboardDesc')}</p>
         </div>
         <div class="hl-page__actions">
@@ -522,21 +529,67 @@
             </CardContent>
           </Card>
 
-          <Card class="hl-panel">
+          <Card class="hl-panel hl-panel--chart">
             <CardHeader><CardTitle>{_t('moduleHealthWeeklyWellness')}</CardTitle><CardDescription>{_t('moduleHealthWeeklyWellnessDesc').replace('{count}', String(weekLogs.length))}</CardDescription></CardHeader>
-            <CardContent class="hl-bar-chart">
-              {#each weeklyChartData as item}
-                <article>
-                  <span>{item.day}</span>
-                  <i style="--bar:{item.score}%"></i>
-                  <strong>{item.score || "--"}</strong>
-                </article>
-              {/each}
+            <CardContent>
+              {#if weekLogs.length === 0}
+                <div class="hl-wc-empty">
+                  <span>No data yet</span>
+                  <small>Log a daily check-in to see your weekly trend</small>
+                </div>
+              {:else}
+                {@const srRows = weeklyChartData.map(d => `${d.day}: ${d.wellness}`).join(', ')}
+                <div class="hl-wc" role="img" aria-label="Weekly wellness bar chart. {srRows}">
+                  <div class="hl-wc-y" aria-hidden="true">
+                    <span>100</span><span>75</span><span>50</span><span>25</span><span>0</span>
+                    <span class="hl-wc-ytitle">Score</span>
+                  </div>
+                  <div class="hl-wc-body">
+                    <div class="hl-wc-grid" aria-hidden="true">
+                      {#each [100, 75, 50, 25, 0] as lv}
+                        <div class="hl-wc-line" style="bottom:{lv}%"></div>
+                      {/each}
+                    </div>
+                    <div class="hl-wc-bars">
+                      {#each weeklyChartData as d}
+                        <div class="hl-wc-col">
+                          {#if d.wellness > 0}
+                            <span class="hl-wc-val">{d.wellness}</span>
+                          {/if}
+                          <div class="hl-wc-bar"
+                            style="height:{Math.max(4, d.wellness)}%"
+                            tabindex="0"
+                            role="meter" aria-label="{d.day}: {d.wellness} out of 100"
+                            aria-valuemin="0" aria-valuemax="100" aria-valuenow={d.wellness}
+                            data-empty={d.wellness === 0 || undefined}>
+                            <span class="hl-wc-tip">{d.day}: {d.wellness || '—'}</span>
+                          </div>
+                        </div>
+                      {/each}
+                    </div>
+                  </div>
+                </div>
+                <div class="hl-wc-x" aria-hidden="true">
+                  {#each weeklyChartData as d}
+                    <span>{d.day}</span>
+                  {/each}
+                </div>
+              {/if}
+              <table class="hl-sr-only">
+                <caption>Weekly wellness scores</caption>
+                <thead><tr><th>Day</th><th>Score</th></tr></thead>
+                <tbody>
+                  {#each weeklyChartData as d}
+                    <tr><td>{d.day}</td><td>{d.wellness}</td></tr>
+                  {/each}
+                </tbody>
+              </table>
             </CardContent>
           </Card>
         </div>
       </section>
     </section>
+
 
 
   <!-- ═══════════════════ DAILY LOG ═══════════════════ -->
@@ -768,20 +821,61 @@
           <Card class="hl-panel">
             <CardHeader><CardTitle>{_t('moduleHealthBPTrend')}</CardTitle><CardDescription>{_t('moduleHealthBPTrendDesc')}</CardDescription></CardHeader>
             <CardContent class="hl-bp-chart">
-              {#each bpChartData as item}
-                <article>
-                  <span>{item.label}</span>
-                  <div class="hl-bp-col">
-                    {#if item.sys}
-                      <i class="hl-bp-sys" style="--h:{Math.round(((item.sys-100)/60)*100)}%"></i>
-                      <i class="hl-bp-dia" style="--h:{Math.round(((item.dia??70)-60)/60*100)}%"></i>
-                    {:else}
-                      <i class="hl-bp-sys" style="--h:4px;opacity:0.2"></i>
-                    {/if}
+              {#if bpChartData.length === 0 || bpChartData.every(d => d.sys === null)}
+                <div class="hl-wc-empty">
+                  <span>No data yet</span>
+                  <small>Log a blood pressure reading to see your trend</small>
+                </div>
+              {:else}
+                {@const srRows = bpChartData.map(d => `${d.label}: ${d.sys ?? '—'}/${d.dia ?? '—'}`).join(', ')}
+                <div class="hl-wc" role="img" aria-label="Blood pressure trend chart. {srRows}">
+                  <div class="hl-wc-y" aria-hidden="true">
+                    <span>170</span><span>140</span><span>110</span><span>80</span>
+                    <span class="hl-wc-ytitle">mmHg</span>
                   </div>
-                  <small>{item.sys ?? "--"}</small>
-                </article>
-              {/each}
+                  <div class="hl-wc-body">
+                    <div class="hl-wc-grid" aria-hidden="true">
+                      {#each [170, 140, 110, 80] as lv}
+                        <div class="hl-wc-line" style="bottom:{((lv - 80) / 90) * 100}%"></div>
+                      {/each}
+                    </div>
+                    <div class="hl-wc-bars">
+                      {#each bpChartData as d}
+                        <div class="hl-wc-col">
+                          {#if d.sys}
+                            <span class="hl-wc-val">{d.sys}/{d.dia}</span>
+                          {/if}
+                          <div class="hl-wc-bar-pair" style="height:{d.sys ? Math.max(4, ((d.sys - 80) / 90) * 100) : 4}%"
+                            tabindex="0"
+                            role="meter" aria-label="{d.label}: {d.sys ?? '—'}/{d.dia ?? '—'} mmHg"
+                            aria-valuemin="80" aria-valuemax="170" aria-valuenow={d.sys ?? 0}
+                            data-empty={d.sys === null || undefined}>
+                            <span class="hl-wc-tip">{d.label}: {d.sys ?? '—'}/{d.dia ?? '—'}</span>
+                          </div>
+                        </div>
+                      {/each}
+                    </div>
+                  </div>
+                </div>
+                <div class="hl-wc-x" aria-hidden="true">
+                  {#each bpChartData as d}
+                    <span>{d.label}</span>
+                  {/each}
+                </div>
+                <div class="hl-bp-legend" aria-hidden="true">
+                  <span class="hl-bp-legend-item"><i style="background:var(--hl-accent)"></i> Systolic</span>
+                  <span class="hl-bp-legend-item"><i style="background:color-mix(in srgb, var(--hl-accent) 40%, transparent)"></i> Diastolic</span>
+                </div>
+              {/if}
+              <table class="hl-sr-only">
+                <caption>Blood pressure readings</caption>
+                <thead><tr><th>Date</th><th>Systolic</th><th>Diastolic</th></tr></thead>
+                <tbody>
+                  {#each bpChartData as d}
+                    <tr><td>{d.label}</td><td>{d.sys ?? '—'}</td><td>{d.dia ?? '—'}</td></tr>
+                  {/each}
+                </tbody>
+              </table>
             </CardContent>
           </Card>
 
@@ -834,7 +928,7 @@
           <CardHeader><CardTitle>{_t('moduleHealthThisWeek')}</CardTitle><CardDescription>{_t('moduleHealthOf7Days').replace('{count}', String(weekLogs.length))}</CardDescription></CardHeader>
           <CardContent class="hl-score-card__content">
             <div class="hl-score-orb">
-              <strong>{weeklyChartData.length ? Math.round(weeklyChartData.filter(d=>d.score>0).reduce((a,b)=>a+b.score,0)/(weeklyChartData.filter(d=>d.score>0).length||1)) : "--"}</strong>
+              <strong>{weeklyChartData.length ? Math.round(weeklyChartData.filter(d=>d.wellness>0).reduce((a,b)=>a+b.wellness,0)/(weeklyChartData.filter(d=>d.wellness>0).length||1)) : "--"}</strong>
               <small>{_t('moduleHealthAvgScore')}</small>
             </div>
             <div class="hl-score-meta">
@@ -887,16 +981,61 @@
             </CardContent>
           </Card>
 
-          <Card class="hl-panel">
+          <Card class="hl-panel hl-panel--chart">
             <CardHeader><CardTitle>{_t('moduleHealthWeeklyScores')}</CardTitle><CardDescription>{_t('moduleHealthWeeklyScoresDesc')}</CardDescription></CardHeader>
-            <CardContent class="hl-bar-chart">
-              {#each weeklyChartData as item}
-                <article>
-                  <span>{item.day}</span>
-                  <i style="--bar:{item.score}%"></i>
-                  <strong>{item.score || "--"}</strong>
-                </article>
-              {/each}
+            <CardContent>
+              {#if weekLogs.length === 0}
+                <div class="hl-wc-empty">
+                  <span>No data yet</span>
+                  <small>Log a daily check-in to see your weekly trend</small>
+                </div>
+              {:else}
+                {@const srRows = weeklyChartData.map(d => `${d.day}: ${d.wellness}`).join(', ')}
+                <div class="hl-wc" role="img" aria-label="Weekly wellness bar chart. {srRows}">
+                  <div class="hl-wc-y" aria-hidden="true">
+                    <span>100</span><span>75</span><span>50</span><span>25</span><span>0</span>
+                    <span class="hl-wc-ytitle">Score</span>
+                  </div>
+                  <div class="hl-wc-body">
+                    <div class="hl-wc-grid" aria-hidden="true">
+                      {#each [100, 75, 50, 25, 0] as lv}
+                        <div class="hl-wc-line" style="bottom:{lv}%"></div>
+                      {/each}
+                    </div>
+                    <div class="hl-wc-bars">
+                      {#each weeklyChartData as d}
+                        <div class="hl-wc-col">
+                          {#if d.wellness > 0}
+                            <span class="hl-wc-val">{d.wellness}</span>
+                          {/if}
+                          <div class="hl-wc-bar"
+                            style="height:{Math.max(4, d.wellness)}%"
+                            tabindex="0"
+                            role="meter" aria-label="{d.day}: {d.wellness} out of 100"
+                            aria-valuemin="0" aria-valuemax="100" aria-valuenow={d.wellness}
+                            data-empty={d.wellness === 0 || undefined}>
+                            <span class="hl-wc-tip">{d.day}: {d.wellness || '—'}</span>
+                          </div>
+                        </div>
+                      {/each}
+                    </div>
+                  </div>
+                </div>
+                <div class="hl-wc-x" aria-hidden="true">
+                  {#each weeklyChartData as d}
+                    <span>{d.day}</span>
+                  {/each}
+                </div>
+              {/if}
+              <table class="hl-sr-only">
+                <caption>Weekly wellness scores</caption>
+                <thead><tr><th>Day</th><th>Score</th></tr></thead>
+                <tbody>
+                  {#each weeklyChartData as d}
+                    <tr><td>{d.day}</td><td>{d.wellness}</td></tr>
+                  {/each}
+                </tbody>
+              </table>
             </CardContent>
           </Card>
 
@@ -946,26 +1085,13 @@
       <section class="hl-hero-grid">
           <Card class="hl-score-card">
           <CardHeader><CardTitle>{_t('moduleHealthTodaysAdherence')}</CardTitle><CardDescription>{today}</CardDescription></CardHeader>
-          <CardContent class="hl-score-card__content">
-            <div class="hl-score-orb">
-              <PremiumRing
-                size={156}
-                thickness={12}
-                gap={8}
-                segments={[
-                  { value: takenCount, color: "var(--hl-accent)", label: "Taken" },
-                  { value: Math.max(medications.length - takenCount, 0), color: "color-mix(in srgb, var(--hl-border) 82%, transparent)", label: "Left" },
-                ]}
-                centerLabel={_t('moduleHealthTodaysAdherence')}
-                centerValue={`${adherencePct}%`}
-                centerNote="confirmed"
-              />
-            </div>              <div class="hl-score-meta">
-              <div><PillIcon size={12}/><strong>{takenCount} {_t('moduleHealthTaken')}</strong><span>{_t('moduleHealthOf')} {medications.length} {_t('moduleHealthDoses')}</span></div>
-              <div><strong>{medications.length - takenCount} {_t('moduleHealthLeft')}</strong><span>{_t('moduleHealthStillPending')}</span></div>
-              <div><strong>{medications.length}</strong><span>{_t('moduleHealthTotalMeds')}</span></div>
-              <div><strong>{adherencePct}%</strong><span>{_t('moduleHealthTodaysRate')}</span></div>
-            </div>
+          <CardContent class="hl-score-card__content hl-score-card__content--wide">
+              <div class="hl-score-meta">
+                <div><PillIcon size={12}/><strong>{takenCount} {_t('moduleHealthTaken')}</strong><span>{_t('moduleHealthOf')} {medications.length} {_t('moduleHealthDoses')}</span></div>
+                <div><strong>{medications.length - takenCount} {_t('moduleHealthLeft')}</strong><span>{_t('moduleHealthStillPending')}</span></div>
+                <div><strong>{medications.length}</strong><span>{_t('moduleHealthTotalMeds')}</span></div>
+                <div><strong>{adherencePct}%</strong><span>{_t('moduleHealthTodaysRate')}</span></div>
+              </div>
           </CardContent>
         </Card>
 
@@ -1123,7 +1249,7 @@
     display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
     color: var(--hl-muted); font-size: 0.82rem; letter-spacing: 0.18em; text-transform: uppercase;
   }
-  :global(.hl-page__intro) h1 { margin: 0; font-size: clamp(1.7rem,2.5vw,2.6rem); line-height: 1.05; letter-spacing: -0.02em; text-wrap: balance; }
+  :global(.hl-page__intro) h1 { margin: 0; font-size: clamp(1.7rem,2.5vw,2.6rem); line-height: 1.05; font-family: var(--font-display); letter-spacing: -0.02em; text-wrap: balance; }
   :global(.hl-page__intro) p  { margin: 12px 0 0; max-width: 42rem; color: var(--hl-muted); font-size: 0.97rem; line-height: 1.55; text-wrap: pretty; }
   :global(.hl-page__actions) { display: flex; gap: 12px; flex-shrink: 0; }
 
@@ -1144,6 +1270,9 @@
   :global(.hl-score-card__content) {
     display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center;
   }
+  :global(.hl-score-card__content--wide) {
+    grid-template-columns: 1fr;
+  }
 
   :global(.hl-score-orb) {
     display: grid; place-items: center; width: 120px; aspect-ratio: 1;
@@ -1158,7 +1287,7 @@
   :global(.hl-orb--bp) {
     background: conic-gradient(var(--hl-accent) 63%, color-mix(in srgb, var(--hl-border) 80%, transparent) 0);
   }
-  :global(.hl-score-orb) strong { font-size: 2.2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+  :global(.hl-score-orb) strong { font-size: 2.2rem; line-height: 1; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
   :global(.hl-score-orb) small  { color: var(--hl-muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
 
   :global(.hl-score-meta) { display: grid; grid-template-columns: repeat(2,1fr); gap: 9px; }
@@ -1166,6 +1295,7 @@
     display: flex; flex-direction: column; gap: 2px; padding: 10px 12px;
     border-radius: 14px; border: 1px solid color-mix(in srgb, var(--hl-border) 80%, transparent);
     background: color-mix(in srgb, var(--hl-surface-strong) 88%, transparent);
+    justify-content: center;
   }
   :global(.hl-score-meta) strong { font-size: 0.93rem; font-weight: 600; font-variant-numeric: tabular-nums; }
   :global(.hl-score-meta) span   { color: var(--hl-muted); font-size: 0.72rem; }
@@ -1194,6 +1324,30 @@
   :global(.hl-grid--2col)  { grid-template-columns: repeat(2,minmax(0,1fr)); }
   :global(.hl-grid--vitals){ grid-template-columns: repeat(2,minmax(0,1fr)); grid-template-rows: auto auto; }
   :global(.hl-panel)       { display: flex; flex-direction: column; }
+  :global(.hl-panel--chart){ min-height: 220px; }
+  :global(.hl-wc)           { width: 100%; display: flex; gap: 6px; position: relative; }
+  :global(.hl-wc-y)         { display: flex; flex-direction: column; justify-content: space-between; height: 140px; padding-bottom: 1px; font-size: 0.65rem; color: var(--hl-muted); text-align: right; min-width: 22px; position: relative; }
+  :global(.hl-wc-ytitle)    { position: absolute; left: -1px; top: 50%; transform: rotate(-90deg) translateX(-50%); transform-origin: left center; font-size: 0.58rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--hl-muted); opacity: 0.7; white-space: nowrap; }
+  :global(.hl-wc-body)      { flex: 1; position: relative; height: 140px; }
+  :global(.hl-wc-grid)      { position: absolute; inset: 0; pointer-events: none; }
+  :global(.hl-wc-line)      { position: absolute; left: 0; right: 0; height: 1px; background: currentColor; opacity: 0.1; }
+  :global(.hl-wc-bars)      { position: absolute; inset: 0; display: flex; gap: 6px; align-items: flex-end; }
+  :global(.hl-wc-col)       { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; position: relative; }
+  :global(.hl-wc-val)       { font-size: 0.6rem; font-weight: 600; color: var(--hl-ink); opacity: 0.7; margin-bottom: 3px; line-height: 1; min-height: 12px; }
+  :global(.hl-wc-bar)       { width: 55%; max-width: 28px; border-radius: 6px 6px 3px 3px; min-height: 4px; transition: height 0.4s cubic-bezier(0.32,0.72,0,1), filter 0.15s; cursor: default; position: relative; background: var(--hl-accent); }
+  :global(.hl-wc-bar::before) { content: ""; position: absolute; inset: 0; border-radius: inherit; background: oklch(1 0 0 / 0.15); opacity: 0; transition: opacity 0.15s; mix-blend-mode: overlay; pointer-events: none; }
+  :global(.hl-wc-bar:focus-visible) { outline: 2px solid var(--hl-accent); outline-offset: 2px; }
+  :global(.hl-wc-bar:focus-visible::before) { opacity: 0.3; }
+  :global(.hl-wc-bar[data-empty])     { background: oklch(from var(--hl-accent) l c h / 0.15); }
+  :global(.hl-wc-bar[data-empty]:focus-visible) { background: oklch(from var(--hl-accent) l c h / 0.25); }
+  :global(.hl-wc-x)         { display: flex; gap: 6px; margin-left: 28px; margin-top: 6px; }
+  :global(.hl-wc-x span)    { flex: 1; text-align: center; font-size: 0.72rem; color: var(--hl-muted); }
+  :global(.hl-wc-tip)       { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--hl-ink); color: var(--hl-bg); font-size: 0.68rem; font-weight: 600; padding: 3px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 10; }
+  :global(.hl-wc-col:hover .hl-wc-tip),
+  :global(.hl-wc-col:focus-within .hl-wc-tip) { opacity: 1; }
+  :global(.hl-wc-empty)     { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 140px; gap: 6px; color: var(--hl-muted); font-size: 0.8rem; }
+  :global(.hl-wc-empty small) { font-size: 0.7rem; opacity: 0.6; }
+  :global(.hl-sr-only)       { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
   :global(.hl-panel--full-row) { grid-column: 1/-1; }
 
   /* Utils */
@@ -1234,7 +1388,6 @@
     :global(.hl-med__delete),
     :global(.hl-table-row),
     :global(.hl-timeline__item),
-    :global(.hl-bar-chart) i,
     :global(.hl-bp-sys),
     :global(.hl-bp-dia),
     :global(.hl-meter) i {
@@ -1268,21 +1421,6 @@
   :global(.hl-dot--symptom) { background: color-mix(in srgb, orange 60%, var(--hl-accent)); }
   :global(.hl-timeline__copy) strong { font-size: 0.88rem; }
   :global(.hl-timeline__copy) p      { margin: 2px 0 0; font-size: 0.78rem; color: var(--hl-muted); }
-
-  /* Bar chart */
-  :global(.hl-bar-chart) {
-    display: grid; grid-template-columns: repeat(7,minmax(0,1fr));
-    gap: 8px; align-items: end; height: 100%; padding-bottom: 4px; overflow: hidden;
-  }
-  :global(.hl-bar-chart) article { display: grid; justify-items: center; align-items: end; gap: 6px; height: 100%; }
-  :global(.hl-bar-chart) i {
-    display: block; width: 22px; height: var(--bar); min-height: 10px;
-    border-radius: 999px; align-self: end;
-    background: linear-gradient(180deg, var(--hl-accent), color-mix(in srgb, var(--accent) 38%, var(--hl-accent)));
-    transition: height 0.4s ease;
-  }
-  :global(.hl-bar-chart) span   { font-size: 0.72rem; color: var(--hl-muted); }
-  :global(.hl-bar-chart) strong { font-size: 0.75rem; font-variant-numeric: tabular-nums; }
 
   /* Daily Log */
   :global(.hl-log-form)  { display: grid; gap: 16px; overflow: auto; }
@@ -1361,16 +1499,17 @@
   :global(.hl-vital-field) { display: grid; gap: 5px; }
 
   :global(.hl-bp-chart) {
-    display: grid; grid-template-columns: repeat(7,minmax(0,1fr));
-    gap: 8px; align-items: end; height: 100%; padding-bottom: 4px; overflow: hidden;
+    display: flex; flex-direction: column; gap: 6px; overflow: hidden;
   }
-  :global(.hl-bp-chart) article { display: grid; justify-items: center; align-items: end; gap: 6px; height: 100%; }
-  :global(.hl-bp-chart) span  { font-size: 0.72rem; color: var(--hl-muted); }
-  :global(.hl-bp-chart) small { font-size: 0.7rem; }
-  :global(.hl-bp-col) { display: flex; gap: 3px; align-items: flex-end; height: 70px; align-self: end; }
-  :global(.hl-bp-sys), :global(.hl-bp-dia) { display: block; width: 10px; border-radius: 3px 3px 0 0; }
-  :global(.hl-bp-sys) { height: var(--h); min-height: 6px; background: var(--hl-accent); transition: height 0.4s; }
-  :global(.hl-bp-dia) { height: var(--h); min-height: 4px; background: color-mix(in srgb, var(--hl-accent) 40%, transparent); transition: height 0.4s; }
+  :global(.hl-bp-legend) { display: flex; gap: 12px; margin-top: 6px; justify-content: center; }
+  :global(.hl-bp-legend-item) { display: flex; align-items: center; gap: 5px; font-size: 0.7rem; color: var(--hl-muted); }
+  :global(.hl-bp-legend-item i) { display: block; width: 10px; height: 10px; border-radius: 2px; }
+  :global(.hl-wc-bar-pair) { width: 55%; max-width: 28px; border-radius: 6px 6px 3px 3px; min-height: 4px; transition: height 0.4s cubic-bezier(0.32,0.72,0,1), filter 0.15s; cursor: default; position: relative; background: var(--hl-accent); display: flex; flex-direction: column; }
+  :global(.hl-wc-bar-pair::before) { content: ""; position: absolute; inset: 0; border-radius: inherit; background: oklch(1 0 0 / 0.15); opacity: 0; transition: opacity 0.15s; mix-blend-mode: overlay; pointer-events: none; }
+  :global(.hl-wc-bar-pair:focus-visible) { outline: 2px solid var(--hl-accent); outline-offset: 2px; }
+  :global(.hl-wc-bar-pair:focus-visible::before) { opacity: 0.3; }
+  :global(.hl-wc-bar-pair[data-empty]) { background: oklch(from var(--hl-accent) l c h / 0.15); }
+  :global(.hl-wc-bar-pair[data-empty]:focus-visible) { background: oklch(from var(--hl-accent) l c h / 0.25); }
 
   :global(.hl-vitals-table) { display: grid; gap: 5px; overflow: auto; }
   :global(.hl-table-head), :global(.hl-table-row) {
@@ -1461,7 +1600,7 @@
     background: transparent;
     overflow: visible;
   }
-  :global(.hl-adherence__orb) strong { font-size: 1.4rem; line-height: 1; }
+  :global(.hl-adherence__orb) strong { font-size: 1.4rem; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; }
   :global(.hl-adherence__orb) small  { font-size: 0.68rem; color: var(--hl-muted); text-transform: uppercase; }
   :global(.hl-adherence__meta) { display: flex; flex-direction: column; gap: 4px; }
   :global(.hl-adherence__meta) strong { font-size: 1.1rem; font-variant-numeric: tabular-nums; }

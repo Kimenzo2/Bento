@@ -946,7 +946,7 @@
     border: none;
     border-radius: 6px;
     background: transparent;
-    color: color-mix(in srgb, var(--foreground) 40%, transparent);
+    color: color-mix(in srgb, var(--foreground) 55%, transparent);
     cursor: pointer;
     transition: background 100ms ease, color 100ms ease;
   }

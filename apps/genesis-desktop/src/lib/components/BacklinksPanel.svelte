@@ -1,5 +1,6 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
+  import { untrack } from 'svelte';
   import { ArrowLeft, FileText } from 'lucide-svelte';
 
   interface Backlink {
@@ -20,10 +21,10 @@
   let backlinks = $state<Backlink[]>([]);
   let loading = $state(false);
 
-  let cancel = $state<AbortController | null>(null);
+  let cancel: AbortController | null = null;
   $effect(() => {
     if (!noteId) { backlinks = []; return; }
-    cancel?.abort();
+    untrack(() => cancel?.abort());
     const ctrl = new AbortController();
     cancel = ctrl;
     loading = true;
@@ -69,7 +70,7 @@
     {:else}
       {#each backlinks as bl (bl.id)}
         <button class="backlink-item" onclick={() => onNavigateTo(bl.sourceNoteId)} type="button">
-          <span class="bl-icon">{bl.sourceIcon ?? '\u{1F4C4}'}</span>
+          <span class="bl-icon"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3.5 1.5C3.5 1.22 3.72 1 4 1H10.5L12.5 3V4.5H12C11.72 4.5 11.5 4.72 11.5 5V14.5H4C3.72 14.5 3.5 14.28 3.5 14V1.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M10.5 1V3H12.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 6.5H10M5.5 9H10M5.5 11.5H8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
           <span class="bl-body">
             <span class="bl-title">{bl.sourceTitle || 'Untitled'}</span>
             <span class="bl-date">{formatDate(bl.createdAt)}</span>
@@ -108,7 +109,7 @@
     border: none;
     border-radius: 6px;
     background: transparent;
-    color: color-mix(in srgb, var(--foreground) 40%, transparent);
+    color: color-mix(in srgb, var(--foreground) 55%, transparent);
     cursor: pointer;
     transition: background 100ms ease, color 100ms ease;
   }
@@ -173,7 +174,7 @@
   }
   .backlink-item:hover { background: color-mix(in srgb, var(--foreground) 4%, transparent); }
 
-  .bl-icon { font-size: 14px; flex-shrink: 0; width: 18px; text-align: center; }
+  .bl-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 18px; height: 18px; text-align: center; color: var(--muted); }
   .bl-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
   .bl-title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .bl-date { font-size: 10px; color: color-mix(in srgb, var(--foreground) 35%, transparent); }

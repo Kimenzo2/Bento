@@ -546,8 +546,10 @@
 
   :global(.memo-shell__intro) h1 {
     margin: 0;
-    font-size: clamp(1.8rem, 3vw, 2.8rem);
-    line-height: 1.04;
+    font-size: clamp(1.7rem, 2.5vw, 2.6rem);
+    line-height: 1.05;
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
   }
 
   :global(.memo-shell__intro) p {

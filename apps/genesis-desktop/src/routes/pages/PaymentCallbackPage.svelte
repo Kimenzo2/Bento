@@ -3,6 +3,7 @@
   import { onMount } from "svelte";
   import { invoke, isTauri } from "@tauri-apps/api/core";
   import { goto } from "@mateothegreat/svelte5-router";
+  import { sanitizeError } from "$lib/utils/logger";
 
   const canUseTauri = browser && isTauri();
 
@@ -27,13 +28,13 @@
       await invoke("force_refresh_billing");
       state = { status: "ready" };
     } catch (error) {
-      const message =
+      const raw =
         typeof error === "string"
           ? error
           : error instanceof Error
             ? error.message
             : "Could not refresh subscription status.";
-      state = { status: "error", message };
+      state = { status: "error", message: sanitizeError(raw) };
     }
   }
 
@@ -50,7 +51,7 @@
       </svg>
       <h1 class="payment-callback-shell__title">Syncing subscription</h1>
       <p class="payment-callback-shell__desc">
-        Bento is checking Supabase for your latest plan. Payment confirmation is handled securely on the web.
+        Bento is checking your account for the latest plan. Payment confirmation is handled securely on the web.
       </p>
     {:else if state.status === "ready"}
       <svg class="payment-callback-shell__check-icon" viewBox="0 0 64 64" fill="none" aria-hidden="true">
@@ -59,7 +60,7 @@
       </svg>
       <h1 class="payment-callback-shell__title">Subscription sync requested</h1>
       <p class="payment-callback-shell__desc">
-        If payment is complete, your plan will update automatically as soon as the Paystack webhook reaches Supabase.
+        If payment is complete, your plan will update automatically once the payment is confirmed.
       </p>
       <button class="payment-callback-shell__btn" onclick={goToPricing}>
         Back to Pricing

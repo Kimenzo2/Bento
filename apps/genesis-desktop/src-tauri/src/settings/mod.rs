@@ -665,21 +665,38 @@ pub fn default_settings() -> DesktopSettings {
 
 pub fn load_desktop_settings(app: &AppHandle) -> DesktopSettings {
     let path = settings_file_path(app);
-    if let Ok(raw) = fs::read_to_string(&path) {
-        if let Ok(settings) = serde_json::from_str::<DesktopSettings>(&raw) {
-            let normalized = normalize_settings(&settings);
-            if normalized != settings {
-                let _ = save_desktop_settings(app, &normalized);
-                return normalized;
-            }
-
-            return settings;
+    let settings = if let Ok(raw) = fs::read_to_string(&path) {
+        if let Ok(s) = serde_json::from_str::<DesktopSettings>(&raw) {
+            s
+        } else {
+            let defaults = default_settings();
+            let _ = save_desktop_settings(app, &defaults);
+            return defaults;
         }
+    } else {
+        let defaults = default_settings();
+        let _ = save_desktop_settings(app, &defaults);
+        return defaults;
+    };
+
+    let mut settings = settings;
+
+    // BYOK sanity check: if an active provider or configured providers exist,
+    // ensure enabled=true. This catches the edge case where keys were saved
+    // before auto-enable was implemented, or settings were partially reset.
+    let needs_enable = !settings.byok.enabled
+        && (settings.byok.active_provider.is_some() || !settings.byok.configured_providers.is_empty());
+    if needs_enable {
+        settings.byok.enabled = true;
     }
 
-    let defaults = default_settings();
-    let _ = save_desktop_settings(app, &defaults);
-    defaults
+    let normalized = normalize_settings(&settings);
+    if normalized != settings || needs_enable {
+        let _ = save_desktop_settings(app, &normalized);
+        return normalized;
+    }
+
+    settings
 }
 
 pub fn save_desktop_settings(

@@ -80,9 +80,7 @@ const QUICK_ACTIONS: Record<string, IslandAction[]> = {
   "voice-memos": [{ label: "Record", icon: "mic", action: "open:/apps/voice-memos?record" }],
   countdown: [{ label: "New Event", icon: "plus", action: "open:/apps/countdown?new" }],
   recipes: [{ label: "Cook Mode", icon: "utensils-crossed", action: "open:/apps/recipes?cook" }],
-  time: [{ label: "Start Timer", icon: "clock", action: "open:/apps/time" }],
   clipboard: [{ label: "History", icon: "clipboard-list", action: "open:/apps/clipboard" }],
-  breathing: [{ label: "Breathe", icon: "wind", action: "open:/apps/breathing" }],
   notes: [{ label: "New Note", icon: "file-plus", action: "open:/notes?new" }],
 };
 
@@ -158,7 +156,6 @@ const WIDGETS: Record<string, WidgetContent> = {
     unit: "recipes",
     width: "sm",
   },
-  time: { layout: "timer", primary: "00:42", secondary: "Project Alpha", width: "md" },
   clipboard: {
     layout: "list",
     primary: "Recent copy",
@@ -166,7 +163,6 @@ const WIDGETS: Record<string, WidgetContent> = {
     items: ["Welcome to the team!", "Meeting at 3pm"],
     width: "md",
   },
-  breathing: { layout: "action", primary: "Start 5 min", secondary: "Calm session", width: "sm" },
   notes: {
     layout: "list",
     primary: "Last edited",

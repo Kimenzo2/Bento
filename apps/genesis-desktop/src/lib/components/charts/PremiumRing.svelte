@@ -33,6 +33,7 @@
   let {
     // ── Shared ──────────────────────────────────────────────────────────────
     size        = 260,
+    ariaLabel   = "",             // accessible label for the ring (screen readers)
 
     // ── MODE A: Segmented dots ───────────────────────────────────────────────
     // Pass `value` to activate this mode.
@@ -52,6 +53,7 @@
     centerNote  = undefined as string | undefined,   // tiny note below value
   }: {
     size?:        number;
+    ariaLabel?:   string;
     value?:       number;
     count?:       number;
     label?:       string;
@@ -67,6 +69,18 @@
 
   // ── Mode detection ────────────────────────────────────────────────────────
   const isArcMode = $derived(segments !== undefined);
+
+  // ── Accessible label ──────────────────────────────────────────────────────
+  // In arc mode, build a description from center text if no explicit ariaLabel.
+  const computedAriaLabel = $derived.by(() => {
+    if (ariaLabel) return ariaLabel;
+    if (isArcMode) {
+      const parts = [centerLabel, centerValue, centerNote].filter(Boolean);
+      return parts.length ? parts.join(' ') : 'Progress ring';
+    }
+    // dots mode
+    return label ? `${Math.round(pct)}% ${label}` : `${Math.round(pct)}% progress`;
+  });
 
   // ── MODE A — segmented dots data ──────────────────────────────────────────
   const pct = $derived(Math.min(100, Math.max(0, value ?? 0)));
@@ -113,7 +127,8 @@
       width={size}
       height={size}
       viewBox="0 0 {size} {size}"
-      aria-hidden="true"
+      role="img"
+      aria-label={computedAriaLabel}
       class="pr-arc-svg"
     >
       <!-- Track (background ring) -->
@@ -179,7 +194,7 @@
 {:else}
   <!-- ══════════════ MODE A — Layerchart segmented dots ══════════════ -->
   <!--      -->
-  <div class="pr-dots-wrap" style="--pr-size:{size}px">
+  <div class="pr-dots-wrap" style="--pr-size:{size}px" role="img" aria-label={computedAriaLabel}>
     <PieChart
       data={dotsData}
       key="key"
@@ -271,5 +286,18 @@
   .pr-dots-wrap :global(.pr-dots-label) {
     font-size: 0.85rem;
     font-weight: 500;
+  }
+
+  /* ── Screen reader only ─────────────────────────────────────────────── */
+  .pr-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 </style>

@@ -197,6 +197,7 @@
     anthropic: "#d4a574",
     gemini: "#4285f4",
     grok: "#1da1f2",
+    openrouter: "#ff6b35",
     ollama: "#9b59b6",
   };
 </script>

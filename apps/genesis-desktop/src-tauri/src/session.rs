@@ -11,6 +11,7 @@ use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::Mutex;
 
+use crate::agent_core::state_channel::{StateChannel, StateEvent};
 use crate::actors::{self, ModuleActorHandle};
 use crate::commands::{emit_main_window_event, DashboardCache};
 use crate::db::{
@@ -477,6 +478,9 @@ pub async fn tab_open(
     .await?;
 
     state.set_active_module(opened_module_id.as_str());
+    if let Some(channel) = app.try_state::<StateChannel>() {
+        channel.publish(StateEvent::ActiveModule { module_id: opened_module_id.clone() });
+    }
     cache.invalidate();
     let _ = emit_main_window_event(&app, "bento://dashboard-refresh", opened_module_id.clone());
 
@@ -541,6 +545,9 @@ pub async fn tab_switch(
     .await?;
 
     state.set_active_module(to_module.as_str());
+    if let Some(channel) = app.try_state::<StateChannel>() {
+        channel.publish(StateEvent::ActiveModule { module_id: to_module.clone() });
+    }
     cache.invalidate();
     let _ = emit_main_window_event(&app, "bento://dashboard-refresh", to_module.clone());
 
@@ -611,6 +618,9 @@ pub async fn tab_restore(
     if let Some(first) = restored.first() {
         write_runtime_state(&state.db(), "last_active_module", &first.module_id).await?;
         state.set_active_module(&first.module_id);
+        if let Some(channel) = app.try_state::<StateChannel>() {
+            channel.publish(StateEvent::ActiveModule { module_id: first.module_id.clone() });
+        }
     }
 
     Ok(restored)

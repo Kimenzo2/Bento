@@ -12,6 +12,7 @@
   import { openExternal } from "$lib/desktop/open-external";
   import { time } from "$lib/utils/time";
   import { trackPageView, trackEvent } from "$lib/ipc";
+  import { sanitizeError } from "$lib/utils/logger";
 
   let _t = $derived.by(() => createTranslator($activeBundle));
 
@@ -178,8 +179,8 @@
       // Profile updated via 'billing:status-changed' event
       refreshFeedback = { ok: true, msg: "Synced" };
     } catch (error) {
-      const msg = typeof error === "string" ? error : error instanceof Error ? error.message : "Refresh failed";
-      refreshFeedback = { ok: false, msg };
+      const raw = typeof error === "string" ? error : error instanceof Error ? error.message : "Refresh failed";
+      refreshFeedback = { ok: false, msg: sanitizeError(raw) };
     } finally {
       refreshingBilling = false;
       refreshFeedbackTimer = setTimeout(() => {
@@ -250,8 +251,8 @@
       // Profile updates via 'billing:status-changed' event
       showActivationDialog = false;
     } catch (error) {
-      const msg = typeof error === "string" ? error : error instanceof Error ? error.message : "Activation failed";
-      finalizeError = msg;
+      const raw = typeof error === "string" ? error : error instanceof Error ? error.message : "Activation failed";
+      finalizeError = sanitizeError(raw);
     } finally {
       finalizing = false;
     }
@@ -323,13 +324,13 @@
       // Force LogRocket to capture as a real exception for instrumentation purposes
       const LR = (window as any).__LR;
       LR?.captureException?.(lrError, { extra: { tier: tier.key, billingPeriod, currentTier } });
-      const msg =
+      const raw =
         typeof error === "string"
           ? error
           : error instanceof Error
             ? error.message
             : "Checkout failed. Check console for details.";
-      showError(msg);
+      showError(sanitizeError(raw));
     } finally {
       processingPlan = null;
     }
@@ -347,13 +348,13 @@
     } catch (error) {
       console.error("Billing portal failed:", error);
       trackEvent("pricing", "manage_billing_error", { error: String(error) });
-      const msg =
+      const raw =
         typeof error === "string"
           ? error
           : error instanceof Error
             ? error.message
             : "Billing portal failed.";
-      showError(msg);
+      showError(sanitizeError(raw));
     } finally {
       openingBillingPortal = false;
     }

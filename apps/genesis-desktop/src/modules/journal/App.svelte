@@ -569,7 +569,7 @@
     border: none;
     border-radius: 50%;
     background: transparent;
-    color: color-mix(in srgb, var(--foreground) 40%, transparent);
+    color: color-mix(in srgb, var(--foreground) 55%, transparent);
     cursor: pointer;
     padding: 0;
     margin-right: 4px;
@@ -794,7 +794,7 @@
     border: none;
     border-radius: 8px;
     background: transparent;
-    color: color-mix(in srgb, var(--foreground) 40%, transparent);
+    color: color-mix(in srgb, var(--foreground) 55%, transparent);
     font: inherit;
     font-size: 12px;
     cursor: pointer;

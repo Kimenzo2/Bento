@@ -537,7 +537,7 @@
             </CardHeader>
             <CardContent class="nutrition-water-chart-content">
               <div class="nutrition-hydration-chart nutrition-hydration-chart--large">
-                <HydrationPieChart percentage={hydrationPercentage} height={260} segments={80} />
+                <HydrationPieChart percentage={hydrationPercentage} height={260} segments={80} ariaLabel="Hydration progress: {hydrationCurrent}L of {hydrationGoal}L ({hydrationPercentage}%)" />
                 <div class="nutrition-hydration-overlay nutrition-hydration-overlay--large">
                   <strong>{hydrationCurrent}L</strong>
                   <small>of {hydrationGoal}L ({hydrationPercentage}%)</small>
@@ -600,7 +600,7 @@
                     <strong>{macro.label}</strong>
                     <span>{macro.value}</span>
                   </div>
-                  <div class="nutrition-meter"><i style={`--fill:${macro.fill}%`}></i></div>
+                  <div class="nutrition-meter" role="meter" aria-label="{macro.label} intake" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(macro.fill)}><i style={`--fill:${macro.fill}%`}></i></div>
                 </article>
               {/each}
             </CardContent>
@@ -829,8 +829,9 @@
 
   :global(.nutrition-shell__intro) h1 {
     margin: 0;
-    font-size: clamp(1.8rem, 3vw, 2.8rem);
-    line-height: 1.04;
+    font-size: clamp(1.7rem, 2.5vw, 2.6rem);
+    line-height: 1.05;
+    font-family: var(--font-display);
     text-wrap: balance;
     letter-spacing: -0.02em;
   }
@@ -1582,40 +1583,6 @@
     font-size: 12px;
     opacity: 0.65;
     margin: 0;
-  }
-
-  /* Calorie ring */
-  .nj-ring-wrap {
-    position: relative;
-    width: 140px;
-    height: 140px;
-    margin: 0 auto;
-  }
-
-  .nj-ring-svg {
-    width: 100%;
-    height: 100%;
-    transform: rotate(-90deg);
-  }
-
-  .nj-ring-center {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .nj-ring-num {
-    font-size: 28px;
-    font-weight: 700;
-    line-height: 1;
-  }
-
-  .nj-ring-sub {
-    font-size: 11px;
-    opacity: 0.6;
   }
 
   .nj-macro-row {

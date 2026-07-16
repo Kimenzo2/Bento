@@ -6,7 +6,7 @@
    * Event flow:  update-available → download-started → download-progress
    *                        → update-downloaded → updateConfirm → quitAndInstall
    *
-   * Tauri equivalent:     check() finds update → downloadAndInstall()
+   * Tauri equivalent: check() finds update → downloadAndInstall()
    *                        "Started"  → contentLength
    *                        "Progress" → chunkLength
    *                        "Finished"

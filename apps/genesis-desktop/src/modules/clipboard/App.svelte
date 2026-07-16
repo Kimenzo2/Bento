@@ -1087,4 +1087,15 @@
 
 <style>
   @import "./clipboard.css";
+
+  h1 {
+    margin: 0;
+    font-size: clamp(1.7rem, 2.5vw, 2.6rem);
+    line-height: 1.05;
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
 </style>
+
+

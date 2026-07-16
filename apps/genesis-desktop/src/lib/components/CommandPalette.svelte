@@ -17,8 +17,8 @@
 
   let query = $state('');
   let selectedIndex = $state(0);
-  let inputEl: HTMLInputElement;
-  let listEl: HTMLDivElement;
+  let inputEl = $state<HTMLInputElement | null>(null);
+  let listEl = $state<HTMLDivElement | null>(null);
   let searchResults = $state<{ id: string; title: string; preview: string }[]>([]);
   let isSearching = $state(false);
   let activeTab = $state<'commands' | 'search'>('commands');
@@ -212,7 +212,9 @@
     align-items: flex-start;
     justify-content: center;
     padding-top: 12vh;
-    background: color-mix(in srgb, #000 30%, transparent);
+    background: color-mix(in srgb, var(--background) 60%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
   .command-palette {
@@ -324,7 +326,7 @@
     padding: 1px 6px;
     border-radius: 4px;
     background: color-mix(in srgb, var(--foreground) 6%, transparent);
-    color: color-mix(in srgb, var(--foreground) 40%, transparent);
+    color: color-mix(in srgb, var(--foreground) 55%, transparent);
     font-family: inherit;
   }
 

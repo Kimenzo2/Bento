@@ -95,7 +95,7 @@
         </div>
 
         <!-- Data cells -->
-        <div class="flex h-full w-full grow flex-col gap-1">
+        <div class="flex h-full w-full grow flex-col gap-1" role="img" aria-label="Weekly traffic heatmap: {data.map(r => `${r.day} ${r.slots.join(',')}`).join('; ')}">
           {#each data as row}
             <div class="grid grow grid-cols-8 gap-1">
               {#each row.slots as val, i}
@@ -106,6 +106,11 @@
                         "h-full min-h-6 w-full cursor-pointer rounded-sm transition-colors",
                         getColorClass(val),
                       )}
+                      role="meter"
+                      aria-label="{row.day} {timeSlots[i].name}: {val} requests"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={val}
                     ></div>
                   </TooltipTrigger>
                   <TooltipContent class="text-xs" side="top">
@@ -118,6 +123,19 @@
           {/each}
         </div>
       </div>
+
+      <!-- Screen reader table -->
+      <table class="sr-only">
+        <caption>Weekly traffic by day and time slot</caption>
+        <thead>
+          <tr><th>Day</th>{#each timeSlots as slot}<th>{slot.name}</th>{/each}</tr>
+        </thead>
+        <tbody>
+          {#each data as row}
+            <tr><td>{row.day}</td>{#each row.slots as val}<td>{val}</td>{/each}</tr>
+          {/each}
+        </tbody>
+      </table>
     </CardContent>
   </Card>
 </TooltipProvider>

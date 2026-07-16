@@ -969,7 +969,8 @@
     align-items: center;
     justify-content: center;
     background: color-mix(in srgb, var(--background) 60%, transparent);
-    backdrop-filter: blur(2px);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
   .link-dialog {

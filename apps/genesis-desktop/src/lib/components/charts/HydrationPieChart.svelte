@@ -9,12 +9,15 @@
     segments?: number;
     /** Height of the chart */
     height?: number;
+    /** Accessible label for screen readers */
+    ariaLabel?: string;
   }
 
   let { 
     percentage = 29, 
     segments = 60, 
-    height = 200 
+    height = 200,
+    ariaLabel = ""
   }: Props = $props();
 
   let springValue = new Spring(0);
@@ -39,9 +42,13 @@
       };
     })
   );
+
+  const computedAriaLabel = $derived(
+    ariaLabel || `Hydration progress: ${Math.round(percentage)}%`
+  );
 </script>
 
-<div class="hydration-pie-wrapper">
+<div class="hydration-pie-wrapper" role="img" aria-label={computedAriaLabel}>
   <PieChart
     {data}
     key="key"

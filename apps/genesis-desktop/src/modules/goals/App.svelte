@@ -103,9 +103,6 @@
 
   let goals = $derived([...weeklyGoals, ...monthlyGoals, ...yearlyGoals]);
 
-  // ── Big 3 derived ────────────────────────────────────────────────────
-  let big3Goals = $derived(goals.filter((g) => g.isBig3));
-
   function toGoal(row: GoalRow): Goal {
     const subs = allSubtasks[row.id] ?? [];
     return {
@@ -320,16 +317,6 @@
       await loadGoals();
     } catch (e) {
       console.error("Failed to delete goal:", e);
-    }
-  }
-
-  // ── Big 3 toggle ──────────────────────────────────────────────────────
-  async function toggleBig3(goalId: string, want: boolean) {
-    try {
-      await invoke<GoalRow>("goals_toggle_big_3", { id: goalId, isBig3: want });
-      await loadGoals();
-    } catch (e) {
-      console.error("Failed to toggle big 3:", e);
     }
   }
 
@@ -903,47 +890,10 @@
     }
   }
 
-  // ── Big 3 goal picker ─────────────────────────────────────────────────
-  let showBig3Picker = $state(false);
-
-  // ── Seed sample data if empty ────────────────────────────────────────
-  async function seedSampleData() {
-    const samples = [
-      { title: "Ship the MVP", description: "Get the first public version out the door", horizon: "weekly", progress: 30, successCriteria: "Live on production with 10 beta users", targetDate: "Jun 14, 2026" },
-      { title: "Read 4 technical books", description: "Deep dive into distributed systems and Rust", horizon: "monthly", progress: 65, successCriteria: "Finished books with notes for each", targetDate: "Jul 1, 2026" },
-      { title: "Run a half marathon", description: "Consistent training and race day execution", horizon: "yearly", progress: 40, successCriteria: "Sub-2 hour half marathon", targetDate: "Dec 31, 2026" },
-      { title: "Write the API docs", description: "Document all public endpoints", horizon: "weekly", progress: 0, successCriteria: "Every endpoint documented with examples", targetDate: "Jun 10, 2026" },
-      { title: "Build a savings habit", description: "Automate monthly transfers to investment account", horizon: "monthly", progress: 25, successCriteria: "6-month emergency fund fully funded", targetDate: "Aug 1, 2026" },
-    ];
-
-    for (const s of samples) {
-      try {
-        const goal = await invoke<GoalRow>("goals_save", { payload: s });
-        const subtasks = [
-          { title: "Research and plan", position: 0 },
-          { title: "Execute phase one", position: 1 },
-          { title: "Review and iterate", position: 2 },
-        ];
-        for (const subtask of subtasks) {
-          await invoke("goal_subtask_save", { payload: { goalId: goal.id, ...subtask } }).catch(() => {});
-        }
-        await invoke("goals_progress_update", { payload: { id: goal.id, progress: s.progress } }).catch(() => {});
-      } catch (e) {
-        console.error("Failed to seed sample:", e);
-      }
-    }
-  }
-
   // ── Init ──────────────────────────────────────────────────────────────
   onMount(() => {
     loadGoals();
     loadFocusAreas();
-  });
-
-  $effect(() => {
-    if (!loading && allGoals.length === 0) {
-      seedSampleData().then(() => { loadGoals(); loadFocusAreas(); });
-    }
   });
 </script>
 
@@ -957,49 +907,6 @@
         <p class="goals-ambient-text">Strategic priorities. What matters most right now.</p>
         <hr class="goals-ambient-rule" />
       </header>
-
-      <!-- ── This Quarter's Big 3 ────────────────────────────────────── -->
-      <Card>
-        <CardHeader>
-          <CardTitle>THIS QUARTER'S BIG 3</CardTitle>
-          <CardDescription>Strategic priorities. What matters most right now.</CardDescription>
-        </CardHeader>
-        <CardContent>
-        <div class="goals-big3__grid">
-          {#each [0, 1, 2] as slotIndex}
-            {const slotGoal = big3Goals[slotIndex]}
-            {#if slotGoal}
-              <div class="goals-big3__card" data-horizon={slotGoal.horizon}>
-                <div class="goals-big3__card-top">
-                  <div class="goals-big3__ring">
-                    <svg viewBox="0 0 36 36" class="goals-big3__ring-svg">
-                      <path class="goals-big3__ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3" />
-                      <path class="goals-big3__ring-fill" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3" stroke-dasharray="{slotGoal.progress}, 100" />
-                    </svg>
-                    <span class="goals-big3__ring-text">{slotGoal.progress}%</span>
-                  </div>
-                </div>
-                <h3 class="goals-big3__card-title">{slotGoal.title}</h3>
-                <span class="goals-row__state" data-state={getGoalState(slotGoal)}>{getGoalPhrase(slotGoal)}</span>
-                {#if slotGoal.targetDate}
-                  <span class="goals-big3__card-date">Target: {slotGoal.targetDate}</span>
-                {/if}
-                <button class="goals-big3__remove" onclick={() => toggleBig3(slotGoal.id, false)} aria-label="Remove from big 3">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                </button>
-              </div>
-            {:else}
-              <div class="goals-big3__card goals-big3__card--empty" onclick={() => showBig3Picker = true} role="button" tabindex="0" onkeydown={(e) => { if (e.key === 'Enter') showBig3Picker = true; }}>
-                <div class="goals-big3__empty-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-                </div>
-                <span>Claim this slot</span>
-              </div>
-            {/if}
-          {/each}
-        </div>
-      </CardContent>
-    </Card>
 
     <Card>
       <CardHeader>
@@ -1049,28 +956,6 @@
       </CardContent>
     </Card>
     </div>
-
-    <!-- ── Big 3 Goal Picker Dialog ─────────────────────────────────── -->
-    {#if showBig3Picker}
-      <div class="goals-dialog-overlay" onclick={() => showBig3Picker = false}>
-        <div class="goals-dialog" onclick={(e) => e.stopPropagation()}>
-          <h3 class="goals-dialog__title">Select a goal for Big 3</h3>
-          <div class="goals-big3__picker-list">
-            {#each goals.filter((g) => !g.isBig3) as goal (goal.id)}
-              <button class="goals-big3__picker-item" onclick={() => { toggleBig3(goal.id, true); showBig3Picker = false; }}>
-                <span class="goals-big3__picker-title">{goal.title}</span>
-                <span class="goals-big3__picker-phrase" data-state={getGoalState(goal)}>{getGoalPhrase(goal)}</span>
-              </button>
-            {:else}
-              <p class="goals-big3__picker-empty">No more goals available. Create a new one first.</p>
-            {/each}
-          </div>
-          <div class="goals-dialog__actions">
-            <button class="goals-dialog__btn goals-dialog__btn--secondary" onclick={() => showBig3Picker = false}>Cancel</button>
-          </div>
-        </div>
-      </div>
-    {/if}
 
     <!-- ── Add Focus Area Dialog ─────────────────────────────────────── -->
     {#if showFocusAreaDialog}
@@ -1127,7 +1012,7 @@
             </div>
 
             <!-- Timeline body -->
-            <div class="goals-timeline__body">
+            <div class="goals-timeline__body" role="img" aria-label="Goal timeline: {tlData.horizonGroups.flatMap(g => g.goals).map(g => `${g.title} ${g.progress}%`).join(', ')}">
               {#each tlData.horizonGroups as group}
                 <div class="goals-timeline__group">
                   <span class="goals-timeline__group-label">{group.label}</span>
@@ -1170,7 +1055,7 @@
         {:else}
           {const hmData = computeHeatmapData()}
           <div class="goals-heatmap">
-            <div class="goals-heatmap__grid">
+            <div class="goals-heatmap__grid" role="img" aria-label="Year activity heatmap: {hmData.days.filter(d => d.count > 0).length} days with activity">
               <!-- Month labels -->
               <div class="goals-heatmap__months">
                 {#each hmData.monthHeaders as mh}
@@ -1377,7 +1262,7 @@
             </div>
             <div class="goals-detail-page__focus-tag">
               <span class="goals-detail-page__focus-label">Focus area</span>
-              <span class="goals-detail-page__focus-value">{detailGoal.horizon === "weekly" ? "Short-term" : detailGoal.horizon === "monthly" ? "Mid-term" : "Long-term"}</span>
+              <span class="goals-detail-page__focus-value">{focusAreas.find(fa => fa.id === detailGoal.focusAreaId)?.name ?? detailGoal.horizon}</span>
             </div>
           </aside>
 

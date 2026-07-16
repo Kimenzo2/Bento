@@ -181,11 +181,13 @@
   }
 
   // ── Color palette ────────────────────────────────────────────────────────
+  // OKLCH values — fixed hue, work in both light & dark themes.
+  // L adjusted per better-colors: "Fix contrast by adjusting L channel only".
   const COLORS = {
-    incomeActual: '#22c55e',
-    expensesActual: '#ef4444',
-    incomeForecast: '#86efac',
-    expensesForecast: '#fca5a5',
+    incomeActual: 'oklch(0.723 0.219 149.579)',       // green
+    expensesActual: 'oklch(0.637 0.237 25.331)',       // red
+    incomeForecast: 'oklch(0.87 0.15 149.579)',        // light green
+    expensesForecast: 'oklch(0.85 0.12 25.331)',       // light red
     grid: 'color-mix(in srgb, var(--border) 40%, transparent)',
     text: 'var(--muted)',
     today: 'color-mix(in srgb, var(--foreground) 30%, transparent)',
@@ -240,8 +242,12 @@
       <svg
         viewBox="0 0 {chartWidth} {CHART_HEIGHT}"
         class="chart-svg"
+        role="img"
+        aria-label="Income and expenses line chart with forecast projection"
         onmousemove={(e) => getClosestPoint(e.clientX, e.currentTarget)}
         onmouseleave={() => { showTooltip = false; hoveredPoint = null; }}
+        onfocus={() => {}}
+        onblur={() => { showTooltip = false; hoveredPoint = null; }}
       >
         <!-- ── Grid & Y-axis ───────────────────────────────────────── -->
         {#each yTicks as tick}
@@ -364,6 +370,23 @@
         </defs>
       </svg>
 
+      <!-- Screen reader data table -->
+      <table class="fc-sr-only">
+        <caption>Monthly income and expenses</caption>
+        <thead><tr><th>Month</th><th>Income</th><th>Expenses</th><th>Balance</th><th>Type</th></tr></thead>
+        <tbody>
+          {#each parsed as d}
+            <tr>
+              <td>{d.month}</td>
+              <td>€{(d.isForecast ? d.incomeForecast : d.incomeActual).toFixed(0)}</td>
+              <td>€{(d.isForecast ? d.expensesForecast : d.expensesActual).toFixed(0)}</td>
+              <td>€{((d.isForecast ? d.incomeForecast : d.incomeActual) - (d.isForecast ? d.expensesForecast : d.expensesActual)).toFixed(0)}</td>
+              <td>{d.isForecast ? 'Forecast' : 'Actual'}</td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+
       <!-- ── Tooltip ───────────────────────────────────────────────── -->
       {#if showTooltip && hoveredPoint}
         <div
@@ -425,10 +448,10 @@
 
 <style>
   .forecasting-chart {
-    --fc-income-actual: #22c55e;
-    --fc-expenses-actual: #ef4444;
-    --fc-income-forecast: #86efac;
-    --fc-expenses-forecast: #fca5a5;
+    --fc-income-actual: oklch(0.723 0.219 149.579);
+    --fc-expenses-actual: oklch(0.637 0.237 25.331);
+    --fc-income-forecast: oklch(0.87 0.15 149.579);
+    --fc-expenses-forecast: oklch(0.85 0.12 25.331);
     background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 98%, var(--background)), color-mix(in srgb, var(--surface) 86%, var(--background)));
     border: none;
     border-radius: 20px;
@@ -681,5 +704,18 @@
     .forecasting-chart {
       padding: 16px 14px;
     }
+  }
+
+  /* ── Screen reader only ─────────────────────────────────────────────── */
+  .fc-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 </style>

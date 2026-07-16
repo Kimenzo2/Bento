@@ -359,3 +359,27 @@
     </div>
   </div>
 {/if}
+
+<style>
+  .pv-eyebrow {
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--muted);
+  }
+  .pv-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.7rem, 2.5vw, 2.6rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 0;
+    color: var(--foreground);
+  }
+  .pv-desc {
+    font-size: 0.97rem;
+    line-height: 1.55;
+    color: var(--muted);
+    margin: 0;
+  }
+</style>

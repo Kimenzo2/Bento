@@ -1323,7 +1323,7 @@
     display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
     color: var(--bg-muted); font-size: 0.82rem; letter-spacing: 0.18em; text-transform: uppercase;
   }
-  :global(.bg-page__intro) h1 { margin: 0; font-size: clamp(1.7rem, 2.5vw, 2.6rem); line-height: 1.05; letter-spacing: -0.02em; text-wrap: balance; }
+  :global(.bg-page__intro) h1 { margin: 0; font-size: clamp(1.7rem, 2.5vw, 2.6rem); line-height: 1.05; font-family: var(--font-display); letter-spacing: -0.02em; text-wrap: balance; }
   :global(.bg-page__intro) p  { margin: 12px 0 0; max-width: 42rem; color: var(--bg-muted); font-size: 0.97rem; line-height: 1.55; text-wrap: pretty; }
   :global(.bg-page__actions) { display: flex; gap: 12px; flex-shrink: 0; align-items: center; }
 
@@ -1371,7 +1371,7 @@
     border-radius: 13px; background: color-mix(in srgb, var(--bg-surface-strong) 88%, transparent); display: grid; gap: 4px;
   }
   :global(.bg-hero-list) span   { color: var(--bg-muted); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.1em; }
-  :global(.bg-hero-list) strong { font-size: 0.93rem; font-weight: 600; }
+  :global(.bg-hero-list) strong { font-size: 0.93rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 
   :global(.bg-hero-bar) {
     height: 5px; border-radius: 999px;
@@ -1542,7 +1542,7 @@
   }
   :global(.bg-ai-provider) { display: flex; align-items: center; gap: 8px; }
   :global(.bg-ai-name) { font-size: 13px; font-weight: 600; }
-  :global(.bg-ai-total) { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  :global(.bg-ai-total) { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
   :global(.bg-ai-tokens) { font-size: 12px; color: var(--bg-muted); display: flex; flex-direction: column; gap: 2px; }
   :global(.bg-ai-months) { font-size: 11px; }
 
@@ -1671,7 +1671,7 @@
   :global(.subs-badge--paid) { background: color-mix(in srgb, var(--bg-green) 15%, transparent); color: var(--bg-green); }
   :global(.subs-badge--unpaid) { background: color-mix(in srgb, var(--bg-amber) 15%, transparent); color: var(--bg-amber); }
   :global(.subs-month-total) { text-align: right; }
-  :global(.subs-total-amt) { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  :global(.subs-total-amt) { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
   :global(.subs-total-label) { font-size: 11px; color: var(--bg-muted); margin-left: 4px; }
   :global(.subs-dow) {
     display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;

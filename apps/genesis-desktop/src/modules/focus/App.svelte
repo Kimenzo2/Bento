@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { activeBundle, createTranslator } from "$lib/i18n";
+  import { sanitizeError } from "$lib/utils/logger";
   import { exportContentToFile } from "$lib/services/task-service";
   import BanIcon from "@lucide/svelte/icons/ban";
   import DownloadIcon from "@lucide/svelte/icons/download";
@@ -142,7 +143,7 @@
     } catch (error) {
       console.warn("[focus] failed to load dashboard:", error);
       focusDashboard = createEmptyFocusDashboard();
-      focusError = error instanceof Error ? error.message : "Could not load focus data.";
+      focusError = error instanceof Error ? sanitizeError(error.message) : "Could not load focus data.";
     } finally {
       focusLoading = false;
     }
@@ -288,7 +289,7 @@
     {#if focusLoading}
       <div class="focus-status-banner" role="status" aria-live="polite">
         <span class="focus-status-banner__dot"></span>
-        <span>Loading focus data from Rust…</span>
+        <span>Loading focus data…</span>
       </div>
     {:else if focusError}
       <div class="focus-status-banner focus-status-banner--error" role="alert">
@@ -380,7 +381,7 @@
                 </svg>
                 <div>
                   <strong>Loading sessions</strong>
-                  <p>Rust is fetching recent protected sessions.</p>
+                  <p>Loading recent protected sessions.</p>
                 </div>
               </div>
             {:else if focusDashboard.sessions.length === 0}
@@ -391,7 +392,7 @@
                 </svg>
                 <div>
                   <strong>No sessions yet</strong>
-                  <p>Once you complete a focus block, the Rust backend will show it here.</p>
+                  <p>Once you complete a focus block, it will appear here.</p>
                 </div>
               </div>
             {:else}
@@ -471,7 +472,7 @@
                 </svg>
                 <div>
                   <strong>Loading blocking rules</strong>
-                  <p>Rust will surface saved blocking profiles here.</p>
+                  <p>Loading blocking profiles.</p>
                 </div>
               </div>
             {:else if focusDashboard.blockers.length === 0}
@@ -515,7 +516,7 @@
                 </svg>
                 <div>
                   <strong>Loading review notes</strong>
-                  <p>Rust is assembling the patterns for this section.</p>
+                  <p>Assembling the patterns for this section.</p>
                 </div>
               </div>
             {:else if focusDashboard.reviewNotes.length === 0}
@@ -525,7 +526,7 @@
                 </svg>
                 <div>
                   <strong>No review notes yet</strong>
-                  <p>Run a few focus sessions and Rust will start surfacing patterns here.</p>
+                  <p>Run a few focus sessions and patterns will start appearing here.</p>
                 </div>
               </div>
             {:else}
@@ -622,9 +623,10 @@
 
   :global(.focus-shell__intro) h1 {
     margin: 0;
-    font-size: clamp(1.1rem, 1.8vw, 1.4rem);
-    line-height: 1.3;
-    font-weight: 600;
+    font-size: clamp(1.7rem, 2.5vw, 2.6rem);
+    line-height: 1.05;
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
     text-wrap: balance;
   }
 
@@ -996,7 +998,6 @@
   :global(.focus-session-list),
   :global(.focus-sound-list),
   :global(.focus-block-list),
-  :global(.focus-history-chart),
   :global(.focus-review-list) {
     min-height: 0;
     overflow: auto;
@@ -1067,28 +1068,6 @@
     gap: 12px;
     align-items: center;
     padding: 16px 18px;
-  }
-
-  :global(.focus-history-chart) {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 12px;
-    align-items: end;
-    height: 100%;
-  }
-
-  :global(.focus-history-chart) article {
-    display: grid;
-    justify-items: center;
-    gap: 10px;
-  }
-
-  :global(.focus-history-chart) i {
-    display: block;
-    width: 34px;
-    height: var(--bar);
-    border-radius: 999px;
-    background: linear-gradient(180deg, var(--focus-accent), color-mix(in srgb, var(--accent) 36%, var(--focus-accent)));
   }
 
   :global(.focus-review-list) article {

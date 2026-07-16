@@ -41,10 +41,8 @@ export const starterModuleIds = [
   "flashcards",
   "grocery",
   "recipes",
-  "time",
   "goals",
   "clipboard",
-  "breathing",
   "voice-memos",
   "countdown",
 ] as const;
@@ -65,10 +63,8 @@ export const moduleIdValues = [
   "flashcards",
   "grocery",
   "recipes",
-  "time",
   "goals",
   "clipboard",
-  "breathing",
   "voice-memos",
   "countdown",
   "ai",
@@ -78,11 +74,9 @@ export const moduleIdValues = [
 /** Modules awaiting polish — hidden from launcher, switcher, and tabs dropdown. */
 export const hiddenModuleIds = new Set<string>([
   "recipes",
-  "time",
   "grocery",
   "flashcards",
   "ai",
-  "breathing",
 ]);
 
 export type ShellNativeModuleId = (typeof shellNativeModuleIds)[number];
@@ -269,17 +263,6 @@ const starterSidebarSpecs = {
       { label: "Export", icon: "download" },
     ],
   },
-  time: {
-    sectionLabel: "Time",
-    items: [
-      { label: "Timer", icon: "timer" },
-      { label: "Projects", icon: "folder" },
-      { label: "Timeline", icon: "timeline" },
-      { label: "Idle", icon: "clock" },
-      { label: "Invoices", icon: "file-text" },
-      { label: "Export", icon: "download" },
-    ],
-  },
   goals: {
     sectionLabel: "Goals",
     items: [
@@ -299,17 +282,6 @@ const starterSidebarSpecs = {
       { label: "Images", icon: "image" },
       { label: "Sensitive", icon: "shield" },
       { label: "Settings", icon: "settings" },
-    ],
-  },
-  breathing: {
-    sectionLabel: "Calm",
-    items: [
-      { label: "Breathe", icon: "wind" },
-      { label: "Sessions", icon: "list" },
-      { label: "Sounds", icon: "music" },
-      { label: "Check-ins", icon: "calendar-check" },
-      { label: "Streaks", icon: "flame" },
-      { label: "Export", icon: "download" },
     ],
   },
   "voice-memos": {
@@ -340,7 +312,7 @@ const shellModules = [
     id: "dashboard",
     name: "Dashboard",
     navLabel: "Home",
-    subtitle: "Recent work, quick actions, and local orchestration health.",
+    subtitle: "Recent work, quick actions, and app health.",
     route: "/",
     host: "shell-native",
     installKind: "builtin",
@@ -395,14 +367,14 @@ const shellModules = [
     id: "settings",
     name: "Settings",
     navLabel: "Settings",
-    subtitle: "Shell controls, theme tokens, and local platform preferences.",
+    subtitle: "App settings, theme styles, and local preferences.",
     route: "/settings",
     host: "shell-native",
     installKind: "builtin",
     launch: {
       id: "settings",
       name: "Settings",
-      tagline: "Shell controls",
+      tagline: "App settings",
       icon: "settings",
       accentColor: "#e5e7eb",
       launchBg: "#171717",
@@ -647,24 +619,6 @@ const starterModules = [
     sidebar: starterSidebarSpecs.recipes,
   },
   {
-    id: "time",
-    name: "Time Tracker",
-    navLabel: "Time",
-    subtitle: "One-tap timers, project tagging, idle detection, and invoice-ready export.",
-    route: "/apps/time",
-    host: "starter",
-    installKind: "builtin",
-    launch: {
-      id: "time",
-      name: "Time",
-      tagline: "Track the hours",
-      icon: "clock-4",
-      accentColor: "#ffd95b",
-      launchBg: "#5b4300",
-    },
-    sidebar: starterSidebarSpecs.time,
-  },
-  {
     id: "goals",
     name: "Goal Tracker",
     navLabel: "Goals",
@@ -699,24 +653,6 @@ const starterModules = [
       launchBg: "#4c0519",
     },
     sidebar: starterSidebarSpecs.clipboard,
-  },
-  {
-    id: "breathing",
-    name: "Breathing / Calm",
-    navLabel: "Calm",
-    subtitle: "Guided breathing, calm sessions, check-ins, and session streaks.",
-    route: "/apps/breathing",
-    host: "starter",
-    installKind: "builtin",
-    launch: {
-      id: "breathing",
-      name: "Calm",
-      tagline: "Slow the day down",
-      icon: "wind",
-      accentColor: "#65d7c1",
-      launchBg: "#063d35",
-    },
-    sidebar: starterSidebarSpecs.breathing,
   },
   {
     id: "voice-memos",
@@ -797,7 +733,7 @@ export function getAppLaunchIdentity(moduleId: string): AppLaunchIdentity {
     getModuleCatalogEntry(moduleId)?.launch ?? {
       id: "dashboard",
       name: "Bento",
-      tagline: "Desktop module",
+      tagline: "Desktop app",
       icon: "layout-grid",
       accentColor: "#f8fafc",
       launchBg: "#111111",

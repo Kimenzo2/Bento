@@ -7,6 +7,7 @@
   import { toast } from "svelte-sonner";
   import { Button } from "$lib/components/ui/button/index.js";
   import { activeBundle, createTranslator } from "$lib/i18n";
+  import { sanitizeError } from "$lib/utils/logger";
 
   let _t = $derived.by(() => createTranslator($activeBundle));
   import type { PageKey } from "$lib/router/routes";
@@ -46,7 +47,7 @@
       toast.success(_t('topbarThemeSwitched').replace('{mode}', nextMode));
     } catch (error) {
       console.error("[Bento Desktop] Theme toggle failed", error);
-      toast.error(error instanceof Error ? error.message : _t('topbarThemeToggleFailed'));
+      toast.error(error instanceof Error ? sanitizeError(error.message) : _t('topbarThemeToggleFailed'));
     }
   };
 </script>

@@ -646,15 +646,19 @@ pub async fn clear_local_data() -> Result<(), String> {
 // ──────────────────────────────────────────────────────────
 
 #[tauri::command]
-pub async fn save_api_key(provider: String, key: String) -> Result<(), String> {
+pub async fn save_api_key(app: AppHandle, provider: String, key: String) -> Result<(), String> {
     ByokProvider::from_str(&provider).map_err(|_| format!("Unknown provider: {provider}"))?;
-    byok::save_api_key(&provider, key.trim())
+    crate::settings::update_desktop_settings(&app, |next| {
+        byok::save_api_key(&provider, key.trim(), &mut next.byok);
+    })
+    .map(|_| ())
 }
 #[tauri::command]
-pub async fn get_api_key_status(provider: String) -> Result<ApiKeyStatus, String> {
+pub async fn get_api_key_status(app: AppHandle, provider: String) -> Result<ApiKeyStatus, String> {
     let parsed =
         ByokProvider::from_str(&provider).map_err(|_| format!("Unknown provider: {provider}"))?;
-    let is_set = !parsed.requires_key() || byok::has_api_key(&provider);
+    let settings = crate::settings::current_settings(&app);
+    let is_set = !parsed.requires_key() || byok::has_api_key(&provider, &settings.byok);
     Ok(ApiKeyStatus { is_set })
 }
 
@@ -666,7 +670,7 @@ pub async fn test_ai_connection(
     ByokProvider::from_str(&provider).map_err(|_| format!("Unknown provider: {provider}"))?;
     let settings = crate::settings::current_settings(&app);
     let base_url_overrides = settings.byok.base_url_overrides.clone();
-    let result = byok::test_connection(&provider, &base_url_overrides).await;
+    let result = byok::test_connection(&provider, &base_url_overrides, &settings.byok).await;
     Ok(result)
 }
 

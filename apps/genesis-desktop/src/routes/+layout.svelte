@@ -21,6 +21,7 @@
   import { initJournalFont } from "$lib/stores/journal-font.store";
   import { initNotesFont } from "$lib/stores/notes-font.store";
   import { openExternal } from "$lib/desktop/open-external";
+  import { loadByokSettings } from "$lib/stores/byok.store";
 
   function applyEditorFont(fontPairingId: string) {
     if (!browser) return;
@@ -288,6 +289,10 @@
         } catch (e) {
           await dbg("hydrateDesktopSettings failed: " + String(e));
         }
+        // Eager-load BYOK settings so the store is populated before any
+        // component reads it. Follows the same pattern as settings hydration
+        // above — fire-and-forget, non-fatal.
+        try { await loadByokSettings(); } catch (e) { await dbg("loadByokSettings failed: " + String(e)); }
         // Enable wake-session checks after all hydration settles
         wakeCheckEnabled = true;
       })();

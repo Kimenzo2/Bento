@@ -9,6 +9,7 @@
   import { isStarterModuleId, loadStarterModule } from "$lib/modules/starter-module-registry";
   import { ensureBillingProfile } from "$lib/stores/billing.store";
   import { activeBundle, createTranslator } from "$lib/i18n";
+  import { sanitizeError } from "$lib/utils/logger";
 
   let _t = $derived.by(() => createTranslator($activeBundle));
 
@@ -78,7 +79,7 @@
       <h2>{_t('shellAppFailedToLoad')}</h2>
       <p>{_t('shellAppFailedToLoadDesc')}</p>
       {#if error instanceof Error}
-        <p class="text-xs text-[var(--muted)] mt-2 font-mono">{error.message}</p>
+        <p class="text-xs text-[var(--muted)] mt-2 font-mono">{sanitizeError(error.message)}</p>
       {/if}
     </section>
     <LaunchReadyReporter moduleId={appId} />

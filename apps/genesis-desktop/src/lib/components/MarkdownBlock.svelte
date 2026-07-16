@@ -18,9 +18,6 @@
   );
 </script>
 
-<div class="streaming-markdown__block" class:streaming-markdown__block-active={streaming}>
+<div class="streaming-markdown__block" class:streaming-markdown__block-active={streaming} style="overflow:hidden;max-width:100%;min-width:0;">
   {@html html}
-  {#if streaming}
-    <span class="streaming-markdown__caret" aria-hidden="true"></span>
-  {/if}
 </div>

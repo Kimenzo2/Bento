@@ -7,7 +7,6 @@
   import { hiddenModuleIds } from "$lib/data/module-catalog";
   import { switchModule, moduleIdSchema, type BentoModuleId } from "$lib/desktop/modules";
   import { activeBundle, createTranslator } from "$lib/i18n";
-  import { time } from "$lib/utils/time";
 
   let _t = $derived.by(() => createTranslator($activeBundle));
 
@@ -76,22 +75,11 @@
 
   const canUseTauri = browser && isTauri();
 
-  const clientGreeting = $derived.by(() => {
-    if (!browser) return data?.greeting ?? "Welcome back";
-    const hour = time.getDate(time.now()).hours;
-    const base = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-    const serverGreeting = data?.greeting ?? "";
-    const nameMatch = serverGreeting.match(/^Good (?:morning|afternoon|evening),?\s*(.+)?$/i);
-    const name = nameMatch?.[1]?.trim();
-    if (name) return `${base}, ${name}`;
-    return serverGreeting || base;
-  });
+  const clientGreeting = $derived(data?.greeting ?? "Welcome back");
 
   function loadFallbackData() {
-    const hour = time.getDate(time.now()).hours;
-    const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
     data = {
-      greeting,
+      greeting: "Welcome back",
       insightLine: "Open a module to get started",
       featuredModule: {
         id: "tasks", name: "Tasks", icon: "clipboard-list", accentHex: "#52b788",
@@ -1014,6 +1002,7 @@
     letter-spacing: var(--letter-spacing-tight);
     line-height: 1;
     color: var(--foreground);
+    font-variant-numeric: tabular-nums;
   }
 
   .dashboard__stat-block--streak .dashboard__stat-number {

@@ -989,7 +989,7 @@
   .cd-overlay-close:hover { background: color-mix(in srgb, var(--foreground) 8%, transparent); color: var(--foreground); }
 
   .cd-fs-name {
-    font-family: var(--font-heading);
+    font-family: var(--font-display);
     font-size: clamp(2rem, 5vw, 3.5rem);
     letter-spacing: -0.05em;
     color: var(--foreground);
@@ -1012,6 +1012,7 @@
     letter-spacing: -0.06em;
     line-height: 1;
     color: var(--foreground);
+    font-variant-numeric: tabular-nums;
   }
   .cd-fs-digits small { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-top: 0.25rem; }
   .cd-fs-secs strong { color: var(--primary); }
@@ -1170,6 +1171,7 @@
     letter-spacing: -0.05em;
     line-height: 1;
     color: var(--foreground);
+    font-variant-numeric: tabular-nums;
   }
 
   .cd-digit span {
@@ -1177,7 +1179,7 @@
     text-transform: uppercase; letter-spacing: 0.06em; margin-top: 0.2rem;
   }
 
-  .cd-digit--secs strong { color: var(--cd-accent, var(--primary)); font-size: 1.6rem; }
+  .cd-digit--secs strong { color: var(--cd-accent, var(--primary)); font-size: 1.6rem; font-variant-numeric: tabular-nums; }
 
   /* ── Urgency states ── */
   :global(.cd-urgency--today)    { border-color: #ef4444 !important; }
@@ -1227,7 +1229,7 @@
 
   /* ── Since ── */
   .cd-since-block { display: flex; flex-direction: column; align-items: flex-end; }
-  .cd-since-block strong { font-family: var(--font-heading); font-size: 1.4rem; letter-spacing: -0.04em; color: var(--foreground); }
+  .cd-since-block strong { font-family: var(--font-heading); font-size: 1.4rem; letter-spacing: -0.04em; color: var(--foreground); font-variant-numeric: tabular-nums; }
   .cd-since-block span  { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
   .cd-since-block small { font-size: 0.7rem; color: var(--muted); }
 
@@ -1248,7 +1250,7 @@
   :global(.cd-bday-icon) { color: var(--cd-accent, #ec4899); margin-bottom: 0.25rem; }
   .cd-bday-hero__name { font-family: var(--font-heading); font-size: 1.6rem; letter-spacing: -0.04em; margin: 0; color: var(--foreground); }
   .cd-bday-days { margin: 0; font-size: 0.9rem; color: var(--muted); }
-  .cd-bday-days strong { font-size: 1.5rem; font-family: var(--font-heading); letter-spacing: -0.04em; color: var(--cd-accent, #ec4899); }
+  .cd-bday-days strong { font-size: 1.5rem; font-family: var(--font-heading); letter-spacing: -0.04em; color: var(--cd-accent, #ec4899); font-variant-numeric: tabular-nums; }
   .cd-bday-hint { font-size: 0.82rem; color: var(--muted); margin: 0; }
 
   /* ── Milestones ── */
@@ -1289,7 +1291,7 @@
   .cd-milestone-right { display: flex; flex-direction: column; gap: 0.25rem; }
   .cd-milestone-target { font-size: 0.8rem; color: var(--muted); margin: 0; }
   .cd-milestone-days { font-size: 0.85rem; margin: 0; color: var(--foreground); }
-  .cd-milestone-days strong { font-family: var(--font-heading); font-size: 1.3rem; letter-spacing: -0.04em; }
+  .cd-milestone-days strong { font-family: var(--font-heading); font-size: 1.3rem; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
   .cd-ms-past { color: var(--muted); font-style: italic; }
 
   .cd-progress-bar-wrap { height: 4px; border-radius: 9999px; background: color-mix(in srgb, var(--border) 60%, transparent); overflow: hidden; }

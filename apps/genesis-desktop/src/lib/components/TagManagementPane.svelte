@@ -9,6 +9,13 @@
 
   let editingTag = $state<string | null>(null);
   let editValue = $state('');
+  let editInputEl = $state<HTMLInputElement | null>(null);
+
+  $effect(() => {
+    if (editingTag && editInputEl) {
+      editInputEl.focus();
+    }
+  });
   let newTagName = $state('');
 
   async function loadTags() {
@@ -79,7 +86,7 @@
       {#each tags as tag (tag.name)}
         <div class="tag-row" class:editing={editingTag === tag.name}>
           {#if editingTag === tag.name}
-            <input class="tag-edit-input" bind:value={editValue} onkeydown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') editingTag = null; }} autofocus />
+            <input bind:this={editInputEl} class="tag-edit-input" bind:value={editValue} onkeydown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') editingTag = null; }} />
             <button class="tag-action-btn" onclick={saveEdit} title="Save"><Check size={12} /></button>
             <button class="tag-action-btn" onclick={() => editingTag = null} title="Cancel"><X size={12} /></button>
           {:else}

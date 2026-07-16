@@ -2906,7 +2906,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
           <FileText size={36} style="color: rgba(255,255,255,0.08); margin-bottom: 16px;" />
           <p style="font-size: 13px; color: rgba(255,255,255,0.50); margin: 0 0 6px;">Supported formats</p>
           <ul class="tasks-import-format-list">
-            <li><strong>Todoist</strong> — JSON export</li>
+            <li><strong>Todoist</strong> — data export</li>
             <li><strong>Things 3</strong> — CSV export</li>
             <li><strong>TickTick</strong> — CSV export</li>
           </ul>
@@ -3035,7 +3035,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
       <div class="tasks-export-format-grid">
         {#each [
           { id: 'csv' as const, label: 'CSV', desc: 'Flat rows, easy to open in Excel/Sheets' },
-          { id: 'json' as const, label: 'JSON', desc: 'Full data, best for programmatic use' },
+          { id: 'json' as const, label: 'JSON', desc: 'Full data, best for backup or advanced use' },
           { id: 'markdown' as const, label: 'Markdown', desc: 'Readable, great for docs & notes' },
         ] as fmt}
           <button

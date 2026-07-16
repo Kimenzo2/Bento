@@ -23,7 +23,7 @@
         Bento recovered from a crash
       </Dialog.Title>
       <Dialog.Description class="text-[var(--muted)]">
-        {$crashStore?.message ?? "The Rust backend reported an unrecoverable error."}
+        {$crashStore?.message ?? "The app encountered an unrecoverable error."}
       </Dialog.Description>
     </Dialog.Header>
 

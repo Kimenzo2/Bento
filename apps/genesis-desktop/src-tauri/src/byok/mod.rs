@@ -1,20 +1,25 @@
 //! BYOK — Bring Your Own Key (Power Plan feature)
 //!
 //! Users on the Power plan can store their own API keys for AI providers
-//! (OpenAI, Anthropic, Gemini, Grok, Ollama) in the OS keyring.
+//! (OpenAI, Anthropic, Gemini, Grok, Ollama).
 //!
 //! Architecture:
-//!   - Each key is stored as a separate keyring entry:
-//!     service = "Bento Desktop BYOK"
-//!     account = "{provider}"
+//!   - Primary storage: OS keyring (Windows Credential Manager, macOS Keychain,
+//!     Linux Secret Service) via the `keyring` crate.
+//!   - Fallback storage: `DesktopSettings.byok.fallback_keys` (base64-encoded)
+//!     — used when the OS keyring is unavailable or fails.
+//!   - Each key is stored in the keyring as a separate entry:
+//!     service = "Bento Desktop BYOK", account = "{provider}".
 //!   - Provider metadata (which providers have keys configured) is tracked
-//!     in `DesktopSettings.byok` so we don't have to iterate all keyring entries.
-//!   - Keys are never sent to any server — they stay in the local keyring.
+//!     in `DesktopSettings.byok.configured_providers`.
+//!   - Keys are never sent to any server — they stay on the local machine.
 
 pub mod commands;
 
+use base64::Engine as _;
 use keyring::Entry;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Canonical provider identifiers.
 /// Each corresponds to a known AI API provider.
@@ -25,6 +30,7 @@ pub enum ByokProvider {
     Anthropic,
     Gemini,
     Grok,
+    OpenRouter,
     Ollama,
 }
 
@@ -37,6 +43,7 @@ impl std::str::FromStr for ByokProvider {
             "anthropic" => Ok(Self::Anthropic),
             "gemini" => Ok(Self::Gemini),
             "grok" => Ok(Self::Grok),
+            "openrouter" => Ok(Self::OpenRouter),
             "ollama" => Ok(Self::Ollama),
             other => Err(format!("Unknown BYOK provider: {other}")),
         }
@@ -51,6 +58,7 @@ impl ByokProvider {
             Self::Anthropic,
             Self::Gemini,
             Self::Grok,
+            Self::OpenRouter,
             Self::Ollama,
         ]
     }
@@ -62,6 +70,7 @@ impl ByokProvider {
             Self::Anthropic => "Anthropic",
             Self::Gemini => "Gemini (Google)",
             Self::Grok => "Grok (xAI)",
+            Self::OpenRouter => "OpenRouter",
             Self::Ollama => "Ollama (Local)",
         }
     }
@@ -78,6 +87,7 @@ impl ByokProvider {
             Self::Anthropic => "https://api.anthropic.com/v1",
             Self::Gemini => "https://generativelanguage.googleapis.com/v1beta",
             Self::Grok => "https://api.x.ai/v1",
+            Self::OpenRouter => "https://openrouter.ai/api/v1",
             Self::Ollama => "http://localhost:11434",
         }
     }
@@ -101,52 +111,116 @@ impl ByokProvider {
                 "claude-haiku-4-5-20251001",
                 "claude-opus-4-5",
             ],
-            Self::Gemini => vec!["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"],
+            Self::Gemini => vec![
+                "gemini-2.5-pro",
+                "gemini-2.5-flash",
+                "gemini-2.5-flash-lite",
+                "gemini-2.0-flash",
+            ],
             Self::Grok => vec!["grok-3", "grok-3-mini", "grok-2"],
+            Self::OpenRouter => vec![
+                "openai/gpt-4o",
+                "openai/gpt-4o-mini",
+                "openai/gpt-4.1",
+                "openai/gpt-4.1-mini",
+                "anthropic/claude-sonnet-4",
+                "anthropic/claude-haiku-4.5",
+                "google/gemini-2.5-pro",
+                "google/gemini-2.5-flash",
+                "meta-llama/llama-4-scout",
+                "meta-llama/llama-4-maverick",
+                "deepseek/deepseek-chat",
+                "mistral/mistral-large-latest",
+            ],
             Self::Ollama => vec![], // Models are fetched dynamically from the server
         }
     }
 }
 
-// ── Keyring Operations ───────────────────────────────────────────────────────
+// ── Key Storage Operations ────────────────────────────────────────────────────
 
 const BYOK_KEYRING_SERVICE: &str = "Bento Desktop BYOK";
 
-/// Store an API key for a provider in the OS keyring.
-pub fn save_api_key(provider: &str, key: &str) -> Result<(), String> {
-    let entry =
-        Entry::new(BYOK_KEYRING_SERVICE, provider).map_err(|e| format!("Keyring error: {e}"))?;
-    entry
-        .set_password(key)
-        .map_err(|e| format!("Failed to save key for {provider}: {e}"))
-}
+/// Store an API key for a provider.
+///
+/// Always stores in `settings.fallback_keys` (base64-encoded) as a safety net.
+/// Also best-effort stores in the OS keyring — failures there are logged but
+/// do not prevent the save from succeeding.
+pub fn save_api_key(provider: &str, key: &str, settings: &mut ByokSettings) {
+    use base64::engine::general_purpose::STANDARD as BASE64;
 
-/// Retrieve an API key from the OS keyring.
-/// Returns `Ok(None)` if no key is stored for this provider.
-pub fn get_api_key(provider: &str) -> Result<Option<String>, String> {
-    let entry =
-        Entry::new(BYOK_KEYRING_SERVICE, provider).map_err(|e| format!("Keyring error: {e}"))?;
-    match entry.get_password() {
-        Ok(key) => Ok(Some(key)),
-        Err(keyring::Error::NoEntry) => Ok(None),
-        Err(e) => Err(format!("Failed to read key for {provider}: {e}")),
+    settings
+        .fallback_keys
+        .insert(provider.to_string(), BASE64.encode(key.as_bytes()));
+
+    match Entry::new(BYOK_KEYRING_SERVICE, provider) {
+        Ok(entry) => {
+            if let Err(e) = entry.set_password(key) {
+                eprintln!("[byok] Keyring save failed for {provider}: {e}");
+            }
+        }
+        Err(e) => {
+            eprintln!("[byok] Keyring entry creation failed for {provider}: {e}");
+        }
     }
 }
 
-/// Delete an API key from the OS keyring.
-pub fn delete_api_key(provider: &str) -> Result<(), String> {
-    let entry =
-        Entry::new(BYOK_KEYRING_SERVICE, provider).map_err(|e| format!("Keyring error: {e}"))?;
-    match entry.delete_credential() {
-        Ok(_) => Ok(()),
-        Err(keyring::Error::NoEntry) => Ok(()), // Already absent — not an error
-        Err(e) => Err(format!("Failed to delete key for {provider}: {e}")),
+/// Retrieve an API key for a provider.
+///
+/// Tries the OS keyring first; falls back to `settings.fallback_keys` (base64).
+pub fn get_api_key(provider: &str, settings: &ByokSettings) -> Result<Option<String>, String> {
+    use base64::engine::general_purpose::STANDARD as BASE64;
+
+    if let Ok(entry) = Entry::new(BYOK_KEYRING_SERVICE, provider) {
+        match entry.get_password() {
+            Ok(key) => return Ok(Some(key)),
+            Err(keyring::Error::NoEntry) => { /* check fallback */ }
+            Err(e) => {
+                eprintln!("[byok] Keyring read failed for {provider}: {e}");
+            }
+        }
+    }
+
+    Ok(settings
+        .fallback_keys
+        .get(provider)
+        .and_then(|encoded| {
+            BASE64
+                .decode(encoded.as_bytes())
+                .ok()
+                .and_then(|bytes| String::from_utf8(bytes).ok())
+        }))
+}
+
+/// Delete an API key for a provider from both keyring and fallback.
+pub fn delete_api_key(provider: &str, settings: &mut ByokSettings) {
+    settings.fallback_keys.remove(provider);
+
+    match Entry::new(BYOK_KEYRING_SERVICE, provider) {
+        Ok(entry) => {
+            if let Err(e) = entry.delete_credential() {
+                if !matches!(e, keyring::Error::NoEntry) {
+                    eprintln!("[byok] Keyring delete failed for {provider}: {e}");
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("[byok] Keyring entry creation failed for {provider}: {e}");
+        }
     }
 }
 
-/// Check whether a key exists in the keyring for a given provider.
-pub fn has_api_key(provider: &str) -> bool {
-    get_api_key(provider).ok().flatten().is_some()
+/// Check whether a key exists for a provider (keyring or fallback).
+pub fn has_api_key(provider: &str, settings: &ByokSettings) -> bool {
+    if settings.fallback_keys.contains_key(provider) {
+        return true;
+    }
+    if let Ok(entry) = Entry::new(BYOK_KEYRING_SERVICE, provider) {
+        if entry.get_password().is_ok() {
+            return true;
+        }
+    }
+    false
 }
 
 /// Return the masked version of a key for display (e.g. "sk-...abcd").
@@ -162,8 +236,10 @@ pub fn mask_api_key(key: &str) -> String {
 // ── Settings Integration ─────────────────────────────────────────────────────
 
 /// BYOK settings stored in DesktopSettings.
-/// Note: the actual API keys are stored in the OS keyring, NOT in settings.json.
-/// This struct only tracks which providers are configured and the user's preferences.
+///
+/// Primary key storage: OS keyring (Windows Credential Manager, macOS Keychain,
+/// Linux Secret Service). Fallback: `fallback_keys` in this JSON file (base64
+/// encoded) — used when the OS keyring is unavailable or fails.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ByokSettings {
@@ -179,21 +255,61 @@ pub struct ByokSettings {
     #[serde(default)]
     pub active_model: Option<String>,
 
-    /// List of providers that have keys configured in the keyring.
-    /// This is a cached list — we check the keyring on load to verify.
+    /// List of providers that have keys configured.
+    /// This is a cached list — verified on load and refreshed on save/delete.
     #[serde(default)]
     pub configured_providers: Vec<String>,
 
     /// Optional base URL override for Ollama (or other self-hosted providers).
     #[serde(default)]
-    pub base_url_overrides: std::collections::HashMap<String, String>,
+    pub base_url_overrides: HashMap<String, String>,
 
     /// Whether the user has dismissed the BYOK onboarding notice.
     #[serde(default)]
     pub onboarding_dismissed: bool,
+
+    /// Fallback key storage when the OS keyring is unavailable.
+    /// Keys are base64-encoded (obfuscated, not encrypted — the OS keyring is
+    /// the primary secure storage). This ensures keys survive keyring failures.
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub fallback_keys: HashMap<String, String>,
+}
+
+/// Partial patch for updating BYOK settings.
+/// All fields are optional — only provided fields are applied.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ByokSettingsPatch {
+    pub enabled: Option<bool>,
+    pub active_provider: Option<String>,
+    pub active_model: Option<String>,
+    pub base_url_overrides: HashMap<String, String>,
+    pub onboarding_dismissed: Option<bool>,
+    pub fallback_keys: HashMap<String, String>,
 }
 
 impl ByokSettings {
+    /// Apply a partial patch to these settings.
+    pub fn apply_patch(&mut self, patch: ByokSettingsPatch) {
+        if let Some(v) = patch.enabled {
+            self.enabled = v;
+        }
+        if patch.active_provider.is_some() {
+            self.active_provider = patch.active_provider;
+        }
+        if patch.active_model.is_some() {
+            self.active_model = patch.active_model;
+        }
+        if !patch.base_url_overrides.is_empty() {
+            self.base_url_overrides = patch.base_url_overrides;
+        }
+        if let Some(v) = patch.onboarding_dismissed {
+            self.onboarding_dismissed = v;
+        }
+        self.fallback_keys.extend(patch.fallback_keys);
+        self.refresh_configured_providers();
+    }
+
     /// Verify which providers actually have keys, and update the configured list.
     pub fn refresh_configured_providers(&mut self) {
         let mut configured = Vec::new();
@@ -202,7 +318,7 @@ impl ByokSettings {
                 .ok()
                 .and_then(|v| v.as_str().map(String::from))
                 .unwrap_or_default();
-            if has_api_key(&name) || !provider.requires_key() {
+            if has_api_key(&name, self) || !provider.requires_key() {
                 configured.push(name);
             }
         }
@@ -211,19 +327,16 @@ impl ByokSettings {
 
     /// Returns true if a provider is configured (has a key or is local).
     pub fn is_provider_configured(&self, provider: &str) -> bool {
-        // Check the cached list first
         if self.configured_providers.iter().any(|p| p == provider) {
             return true;
         }
-        // Fall back to checking the keyring directly
-        has_api_key(provider)
+        has_api_key(provider, self)
     }
 }
 
 // ── Connection Testing ───────────────────────────────────────────────────────
 
 use rand::Rng;
-use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::OnceLock;
 use std::time::Duration;
@@ -413,6 +526,7 @@ async fn retry_request(
 pub async fn test_connection(
     provider: &str,
     base_url_overrides: &HashMap<String, String>,
+    byok: &ByokSettings,
 ) -> ConnectionTestResult {
     use std::time::Instant;
     let start = Instant::now();
@@ -422,7 +536,7 @@ pub async fn test_connection(
         .map(|p: ByokProvider| p.requires_key())
         .unwrap_or(true)
     {
-        match get_api_key(provider) {
+        match get_api_key(provider, byok) {
             Ok(Some(k)) => Some(k),
             Ok(None) => {
                 return ConnectionTestResult {
@@ -497,6 +611,14 @@ pub async fn test_connection(
                 .map(|s| s.as_str())
                 .unwrap_or("https://api.x.ai/v1");
             test_grok_connection(client, &key.unwrap_or_default(), base_url).await
+        }
+        "openrouter" => {
+            let base_url = base_url_overrides
+                .get("openrouter")
+                .map(|s| s.as_str())
+                .unwrap_or("https://openrouter.ai/api/v1");
+            // OpenRouter is OpenAI-compatible, reuse the same connection test.
+            test_openai_connection(client, &key.unwrap_or_default(), base_url).await
         }
         "ollama" => {
             let base_url = base_url_overrides

@@ -44,7 +44,7 @@
 </script>
 
 {#if !name}
-  <span />
+  <span></span>
 {:else if key === 'netflix' || key === 'netflixcopilot'}
   {@html renderSvg(siNetflix.svg, size, className, name)}
 {:else if key === 'spotify'}
@@ -97,6 +97,8 @@
   {@html renderSvg(EXTRA_SVGS.adobe, size, className, name)}
 {:else if key === 'midjourney'}
   {@html renderSvg(EXTRA_SVGS.midjourney, size, className, name)}
+{:else if key === 'openrouter'}
+  {@html renderSvg(EXTRA_SVGS.openrouter, size, className, name)}
 {:else}
   <!-- Fallback: first letter when no SVG available -->
   <span style="font-size: {size}px; line-height: 1; font-weight: 700;" class={className}>

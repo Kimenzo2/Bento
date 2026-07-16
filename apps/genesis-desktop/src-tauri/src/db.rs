@@ -12,6 +12,7 @@ use sqlx::{
 use tauri::{ipc::Channel, AppHandle, Manager, State};
 use uuid::Uuid;
 
+use crate::agent_core::state_channel::{StateChannel, StateEvent};
 use crate::auth::AuthManager;
 use crate::commands::{emit_main_window_event, DashboardCache};
 use crate::crypto::CryptoService;
@@ -760,7 +761,7 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), String> {
         "#,
         // Batch 13: Note templates
         r#"
-        CREATE TABLE IF NOT EXISTS note_templates (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', icon TEXT NOT NULL DEFAULT '📄', blocks_json TEXT NOT NULL DEFAULT '[]', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)
+        CREATE TABLE IF NOT EXISTS note_templates (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', icon TEXT NOT NULL DEFAULT 'note-doc', blocks_json TEXT NOT NULL DEFAULT '[]', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)
         "#,
     ];
 
@@ -978,6 +979,9 @@ pub async fn flush_module_state(
     )
     .await?;
     state.set_active_module(to_module.as_str());
+    if let Some(channel) = app.try_state::<StateChannel>() {
+        channel.publish(StateEvent::ActiveModule { module_id: to_module.as_str().to_string() });
+    }
     invalidate_dashboard(cache.inner());
     let _ = emit_main_window_event(
         &app,

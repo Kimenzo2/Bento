@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use tauri::AppHandle;
 
-use super::{ByokProvider, ByokSettings, ConnectionTestResult};
+use super::{ByokProvider, ByokSettings, ByokSettingsPatch, ConnectionTestResult};
 use crate::settings;
 
 /// Full status of BYOK key configuration for a provider.
@@ -46,11 +46,8 @@ fn validate_key_format(provider: &ByokProvider, key: &str) -> Result<(), String>
             }
         }
         ByokProvider::Gemini => {
-            if !trimmed.starts_with("AIza") {
-                return Err("Gemini keys must start with 'AIza'".to_string());
-            }
-            if trimmed.len() < 30 {
-                return Err("Gemini key is too short (expected at least 30 characters)".to_string());
+            if trimmed.len() < 20 {
+                return Err("Gemini key is too short (expected at least 20 characters)".to_string());
             }
         }
         ByokProvider::Grok => {
@@ -59,6 +56,16 @@ fn validate_key_format(provider: &ByokProvider, key: &str) -> Result<(), String>
             }
             if trimmed.len() < 20 {
                 return Err("Grok key is too short (expected at least 20 characters)".to_string());
+            }
+        }
+        ByokProvider::OpenRouter => {
+            if !trimmed.starts_with("sk-or-") {
+                return Err("OpenRouter keys must start with 'sk-or-'".to_string());
+            }
+            if trimmed.len() < 20 {
+                return Err(
+                    "OpenRouter key is too short (expected at least 20 characters)".to_string(),
+                );
             }
         }
         ByokProvider::Ollama => {
@@ -83,12 +90,23 @@ pub async fn byok_save_key(app: AppHandle, provider: String, key: String) -> Res
         validate_key_format(&byok_provider, &key)?;
     }
 
-    // Store in OS keyring
-    super::save_api_key(&provider, key.trim())?;
-
-    // Update DesktopSettings to track this configured provider
+    // Store in fallback + best-effort OS keyring, and refresh provider list
     settings::update_desktop_settings(&app, |next| {
+        super::save_api_key(&provider, key.trim(), &mut next.byok);
         next.byok.refresh_configured_providers();
+
+        // Auto-set active_provider + active_model if none is configured yet,
+        // and flip enabled=true so BYOK is immediately active.
+        // This ensures that saving a key is immediately usable in the AgentPanel
+        // without requiring a separate "toggle ON" step.
+        if next.byok.active_provider.is_none() {
+            let default_model = byok_provider.known_models().first().map(|m| m.to_string());
+            next.byok.active_provider = Some(provider.clone());
+            next.byok.enabled = true;
+            if let Some(model) = default_model {
+                next.byok.active_model = Some(model);
+            }
+        }
     })?;
 
     Ok(())
@@ -97,10 +115,14 @@ pub async fn byok_save_key(app: AppHandle, provider: String, key: String) -> Res
 /// Get the masked preview of a stored API key.
 /// Never returns the full key — only a masked version for UI display.
 #[tauri::command]
-pub async fn byok_get_key_preview(provider: String) -> Result<Option<String>, String> {
+pub async fn byok_get_key_preview(
+    app: AppHandle,
+    provider: String,
+) -> Result<Option<String>, String> {
     ByokProvider::from_str(&provider).map_err(|_| format!("Unknown provider: {provider}"))?;
 
-    match super::get_api_key(&provider) {
+    let settings = settings::current_settings(&app);
+    match super::get_api_key(&provider, &settings.byok) {
         Ok(Some(key)) => Ok(Some(super::mask_api_key(&key))),
         Ok(None) => Ok(None),
         Err(e) => Err(e),
@@ -109,7 +131,8 @@ pub async fn byok_get_key_preview(provider: String) -> Result<Option<String>, St
 
 /// List all providers with their key status.
 #[tauri::command]
-pub async fn byok_list_providers(_app: AppHandle) -> Result<Vec<ProviderKeyStatus>, String> {
+pub async fn byok_list_providers(app: AppHandle) -> Result<Vec<ProviderKeyStatus>, String> {
+    let settings = settings::current_settings(&app);
     let mut results = Vec::new();
     for provider in ByokProvider::all() {
         let name = serde_json::to_value(&provider)
@@ -117,9 +140,9 @@ pub async fn byok_list_providers(_app: AppHandle) -> Result<Vec<ProviderKeyStatu
             .and_then(|v| v.as_str().map(String::from))
             .unwrap_or_default();
 
-        let has_key = super::has_api_key(&name);
+        let has_key = super::has_api_key(&name, &settings.byok);
         let preview = if has_key {
-            super::get_api_key(&name)
+            super::get_api_key(&name, &settings.byok)
                 .ok()
                 .flatten()
                 .map(|k| super::mask_api_key(&k))
@@ -140,17 +163,14 @@ pub async fn byok_list_providers(_app: AppHandle) -> Result<Vec<ProviderKeyStatu
     Ok(results)
 }
 
-/// Delete an API key from the OS keyring.
+/// Delete an API key from the OS keyring and fallback storage.
 #[tauri::command]
 pub async fn byok_delete_key(app: AppHandle, provider: String) -> Result<(), String> {
     ByokProvider::from_str(&provider).map_err(|_| format!("Unknown provider: {provider}"))?;
 
-    super::delete_api_key(&provider)?;
-
-    // Update settings to reflect the change
     settings::update_desktop_settings(&app, |next| {
+        super::delete_api_key(&provider, &mut next.byok);
         next.byok.refresh_configured_providers();
-        // If the deleted provider was the active one, reset it
         if next.byok.active_provider.as_deref() == Some(&provider) {
             next.byok.active_provider = None;
             next.byok.active_model = None;
@@ -172,7 +192,7 @@ pub async fn byok_test_connection(
     let settings = crate::settings::current_settings(&app);
     let base_url_overrides = settings.byok.base_url_overrides.clone();
 
-    Ok(super::test_connection(&provider, &base_url_overrides).await)
+    Ok(super::test_connection(&provider, &base_url_overrides, &settings.byok).await)
 }
 
 /// Get the current BYOK settings.
@@ -186,26 +206,10 @@ pub async fn byok_get_settings(app: AppHandle) -> Result<ByokSettings, String> {
 #[tauri::command]
 pub async fn byok_update_settings(
     app: AppHandle,
-    patch: ByokSettings,
+    patch: ByokSettingsPatch,
 ) -> Result<ByokSettings, String> {
     settings::update_desktop_settings(&app, |next| {
-        // Merge the patch — only update fields that are set (non-default)
-        if patch.enabled != ByokSettings::default().enabled {
-            next.byok.enabled = patch.enabled;
-        }
-        if patch.active_provider.is_some() {
-            next.byok.active_provider = patch.active_provider;
-        }
-        if patch.active_model.is_some() {
-            next.byok.active_model = patch.active_model;
-        }
-        if !patch.base_url_overrides.is_empty() {
-            next.byok.base_url_overrides = patch.base_url_overrides;
-        }
-        if patch.onboarding_dismissed != ByokSettings::default().onboarding_dismissed {
-            next.byok.onboarding_dismissed = patch.onboarding_dismissed;
-        }
-        next.byok.refresh_configured_providers();
+        next.byok.apply_patch(patch);
     })?;
 
     let current = settings::current_settings(&app);

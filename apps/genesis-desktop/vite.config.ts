@@ -93,7 +93,6 @@ export default defineConfig({
       // Supabase
       "@supabase/supabase-js",
       // Charts
-      "chart.js",
       "d3-scale",
       "d3-shape",
       "layerchart",

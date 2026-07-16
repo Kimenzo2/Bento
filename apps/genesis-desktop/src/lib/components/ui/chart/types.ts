@@ -1,9 +1,7 @@
-// Chart system types — shared across all chart variants
-
 export type ChartConfigItem = {
-  label?: string;
+  label: string;
   color?: string;
-  icon?: unknown;
+  icon?: string;
 };
 
 export type ChartConfig = Record<string, ChartConfigItem>;

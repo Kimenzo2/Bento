@@ -138,6 +138,7 @@
 .category-amount {
   font-weight: 600;
   font-size: 15px;
+  font-variant-numeric: tabular-nums;
 }
 .category-amount.positive {
   color: #4ade80;
@@ -192,6 +193,7 @@
 .summary-value {
   font-size: 15px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .budget-fab {
@@ -399,9 +401,10 @@ select {
 }
 .bcat-spent-num {
   font-size: 26px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 .bcat-spent-label {
   font-size: 12px;

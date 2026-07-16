@@ -1,4 +1,5 @@
 import { writable } from "svelte/store";
+import { sanitizeError } from "$lib/utils/logger";
 
 const AUTH_LOGIN_TIMEOUT_MS = 2 * 60 * 1000;
 const AUTH_LOGIN_TIMEOUT_MESSAGE = "Sign-in timed out after 2 minutes. Please try again.";
@@ -127,10 +128,11 @@ export function setLoginUrl(url: string | null) {
 
 export function setAuthError(message: string | null) {
   clearAuthLoginTimeout();
+  const sanitized = message ? sanitizeError(message) : null;
   authStore.update((state) => ({
     ...state,
-    status: message ? "error" : state.status === "booting" ? "booting" : state.status,
-    message,
+    status: sanitized ? "error" : state.status === "booting" ? "booting" : state.status,
+    message: sanitized,
     loginLoading: false,
   }));
 }
