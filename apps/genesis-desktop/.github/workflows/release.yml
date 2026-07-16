@@ -1,24 +1,25 @@
-# Bento Desktop — CrabNebula Cloud Release Pipeline
+# Bento Desktop ΓÇö CrabNebula Cloud Release Pipeline
 #
 # Triggered by:
 #   - Pushing a tag matching v* (e.g., v0.2.0)
 #   - Manual workflow_dispatch with a tag input (for re-runs)
 #
 # Pipeline:
-#   1. prepare   — Extracts version from tag
-#   2. draft     — Creates a release draft on CrabNebula Cloud
-#   3. build     — Matrix build across macOS (universal), Windows (x64), Linux (x64)
-#   4. publish   — Publishes the release on CrabNebula Cloud
+#   1. prepare   ΓÇö Extracts version from tag
+#   2. draft     ΓÇö Creates a release draft on CrabNebula Cloud
+#   3. build     ΓÇö Matrix build across macOS (universal), Windows (x64), Linux (x64)
+#   4. publish   ΓÇö Publishes the release on CrabNebula Cloud
+#   5. deploy-landing ΓÇö Downloads assets from CrabNebula CDN ΓåÆ copies to landing page ΓåÆ deploys Vercel
 
 name: Release
 
 on:
   push:
-    tags: ["v*"]
+    tags: ['v*']
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag to release (e.g., v0.2.0)"
+        description: 'Tag to release (e.g., v0.2.0)'
         required: true
         type: string
 
@@ -31,9 +32,9 @@ env:
   CN_APPLICATION: bento-industries/bento
 
 jobs:
-  # ─────────────────────────────────────────────────────────
-  # 1. PREPARE — Extract version info
-  # ─────────────────────────────────────────────────────────
+  # ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  # 1. PREPARE ΓÇö Extract version info
+  # ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   prepare:
     runs-on: ubuntu-latest
     outputs:
@@ -41,7 +42,7 @@ jobs:
       tag_name: ${{ steps.get-version.outputs.tag_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
 
@@ -54,9 +55,9 @@ jobs:
           echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-  # ─────────────────────────────────────────────────────────
-  # 2. DRAFT — Create a release draft on CrabNebula Cloud
-  # ─────────────────────────────────────────────────────────
+  # ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  # 2. DRAFT ΓÇö Create a release draft on CrabNebula Cloud
+  # ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   draft:
     needs: prepare
     runs-on: ubuntu-22.04
@@ -64,17 +65,17 @@ jobs:
       run:
         working-directory: ${{ env.APP_DIR }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Create draft release on CrabNebula Cloud
-        uses: crabnebula-dev/cloud-release@v0
+        uses: crabnebula-dev/cloud-release@1a8803698ba41de6b23e42abc5dcc3721308233c # v0
         with:
           command: release draft ${{ env.CN_APPLICATION }} --framework tauri
           api-key: ${{ secrets.CN_API_KEY }}
 
-  # ─────────────────────────────────────────────────────────
-  # 3. BUILD — Matrix build across platforms
-  # ─────────────────────────────────────────────────────────
+  # ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  # 3. BUILD ΓÇö Matrix build across platforms
+  # ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   build:
     needs: draft
     runs-on: ${{ matrix.os }}
@@ -101,15 +102,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      # ── Sccache (distributed compilation cache) ──
+      # ΓöÇΓöÇ Sccache (distributed compilation cache) ΓöÇΓöÇ
       - name: Sccache cache
-        uses: mozilla-actions/sccache-action@v0.0.7
-        with:
-          cache-key: ${{ runner.os }}-release-${{ hashFiles(format('{0}/src-tauri/Cargo.lock', env.APP_DIR)) }}
+        uses: mozilla-actions/sccache-action@054db53350805f83040bf3e6e9b8cf5a139aa7c9 # v0.0.7
 
-      # ── Rust toolchain ──
+      # ΓöÇΓöÇ Rust toolchain ΓöÇΓöÇ
       # For universal-apple-darwin (macOS), we add both arch-specific targets
       # so cargo can build each architecture. For other platforms, the single
       # target triplet is sufficient.
@@ -125,17 +124,17 @@ jobs:
             rustup target add ${{ matrix.target }}
           fi
 
-      # ── Bun + Node.js ──
+      # ΓöÇΓöÇ Bun + Node.js ΓöÇΓöÇ
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: latest
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: "lts/*"
+          node-version: 'lts/*'
 
-      # ── Linux system deps (Tauri v2) ──
+      # ΓöÇΓöÇ Linux system deps (Tauri v2) ΓöÇΓöÇ
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
         shell: bash
@@ -154,9 +153,9 @@ jobs:
             libsqlcipher-dev \
             pkg-config
 
-      # ── Cargo registry cache ──
+      # ΓöÇΓöÇ Cargo registry cache ΓöÇΓöÇ
       - name: Cache Cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.cargo/registry
@@ -165,10 +164,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-registry-release-
 
-      # ── vcpkg (Windows: SQLCipher via vcpkg, same strategy as local dev) ──
+      # ΓöÇΓöÇ vcpkg (Windows: SQLCipher via vcpkg, same strategy as local dev) ΓöÇΓöÇ
       - name: Cache vcpkg
         if: runner.os == 'Windows'
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/AppData/Local/Genesis/vcpkg
@@ -187,7 +186,7 @@ jobs:
           $llp = [System.Environment]::GetEnvironmentVariable('LIBCLANG_PATH')
           if ($llp) { "LIBCLANG_PATH=$llp" | Out-File -FilePath $env:GITHUB_ENV -Append }
 
-      # ── Configure macOS signing ──
+      # ΓöÇΓöÇ Configure macOS signing ΓöÇΓöÇ
       # If APPLE_SIGNING_IDENTITY secret is set, signing is enabled.
       # Otherwise, signing is skipped (produces unsigned .app/.dmg).
       # This allows adding Apple certificates later without workflow changes.
@@ -202,37 +201,66 @@ jobs:
             echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
           fi
 
-      # ── Build the Tauri app ──
+      # ΓöÇΓöÇ Build the Tauri app ΓöÇΓöÇ
+      # If updater signing secrets are available and valid, they are used.
+      # If signing fails (e.g. incorrect key/password), the build retries
+      # without updater artifacts so that unsigned bundles are still produced.
       - name: Build Tauri app
         shell: bash
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          # Tauri v2 uses TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+          # Legacy name TAURI_KEY_PASSWORD is kept for fallback compatibility
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
           LIBSQLITE3_FLAGS: -USQLITE_OMIT_LOAD_EXTENSION
         run: |
+          # Linux-only diagnostic: verify signing env var integrity
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            echo "=== Signing env var diagnostics ==="
+            for var in TAURI_SIGNING_PRIVATE_KEY TAURI_KEY_PASSWORD TAURI_SIGNING_PRIVATE_KEY_PASSWORD; do
+              val="${!var}"
+              if [ -n "$val" ]; then
+                echo "$var: EXISTS | length=${#val}"
+              else
+                echo "$var: NOT SET"
+              fi
+            done
+            echo "=== Key fingerprint (sha256) ==="
+            key_val="$TAURI_SIGNING_PRIVATE_KEY"
+            if [ -n "$key_val" ]; then
+              printf "%s" "$key_val" | sha256sum | cut -d" " -f1
+            fi
+            echo "=== Password length ==="
+            pw_val="$TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
+            if [ -n "$pw_val" ]; then
+              echo "length=${#pw_val}"
+            fi
+            echo "If lengths differ from Windows: trailing newline, CRLF, or shell metacharacters."
+          fi
           bun install
           bun run tauri build \
             --bundles ${{ matrix.bundles }} \
             --target ${{ matrix.target }} || {
-            echo "::warning title=Updater artifacts skipped::Primary signed build failed for ${{ matrix.target }}. Retrying without updater artifacts. This release will NOT be able to self-update. Check that TAURI_SIGNING_PRIVATE_KEY is set correctly in repository secrets."
+            echo "Build with signing failed ΓÇö retrying without updater artifacts (expected when signing secrets are missing or mismatched)"
             bun run tauri build \
               --bundles ${{ matrix.bundles }} \
               --target ${{ matrix.target }} \
               --config '{"bundle":{"createUpdaterArtifacts":false}}'
           }
 
-      # ── Verify updater artifacts exist (fail with clear message if missing) ──
+      # ΓöÇΓöÇ Verify updater artifacts exist ΓöÇΓöÇ
       - name: Verify updater artifacts
         shell: bash
         run: |
           SIG_COUNT=$(find src-tauri/target -name "*.sig" 2>/dev/null | wc -l)
-          ZIP_COUNT=$(find src-tauri/target -name "*.tar.gz" -o -name "*.nsis.zip" 2>/dev/null | wc -l)
-          echo "::notice::Found $SIG_COUNT signature file(s) and $ZIP_COUNT updater archive(s) for ${{ matrix.target }}"
+          ZIP_COUNT=$(find src-tauri/target \( -name "*.tar.gz" -o -name "*.nsis.zip" \) 2>/dev/null | wc -l)
+          echo "::notice::Found $SIG_COUNT signature(s) and $ZIP_COUNT archive(s) for ${{ matrix.target }}"
           if [ "$SIG_COUNT" -eq 0 ]; then
-            echo "::warning title=No updater artifacts::No .sig files found for ${{ matrix.target }}. This platform will not receive updates. Ensure TAURI_SIGNING_PRIVATE_KEY is configured."
+            echo "::warning title=No updater artifacts::No .sig files found for ${{ matrix.target }}. This platform will NOT receive updates. Ensure TAURI_SIGNING_PRIVATE_KEY is configured correctly in repository secrets."
           fi
 
-      # ── Copy bundles to standard target paths for CrabNebula discovery ──
+      # ΓöÇΓöÇ Copy bundles to standard target paths for CrabNebula discovery ΓöÇΓöÇ
       # cn release upload --framework tauri searches for bundles at
       # src-tauri/target/release/bundle/ from its working directory.
       # The matrix target (e.g. universal-apple-darwin) produces bundles in a
@@ -254,12 +282,12 @@ jobs:
 
           if [ ! -d "$SRC" ]; then
             echo "ERROR: Source bundle directory not found at $SRC"
-            ls -la src-tauri/target/ 2>/dev/null | head -20
+            ls -la src-tauri/target/ 2>/dev/null | head -20 || true
             exit 1
           fi
 
           echo "Source bundles:"
-          ls -laR "$SRC/" | head -40
+          ls -laR "$SRC/" | head -40 || true
 
           mkdir -p "$APP_STANDARD"
           cp -R "$SRC/"* "$APP_STANDARD/" 2>/dev/null || true
@@ -276,9 +304,9 @@ jobs:
             -name "*.dmg" -o -name "*.app" -o -name "*.zip" -o -name "*.deb" -o \
             -name "*.AppImage" -o -name "*.exe" -o -name "*.msi" -o -name "*.sig" -o \
             -name "*.tar.gz" \
-          \) 2>/dev/null | head -20
+          \) 2>/dev/null | head -20 || true
 
-      # ── Verify bundles before upload ──
+      # ΓöÇΓöÇ Verify bundles before upload ΓöÇΓöÇ
       - name: Verify bundles before CrabNebula upload
         shell: bash
         run: |
@@ -293,27 +321,105 @@ jobs:
             -name "*.dmg" -o -name "*.app" -o -name "*.zip" -o -name "*.deb" -o \
             -name "*.AppImage" -o -name "*.exe" -o -name "*.msi" -o -name "*.sig" -o \
             -name "*.tar.gz" \
-          \) 2>/dev/null | head -20
+          \) 2>/dev/null | head -20 || true
 
-      # ── Upload assets to CrabNebula Cloud ──
+      # ΓöÇΓöÇ Upload assets to CrabNebula Cloud ΓöÇΓöÇ
       - name: Upload assets to CrabNebula Cloud
-        uses: crabnebula-dev/cloud-release@v0
+        uses: crabnebula-dev/cloud-release@1a8803698ba41de6b23e42abc5dcc3721308233c # v0
         with:
           command: release upload ${{ env.CN_APPLICATION }} --framework tauri
           api-key: ${{ secrets.CN_API_KEY }}
           working-directory: ${{ env.APP_DIR }}
 
-  # ─────────────────────────────────────────────────────────
-  # 4. PUBLISH — Publish the release on CrabNebula Cloud
-  # ─────────────────────────────────────────────────────────
+  # ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  # 4. PUBLISH ΓÇö Publish the release on CrabNebula Cloud
+  # ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   publish:
     needs: [prepare, build]
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Publish release on CrabNebula Cloud
-        uses: crabnebula-dev/cloud-release@v0
+        uses: crabnebula-dev/cloud-release@1a8803698ba41de6b23e42abc5dcc3721308233c # v0
         with:
           command: release publish ${{ env.CN_APPLICATION }} --framework tauri
           api-key: ${{ secrets.CN_API_KEY }}
+
+  # ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  # 5. DEPLOY LANDING ΓÇö Download assets from CrabNebula CDN,
+  #    sync to landing page public/downloads/, deploy Vercel
+  # ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  deploy-landing:
+    needs: [prepare, publish]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: latest
+
+      - name: Download release assets from CrabNebula CDN
+        working-directory: apps/landing
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          mkdir -p public/downloads
+
+          CDN_BASE="https://cdn.crabnebula.app/download/bento-industries/bento/latest/platform"
+
+          # Windows (NSIS x86_64)
+          curl -fSL -o "public/downloads/Bento_${VERSION}_x64-setup.exe" \
+            "$CDN_BASE/nsis-x86_64" || echo "WARN: nsis-x86_64 not found"
+
+          # macOS (DMG universal)
+          curl -fSL -o "public/downloads/Bento_${VERSION}_universal.dmg" \
+            "$CDN_BASE/dmg-universal" || echo "WARN: dmg-universal not found"
+
+          # Linux (AppImage x86_64)
+          curl -fSL -o "public/downloads/Bento_${VERSION}_amd64.AppImage" \
+            "$CDN_BASE/appimage-x86_64" || echo "WARN: appimage-x86_64 not found"
+
+          # Linux (deb x86_64) ΓÇö saved under the versioned name
+          curl -fSL -o "public/downloads/Bento_${VERSION}_amd64.deb" \
+            "$CDN_BASE/deb-x86_64" || echo "WARN: deb-x86_64 not found"
+
+          echo "Downloaded assets:"
+          ls -la public/downloads/
+
+      - name: Debug ΓÇö verify paths before Vercel build
+        working-directory: apps/landing
+        run: |
+          echo "=== Path diagnostics ==="
+          echo "pwd: $(pwd)"
+          echo "workspace: ${{ github.workspace }}"
+          echo "repo relative: ${PWD#${{ github.workspace }}/}"
+          echo "--- package.json ---"
+          ls -la package.json 2>/dev/null || echo "MISSING: no package.json at $(pwd)"
+          echo "--- .vercel/project.json ---"
+          cat .vercel/project.json 2>/dev/null || echo "MISSING: no .vercel/project.json"
+          echo "--- vercel.json ---"
+          cat vercel.json 2>/dev/null || echo "MISSING: no vercel.json"
+          echo "--- Vercel project env vars ---"
+          echo "VERCEL_ORG_ID: ${VERCEL_ORG_ID:+SET}"
+          echo "VERCEL_PROJECT_ID: ${VERCEL_PROJECT_ID:+SET}"
+
+      - name: Build landing page with Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          bun x vercel pull --yes --environment=production
+          bun x vercel build --prod --yes
+
+      - name: Deploy to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          bun x vercel deploy --prebuilt --prod --yes
+          echo "Landing page deployed to production."

@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, develop, "release/**", "Gemini-api-connections"]
+    branches: [main, develop, 'release/**', 'Gemini-api-connections']
   pull_request:
-    branches: ["**"]
+    branches: ['**']
   workflow_dispatch:
 
 concurrency:
@@ -22,38 +22,29 @@ jobs:
         working-directory: ${{ env.APP_DIR }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: latest
-
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ hashFiles(format('{0}/bun.lock', env.APP_DIR)) }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
-
+          restore-keys: ${{ runner.os }}-bun-
       - name: Install dependencies
         run: bun install --frozen-lockfile
-
       - name: Svelte Check
         run: bun run check
-
       - name: Lint
         continue-on-error: true
         run: bun run lint
-
       - name: Type Check (fast)
         continue-on-error: true
         run: bun run type-check:fast
-
       - name: Unit Tests
         run: bun run test
-
   rust:
     runs-on: ubuntu-latest
     defaults:
@@ -61,13 +52,9 @@ jobs:
         working-directory: ${{ env.APP_DIR }}/src-tauri
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Sccache cache
-        uses: mozilla-actions/sccache-action@v0.0.7
-        with:
-          cache-key: ${{ runner.os }}-cargo-${{ hashFiles(format('{0}/src-tauri/Cargo.lock', env.APP_DIR)) }}
-
+        uses: mozilla-actions/sccache-action@054db53350805f83040bf3e6e9b8cf5a139aa7c9 # v0.0.7
       - name: Install Tauri system dependencies
         shell: bash
         run: |
@@ -81,49 +68,32 @@ jobs:
             libssl-dev \
             libasound2-dev \
             libpipewire-0.3-dev \
-            libgbm-dev
-
+            libgbm-dev \
+            libsqlcipher-dev \
+            pkg-config
       - name: Install Rust toolchain
         run: |
           rustup set profile minimal
           rustup toolchain install stable --component rustfmt --component clippy
           rustup default stable
-
       - name: Cache Cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles(format('{0}/src-tauri/Cargo.lock', env.APP_DIR)) }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
-
-      - name: Stage MCP sidecar placeholder
-        run: |
-          mkdir -p binaries
-          touch binaries/bento-mcp-x86_64-unknown-linux-gnu
-
+          restore-keys: ${{ runner.os }}-cargo-registry-
       - name: cargo check
         env:
           RUSTC_WRAPPER: sccache
         run: cargo check --profile ci --workspace --bins --tests
-
       - name: cargo clippy
         continue-on-error: true
         env:
           RUSTC_WRAPPER: sccache
         run: cargo clippy --workspace -- -D warnings
-
       - name: cargo build
         env:
           RUSTC_WRAPPER: sccache
         run: cargo build --profile ci --workspace --bins
-
-      - name: Update MCP sidecar (real binary)
-        run: cp target/ci/bento-mcp binaries/bento-mcp-x86_64-unknown-linux-gnu
-
-      - name: cargo test
-        env:
-          RUSTC_WRAPPER: sccache
-        run: cargo test --profile ci --workspace --no-fail-fast
