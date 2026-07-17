@@ -22,9 +22,10 @@
 }
 
 .tasks-app.detail-open {
-  grid-template-columns:
-    var(--tasks-sidebar-width, 220px) var(--tasks-list-width, 380px)
-    1px minmax(0, 1fr);
+  grid-template-columns: var(--tasks-sidebar-width, 220px) var(
+      --tasks-list-width,
+      380px
+    ) 1px minmax(0, 1fr);
 }
 
 .tasks-app,
@@ -154,7 +155,7 @@
   padding: 2px 8px;
   border-radius: 4px;
   background: color-mix(in srgb, var(--foreground) 7%, var(--background));
-  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+  color: color-mix(in srgb, var(--foreground) 40%, transparent);
   min-width: 16px;
   text-align: center;
 }
@@ -171,7 +172,7 @@
   border-radius: 20px;
   font-size: 14px;
   font-weight: 460;
-  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+  color: color-mix(in srgb, var(--foreground) 40%, transparent);
   cursor: pointer;
   border: none;
   background: transparent;
@@ -286,7 +287,7 @@
 }
 
 .tasks-resize-handle::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0 -6px;
 }
@@ -333,7 +334,7 @@
 }
 
 .tasks-group-header::after {
-  content: "";
+  content: '';
   flex: 1;
   height: 1px;
   background: color-mix(in srgb, var(--foreground) 4%, transparent);
@@ -546,7 +547,7 @@
 }
 
 .tasks-checkbox--checked::after {
-  content: "";
+  content: '';
   width: 7px;
   height: 7px;
   background: var(--background);
@@ -1075,7 +1076,7 @@
 .tasks-detail-calendar-day {
   font-size: 13px;
   font-weight: 450;
-  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+  color: color-mix(in srgb, var(--foreground) 40%, transparent);
   padding: 5px 0;
   border-radius: 4px;
   cursor: pointer;
@@ -1343,9 +1344,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--background) 60%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
 }
 
 .tasks-quick-add-dialog {
@@ -1439,7 +1438,7 @@
   border-radius: 5px;
   border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
   background: transparent;
-  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+  color: color-mix(in srgb, var(--foreground) 40%, transparent);
   cursor: pointer;
   transition: all 150ms;
 }
@@ -1892,7 +1891,7 @@
   border-radius: 5px;
   border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
   background: color-mix(in srgb, var(--foreground) 2%, var(--background));
-  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+  color: color-mix(in srgb, var(--foreground) 40%, transparent);
   cursor: pointer;
   transition: all 150ms;
 }
@@ -2188,9 +2187,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--background) 60%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
 }
 
 .tasks-shortcuts-dialog {
@@ -2238,7 +2235,7 @@
 
 .tasks-shortcuts-item-label {
   font-size: 13px;
-  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+  color: color-mix(in srgb, var(--foreground) 40%, transparent);
 }
 
 .tasks-shortcuts-item-key {
@@ -2462,7 +2459,7 @@
   border-radius: 10px;
   border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
   background: color-mix(in srgb, var(--foreground) 2%, var(--background));
-  color: color-mix(in srgb, var(--foreground) 55%, transparent);
+  color: color-mix(in srgb, var(--foreground) 40%, transparent);
   cursor: pointer;
   transition: all 180ms cubic-bezier(0.32, 0.72, 0, 1);
   text-align: center;
@@ -2690,13 +2687,8 @@
   border-radius: 6px;
   letter-spacing: -0.01em;
 }
-.tasks-cal-select:hover {
-  background: color-mix(in srgb, var(--foreground) 8%, transparent);
-}
-.tasks-cal-select option {
-  background: var(--background);
-  color: var(--foreground);
-}
+.tasks-cal-select:hover { background: color-mix(in srgb, var(--foreground) 8%, transparent); }
+.tasks-cal-select option { background: var(--background); color: var(--foreground); }
 
 .tasks-cal-arrow {
   display: grid;
@@ -2710,9 +2702,7 @@
   cursor: pointer;
   transition: background 100ms ease;
 }
-.tasks-cal-arrow:hover {
-  background: color-mix(in srgb, var(--foreground) 8%, transparent);
-}
+.tasks-cal-arrow:hover { background: color-mix(in srgb, var(--foreground) 8%, transparent); }
 
 .tasks-cal-today-btn {
   height: 28px;
@@ -2726,9 +2716,7 @@
   cursor: pointer;
   transition: background 100ms ease;
 }
-.tasks-cal-today-btn:hover {
-  background: color-mix(in srgb, var(--foreground) 8%, transparent);
-}
+.tasks-cal-today-btn:hover { background: color-mix(in srgb, var(--foreground) 8%, transparent); }
 
 /* ── Grid wrapper ── */
 .tasks-cal-wrap {
@@ -2778,8 +2766,8 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
-  min-height: 90px; /* base height for empty cells */
-  height: auto; /* grow with content — no overflow hidden */
+  min-height: 90px;       /* base height for empty cells */
+  height: auto;            /* grow with content — no overflow hidden */
   position: relative;
   transition: background 80ms ease;
 }
@@ -2828,9 +2816,7 @@
   place-items: center;
   cursor: pointer;
   opacity: 0;
-  transition:
-    opacity 100ms ease,
-    background 100ms ease;
+  transition: opacity 100ms ease, background 100ms ease;
   flex-shrink: 0;
 }
 
@@ -2934,7 +2920,7 @@
   background: var(--background);
   border: 1px solid color-mix(in srgb, var(--foreground) 14%, transparent);
   border-radius: 10px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.32);
   padding: 8px;
   min-width: 180px;
   display: flex;
