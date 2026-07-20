@@ -33,9 +33,7 @@ The primary endpoint. Sends messages to the AI and streams back a response.
 
 ```json
 {
-  "messages": [
-    { "role": "user", "content": "Hello, what can you do?" }
-  ],
+  "messages": [{ "role": "user", "content": "Hello, what can you do?" }],
   "provider": "openai",
   "model": "gpt-4o",
   "temperature": 0.7,
@@ -45,36 +43,36 @@ The primary endpoint. Sends messages to the AI and streams back a response.
 }
 ```
 
-| Field | Type | Required | Default | Description |
-|-------|------|----------|---------|-------------|
-| `messages` | `CoreMessage[]` | Yes | — | Conversation in AI SDK format |
-| `provider` | `string` | No | `"openai"` | `openai`, `anthropic`, `gemini`, `grok`, `ollama` |
-| `model` | `string` | No | Provider default | Model ID (e.g. `gpt-4o`, `claude-sonnet-4`) |
-| `system` | `string` | No | Default Bento prompt | System prompt override. Empty string = no system prompt |
-| `temperature` | `number` | No | `0.7` | Sampling temperature (0–2) |
-| `maxTokens` | `number` | No | `4096` | Maximum tokens to generate |
-| `topP` | `number` | No | `1` | Nucleus sampling |
-| `topK` | `number` | No | — | Top-k sampling (provider-dependent) |
-| `presencePenalty` | `number` | No | `0` | -2 to 2 |
-| `frequencyPenalty` | `number` | No | `0` | -2 to 2 |
-| `stop` | `string[]` | No | — | Stop sequences |
-| `tools` | `string[]` | No | All built-in | Tool names to enable. `[]` = no tools |
-| `conversationId` | `string` | No | — | UUID for conversation persistence |
-| `apiKey` | `string` | No | Env var | Override API key (dev only) |
-| `baseUrl` | `string` | No | Default | Override provider base URL |
+| Field              | Type            | Required | Default              | Description                                             |
+| ------------------ | --------------- | -------- | -------------------- | ------------------------------------------------------- |
+| `messages`         | `CoreMessage[]` | Yes      | —                    | Conversation in AI SDK format                           |
+| `provider`         | `string`        | No       | `"openai"`           | `openai`, `anthropic`, `gemini`, `grok`, `ollama`       |
+| `model`            | `string`        | No       | Provider default     | Model ID (e.g. `gpt-4o`, `claude-sonnet-4`)             |
+| `system`           | `string`        | No       | Default Bento prompt | System prompt override. Empty string = no system prompt |
+| `temperature`      | `number`        | No       | `0.7`                | Sampling temperature (0–2)                              |
+| `maxTokens`        | `number`        | No       | `4096`               | Maximum tokens to generate                              |
+| `topP`             | `number`        | No       | `1`                  | Nucleus sampling                                        |
+| `topK`             | `number`        | No       | —                    | Top-k sampling (provider-dependent)                     |
+| `presencePenalty`  | `number`        | No       | `0`                  | -2 to 2                                                 |
+| `frequencyPenalty` | `number`        | No       | `0`                  | -2 to 2                                                 |
+| `stop`             | `string[]`      | No       | —                    | Stop sequences                                          |
+| `tools`            | `string[]`      | No       | All built-in         | Tool names to enable. `[]` = no tools                   |
+| `conversationId`   | `string`        | No       | —                    | UUID for conversation persistence                       |
+| `apiKey`           | `string`        | No       | Env var              | Override API key (dev only)                             |
+| `baseUrl`          | `string`        | No       | Default              | Override provider base URL                              |
 
 **Response:** Streaming response with `Content-Type: text/event-stream` using the AI SDK data stream protocol. Compatible with `useChat()` from `@ai-sdk/svelte`.
 
 **Error responses:**
 
-| Status | Code | Meaning |
-|--------|------|---------|
-| 400 | `INVALID_JSON` | Malformed request body |
-| 422 | `VALIDATION_ERROR` | Zod validation failed |
-| 401 | `AGENT_ERROR` | Authentication failure |
-| 429 | `AGENT_ERROR` | Rate limited |
-| 504 | `AGENT_ERROR` | Request timed out |
-| 500 | `AGENT_ERROR` | Internal error |
+| Status | Code               | Meaning                |
+| ------ | ------------------ | ---------------------- |
+| 400    | `INVALID_JSON`     | Malformed request body |
+| 422    | `VALIDATION_ERROR` | Zod validation failed  |
+| 401    | `AGENT_ERROR`      | Authentication failure |
+| 429    | `AGENT_ERROR`      | Rate limited           |
+| 504    | `AGENT_ERROR`      | Request timed out      |
+| 500    | `AGENT_ERROR`      | Internal error         |
 
 ---
 
@@ -179,12 +177,14 @@ The API routes handle everything server-side. The frontend only needs to:
 4. **Manage conversation IDs** — Generate a UUID per conversation and pass it as `conversationId` to maintain history across messages.
 
 The `useChat()` hook handles:
+
 - Sending messages to `POST /api/agent`
 - Parsing the streaming response
 - Managing message state (append user messages, stream assistant responses)
 - Tool call lifecycle (invocation → result)
 
 **Key libraries to install on the frontend:**
+
 - `@ai-sdk/svelte` — provides `useChat()`, `useAssistant()`
 - `ai` — core types (`CoreMessage`, `ToolSet`)
 
@@ -235,6 +235,7 @@ my_tool: {
 
 Currently uses in-memory storage (`Map<string, CoreMessage[]>`).
 For production, replace `src/lib/ai/memory.ts` with:
+
 - **SQLite** via the existing Tauri store plugin
 - **Supabase** via the existing Supabase client
 - **Mastra Memory** (already a dependency: `@mastra/memory`)

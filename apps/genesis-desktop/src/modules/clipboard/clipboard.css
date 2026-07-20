@@ -276,7 +276,9 @@
   cursor: pointer;
   text-align: left;
   box-sizing: border-box;
-  transition: transform 160ms var(--ease-out), background 160ms var(--ease-out);
+  transition:
+    transform 160ms var(--ease-out),
+    background 160ms var(--ease-out);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -371,7 +373,9 @@
   display: grid;
   place-items: center;
   cursor: pointer;
-  transition: transform 160ms var(--ease-out), background 160ms var(--ease-out);
+  transition:
+    transform 160ms var(--ease-out),
+    background 160ms var(--ease-out);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -547,7 +551,9 @@
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 160ms var(--ease-out), background 160ms var(--ease-out);
+  transition:
+    transform 160ms var(--ease-out),
+    background 160ms var(--ease-out);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -581,7 +587,9 @@
   display: grid;
   place-items: center;
   cursor: pointer;
-  transition: transform 160ms var(--ease-out), background 160ms var(--ease-out);
+  transition:
+    transform 160ms var(--ease-out),
+    background 160ms var(--ease-out);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -612,7 +620,9 @@
   font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 160ms var(--ease-out), opacity 160ms var(--ease-out);
+  transition:
+    transform 160ms var(--ease-out),
+    opacity 160ms var(--ease-out);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -1118,7 +1128,9 @@
   font-size: 0.9rem;
   outline: none;
   box-sizing: border-box;
-  transition: background 150ms var(--ease-out), box-shadow 150ms var(--ease-out);
+  transition:
+    background 150ms var(--ease-out),
+    box-shadow 150ms var(--ease-out);
 }
 
 :global(.cb-bookmark-input__field) input::placeholder {
@@ -1204,7 +1216,9 @@
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: transform 160ms var(--ease-out), opacity 160ms var(--ease-out);
+  transition:
+    transform 160ms var(--ease-out),
+    opacity 160ms var(--ease-out);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -1470,7 +1484,9 @@
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   font-size: 12px;
-  transition: transform 160ms var(--ease-out), background 120ms var(--ease-out);
+  transition:
+    transform 160ms var(--ease-out),
+    background 120ms var(--ease-out);
   -webkit-tap-highlight-color: transparent;
 }
 

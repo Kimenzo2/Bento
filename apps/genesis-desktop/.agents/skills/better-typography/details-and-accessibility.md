@@ -65,14 +65,14 @@ Avoid the `maximum-scale=1` viewport meta as a fix: Safari ignores the cap for p
 
 ## Decorative text
 
-| Property | Effect |
-| --- | --- |
-| `::first-letter` | Drop cap, widely supported |
-| `::first-line` | Styles only the first line |
-| `initial-letter` | Sizes the drop cap; limited support, no Firefox yet |
-| `background-clip: text` | Clips a background or gradient to the letter shapes |
-| `-webkit-text-stroke` | Outlines the letters; works across modern browsers despite the prefix |
-| `text-shadow` | Like `box-shadow` but follows the character shapes |
+| Property                | Effect                                                                |
+| ----------------------- | --------------------------------------------------------------------- |
+| `::first-letter`        | Drop cap, widely supported                                            |
+| `::first-line`          | Styles only the first line                                            |
+| `initial-letter`        | Sizes the drop cap; limited support, no Firefox yet                   |
+| `background-clip: text` | Clips a background or gradient to the letter shapes                   |
+| `-webkit-text-stroke`   | Outlines the letters; works across modern browsers despite the prefix |
+| `text-shadow`           | Like `box-shadow` but follows the character shapes                    |
 
 If a text stroke draws lines inside the letters, that is the font: the stroke traces every contour and variable fonts usually keep overlapping shapes unmerged. Static fonts do not have this issue.
 
@@ -80,19 +80,19 @@ If a text stroke draws lines inside the letters, that is the font: the stroke tr
 
 Typography must survive the reader changing it: zoom, a larger browser font size, overridden line height or letter spacing.
 
-| Text | Size |
-| --- | --- |
-| Body | `16px` (the web default, the right reading size) |
-| Inputs and menus | `14px` |
-| Captions | `13px` |
-| Floor | Rarely below `12px` |
+| Text             | Size                                             |
+| ---------------- | ------------------------------------------------ |
+| Body             | `16px` (the web default, the right reading size) |
+| Inputs and menus | `14px`                                           |
+| Captions         | `13px`                                           |
+| Floor            | Rarely below `12px`                              |
 
 WCAG AA contrast:
 
-| Text | Minimum |
-| --- | --- |
-| Regular text | `4.5:1` |
-| Large text (~`24px`+) | `3:1` |
+| Text                  | Minimum |
+| --------------------- | ------- |
+| Regular text          | `4.5:1` |
+| Large text (~`24px`+) | `3:1`   |
 
 Bigger, heavier letters stay legible at lower contrast.
 
@@ -114,4 +114,3 @@ html {
   </body>
 </html>
 ```
-

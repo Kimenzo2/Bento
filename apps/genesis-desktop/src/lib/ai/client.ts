@@ -41,7 +41,13 @@ export interface ToolCall {
 
 export type ChatEvent =
   | { type: "token"; content: string }
-  | { type: "tool_call"; id: string; name: string; args: Record<string, unknown>; autoExecute: boolean }
+  | {
+      type: "tool_call";
+      id: string;
+      name: string;
+      args: Record<string, unknown>;
+      autoExecute: boolean;
+    }
   | { type: "tool_result"; id: string; name: string; result: unknown; isError: boolean }
   | { type: "error"; message: string }
   | { type: "done"; finishReason?: string; usage?: { inputTokens?: number; outputTokens?: number } }
@@ -50,9 +56,20 @@ export type ChatEvent =
 export type UiVocabulary =
   | { type: "summary_card"; title: string; description?: string; content?: string; icon?: string }
   | { type: "task_list"; items: TaskDraft[] }
-  | { type: "confirmation_card"; id: string; title: string; description?: string; actions: ActionDef[] }
+  | {
+      type: "confirmation_card";
+      id: string;
+      title: string;
+      description?: string;
+      actions: ActionDef[];
+    }
   | { type: "note_draft"; title?: string; blocks: unknown[] }
-  | { type: "chart"; variant: string; config: Record<string, unknown>; data: Record<string, unknown>[] };
+  | {
+      type: "chart";
+      variant: string;
+      config: Record<string, unknown>;
+      data: Record<string, unknown>[];
+    };
 
 export interface TaskDraft {
   id: string;
@@ -139,7 +156,20 @@ export function chatStream(params: ChatParams): {
   stream: AsyncGenerator<ChatEvent>;
   cancel: () => void;
 } {
-  const { messages, system, model, provider, temperature, maxTokens, topP, topK, presencePenalty, frequencyPenalty, stopSequences, enableTools } = params;
+  const {
+    messages,
+    system,
+    model,
+    provider,
+    temperature,
+    maxTokens,
+    topP,
+    topK,
+    presencePenalty,
+    frequencyPenalty,
+    stopSequences,
+    enableTools,
+  } = params;
 
   const channel = new Channel<ChatEvent>();
   const buffer: ChatEvent[] = [];
@@ -230,7 +260,20 @@ export function chatStream(params: ChatParams): {
  * Returns just the text response.
  */
 export async function chatComplete(params: ChatParams): Promise<string> {
-  const { messages, system, model, provider, temperature, maxTokens, topP, topK, presencePenalty, frequencyPenalty, stopSequences, enableTools } = params;
+  const {
+    messages,
+    system,
+    model,
+    provider,
+    temperature,
+    maxTokens,
+    topP,
+    topK,
+    presencePenalty,
+    frequencyPenalty,
+    stopSequences,
+    enableTools,
+  } = params;
 
   return invoke<string>("ai_chat_complete", {
     messages,
@@ -263,12 +306,10 @@ export const conversations = {
     invoke("ai_conversation_list", { limit, offset }),
 
   /** Get a single conversation with all messages. */
-  get: (id: string): Promise<Conversation | null> =>
-    invoke("ai_conversation_get", { id }),
+  get: (id: string): Promise<Conversation | null> => invoke("ai_conversation_get", { id }),
 
   /** Delete a conversation and all its messages. */
-  delete: (id: string): Promise<void> =>
-    invoke("ai_conversation_delete", { id }),
+  delete: (id: string): Promise<void> => invoke("ai_conversation_delete", { id }),
 
   /** Save messages to a conversation (creates or updates). */
   save: (id: string, messages: ChatMessage[]): Promise<void> =>

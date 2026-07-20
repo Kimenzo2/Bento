@@ -52,7 +52,11 @@ export function invokeWithTimeout<T>(
 
 export function setLogRocketInstance(_lr: any): void {}
 
-export function trackEvent(_category: string, _action: string, _data?: Record<string, unknown>): void {}
+export function trackEvent(
+  _category: string,
+  _action: string,
+  _data?: Record<string, unknown>,
+): void {}
 
 export function trackShortcut(_shortcut: string): void {}
 

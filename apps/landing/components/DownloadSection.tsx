@@ -88,7 +88,8 @@ export default function DownloadSection({ version }: { version: string }) {
                   border: 'none',
                   cursor: 'pointer',
                   textDecoration: 'none',
-                  transition: 'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
+                  transition:
+                    'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
                 }}
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">

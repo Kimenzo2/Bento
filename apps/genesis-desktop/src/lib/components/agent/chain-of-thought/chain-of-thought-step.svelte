@@ -29,6 +29,7 @@
 
   const context = getChainOfThoughtContext();
   let isVisible = $state(false);
+  // eslint-disable-next-line no-unassigned-vars — used via bind:this
   let element: HTMLDivElement;
 
   const statusStyles = {

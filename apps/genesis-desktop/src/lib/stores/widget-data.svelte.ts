@@ -48,7 +48,6 @@ async function loadHabitsWidget() {
   );
   if (!stats) return;
   const streak = stats.topStreak;
-  const done = stats.completedToday;
   liveWidgets["habits"] = {
     layout: "stat",
     primary: String(streak),

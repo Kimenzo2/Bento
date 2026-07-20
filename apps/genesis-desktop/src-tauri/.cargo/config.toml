@@ -21,8 +21,7 @@ rustflags = [
   # so reverse-engineered binaries show /ci/.cargo/... instead of the real path.
   # Safe because file!() paths are only used in panic messages/debug info,
   # never for actual filesystem access at runtime.
-  "-C",
-  "remap-path-prefix=C:\Users\runneradmin\=/ci/",
+  "--remap-path-prefix=C:\\Users\\runneradmin\\=/ci/",
 ]
 
 [target.x86_64-unknown-linux-gnu]

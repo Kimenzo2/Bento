@@ -15,6 +15,7 @@
   let { class: className, children, ...restProps }: ConversationContentProps = $props();
 
   const context = getStickToBottomContext();
+  // eslint-disable-next-line no-unassigned-vars — used via bind:this
   let element: HTMLDivElement;
 
   watch(

@@ -155,7 +155,6 @@
     { id: "passwords", label: "Passwords" },
     { id: "health", label: "Health" },
     { id: "budget", label: "Budget" },
-    { id: "grocery", label: "Grocery" },
     { id: "goals", label: "Goals" },
     { id: "clipboard", label: "Clipboard" },
     { id: "voice-memos", label: "Voice Memos" },

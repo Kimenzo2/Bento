@@ -4,11 +4,11 @@ A sensible scale and comfortable spacing do more for typography than any effect.
 
 ## Units
 
-| Unit | Behavior |
-| --- | --- |
-| `px` | Fixed |
-| `em` | Scales with the current font size |
-| `rem` | Scales with the root font size |
+| Unit               | Behavior                                              |
+| ------------------ | ----------------------------------------------------- |
+| `px`               | Fixed                                                 |
+| `em`               | Scales with the current font size                     |
+| `rem`              | Scales with the root font size                        |
 | `%` on `font-size` | Relative to the parent's font size, behaves like `em` |
 
 ## Type scale
@@ -51,9 +51,9 @@ For solo projects the default names work fine as long as there are clear rules f
 
 ## Line-height
 
-| Text | Value |
-| --- | --- |
-| Headings | ~`1.1` |
+| Text      | Value       |
+| --------- | ----------- |
+| Headings  | ~`1.1`      |
 | Body copy | `1.5`–`1.6` |
 
 Prefer unitless values: they scale with the font size, fixed values like `line-height: 24px` do not. Tailwind's `leading-snug`, `leading-normal` and `leading-relaxed` are sensible defaults that rarely need overriding.
@@ -62,11 +62,11 @@ Prefer unitless values: they scale with the font size, fixed values like `line-h
 
 Fonts reserve space above and below the letters, which is why text sits slightly too low in buttons and badges. `text-box` trims it. Two parts: which edges to trim (`trim-both`, `trim-start`, `trim-end`) and where:
 
-| Keyword | Trims at |
-| --- | --- |
-| `cap` | The cap height (top) |
-| `alphabetic` | The baseline (bottom) |
-| `text` | The font's own text edge, keeping room for descenders |
+| Keyword      | Trims at                                              |
+| ------------ | ----------------------------------------------------- |
+| `cap`        | The cap height (top)                                  |
+| `alphabetic` | The baseline (bottom)                                 |
+| `text`       | The font's own text edge, keeping room for descenders |
 
 ```css
 /* trim top and bottom */

@@ -208,7 +208,8 @@ export default function Pricing() {
                     border: 'none',
                     cursor: 'pointer',
                     textDecoration: 'none',
-                    transition: 'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
+                    transition:
+                      'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
                     width: '100%',
                   }}
                 >

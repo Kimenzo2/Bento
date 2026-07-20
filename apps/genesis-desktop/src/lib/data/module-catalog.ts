@@ -32,7 +32,6 @@ export const starterModuleIds = [
   "nutrition",
   "mood",
   "budget",
-  "grocery",
   "goals",
   "clipboard",
   "voice-memos",
@@ -52,7 +51,6 @@ export const moduleIdValues = [
   "nutrition",
   "mood",
   "budget",
-  "grocery",
   "goals",
   "clipboard",
   "voice-memos",
@@ -62,9 +60,7 @@ export const moduleIdValues = [
 ] as const;
 
 /** Modules awaiting polish — hidden from launcher, switcher, and tabs dropdown. */
-export const hiddenModuleIds = new Set<string>([
-  "ai",
-]);
+export const hiddenModuleIds = new Set<string>(["ai"]);
 
 export type ShellNativeModuleId = (typeof shellNativeModuleIds)[number];
 export type StarterModuleId = (typeof starterModuleIds)[number];
@@ -216,8 +212,6 @@ const starterSidebarSpecs = {
       { label: "Export", icon: "download" },
     ],
   },
-
-
 
   goals: {
     sectionLabel: "Goals",
@@ -519,7 +513,8 @@ const starterModules = [
       launchBg: "#6b1f0a",
     },
     sidebar: starterSidebarSpecs.budget,
-  },  {
+  },
+  {
     id: "goals",
     name: "Goal Tracker",
     navLabel: "Goals",

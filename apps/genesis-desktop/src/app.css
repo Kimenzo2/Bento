@@ -933,7 +933,6 @@ body {
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
 }
 
-
 html[dir="rtl"] body,
 html[dir="rtl"] input,
 html[dir="rtl"] button,
@@ -1078,7 +1077,6 @@ textarea {
   background: var(--shell-scrollbar-thumb-hover);
   background-clip: content-box;
 }
-
 
 .desktop-workspace__main--mini-app > :where(main) {
   width: 100%;

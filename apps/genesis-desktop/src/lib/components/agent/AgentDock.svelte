@@ -172,12 +172,12 @@
   // ── Waveform visualization (rAF + CSS variables like os-june) ─────
   let waveformRef = $state<HTMLDivElement | null>(null);
   const WAVEFORM_BARS = 8; // Match os-june's Waveform component exactly
-  let waveformLevels = $state<number[]>(new Array(WAVEFORM_BARS).fill(0.02));
+  let waveformLevels = $state<number[]>(Array.from({ length: WAVEFORM_BARS }, () => 0.02));
 
   // ── Waveform visualization — uses fine-grained audioLevel from store ──
   $effect(() => {
     if (!voiceEngine.isRecording) {
-      waveformLevels = new Array(WAVEFORM_BARS).fill(0.02);
+      waveformLevels = Array.from({ length: WAVEFORM_BARS }, () => 0.02);
       return;
     }
     // Animate waveform while recording

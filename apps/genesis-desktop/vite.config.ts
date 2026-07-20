@@ -101,7 +101,6 @@ export default defineConfig({
       // Zod schema validation
       "zod",
     ],
-
   },
   build: {
     // Disable asset inlining — in a Tauri desktop app all assets are

@@ -147,13 +147,13 @@ const sections: LegalSection[] = [
     content: (
       <>
         <P>
-          Our marketing website (iamazeyou.me) uses <B>Vercel Analytics</B>, a
-          privacy-first analytics service that collects anonymised, aggregated page view data.
-          Vercel Analytics does not use cookies and does not track individual users.
+          Our marketing website (iamazeyou.me) uses <B>Vercel Analytics</B>, a privacy-first
+          analytics service that collects anonymised, aggregated page view data. Vercel Analytics
+          does not use cookies and does not track individual users.
         </P>
         <P>
-          We also use <B>Vercel Speed Insights</B> to measure website performance
-          metrics (load times, Core Web Vitals). This data is anonymised and aggregated.
+          We also use <B>Vercel Speed Insights</B> to measure website performance metrics (load
+          times, Core Web Vitals). This data is anonymised and aggregated.
         </P>
         <P>
           The desktop app itself does not use any analytics. No usage data, telemetry, or

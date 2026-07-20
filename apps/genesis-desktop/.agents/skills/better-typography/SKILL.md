@@ -11,14 +11,14 @@ Good typography is mostly restraint. A sensible scale, comfortable spacing and e
 
 ## Quick Reference
 
-| Category | When to use | Reference |
-| --- | --- | --- |
-| Choosing fonts | Font categories, pairing, formats, typeface anatomy | [choosing-fonts.md](choosing-fonts.md) |
-| Variable fonts & OpenType | Axes, weights, tabular numbers, stylistic sets | [variable-fonts-and-opentype.md](variable-fonts-and-opentype.md) |
-| Spacing & sizing | Type scale, line-height, letter-spacing, text trimming | [spacing-and-sizing.md](spacing-and-sizing.md) |
-| Wrapping & punctuation | Measure, wrapping, truncation, smart punctuation, RTL | [wrapping-and-punctuation.md](wrapping-and-punctuation.md) |
-| Details & accessibility | Underlines, selection, forms, decorative text, contrast | [details-and-accessibility.md](details-and-accessibility.md) |
-| CSS cheat sheet | Quick lookup of every property covered, with Tailwind equivalents | [css-cheat-sheet.md](css-cheat-sheet.md) |
+| Category                  | When to use                                                       | Reference                                                        |
+| ------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Choosing fonts            | Font categories, pairing, formats, typeface anatomy               | [choosing-fonts.md](choosing-fonts.md)                           |
+| Variable fonts & OpenType | Axes, weights, tabular numbers, stylistic sets                    | [variable-fonts-and-opentype.md](variable-fonts-and-opentype.md) |
+| Spacing & sizing          | Type scale, line-height, letter-spacing, text trimming            | [spacing-and-sizing.md](spacing-and-sizing.md)                   |
+| Wrapping & punctuation    | Measure, wrapping, truncation, smart punctuation, RTL             | [wrapping-and-punctuation.md](wrapping-and-punctuation.md)       |
+| Details & accessibility   | Underlines, selection, forms, decorative text, contrast           | [details-and-accessibility.md](details-and-accessibility.md)     |
+| CSS cheat sheet           | Quick lookup of every property covered, with Tailwind equivalents | [css-cheat-sheet.md](css-cheat-sheet.md)                         |
 
 ## Core Principles
 
@@ -101,42 +101,44 @@ Always present changes as a markdown table with **Before** and **After** columns
 ### Example
 
 #### Tabular numbers
-| Before | After |
-| --- | --- |
+
+| Before                               | After                                           |
+| ------------------------------------ | ----------------------------------------------- |
 | `<span>{price}</span>` on live price | `<span className="tabular-nums">{price}</span>` |
-| `font-feature-settings: "tnum" 1` | `font-variant-numeric: tabular-nums` |
+| `font-feature-settings: "tnum" 1`    | `font-variant-numeric: tabular-nums`            |
 
 #### Line-height and measure
-| Before | After |
-| --- | --- |
-| `leading-none` on body paragraph | `leading-normal` (body needs `1.5`–`1.6`) |
-| Full-width article column | `max-w-2xl` (~65 characters per line at `16px`) |
+
+| Before                           | After                                           |
+| -------------------------------- | ----------------------------------------------- |
+| `leading-none` on body paragraph | `leading-normal` (body needs `1.5`–`1.6`)       |
+| Full-width article column        | `max-w-2xl` (~65 characters per line at `16px`) |
 
 Rows should cite the specific file and property when it is not obvious from the snippet. If a principle was reviewed but nothing needed to change, omit that table entirely.
 
 ## Common Mistakes
 
-| Mistake | Fix |
-| --- | --- |
-| `.ttf`/`.otf` served on the web | Convert to `.woff2` |
-| `font-variation-settings: "wght"` for weight | `font-weight` (works with non-variable fallbacks) |
-| `font-feature-settings: "tnum" 1` | `font-variant-numeric: tabular-nums` |
-| Browser-faked bold or italic | Load the file, set `font-synthesis: none` |
-| Hard-coded one-off font sizes | Use the type scale |
-| `line-height: 24px` on scalable text | Unitless value (`1.5`) |
-| Full-width paragraphs | Cap around 60–75 characters per line |
-| Orphan on the last line of a paragraph | `text-wrap: pretty` |
-| Lopsided two-line heading | `text-wrap: balance` |
-| Numbers cause layout shift | `tabular-nums` |
-| Truncated text with no way to read it | Tooltip or expanded view for the full value |
-| `UPPERCASE` typed into copy | Natural case + `text-transform` |
-| Justified text in an interface | `text-align: start`; reserve justify for specific editorial layouts |
-| Underline cuts through descenders | `text-decoration-skip-ink: auto`, `from-font` metrics |
-| Inputs below `16px` zoom on iOS | `text-base sm:text-sm` |
-| `margin-left` in RTL-capable UI | `margin-inline-start` |
-| Selectable button labels in native-feel UI | `user-select: none`, keep selection on real content |
-| Extra-info hint with no visual cue | Dotted underline via `text-decoration-style: dotted` |
-| Tailwind classes dropped into a CSS-in-JS codebase (or the reverse) | Express the fix in the styling system the project already uses |
+| Mistake                                                             | Fix                                                                 |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `.ttf`/`.otf` served on the web                                     | Convert to `.woff2`                                                 |
+| `font-variation-settings: "wght"` for weight                        | `font-weight` (works with non-variable fallbacks)                   |
+| `font-feature-settings: "tnum" 1`                                   | `font-variant-numeric: tabular-nums`                                |
+| Browser-faked bold or italic                                        | Load the file, set `font-synthesis: none`                           |
+| Hard-coded one-off font sizes                                       | Use the type scale                                                  |
+| `line-height: 24px` on scalable text                                | Unitless value (`1.5`)                                              |
+| Full-width paragraphs                                               | Cap around 60–75 characters per line                                |
+| Orphan on the last line of a paragraph                              | `text-wrap: pretty`                                                 |
+| Lopsided two-line heading                                           | `text-wrap: balance`                                                |
+| Numbers cause layout shift                                          | `tabular-nums`                                                      |
+| Truncated text with no way to read it                               | Tooltip or expanded view for the full value                         |
+| `UPPERCASE` typed into copy                                         | Natural case + `text-transform`                                     |
+| Justified text in an interface                                      | `text-align: start`; reserve justify for specific editorial layouts |
+| Underline cuts through descenders                                   | `text-decoration-skip-ink: auto`, `from-font` metrics               |
+| Inputs below `16px` zoom on iOS                                     | `text-base sm:text-sm`                                              |
+| `margin-left` in RTL-capable UI                                     | `margin-inline-start`                                               |
+| Selectable button labels in native-feel UI                          | `user-select: none`, keep selection on real content                 |
+| Extra-info hint with no visual cue                                  | Dotted underline via `text-decoration-style: dotted`                |
+| Tailwind classes dropped into a CSS-in-JS codebase (or the reverse) | Express the fix in the styling system the project already uses      |
 
 ## Review Checklist
 

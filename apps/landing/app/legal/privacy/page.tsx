@@ -84,12 +84,10 @@ const sections: LegalSection[] = [
 
         <Sub>Information Collected Automatically</Sub>
         <P>
-          Bento is designed with a local-first, privacy-first architecture. The desktop app
-          does not collect any usage analytics, telemetry, or tracking data.
+          Bento is designed with a local-first, privacy-first architecture. The desktop app does not
+          collect any usage analytics, telemetry, or tracking data.
         </P>
-        <P>
-          The only automatic data collection happens on our marketing website (iamazeyou.me):
-        </P>
+        <P>The only automatic data collection happens on our marketing website (iamazeyou.me):</P>
         <DashList
           items={[
             <>
@@ -97,8 +95,8 @@ const sections: LegalSection[] = [
               pages are visited. No personal data is collected
             </>,
             <>
-              <B>Vercel Speed Insights</B>: anonymised website performance metrics (load times,
-              Core Web Vitals) to ensure the site is fast. No personal data is collected
+              <B>Vercel Speed Insights</B>: anonymised website performance metrics (load times, Core
+              Web Vitals) to ensure the site is fast. No personal data is collected
             </>,
             <>
               <B>Cookies and local storage</B>: session management tokens, authentication state, and
@@ -147,9 +145,9 @@ const sections: LegalSection[] = [
 
         <Sub>To Improve Bento</Sub>
         <P>
-          We review anonymised website analytics from Vercel to understand how visitors
-          interact with our marketing site. The desktop app itself sends no usage data.
-          Feature improvements are guided by user feedback and direct support requests.
+          We review anonymised website analytics from Vercel to understand how visitors interact
+          with our marketing site. The desktop app itself sends no usage data. Feature improvements
+          are guided by user feedback and direct support requests.
         </P>
 
         <Sub>To Communicate With You</Sub>
@@ -208,10 +206,10 @@ const sections: LegalSection[] = [
           to generate a response.
         </P>
         <P>
-          <B>Bento uses a Bring Your Own Key (BYOK) model for AI providers.</B> You provide your
-          own API keys (OpenAI, Anthropic, Grok, Gemini, or OpenRouter), and AI requests are sent
-          directly from your machine to the provider you choose. Bento never has access to your
-          API keys or the content of your AI conversations.
+          <B>Bento uses a Bring Your Own Key (BYOK) model for AI providers.</B> You provide your own
+          API keys (OpenAI, Anthropic, Grok, Gemini, or OpenRouter), and AI requests are sent
+          directly from your machine to the provider you choose. Bento never has access to your API
+          keys or the content of your AI conversations.
         </P>
         <P>
           Because you control what you type, we strongly recommend that you{' '}
@@ -282,9 +280,9 @@ const sections: LegalSection[] = [
               is removed from active systems within 30 days. Backup copies are purged within 90 days
             </>,
             <>
-              <B>Website analytics</B>: anonymised page view data collected by Vercel Analytics
-              is retained by Vercel per their data retention policy. This data cannot be linked
-              back to individual users. The desktop app retains no usage analytics
+              <B>Website analytics</B>: anonymised page view data collected by Vercel Analytics is
+              retained by Vercel per their data retention policy. This data cannot be linked back to
+              individual users. The desktop app retains no usage analytics
             </>,
             <>
               <B>Payment records</B>: retained as required by applicable financial regulations,
@@ -392,8 +390,8 @@ const sections: LegalSection[] = [
             </>,
             <>
               <B>Website analytics</B>: we use Vercel Analytics on our marketing website
-              (iamazeyou.me) to collect anonymised page view data. This is cookie-free and
-              does not track individual users. You can opt out via browser extensions
+              (iamazeyou.me) to collect anonymised page view data. This is cookie-free and does not
+              track individual users. You can opt out via browser extensions
             </>,
           ]}
         />

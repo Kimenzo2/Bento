@@ -51,23 +51,28 @@ function formatError(err: unknown): string {
  * hostnames, or infrastructure provider names to end users.
  */
 export function sanitizeError(message: string): string {
-  return message
-    // ── URLs (any protocol) ──────────────────────────────────────────
-    .replace(/https?:\/\/[^\s"')]+/gi, "[redacted]")
-    .replace(/\bftp:\/\/[^\s"')]+/gi, "[redacted]")
-    .replace(/\bwss?:\/\/[^\s"')]+/gi, "[redacted]")
-    .replace(/\bfile:\/\/[^\s"')]+/gi, "[redacted]")
-    // ── Infrastructure hostnames (cloud providers, PaaS, edge) ──────
-    .replace(/\b(?:[\w-]+\.)?(?:supabase\.co|supabase|vercel\.app|vercel|netlify\.app|netlify|herokuapp\.com|herokuapp|railway\.app|railway|fly\.dev|cloudflare|deno\.dev|render\.com|turso\.cloud|neon\.tech|planetscale\.com|firebase|googleapis\.com|googleapis|amazonaws\.com|amazonaws|onrender\.com|onrender)\b/gi, "[service]")
-    // ── IP addresses ────────────────────────────────────────────────
-    .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, "[ip]")
-    // ── Localhost with port ─────────────────────────────────────────
-    .replace(/localhost:\d+/gi, "[local]")
-    // ── Trailing port numbers (may remain after URL stripping) ──────
-    .replace(/:\d{2,5}\b/g, "")
-    // ── Filesystem paths (Unix / Windows) ──────────────────────────
-    .replace(/(?:\/[\w.-]+){2,}/g, "[path]")
-    .replace(/\b[A-Z]:\\[\w\\.-]+/g, "[path]");
+  return (
+    message
+      // ── URLs (any protocol) ──────────────────────────────────────────
+      .replace(/https?:\/\/[^\s"')]+/gi, "[redacted]")
+      .replace(/\bftp:\/\/[^\s"')]+/gi, "[redacted]")
+      .replace(/\bwss?:\/\/[^\s"')]+/gi, "[redacted]")
+      .replace(/\bfile:\/\/[^\s"')]+/gi, "[redacted]")
+      // ── Infrastructure hostnames (cloud providers, PaaS, edge) ──────
+      .replace(
+        /\b(?:[\w-]+\.)?(?:supabase\.co|supabase|vercel\.app|vercel|netlify\.app|netlify|herokuapp\.com|herokuapp|railway\.app|railway|fly\.dev|cloudflare|deno\.dev|render\.com|turso\.cloud|neon\.tech|planetscale\.com|firebase|googleapis\.com|googleapis|amazonaws\.com|amazonaws|onrender\.com|onrender)\b/gi,
+        "[service]",
+      )
+      // ── IP addresses ────────────────────────────────────────────────
+      .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, "[ip]")
+      // ── Localhost with port ─────────────────────────────────────────
+      .replace(/localhost:\d+/gi, "[local]")
+      // ── Trailing port numbers (may remain after URL stripping) ──────
+      .replace(/:\d{2,5}\b/g, "")
+      // ── Filesystem paths (Unix / Windows) ──────────────────────────
+      .replace(/(?:\/[\w.-]+){2,}/g, "[path]")
+      .replace(/\b[A-Z]:\\[\w\\.-]+/g, "[path]")
+  );
 }
 
 export const logger = {

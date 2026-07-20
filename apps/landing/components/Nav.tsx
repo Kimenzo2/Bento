@@ -31,7 +31,8 @@ const btn = {
   border: 'none',
   cursor: 'pointer',
   textDecoration: 'none',
-  transition: 'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
+  transition:
+    'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
 } as const;
 
 export default function Nav({ platforms }: { platforms: Record<Platform, PlatformInfo> }) {
@@ -258,7 +259,8 @@ export default function Nav({ platforms }: { platforms: Record<Platform, Platfor
                 background: scrolled ? 'var(--color-ink)' : '#1a1a1a',
                 borderRadius: '10px',
                 marginBottom: '5px',
-                transition: 'transform 250ms cubic-bezier(0.23, 1, 0.32, 1), opacity 200ms cubic-bezier(0.23, 1, 0.32, 1)',
+                transition:
+                  'transform 250ms cubic-bezier(0.23, 1, 0.32, 1), opacity 200ms cubic-bezier(0.23, 1, 0.32, 1)',
                 transform: open ? 'rotate(45deg) translateY(5.5px)' : 'none',
               }}
             />
@@ -281,7 +283,8 @@ export default function Nav({ platforms }: { platforms: Record<Platform, Platfor
                 height: '2.5px',
                 background: scrolled ? 'var(--color-ink)' : '#1a1a1a',
                 borderRadius: '10px',
-                transition: 'transform 250ms cubic-bezier(0.23, 1, 0.32, 1), opacity 200ms cubic-bezier(0.23, 1, 0.32, 1)',
+                transition:
+                  'transform 250ms cubic-bezier(0.23, 1, 0.32, 1), opacity 200ms cubic-bezier(0.23, 1, 0.32, 1)',
                 transform: open ? 'rotate(-45deg) translateY(-5.5px)' : 'none',
               }}
             />

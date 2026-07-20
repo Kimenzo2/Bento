@@ -92,7 +92,12 @@ export async function validateKey(provider: string, key: string): Promise<number
 
 export async function testConnection(provider: string): Promise<ConnectionTestResult> {
   if (!isAvailable()) {
-    return { ok: false, error: { code: "Offline", message: "Not in Tauri environment", statusCode: null }, latencyMs: null, availableModels: [] };
+    return {
+      ok: false,
+      error: { code: "Offline", message: "Not in Tauri environment", statusCode: null },
+      latencyMs: null,
+      availableModels: [],
+    };
   }
   byokTesting.update((state) => ({ ...state, [provider]: "testing" }));
   try {

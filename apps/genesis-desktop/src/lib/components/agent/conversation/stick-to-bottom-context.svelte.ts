@@ -24,7 +24,9 @@ class StickToBottomContext {
     );
   }
 
-  setElement(element: HTMLElement) { this.#element = element; }
+  setElement(element: HTMLElement) {
+    this.#element = element;
+  }
 
   scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
     if (!this.#element) return;
@@ -51,7 +53,11 @@ class StickToBottomContext {
         if (this.#isAtBottom) this.scrollToBottom("smooth");
       });
     });
-    this.#mutationObserver.observe(this.#element, { childList: true, subtree: true, characterData: true });
+    this.#mutationObserver.observe(this.#element, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
   }
 
   #createSentinel() {
@@ -67,7 +73,8 @@ class StickToBottomContext {
     this.#resizeObserver?.disconnect();
     this.#mutationObserver?.disconnect();
     if (this.#element) this.#element.removeEventListener("scroll", this.#handleScroll);
-    if (this.#sentinel && this.#element?.contains(this.#sentinel)) this.#element.removeChild(this.#sentinel);
+    if (this.#sentinel && this.#element?.contains(this.#sentinel))
+      this.#element.removeChild(this.#sentinel);
   }
 }
 
@@ -79,6 +86,7 @@ export function setStickToBottomContext(): StickToBottomContext {
 
 export function getStickToBottomContext(): StickToBottomContext {
   const context = getContext<StickToBottomContext>(STICK_TO_BOTTOM_CONTEXT_KEY);
-  if (!context) throw new Error("StickToBottomContext must be used within a Conversation component");
+  if (!context)
+    throw new Error("StickToBottomContext must be used within a Conversation component");
   return context;
 }

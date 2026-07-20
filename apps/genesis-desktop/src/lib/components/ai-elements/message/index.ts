@@ -1,6 +1,1 @@
-export {
-  Message,
-  MessageContent,
-  Root,
-  Content,
-} from "$lib/components/agent/message/index.js";
+export { Message, MessageContent, Root, Content } from "$lib/components/agent/message/index.js";

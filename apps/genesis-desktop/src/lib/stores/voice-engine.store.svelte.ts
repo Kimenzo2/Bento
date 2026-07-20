@@ -408,7 +408,7 @@ class VoiceEngineStore {
       if (this.session) {
         this.session = { ...this.session, status: "listening" };
       }
-    } catch (err) {
+    } catch {
       this.status = "error";
       if (this.session) {
         this.session = {

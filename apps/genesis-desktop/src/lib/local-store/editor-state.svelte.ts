@@ -144,7 +144,13 @@ function mkContent(text: string, style: TextStyle, marks?: Mark[], checked?: boo
 }
 
 const SYSTEM_TYPES: TypeDef[] = [
-  { id: "type-note", name: "Note", layout: "note", icon: "note-doc", description: "Rich text document" },
+  {
+    id: "type-note",
+    name: "Note",
+    layout: "note",
+    icon: "note-doc",
+    description: "Rich text document",
+  },
   { id: "type-task", name: "Task", layout: "task", icon: "✅", description: "Task" },
   {
     id: "type-journal",

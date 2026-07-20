@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - 'genesis-desktop-v*'
+      - "genesis-desktop-v*"
 
 permissions:
   contents: write

@@ -39,13 +39,9 @@ export function setChainOfThoughtContext(context: ChainOfThoughtContext) {
 }
 
 export function getChainOfThoughtContext(): ChainOfThoughtContext {
-  const context = getContext<ChainOfThoughtContext | undefined>(
-    CHAIN_OF_THOUGHT_CONTEXT_KEY,
-  );
+  const context = getContext<ChainOfThoughtContext | undefined>(CHAIN_OF_THOUGHT_CONTEXT_KEY);
   if (!context) {
-    throw new Error(
-      "ChainOfThought components must be used within ChainOfThought",
-    );
+    throw new Error("ChainOfThought components must be used within ChainOfThought");
   }
   return context;
 }

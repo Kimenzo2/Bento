@@ -71,7 +71,10 @@ export default function Hero({
           padding: '56px 28px',
         }}
       >
-        <div className="hero-stagger" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div
+          className="hero-stagger"
+          style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
+        >
           <Image
             src="/bento-icon.png"
             alt=""
@@ -169,7 +172,8 @@ export default function Hero({
                   cursor: detecting ? 'default' : 'pointer',
                   textDecoration: 'none',
                   opacity: detecting ? 0.6 : 1,
-                  transition: 'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
+                  transition:
+                    'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
                   pointerEvents: detecting ? ('none' as const) : undefined,
                 }}
               >
@@ -206,7 +210,8 @@ export default function Hero({
                   border: 'none',
                   cursor: 'pointer',
                   textDecoration: 'none',
-                  transition: 'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
+                  transition:
+                    'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
                 }}
               >
                 Pricing & Plans
@@ -234,7 +239,8 @@ export default function Hero({
                   border: 'none',
                   cursor: 'pointer',
                   textDecoration: 'none',
-                  transition: 'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
+                  transition:
+                    'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
                 }}
               >
                 Get started
@@ -261,7 +267,8 @@ export default function Hero({
                   cursor: detecting ? 'default' : 'pointer',
                   textDecoration: 'none',
                   opacity: detecting ? 0.6 : 1,
-                  transition: 'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1), opacity 160ms ease',
+                  transition:
+                    'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1), opacity 160ms ease',
                   pointerEvents: detecting ? ('none' as const) : undefined,
                 }}
               >
@@ -332,7 +339,8 @@ export default function Hero({
                 gap: '6px',
                 whiteSpace: 'nowrap',
                 letterSpacing: '0.02em',
-                transition: 'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
+                transition:
+                  'transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background 200ms cubic-bezier(0.23, 1, 0.32, 1)',
               }}
             >
               {p.label}
