@@ -242,19 +242,6 @@ async function loadVoiceMemosWidget() {
   loaded["voice-memos"] = true;
 }
 
-async function loadRecipesWidget() {
-  const recipes = await tryInvoke<{ id: string }[]>("recipes_list");
-  if (!recipes) return;
-  liveWidgets["recipes"] = {
-    layout: "stat",
-    primary: String(recipes.length),
-    secondary: recipes.length === 1 ? "saved recipe" : "saved recipes",
-    unit: "recipes",
-    width: "sm",
-  };
-  loaded["recipes"] = true;
-}
-
 async function loadClipboardWidget() {
   const count = await tryInvoke<number>("clipboard_count");
   if (count === null) return;
@@ -266,28 +253,6 @@ async function loadClipboardWidget() {
     width: "sm",
   };
   loaded["clipboard"] = true;
-}
-
-async function loadBreathingWidget() {
-  // Breathing is session-based — show a simple action card
-  liveWidgets["breathing"] = {
-    layout: "action",
-    primary: "Start 5 min",
-    secondary: "Calm session",
-    width: "sm",
-  };
-  loaded["breathing"] = true;
-}
-
-async function loadTimeWidget() {
-  // Time tracker — check for active timers via local store or fallback
-  liveWidgets["time"] = {
-    layout: "timer",
-    primary: "Start",
-    secondary: "Track your time",
-    width: "md",
-  };
-  loaded["time"] = true;
 }
 
 async function loadCountdownWidget() {
@@ -346,10 +311,7 @@ const ALL_LOADERS: Record<string, () => Promise<void>> = {
   goals: loadGoalsWidget,
   passwords: loadPasswordsWidget,
   "voice-memos": loadVoiceMemosWidget,
-  recipes: loadRecipesWidget,
   clipboard: loadClipboardWidget,
-  breathing: loadBreathingWidget,
-  time: loadTimeWidget,
   countdown: loadCountdownWidget,
   notes: loadNotesWidget,
 };

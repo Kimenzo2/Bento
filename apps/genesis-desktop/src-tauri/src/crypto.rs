@@ -66,8 +66,7 @@ pub const MODULE_DB_FILES: &[(&str, &str)] = &[
     ("health", "health.db"),
     ("habits", "habits.db"),
     ("focus", "focus.db"),
-    ("flashcards", "flashcards.db"),
-    ("reading", "reading.db"),
+
 ];
 
 // ── Key material (zeroed on drop) ─────────────────────────────────────────────

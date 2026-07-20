@@ -5,40 +5,43 @@
   import { activeBundle, createTranslator } from "$lib/i18n";
   import { time } from "$lib/utils/time";
   import MicIcon from "@lucide/svelte/icons/mic";
-
-  let _t = $derived.by(() => createTranslator($activeBundle));
-
-  let t = (key: string, fallback?: string) => _t(key, fallback);
   import PlayIcon from "@lucide/svelte/icons/play";
   import SquareIcon from "@lucide/svelte/icons/square";
   import StopCircleIcon from "@lucide/svelte/icons/stop-circle";
   import Trash2Icon from "@lucide/svelte/icons/trash-2";
+  import { toast } from "svelte-sonner";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
-  import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-  } from "$lib/components/ui/card/index.js";
+  import { Card, CardContent } from "$lib/components/ui/card/index.js";
+
+  let _t = $derived.by(() => createTranslator($activeBundle));
 
   type Memo = {
     id: string;
     title: string;
     duration: number;
-    blobUrl: string;
     created: number;
+    blobUrl?: string;
+    ext?: string;
+  };
+
+  type DBMemo = {
+    id: string;
+    title: string;
+    duration: number;
+    created: number;
+    audio: Blob;
+    ext?: string;
   };
 
   let memos = $state<Memo[]>([]);
   let loading = $state(true);
   let error = $state<string | null>(null);
   let recording = $state(false);
+  let recordingBusy = $state(false);
   let currentTitle = $state("");
   let playingId = $state<string | null>(null);
   let mediaRecorder: MediaRecorder | null = null;
-  let audioChunks: Blob[] = [];
   let recordingStart = 0;
   let recordingTimer: ReturnType<typeof setInterval> | undefined;
   let recordingDuration = $state(0);
@@ -46,18 +49,77 @@
   let analyserNode: AnalyserNode | null = null;
   let audioLevel = $state(0);
   let analyserInterval: ReturnType<typeof setInterval> | undefined;
+  let currentAudio: HTMLAudioElement | null = null;
+  let activeStream: MediaStream | null = null;
+  let playProgress = $state(0);
+  let playDuration = $state(0);
+  let progressInterval: ReturnType<typeof setInterval> | undefined;
 
-  const STORAGE_KEY = "bento_voice_memos";
+  function openDB(): Promise<IDBDatabase> {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open("BentoVoiceMemos", 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains("memos")) {
+          const store = db.createObjectStore("memos", { keyPath: "id" });
+          store.createIndex("created", "created", { unique: false });
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
 
-  function load() {
+  async function loadMemosFromDB(): Promise<Memo[]> {
+    const db = await openDB();
+    const tx = db.transaction("memos", "readonly");
+    const store = tx.objectStore("memos");
+    const index = store.index("created");
+    const records: DBMemo[] = await new Promise((resolve, reject) => {
+      const request = index.getAll();
+      request.onsuccess = () => resolve(request.result as DBMemo[]);
+      request.onerror = () => reject(request.error);
+    });
+    records.sort((a, b) => b.created - a.created);
+    return records.map((r) => ({
+      id: r.id,
+      title: r.title,
+      duration: r.duration,
+      created: r.created,
+      blobUrl: URL.createObjectURL(r.audio),
+      ext: r.ext,
+    }));
+  }
+
+  async function saveMemoToDB(memo: DBMemo): Promise<void> {
+    const db = await openDB();
+    const tx = db.transaction("memos", "readwrite");
+    const store = tx.objectStore("memos");
+    await new Promise<void>((resolve, reject) => {
+      const request = store.put(memo);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function deleteMemoFromDB(id: string): Promise<void> {
+    const db = await openDB();
+    const tx = db.transaction("memos", "readwrite");
+    const store = tx.objectStore("memos");
+    await new Promise<void>((resolve, reject) => {
+      const request = store.delete(id);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function load() {
     try {
-      const raw = browser ? localStorage.getItem(STORAGE_KEY) : null;
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        memos = parsed.filter((m: Memo) => m.title && m.created);
-      } else {
+      if (!browser || !indexedDB) {
         memos = [];
+        return;
       }
+      memos = await loadMemosFromDB();
     } catch {
       error = _t("moduleVoiceMemosErrorLoad", "Failed to load memos");
       memos = [];
@@ -66,16 +128,18 @@
     }
   }
 
-  function save() {
-    const safe = memos.map((m) => ({ id: m.id, title: m.title, duration: m.duration, blobUrl: "", created: m.created }));
-    if (browser) localStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
-  }
-
   async function startRecording() {
+    if (recordingBusy) return;
+    recordingBusy = true;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const chunks: Blob[] = [];
-      audioChunks = chunks;
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+      activeStream = stream;
 
       audioContext = new AudioContext();
       const source = audioContext.createMediaStreamSource(stream);
@@ -90,8 +154,7 @@
         audioLevel = avg / 255;
       }, 50);
 
-      const recorder = new MediaRecorder(stream);
-      mediaRecorder = recorder;
+      const chunks: Blob[] = [];
       recordingStart = time.now();
       recordingDuration = 0;
       audioLevel = 0;
@@ -100,39 +163,69 @@
         recordingDuration = Math.floor((time.now() - recordingStart) / 1000);
       }, 100);
 
+      const mimeType = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/ogg;codecs=opus",
+        "audio/mp4",
+      ].find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
+      const ext = mimeType.split("/")[1]?.split(";")[0] || "webm";
+
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      mediaRecorder = recorder;
+
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunks.push(e.data);
       };
 
+      recorder.onerror = () => {
+        error = _t("moduleVoiceMemosMicFail", "Microphone recording failed");
+        cleanupRecording(stream);
+      };
+
       recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: "audio/webm" });
+        const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
         const url = URL.createObjectURL(blob);
         const title = currentTitle.trim() || `${_t("moduleVoiceMemosMemo", "Memo")} ${memos.length + 1}`;
         const memo: Memo = {
           id: crypto.randomUUID(),
           title,
           duration: recordingDuration,
-          blobUrl: url,
           created: time.now(),
+          blobUrl: url,
+          ext,
+        };
+        const dbMemo: DBMemo = {
+          ...memo,
+          audio: blob,
         };
         memos = [memo, ...memos];
-        save();
+        saveMemoToDB(dbMemo).then(() => toast.success(_t("moduleVoiceMemosRecordingSaved", "Recording saved"))).catch(() => {});
         currentTitle = "";
-        recordingDuration = 0;
-        audioLevel = 0;
-        stream.getTracks().forEach((t) => t.stop());
-        audioContext?.close();
-        audioContext = null;
-        analyserNode = null;
-        clearInterval(analyserInterval);
-        clearInterval(recordingTimer);
+        cleanupRecording(stream);
       };
 
-      recorder.start();
+      recorder.start(1000);
       recording = true;
-    } catch {
-      error = _t("moduleVoiceMemosMicDenied", "Microphone access denied. Please allow microphone permissions.");
+      recordingBusy = false;
+    } catch (err) {
+      recordingBusy = false;
+      const msg = err instanceof DOMException && err.name === "NotAllowedError"
+        ? _t("moduleVoiceMemosMicDenied", "Microphone access denied. Please allow microphone permissions.")
+        : `${_t("moduleVoiceMemosMicFail", "Microphone recording failed")}: ${err instanceof Error ? err.message : String(err)}`;
+      error = msg;
     }
+  }
+
+  function cleanupRecording(stream: MediaStream) {
+    stream.getTracks().forEach((t) => t.stop());
+    activeStream = null;
+    audioContext?.close();
+    audioContext = null;
+    analyserNode = null;
+    clearInterval(analyserInterval);
+    clearInterval(recordingTimer);
+    mediaRecorder = null;
   }
 
   function stopRecording() {
@@ -144,23 +237,90 @@
 
   function playMemo(id: string) {
     const memo = memos.find((m) => m.id === id);
-    if (!memo || !memo.blobUrl) return;
-    if (playingId === id) {
-      playingId = null;
+    if (!memo) {
+      console.warn("[voice-memos] playMemo: memo not found", id);
       return;
     }
+    if (!memo.blobUrl) {
+      console.warn("[voice-memos] playMemo: memo has no blobUrl", id, memo);
+      return;
+    }
+    if (playingId === id) {
+      currentAudio?.pause();
+      currentAudio = null;
+      playingId = null;
+      clearInterval(progressInterval);
+      return;
+    }
+    currentAudio?.pause();
+    clearInterval(progressInterval);
     playingId = id;
+    console.log("[voice-memos] playMemo: starting playback", id, memo.blobUrl);
     const audio = new Audio(memo.blobUrl);
-    audio.onended = () => { playingId = null; };
-    audio.play().catch(() => { playingId = null; });
+    currentAudio = audio;
+    playProgress = 0;
+    playDuration = memo.duration;
+    audio.addEventListener("loadedmetadata", () => {
+      if (currentAudio === audio && audio.duration && isFinite(audio.duration)) {
+        playDuration = Math.floor(audio.duration);
+        console.log("[voice-memos] loadedmetadata: duration", playDuration);
+      }
+    });
+    audio.addEventListener("error", (e) => {
+      const mediaError = audio.error;
+      console.error("[voice-memos] audio error:", mediaError?.code, mediaError?.message, e);
+    }, { once: true });
+    progressInterval = setInterval(() => {
+      if (currentAudio && !currentAudio.paused) {
+        playProgress = currentAudio.currentTime;
+      }
+    }, 200);
+    audio.onended = () => {
+      if (currentAudio === audio) {
+        console.log("[voice-memos] playback ended");
+        currentAudio = null;
+        playingId = null;
+        playProgress = playDuration;
+        clearInterval(progressInterval);
+      }
+    };
+    audio.onerror = () => {
+      if (currentAudio === audio) {
+        console.error("[voice-memos] playback error (onerror)");
+        currentAudio = null;
+        playingId = null;
+        clearInterval(progressInterval);
+      }
+    };
+    audio.play().then(() => {
+      console.log("[voice-memos] playback started successfully");
+    }).catch((err) => {
+      console.error("[voice-memos] audio.play() rejected:", err);
+      if (currentAudio === audio) { currentAudio = null; playingId = null; clearInterval(progressInterval); }
+    });
+  }
+
+  function exportMemo(id: string) {
+    const memo = memos.find((m) => m.id === id);
+    if (!memo?.blobUrl) return;
+    const a = document.createElement("a");
+    a.href = memo.blobUrl;
+    a.download = `${memo.title.replace(/[^a-zA-Z0-9-_ ]/g, "")}.${memo.ext ?? "webm"}`;
+    a.click();
   }
 
   function deleteMemo(id: string) {
     const memo = memos.find((m) => m.id === id);
     if (memo?.blobUrl) URL.revokeObjectURL(memo.blobUrl);
     memos = memos.filter((m) => m.id !== id);
-    if (playingId === id) playingId = null;
-    save();
+    if (playingId === id) {
+      currentAudio?.pause();
+      currentAudio = null;
+      playingId = null;
+      clearInterval(progressInterval);
+    }
+    deleteMemoFromDB(id).catch(() => {});
+    toast.success(_t("moduleVoiceMemosRecordingDeleted", "Recording deleted"));
   }
 
   function formatDuration(seconds: number) {
@@ -175,11 +335,27 @@
 
   const totalMemos = $derived(memos.length);
 
-  onMount(() => load());
+  function onKeydown(e: KeyboardEvent) {
+    if (e.key === " " && e.target === document.body) {
+      e.preventDefault();
+      if (recording) stopRecording();
+      else startRecording();
+    }
+  }
+
+  onMount(() => {
+    load();
+    if (browser) document.addEventListener("keydown", onKeydown);
+  });
   onDestroy(() => {
+    if (browser) document.removeEventListener("keydown", onKeydown);
     clearInterval(recordingTimer);
     clearInterval(analyserInterval);
+    clearInterval(progressInterval);
+    currentAudio?.pause();
     audioContext?.close();
+    activeStream?.getTracks().forEach((t) => t.stop());
+    memos.forEach((m) => { if (m.blobUrl) URL.revokeObjectURL(m.blobUrl); });
   });
 </script>
 
@@ -196,9 +372,9 @@
       </div>
       <div class="memo-shell__actions">
         {#if !recording}
-          <Button onclick={startRecording}>
+          <Button onclick={startRecording} disabled={recordingBusy}>
             <MicIcon data-icon="inline-start" />
-            {_t("moduleVoiceMemosRecord", "Record")}
+            {recordingBusy ? _t("moduleVoiceMemosAccessing", "Accessing mic…") : _t("moduleVoiceMemosRecord", "Record")}
           </Button>
         {:else}
           <Button variant="outline" onclick={stopRecording}>
@@ -218,7 +394,7 @@
             {#each [0.3, 0.5, 0.8, 0.6, 0.9] as base, i}
               <div
                 class="memo-level-bar"
-                style="animation-delay: {i * 0.1}s; transform: scaleY({base + audioLevel * (1 - base)})"
+                style="transform: scaleY({base + audioLevel * (1 - base)})"
               ></div>
             {/each}
           </div>
@@ -250,7 +426,10 @@
       <Card class="memo-panel">
         <CardContent>
           <p>{error}</p>
-          <Button variant="outline" onclick={() => { error = null; load(); }}>{_t("commonRetry", "Retry")}</Button>
+          <div class="memo-error-actions">
+            <Button variant="outline" onclick={() => { error = null; startRecording(); }}>{_t("commonRetry", "Retry")}</Button>
+            <Button variant="ghost" onclick={() => { error = null; }}>{_t("commonDismiss", "Dismiss")}</Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -259,7 +438,9 @@
       <Card class="memo-panel memo-panel--state">
         <CardContent>
           <div class="memo-state">
-            <span class="memo-state-icon">🎙️</span>
+            <span class="memo-state-icon" aria-hidden="true">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+            </span>
             <h2 class="memo-state-title">{_t("moduleVoiceMemosEmptyState", "No recordings yet")}</h2>
             <p class="memo-state-desc">{_t("moduleVoiceMemosEmptyDesc", "Press the button above to record your first voice memo.")}</p>
           </div>
@@ -271,12 +452,28 @@
       <section class="memo-shell__body">
         <div class="memo-list" transition:fade>
           {#each memos as memo (memo.id)}
-            <article class="memo-item" transition:slide={{ duration: 100 }}>
+            <article class="memo-item" class:memo-item--playing={playingId === memo.id} transition:slide={{ duration: 100 }}>
               <div class="memo-item__left">
-                <span class="memo-item__icon">🎤</span>
+                <span class="memo-item__icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                </span>
                 <div class="memo-item__info">
                   <span class="memo-item__title">{memo.title}</span>
-                  <span class="memo-item__meta">{formatDuration(memo.duration)} · {formatDate(memo.created)}</span>
+                  <span class="memo-item__meta">
+                    {#if playingId === memo.id}
+                      {formatDuration(Math.floor(playProgress))} / {formatDuration(memo.duration)}
+                    {:else}
+                      {formatDuration(memo.duration)}
+                    {/if}
+                     · {formatDate(memo.created)}
+                  </span>
+                  {#if playingId === memo.id}
+                    <div class="memo-item__progress">
+                      <div class="memo-item__progress-track">
+                        <div class="memo-item__progress-fill" style="width: {memo.duration > 0 ? (playProgress / memo.duration) * 100 : 0}%"></div>
+                      </div>
+                    </div>
+                  {/if}
                 </div>
               </div>
               <div class="memo-item__actions">
@@ -286,6 +483,9 @@
                   {:else}
                     <PlayIcon size={15} />
                   {/if}
+                </button>
+                <button type="button" class="memo-item__btn" onclick={() => exportMemo(memo.id)} title={_t("commonDownload", "Download")}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 </button>
                 <button type="button" class="memo-item__btn memo-item__btn--danger" onclick={() => deleteMemo(memo.id)} title={_t("commonDelete", "Delete")}>
                   <Trash2Icon size={15} />
@@ -346,8 +546,10 @@
 
   :global(.memo-shell__intro) h1 {
     margin: 0;
-    font-size: clamp(1.8rem, 3vw, 2.8rem);
-    line-height: 1.04;
+    font-size: clamp(1.7rem, 2.5vw, 2.6rem);
+    line-height: 1.05;
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
   }
 
   :global(.memo-shell__intro) p {
@@ -389,12 +591,6 @@
     background: var(--memo-accent);
     transition: transform 0.08s;
     transform-origin: bottom;
-    animation: memo-level 0.6s ease-in-out infinite alternate;
-  }
-
-  @keyframes memo-level {
-    0% { opacity: 0.6; }
-    100% { opacity: 1; }
   }
 
   :global(.memo-recording-info) {
@@ -476,9 +672,10 @@
     padding: 40px 20px;
   }
 
-  :global(.memo-state-icon) { font-size: 48px; }
+  :global(.memo-state-icon) { display: flex; color: var(--memo-muted); }
   :global(.memo-state-title) { font-size: 18px; font-weight: 600; margin: 0; }
   :global(.memo-state-desc) { font-size: 14px; color: var(--memo-muted); margin: 0; }
+  :global(.memo-error-actions) { display: flex; gap: 8px; margin-top: 12px; }
 
   :global(.memo-shell__body),
   :global(.memo-panel),
@@ -514,6 +711,22 @@
   :global(.memo-item__info) { display: flex; flex-direction: column; gap: 1px; }
   :global(.memo-item__title) { font-size: 14px; font-weight: 600; }
   :global(.memo-item__meta) { font-size: 12px; color: var(--memo-muted); }
+
+  :global(.memo-item--playing) { border-color: var(--memo-accent); }
+
+  :global(.memo-item__progress) { margin-top: 3px; }
+  :global(.memo-item__progress-track) {
+    height: 3px;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--memo-border) 72%, transparent);
+    overflow: hidden;
+  }
+  :global(.memo-item__progress-fill) {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--memo-accent);
+    transition: width 0.2s linear;
+  }
 
   :global(.memo-item__actions) { display: flex; gap: 2px; }
 

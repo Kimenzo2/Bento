@@ -2,16 +2,12 @@ export type AppLaunchIconName =
   | "activity"
   | "book-heart"
   | "bot"
-  | "brain"
   | "clipboard-list"
-  | "clock-4"
   | "droplets"
   | "file-text"
-  | "gauge"
   | "hourglass"
   | "layout-dashboard"
   | "layout-grid"
-  | "library"
   | "mic"
   | "moon"
   | "settings"
@@ -21,9 +17,7 @@ export type AppLaunchIconName =
   | "target"
   | "timer"
   | "trophy"
-  | "utensils-crossed"
-  | "wallet"
-  | "wind";
+  | "wallet";
 
 export const shellNativeModuleIds = ["dashboard", "notes", "ai", "settings"] as const;
 
@@ -38,9 +32,7 @@ export const starterModuleIds = [
   "nutrition",
   "mood",
   "budget",
-  "flashcards",
   "grocery",
-  "recipes",
   "goals",
   "clipboard",
   "voice-memos",
@@ -60,9 +52,7 @@ export const moduleIdValues = [
   "nutrition",
   "mood",
   "budget",
-  "flashcards",
   "grocery",
-  "recipes",
   "goals",
   "clipboard",
   "voice-memos",
@@ -73,9 +63,6 @@ export const moduleIdValues = [
 
 /** Modules awaiting polish — hidden from launcher, switcher, and tabs dropdown. */
 export const hiddenModuleIds = new Set<string>([
-  "recipes",
-  "grocery",
-  "flashcards",
   "ai",
 ]);
 
@@ -229,40 +216,9 @@ const starterSidebarSpecs = {
       { label: "Export", icon: "download" },
     ],
   },
-  flashcards: {
-    sectionLabel: "Flashcards",
-    items: [
-      { label: "Decks", icon: "layers" },
-      { label: "Due Today", icon: "calendar-days" },
-      { label: "Learn", icon: "brain" },
-      { label: "Cram", icon: "zap" },
-      { label: "Generate", icon: "sparkles" },
-      { label: "Progress", icon: "trending-up" },
-    ],
-  },
-  grocery: {
-    sectionLabel: "Grocery",
-    items: [
-      { label: "List", icon: "list-checks" },
-      { label: "Shared", icon: "users" },
-      { label: "Sections", icon: "layout-grid" },
-      { label: "Recipes", icon: "utensils-crossed" },
-      { label: "Prices", icon: "tag" },
-      { label: "Export", icon: "download" },
-    ],
-  },
-  recipes: {
-    sectionLabel: "Recipes",
-    items: [
-      { label: "Recipes", icon: "utensils-crossed" },
-      { label: "Discover", icon: "compass" },
-      { label: "Import", icon: "upload" },
-      { label: "Cook Mode", icon: "cooking-pot" },
-      { label: "Meal Plan", icon: "calendar-check" },
-      { label: "Shopping", icon: "shopping-cart" },
-      { label: "Export", icon: "download" },
-    ],
-  },
+
+
+
   goals: {
     sectionLabel: "Goals",
     items: [
@@ -563,62 +519,7 @@ const starterModules = [
       launchBg: "#6b1f0a",
     },
     sidebar: starterSidebarSpecs.budget,
-  },
-  {
-    id: "flashcards",
-    name: "Flashcards / Study",
-    navLabel: "Flashcards",
-    subtitle: "Bento-native cue cards for Focus, Recipes, Health, and everyday memory.",
-    route: "/apps/flashcards",
-    host: "starter",
-    installKind: "builtin",
-    launch: {
-      id: "flashcards",
-      name: "Flashcards",
-      tagline: "Study with memory",
-      icon: "brain",
-      accentColor: "#6d5ce7",
-      launchBg: "#2f247f",
-    },
-    sidebar: starterSidebarSpecs.flashcards,
-  },
-  {
-    id: "grocery",
-    name: "Grocery / Shopping",
-    navLabel: "Grocery",
-    subtitle: "Shared lists, store sections, quick capture, and recipe-to-list conversion.",
-    route: "/apps/grocery",
-    host: "starter",
-    installKind: "builtin",
-    launch: {
-      id: "grocery",
-      name: "Grocery",
-      tagline: "Shop with clarity",
-      icon: "shopping-cart",
-      accentColor: "#22c55e",
-      launchBg: "#064e3b",
-    },
-    sidebar: starterSidebarSpecs.grocery,
-  },
-  {
-    id: "recipes",
-    name: "Recipe Manager",
-    navLabel: "Recipes",
-    subtitle: "Recipe import, cooking mode, meal planning, and shopping generation.",
-    route: "/apps/recipes",
-    host: "starter",
-    installKind: "builtin",
-    launch: {
-      id: "recipes",
-      name: "Recipes",
-      tagline: "Cook with structure",
-      icon: "utensils-crossed",
-      accentColor: "#d4a017",
-      launchBg: "#4a3308",
-    },
-    sidebar: starterSidebarSpecs.recipes,
-  },
-  {
+  },  {
     id: "goals",
     name: "Goal Tracker",
     navLabel: "Goals",

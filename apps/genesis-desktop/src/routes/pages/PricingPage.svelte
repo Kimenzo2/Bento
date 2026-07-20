@@ -11,7 +11,7 @@
   import { authStore } from "$lib/stores/auth.store";
   import { openExternal } from "$lib/desktop/open-external";
   import { time } from "$lib/utils/time";
-  import { trackPageView, trackEvent } from "$lib/ipc";
+  // Event tracking removed — previously routed to LogRocket
   import { sanitizeError } from "$lib/utils/logger";
 
   let _t = $derived.by(() => createTranslator($activeBundle));
@@ -192,7 +192,6 @@
   let unlistenBilling: (() => void) | null = null;
 
   onMount(() => {
-    trackPageView("pricing");
     void loadBillingProfile();
 
     // Listen for real-time billing updates from Rust backend (Anytype event pattern).
@@ -265,16 +264,6 @@
     return;
   }
 
-    // ── LogRocket: track upgrade attempt (forced error on failure) ──
-    trackEvent("pricing", "upgrade_clicked", {
-      tier: tier.key,
-      planName: tier.name,
-      billingPeriod,
-      currentTier,
-      currentTierRank,
-      targetRank,
-    });
-
     const planCode = billingPeriod === "yearly" ? tier.planCodes.yearly : tier.planCodes.monthly;
     const pricingBase = import.meta.env.DEV ? "http://localhost:3000/pricing" : "https://iamazeyou.me/pricing";
     const emailParam = desktopAccountEmail ? `&email=${encodeURIComponent(desktopAccountEmail)}` : "";
@@ -314,16 +303,6 @@
       }
     } catch (error) {
       console.error("Checkout failed:", error);
-      // ── Forced LogRocket error: Upgrade failure generates a real error event ──
-      const lrError = new Error(`UPGRADE_FAILED: ${tier.key} ${billingPeriod} — ${error instanceof Error ? error.message : String(error)}`);
-      trackEvent("pricing", "upgrade_error", {
-        tier: tier.key,
-        billingPeriod,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      // Force LogRocket to capture as a real exception for instrumentation purposes
-      const LR = (window as any).__LR;
-      LR?.captureException?.(lrError, { extra: { tier: tier.key, billingPeriod, currentTier } });
       const raw =
         typeof error === "string"
           ? error
@@ -340,14 +319,11 @@
   // live in the desktop app.
   async function handleManageBilling() {
     if (openingBillingPortal) return;
-    trackEvent("pricing", "manage_billing");
     openingBillingPortal = true;
     try {
       await openExternal(import.meta.env.DEV ? "http://localhost:3000/pricing" : "https://iamazeyou.me/pricing");
-      trackEvent("pricing", "manage_billing_opened");
     } catch (error) {
       console.error("Billing portal failed:", error);
-      trackEvent("pricing", "manage_billing_error", { error: String(error) });
       const raw =
         typeof error === "string"
           ? error

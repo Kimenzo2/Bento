@@ -32,15 +32,17 @@ use crate::util::time;
 
 pub mod bookmarks;
 
+use tracing::info;
+
 // ─── Instrumentation ─────────────────────────────────────────────────────────
 fn log_timing(category: &str, op: &str, start: Instant, detail: impl std::fmt::Display) {
     let ms = start.elapsed().as_secs_f64() * 1000.0;
     if ms > 100.0 {
-        eprintln!("\u{26a0} [{category}] {op} took {ms:.1}ms — {detail}");
+        info!("\u{26a0} [{category}] {op} took {ms:.1}ms — {detail}");
     } else if ms > 10.0 {
-        eprintln!("[{category}] {op} took {ms:.1}ms — {detail}");
+        info!("[{category}] {op} took {ms:.1}ms — {detail}");
     } else {
-        eprintln!("[{category}] {op} took {ms:.3}ms — {detail}");
+        info!("[{category}] {op} took {ms:.3}ms — {detail}");
     }
 }
 
@@ -89,32 +91,41 @@ static SENSITIVE_PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
 
     vec![
         // Stripe / payment API keys
-        Regex::new(r"(?i)(sk_live_|pk_live_|sk_test_|pk_test_)[A-Za-z0-9]{24,}").unwrap(),
+        // Static regex patterns — these are compile-time verified strings.
+        // If any pattern is invalid, the program fails early at startup.
+        Regex::new(r"(?i)(sk_live_|pk_live_|sk_test_|pk_test_)[A-Za-z0-9]{24,}")
+            .expect("hardcoded Stripe API key pattern is valid"),
         // AWS access keys
-        Regex::new(r"(?i)AKIA[0-9A-Z]{16}").unwrap(),
+        Regex::new(r"(?i)AKIA[0-9A-Z]{16}")
+            .expect("hardcoded AWS access key pattern is valid"),
         // AWS secret keys
         Regex::new(&format!(
             r"(?i)(aws_secret_access_key|aws_secret_key)\s*[:=]\s*['{}]?[A-Za-z0-9/+=]{{40}}", q()
         ))
-        .unwrap(),
+        .expect("hardcoded AWS secret key pattern is valid"),
         // Generic API keys (bearer tokens, x-api-key, etc.)
         Regex::new(&format!(
             r"(?i)(bearer|token|api[_-]?key|secret|password)\s*[:=]\s*['{}]?[A-Za-z0-9_\-./+=]{{20,}}", q()
         ))
-        .unwrap(),
+        .expect("hardcoded API key pattern is valid"),
         // JWT tokens (base64url-encoded JSON)
-        Regex::new(r"(eyJ[A-Za-z0-9_\-]+\.eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)").unwrap(),
+        Regex::new(r"(eyJ[A-Za-z0-9_\-]+\.eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)")
+            .expect("hardcoded JWT pattern is valid"),
         // SSH private keys
-        Regex::new(r"-----BEGIN (RSA|DSA|EC|OPENSSH|PRIVATE) KEY-----").unwrap(),
+        Regex::new(r"-----BEGIN (RSA|DSA|EC|OPENSSH|PRIVATE) KEY-----")
+            .expect("hardcoded SSH key pattern is valid"),
         // GitHub tokens
-        Regex::new(r"(?i)(ghp_|gho_|ghu_|ghs_|ghr_)[A-Za-z0-9_]{36}").unwrap(),
+        Regex::new(r"(?i)(ghp_|gho_|ghu_|ghs_|ghr_)[A-Za-z0-9_]{36}")
+            .expect("hardcoded GitHub token pattern is valid"),
         // Credit card numbers — pre-filter with regex, then Luhn-validate
         // The regex eagerly catches potential digit sequences; Luhn check in
         // is_sensitive_content() filters out false positives like timestamps / OTP codes.
-        Regex::new(r"\b(?:\d[ -]*?){13,19}\b").unwrap(),
+        Regex::new(r"\b(?:\d[ -]*?){13,19}\b")
+            .expect("hardcoded CC number pattern is valid"),
         // Environment variable exports with secrets
         // Note: avoids look-around (not supported by Rust regex crate)
-        Regex::new(r"export\s+[A-Z_]+=.{32,}").unwrap(),
+        Regex::new(r"export\s+[A-Z_]+=.{32,}")
+            .expect("hardcoded env var pattern is valid"),
     ]
 });
 
@@ -733,7 +744,7 @@ async fn index_clip_entry(app: &AppHandle, entry: &ClipEntry) {
             }),
         };
         if let Err(e) = search.index_content(doc).await {
-            eprintln!("[clipboard] Tantivy index failed: {e}");
+            info!("[clipboard] Tantivy index failed: {e}");
         }
     }
 }
@@ -1358,7 +1369,7 @@ pub async fn clipboard_search(
                 }
             }
             Err(e) => {
-                eprintln!("[clipboard] Tantivy search failed, falling back to LIKE: {e}");
+                info!("[clipboard] Tantivy search failed, falling back to LIKE: {e}");
             }
         }
     }
@@ -1598,9 +1609,9 @@ pub async fn clipboard_copy(
                     let rgba = img.into_raw();
                     let output_size = rgba.len();
                     let image_obj = tauri::image::Image::new(&rgba, width, height);
-                    eprintln!("[Clipboard::Copy] decoded {}x{} PNG → {} RGBA in {decode_ms:.1}ms", width, height, output_size);
+                    info!("[Clipboard::Copy] decoded {}x{} PNG → {} RGBA in {decode_ms:.1}ms", width, height, output_size);
                     if decode_ms > 50.0 {
-                        eprintln!("\u{26a0} [Clipboard::Copy] SLOW image decode: {decode_ms:.1}ms for {}x{}", width, height);
+                        info!("\u{26a0} [Clipboard::Copy] SLOW image decode: {decode_ms:.1}ms for {}x{}", width, height);
                     }
                     app_clone.clipboard()
                         .write_image(&image_obj)
@@ -2029,7 +2040,7 @@ pub async fn auto_prune_clipboard(app: &AppHandle, pool: &sqlx::SqlitePool) -> i
     {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("[clipboard::prune] count failed: {e}");
+            info!("[clipboard::prune] count failed: {e}");
             return 0;
         }
     };
@@ -2040,11 +2051,10 @@ pub async fn auto_prune_clipboard(app: &AppHandle, pool: &sqlx::SqlitePool) -> i
     }
 
     let excess = total - MAX_CLIPBOARD_ITEMS;
-    eprintln!(
+    info!(
         "[clipboard::prune] total={total}, max={MAX_CLIPBOARD_ITEMS}, excess={excess}, removing oldest unpinned..."
     );
-
-    // Collect hashes of items that will be deleted (for file cleanup)
+    // Collect hashes of items that will be deleted (for file cleanup);
     let hashes: Vec<String> = match sqlx::query_scalar(
         "SELECT content_hash FROM clipboard_items WHERE pinned = 0 AND favorite = 0 \
          ORDER BY created_at ASC LIMIT ?"
@@ -2055,7 +2065,7 @@ pub async fn auto_prune_clipboard(app: &AppHandle, pool: &sqlx::SqlitePool) -> i
     {
         Ok(h) => h,
         Err(e) => {
-            eprintln!("[clipboard::prune] hash query failed: {e}");
+            info!("[clipboard::prune] hash query failed: {e}");
             return 0;
         }
     };
@@ -2071,7 +2081,7 @@ pub async fn auto_prune_clipboard(app: &AppHandle, pool: &sqlx::SqlitePool) -> i
     {
         Ok(i) => i,
         Err(e) => {
-            eprintln!("[clipboard::prune] id query failed: {e}");
+            info!("[clipboard::prune] id query failed: {e}");
             return 0;
         }
     };
@@ -2092,8 +2102,7 @@ pub async fn auto_prune_clipboard(app: &AppHandle, pool: &sqlx::SqlitePool) -> i
     {
         Ok(r) => {
             let deleted = r.rows_affected() as i64;
-            eprintln!("[clipboard::prune] deleted {deleted} items");
-
+            info!("[clipboard::prune] deleted {deleted} items");
             // Clean up Tantivy index for each deleted item
             if let Some(search) = app.try_state::<SearchService>() {
                 for id in &ids {
@@ -2121,7 +2130,7 @@ pub async fn auto_prune_clipboard(app: &AppHandle, pool: &sqlx::SqlitePool) -> i
             deleted
         }
         Err(e) => {
-            eprintln!("[clipboard::prune] delete failed: {e}");
+            info!("[clipboard::prune] delete failed: {e}");
             0
         }
     }
@@ -2340,10 +2349,10 @@ async fn clipboard_poller_task(app: AppHandle) {
                         ));
                     }
                     Err(mpsc::error::TrySendError::Full(_)) => {
-                        eprintln!("[clipboard] channel full, skipping HTML change (backpressure)");
+                        info!("[clipboard] channel full, skipping HTML change (backpressure)");
                     }
                     Err(mpsc::error::TrySendError::Closed(_)) => {
-                        eprintln!("[clipboard] writer channel closed, stopping poller");
+                        info!("[clipboard] writer channel closed, stopping poller");
                         break;
                     }
                 }
@@ -2355,7 +2364,7 @@ async fn clipboard_poller_task(app: AppHandle) {
 
 /// Writer task: receives clipboard changes and saves them to the DB.
 /// Every change is saved individually — no batch-drain merging that could
-/// silently discard items. Rapid copies (including mixed text/image/html)
+/// silently discard items. Rapid copies (including mixed text/image/html);
 /// are all persisted; dedup by content_hash prevents redundant DB writes.
 async fn clipboard_writer_task(app: AppHandle, mut save_rx: mpsc::Receiver<ClipboardChange>) {
     let mut total_processed = 0u64;
@@ -2379,18 +2388,18 @@ async fn clipboard_writer_task(app: AppHandle, mut save_rx: mpsc::Receiver<Clipb
             if let Some(ref img_bytes) = ch.image_data {
                 if !img_bytes.is_empty() {
                     if let Err(e) = save_clipboard_image_entry(&app, &state, img_bytes).await {
-                        eprintln!("[clipboard] failed to save image entry: {e}");
+                        info!("[clipboard] failed to save image entry: {e}");
                     }
                 }
             } else if let Some(ref html) = ch.html_data {
                 if !html.is_empty() {
                     if let Err(e) = save_clipboard_entry(&app, &state, html).await {
-                        eprintln!("[clipboard] failed to save HTML entry: {e}");
+                        info!("[clipboard] failed to save HTML entry: {e}");
                     }
                 }
             } else if !ch.content.is_empty() {
                 if let Err(e) = save_clipboard_entry(&app, &state, &ch.content).await {
-                    eprintln!("[clipboard] failed to save clipboard entry: {e}");
+                    info!("[clipboard] failed to save clipboard entry: {e}");
                 }
             }
         }
@@ -2407,12 +2416,12 @@ async fn clipboard_writer_task(app: AppHandle, mut save_rx: mpsc::Receiver<Clipb
         }
 
         if save_ms > 50.0 {
-            eprintln!("\u{26a0} [Clipboard::Writer] batch #{total_processed}: {batch_size} changes, save took {save_ms:.1}ms (total_save_time={:.1}s)",
+            info!("\u{26a0} [Clipboard::Writer] batch #{total_processed}: {batch_size} changes, save took {save_ms:.1}ms (total_save_time={:.1}s)",
                 total_save_time.as_secs_f64());
         }
 
         let batch_ms = _batch_start.elapsed().as_secs_f64() * 1000.0;
-        eprintln!("[Clipboard::Writer] batch #{total_processed}: {batch_size} changes, {batch_ms:.1}ms total");
+        info!("[Clipboard::Writer] batch #{total_processed}: {batch_size} changes, {batch_ms:.1}ms total");
     }
 }
 
@@ -2429,13 +2438,12 @@ async fn read_system_clipboard_image(app: &AppHandle) -> Option<Vec<u8>> {
                 Ok(img) => {
                     let rgba = img.rgba();
                     let width = img.width();
-                    let height = img.height();
-                    if rgba.is_empty()
-                        || width == 0
-                        || height == 0
-                        || width > 16384
-                        || height > 16384
-                    {
+                    let height = img.height();if rgba.is_empty()
+    || width == 0
+    || height == 0
+    || width > 16384
+    || height > 16384
+{
                         return None;
                     }
                     // Encode RGBA pixels to PNG bytes

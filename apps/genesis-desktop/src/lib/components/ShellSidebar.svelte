@@ -3,7 +3,7 @@
   import BarChart3Icon from "@lucide/svelte/icons/bar-chart-3";
   import BookOpenIcon from "@lucide/svelte/icons/book-open";
   import FolderOpenIcon from "@lucide/svelte/icons/folder-open";
-  import ImageIcon from "@lucide/svelte/icons/image";
+
   import LayoutDashboardIcon from "@lucide/svelte/icons/layout-dashboard";
   import PackageIcon from "@lucide/svelte/icons/package";
   import SettingsIcon from "@lucide/svelte/icons/settings";
@@ -48,7 +48,6 @@
     { key: "project" as const, label: _t('navProjectView'), path: `/project/${demoProjects[0].id}`, icon: FolderOpenIcon },
     { key: "lifeInColour" as const, label: _t('navAssetManager'), path: "/life-in-colour", icon: SparklesIcon },
     { key: "notes" as const, label: "Notes", path: "/notes", icon: BookOpenIcon },
-    { key: "visualStudio" as const, label: _t('navVisualStudio'), path: "/visual-studio", icon: ImageIcon },
     { key: "export" as const, label: _t('navExport'), path: "/export", icon: PackageIcon },
     { key: "infographics" as const, label: _t('navInfographics'), path: "/infographics", icon: BarChart3Icon },
     { key: "gamification" as const, label: _t('navRewards'), path: "/gamification", icon: TrophyIcon },
@@ -60,6 +59,7 @@
 
   /** Map of icon name strings → Lucide Svelte components for sidebar nav items */
   import HistoryIcon from "@lucide/svelte/icons/history";
+  import ImageIcon from "@lucide/svelte/icons/image";
   import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
   import Grid3X3Icon from "@lucide/svelte/icons/grid-3x3";
   import LayersIcon from "@lucide/svelte/icons/layers";

@@ -84,29 +84,32 @@ const sections: LegalSection[] = [
 
         <Sub>Information Collected Automatically</Sub>
         <P>
-          When you use Bento, certain information is collected automatically to operate and improve
-          the service:
+          Bento is designed with a local-first, privacy-first architecture. The desktop app
+          does not collect any usage analytics, telemetry, or tracking data.
+        </P>
+        <P>
+          The only automatic data collection happens on our marketing website (iamazeyou.me):
         </P>
         <DashList
           items={[
             <>
-              <B>Usage data</B>: which mini-apps you use, how often, session duration, and features
-              you interact with
+              <B>Vercel Analytics</B>: anonymised, cookie-free page view data to understand which
+              pages are visited. No personal data is collected
             </>,
             <>
-              <B>Technical data</B>: browser type and version, device type, operating system, IP
-              address, referring URL, and screen resolution
+              <B>Vercel Speed Insights</B>: anonymised website performance metrics (load times,
+              Core Web Vitals) to ensure the site is fast. No personal data is collected
             </>,
             <>
               <B>Cookies and local storage</B>: session management tokens, authentication state, and
               theme preferences stored in your browser
             </>,
-            <>
-              <B>Performance data</B>: page load times, error logs, and rendering performance
-              metrics used to maintain service quality
-            </>,
           ]}
         />
+        <P>
+          The desktop app itself sends no telemetry, usage statistics, or performance data. Crash
+          reports are opt-in only and disabled by default.
+        </P>
 
         <Sub>Information From Third Parties</Sub>
         <DashList
@@ -144,9 +147,9 @@ const sections: LegalSection[] = [
 
         <Sub>To Improve Bento</Sub>
         <P>
-          We analyse aggregated and anonymised usage patterns to understand how people use the app,
-          identify technical issues before they affect you, improve existing mini-apps, and develop
-          features that serve real needs.
+          We review anonymised website analytics from Vercel to understand how visitors
+          interact with our marketing site. The desktop app itself sends no usage data.
+          Feature improvements are guided by user feedback and direct support requests.
         </P>
 
         <Sub>To Communicate With You</Sub>
@@ -205,8 +208,13 @@ const sections: LegalSection[] = [
           to generate a response.
         </P>
         <P>
-          We take steps to minimise the personal information included in AI requests. However,
-          because you control what you type, we strongly recommend that you{' '}
+          <B>Bento uses a Bring Your Own Key (BYOK) model for AI providers.</B> You provide your
+          own API keys (OpenAI, Anthropic, Grok, Gemini, or OpenRouter), and AI requests are sent
+          directly from your machine to the provider you choose. Bento never has access to your
+          API keys or the content of your AI conversations.
+        </P>
+        <P>
+          Because you control what you type, we strongly recommend that you{' '}
           <B>do not include sensitive personal information</B> &mdash; such as real addresses,
           financial details, or medical information &mdash; in your AI chat messages.
         </P>
@@ -274,8 +282,9 @@ const sections: LegalSection[] = [
               is removed from active systems within 30 days. Backup copies are purged within 90 days
             </>,
             <>
-              <B>Anonymised usage analytics</B>: retained for up to 24 months for product
-              improvement purposes. This data cannot be linked back to individual users
+              <B>Website analytics</B>: anonymised page view data collected by Vercel Analytics
+              is retained by Vercel per their data retention policy. This data cannot be linked
+              back to individual users. The desktop app retains no usage analytics
             </>,
             <>
               <B>Payment records</B>: retained as required by applicable financial regulations,
@@ -382,8 +391,9 @@ const sections: LegalSection[] = [
               storage. You can clear these through your browser settings
             </>,
             <>
-              <B>Analytics</B>: if used, we collect anonymised usage metrics to understand how the
-              website is used. You may opt out through your account settings
+              <B>Website analytics</B>: we use Vercel Analytics on our marketing website
+              (iamazeyou.me) to collect anonymised page view data. This is cookie-free and
+              does not track individual users. You can opt out via browser extensions
             </>,
           ]}
         />

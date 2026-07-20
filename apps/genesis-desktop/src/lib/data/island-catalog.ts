@@ -79,7 +79,6 @@ const QUICK_ACTIONS: Record<string, IslandAction[]> = {
   passwords: [{ label: "Search Vault", icon: "search", action: "open:/apps/passwords" }],
   "voice-memos": [{ label: "Record", icon: "mic", action: "open:/apps/voice-memos?record" }],
   countdown: [{ label: "New Event", icon: "plus", action: "open:/apps/countdown?new" }],
-  recipes: [{ label: "Cook Mode", icon: "utensils-crossed", action: "open:/apps/recipes?cook" }],
   clipboard: [{ label: "History", icon: "clipboard-list", action: "open:/apps/clipboard" }],
   notes: [{ label: "New Note", icon: "file-plus", action: "open:/notes?new" }],
 };
@@ -149,13 +148,6 @@ const WIDGETS: Record<string, WidgetContent> = {
     width: "md",
   },
   countdown: { layout: "countdown", primary: "12d 4h", secondary: "until launch", width: "sm" },
-  recipes: {
-    layout: "stat",
-    primary: "12",
-    secondary: "saved recipes",
-    unit: "recipes",
-    width: "sm",
-  },
   clipboard: {
     layout: "list",
     primary: "Recent copy",
@@ -172,7 +164,7 @@ const WIDGETS: Record<string, WidgetContent> = {
   },
 };
 
-const ISLAND_EXCLUDED_IDS = new Set(["settings", "dashboard", "flashcards", "ai", "grocery"]);
+const ISLAND_EXCLUDED_IDS = new Set(["settings", "dashboard", "ai"]);
 
 export const islandItems: IslandItem[] = moduleCatalog
   .filter((m) => !ISLAND_EXCLUDED_IDS.has(m.id))

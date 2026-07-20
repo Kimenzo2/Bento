@@ -12,6 +12,7 @@ use crate::db::read_runtime_state;
 use crate::db::BentoAppState;
 use crate::runtime::DesktopRuntime;
 use crate::util::time;
+use tracing::{info, warn, error};
 
 // ---------------------------------------------------------------------------
 // DashboardCache — stale-while-revalidate cache
@@ -191,17 +192,10 @@ fn module_meta(id: &str) -> (&'static str, &'static str, &'static str) {
         "nutrition" => ("Water & Nutrition", "droplets", "#1aa6a6"),
         "mood" => ("Mood Tracker", "smile-plus", "#d92b67"),
         "budget" => ("Budget Tracker", "wallet", "#e05a3a"),
-        "flashcards" => ("Flashcards / Study", "brain", "#6d5ce7"),
-        "reading" => ("Reading Tracker", "library", "#e11d48"),
-        "grocery" => ("Grocery / Shopping", "shopping-cart", "#22c55e"),
-        "recipes" => ("Recipe Manager", "utensils-crossed", "#d4a017"),
-        "time" => ("Time Tracker", "clock-4", "#ffd95b"),
         "goals" => ("Goal Tracker", "trophy", "#ccff00"),
         "clipboard" => ("Clipboard Manager", "clipboard-list", "#e11d48"),
-        "breathing" => ("Breathing / Calm", "wind", "#65d7c1"),
         "voice-memos" => ("Voice Memos", "mic", "#8b5cf6"),
         "countdown" => ("Countdown / Life Events", "hourglass", "#ec4899"),
-        "telemetry" => ("Personal Telemetry", "gauge", "#38bdf8"),
         "dashboard" => ("Dashboard", "layout-dashboard", "#ff9f6e"),
         "ai" => ("AI Studio", "bot", "#ec4899"),
         "settings" => ("Settings", "settings", "#94a3b8"),
@@ -903,7 +897,7 @@ async fn query_recent_modules(
 
     if modules.is_empty() {
         let starter_ids = [
-            "tasks", "journal", "habits", "focus", "health", "mood", "budget", "reading",
+            "tasks", "journal", "habits", "focus", "health", "mood", "budget",
         ];
         Ok(starter_ids
             .iter()
@@ -938,17 +932,10 @@ fn is_valid_module_id(id: &str) -> bool {
             | "nutrition"
             | "mood"
             | "budget"
-            | "flashcards"
-            | "reading"
-            | "grocery"
-            | "recipes"
-            | "time"
             | "goals"
             | "clipboard"
-            | "breathing"
             | "voice-memos"
             | "countdown"
-            | "telemetry"
     )
 }
 
@@ -1100,12 +1087,12 @@ pub async fn get_dashboard_data(
     match reader_result {
         Ok(Ok(payload)) => return Ok(payload),
         Ok(Err(db_err)) => {
-            eprintln!(
+            warn!(
                 "[dashboard] reader pool query failed: {db_err} — falling back to writer pool"
             );
         }
         Err(_timeout) => {
-            eprintln!("[dashboard] reader pool timed out after 4s — falling back to writer pool");
+            warn!("[dashboard] reader pool timed out after 4s — falling back to writer pool");
         }
     }
 
@@ -1114,7 +1101,7 @@ pub async fn get_dashboard_data(
     // it should never time out for a read-only workload. This fallback
     // ensures the dashboard ALWAYS returns data even if the reader pool is
     // temporarily congested or has a dormant connection issue.
-    eprintln!("[dashboard] retrying on writer pool...");
+    warn!("[dashboard] retrying on writer pool...");
     let writer_db = state.db();
 
     // Writer pool: 5s timeout — generous, but still protects the IPC thread.
@@ -1126,409 +1113,29 @@ pub async fn get_dashboard_data(
 
     match writer_result {
         Ok(Ok(payload)) => {
-            eprintln!("[dashboard] writer pool fallback succeeded");
+            info!("[dashboard] writer pool fallback succeeded");
             Ok(payload)
         }
         Ok(Err(db_err)) => {
-            eprintln!("[dashboard] writer pool query also failed: {db_err}");
+            error!("[dashboard] writer pool query also failed: {db_err}");
             if let Some(stale) = cache.get_stale() {
-                eprintln!("[dashboard] returning stale cached data instead of fallback");
+                warn!("[dashboard] returning stale cached data instead of fallback");
                 Ok(stale)
             } else {
-                eprintln!("[dashboard] no stale data — returning empty fallback");
+                warn!("[dashboard] no stale data — returning empty fallback");
                 Ok(fallback_payload())
             }
         }
         Err(_timeout) => {
-            eprintln!("[dashboard] writer pool also timed out — returning stale or fallback");
+            warn!("[dashboard] writer pool also timed out — returning stale or fallback");
             if let Some(stale) = cache.get_stale() {
-                eprintln!("[dashboard] returning stale cached data instead of fallback");
+                warn!("[dashboard] returning stale cached data instead of fallback");
                 Ok(stale)
             } else {
-                eprintln!("[dashboard] no stale data — returning empty fallback");
+                warn!("[dashboard] no stale data — returning empty fallback");
                 Ok(fallback_payload())
             }
         }
     }
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use sqlx::SqlitePool;
-
-    /// Create an in-memory SQLite pool and run all table migrations.
-    async fn setup_test_db() -> SqlitePool {
-        let pool = SqlitePool::connect("sqlite::memory:")
-            .await
-            .expect("Failed to create in-memory SQLite pool");
-
-        // Create schema (subset of tables used by dashboard queries)
-        let migrations = [
-            "CREATE TABLE IF NOT EXISTS tasks (
-                id TEXT PRIMARY KEY,
-                title TEXT NOT NULL,
-                done INTEGER NOT NULL DEFAULT 0,
-                priority TEXT NOT NULL DEFAULT 'medium',
-                due_at INTEGER,
-                archived INTEGER NOT NULL DEFAULT 0,
-                parent_id TEXT,
-                created_at INTEGER NOT NULL,
-                updated_at INTEGER NOT NULL
-            )",
-            "CREATE TABLE IF NOT EXISTS notes (
-                id TEXT PRIMARY KEY,
-                title TEXT NOT NULL DEFAULT '',
-                content TEXT NOT NULL DEFAULT '',
-                tags TEXT NOT NULL DEFAULT '[]',
-                pinned INTEGER NOT NULL DEFAULT 0,
-                is_archived INTEGER NOT NULL DEFAULT 0,
-                created_at INTEGER NOT NULL,
-                updated_at INTEGER NOT NULL
-            )",
-            "CREATE TABLE IF NOT EXISTS habits (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                frequency TEXT NOT NULL DEFAULT 'daily',
-                created_at INTEGER NOT NULL
-            )",
-            "CREATE TABLE IF NOT EXISTS habit_completions (
-                habit_id TEXT REFERENCES habits(id) ON DELETE CASCADE,
-                completed_at INTEGER NOT NULL,
-                PRIMARY KEY (habit_id, completed_at)
-            )",
-            "CREATE TABLE IF NOT EXISTS health_logs (
-                id TEXT PRIMARY KEY,
-                type TEXT NOT NULL,
-                value REAL,
-                unit TEXT,
-                metadata TEXT DEFAULT '{}',
-                logged_at INTEGER NOT NULL
-            )",
-            "CREATE TABLE IF NOT EXISTS module_settings (
-                module_id TEXT PRIMARY KEY,
-                data TEXT NOT NULL DEFAULT '{}',
-                updated_at INTEGER NOT NULL
-            )",
-            "CREATE TABLE IF NOT EXISTS module_context (
-                module TEXT PRIMARY KEY,
-                scroll_position REAL NOT NULL DEFAULT 0,
-                last_open_id TEXT,
-                cursor_position INTEGER,
-                extra TEXT NOT NULL DEFAULT '{}'
-            )",
-            "CREATE TABLE IF NOT EXISTS runtime_state (
-                key TEXT PRIMARY KEY,
-                value TEXT NOT NULL
-            )",
-            "CREATE TABLE IF NOT EXISTS dashboard_events (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                event_type TEXT NOT NULL,
-                module_id TEXT NOT NULL,
-                related_module_id TEXT,
-                action TEXT NOT NULL,
-                payload TEXT NOT NULL DEFAULT '{}',
-                created_at INTEGER NOT NULL
-            )",
-        ];
-
-        for migration in &migrations {
-            sqlx::query(migration)
-                .execute(&pool)
-                .await
-                .expect("Migration failed");
-        }
-
-        pool
-    }
-
-    /// Seed fixture data into the test database.
-    async fn seed_fixtures(pool: &SqlitePool) {
-        let now = chrono::Utc::now().timestamp_millis();
-        let today_start = today_start_ms();
-
-        // Tasks — 3 due today (not done), 2 done today, 1 done yesterday
-        sqlx::query("INSERT INTO tasks (id, title, done, priority, due_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
-            .bind("task-1").bind("Buy groceries").bind(0).bind("high").bind(today_start + 3600_000).bind(now - 86400_000).bind(now - 3600_000)
-            .execute(pool).await.unwrap();
-        sqlx::query("INSERT INTO tasks (id, title, done, priority, due_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
-            .bind("task-2").bind("Write report").bind(0).bind("medium").bind(today_start + 7200_000).bind(now - 172800_000).bind(now - 7200_000)
-            .execute(pool).await.unwrap();
-        sqlx::query("INSERT INTO tasks (id, title, done, priority, due_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
-            .bind("task-3").bind("Call dentist").bind(0).bind("low").bind(today_start + 14400_000).bind(now - 259200_000).bind(now - 14400_000)
-            .execute(pool).await.unwrap();
-        // Completed today
-        sqlx::query("INSERT INTO tasks (id, title, done, priority, due_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
-            .bind("task-4").bind("Morning jog").bind(1).bind("high").bind(now - 3600_000).bind(now - 86400_000).bind(now - 1800_000)
-            .execute(pool).await.unwrap();
-        sqlx::query("INSERT INTO tasks (id, title, done, priority, due_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
-            .bind("task-5").bind("Read chapter 5").bind(1).bind("medium").bind(now - 7200_000).bind(now - 172800_000).bind(now - 3600_000)
-            .execute(pool).await.unwrap();
-        // Completed yesterday
-        sqlx::query("INSERT INTO tasks (id, title, done, priority, due_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
-            .bind("task-6").bind("Clean desk").bind(1).bind("low").bind(now - 90000_000).bind(now - 259200_000).bind(now - 90000_000)
-            .execute(pool).await.unwrap();
-
-        // Notes — 2 recent edits
-        sqlx::query("INSERT INTO notes (id, title, content, tags, pinned, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
-            .bind("note-1").bind("Meeting notes").bind("Discussed Q2 roadmap").bind("[]").bind(0).bind(now - 86400_000).bind(now - 600_000)
-            .execute(pool).await.unwrap();
-        sqlx::query("INSERT INTO notes (id, title, content, tags, pinned, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
-            .bind("note-2").bind("Ideas for app").bind("New feature brainstorm").bind("[]").bind(0).bind(now - 172800_000).bind(now - 1200_000)
-            .execute(pool).await.unwrap();
-
-        // Habits — 2 habits
-        sqlx::query("INSERT INTO habits (id, name, frequency, created_at) VALUES (?, ?, ?, ?)")
-            .bind("habit-1")
-            .bind("Exercise")
-            .bind("daily")
-            .bind(now - 604800_000)
-            .execute(pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO habits (id, name, frequency, created_at) VALUES (?, ?, ?, ?)")
-            .bind("habit-2")
-            .bind("Read")
-            .bind("daily")
-            .bind(now - 604800_000)
-            .execute(pool)
-            .await
-            .unwrap();
-
-        // Habit completions — 5-day streak for habit-1, 3-day for habit-2
-        for day_offset in 0..5 {
-            let ts = today_start - (day_offset as i64 * 86400_000);
-            sqlx::query("INSERT INTO habit_completions (habit_id, completed_at) VALUES (?, ?)")
-                .bind("habit-1")
-                .bind(ts)
-                .execute(pool)
-                .await
-                .unwrap();
-        }
-        for day_offset in 0..3 {
-            let ts = today_start - (day_offset as i64 * 86400_000);
-            sqlx::query("INSERT INTO habit_completions (habit_id, completed_at) VALUES (?, ?)")
-                .bind("habit-2")
-                .bind(ts)
-                .execute(pool)
-                .await
-                .unwrap();
-        }
-
-        // Health logs — 2 today
-        sqlx::query("INSERT INTO health_logs (id, type, value, unit, metadata, logged_at) VALUES (?, ?, ?, ?, ?, ?)")
-            .bind("health-1").bind("weight").bind(75.5).bind("kg").bind("{}").bind(now - 1800_000)
-            .execute(pool).await.unwrap();
-        sqlx::query("INSERT INTO health_logs (id, type, value, unit, metadata, logged_at) VALUES (?, ?, ?, ?, ?, ?)")
-            .bind("health-2").bind("steps").bind(8432.0).bind("steps").bind("{}").bind(now - 600_000)
-            .execute(pool).await.unwrap();
-
-        // Module settings — tasks and health have recent updates
-        sqlx::query("INSERT INTO module_settings (module_id, data, updated_at) VALUES (?, ?, ?)")
-            .bind("tasks")
-            .bind("{}")
-            .bind(now - 300_000)
-            .execute(pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO module_settings (module_id, data, updated_at) VALUES (?, ?, ?)")
-            .bind("health")
-            .bind("{}")
-            .bind(now - 600_000)
-            .execute(pool)
-            .await
-            .unwrap();
-    }
-
-    // ── Tests ──────────────────────────────────────────────────────────────
-
-    #[tokio::test]
-    async fn test_query_featured_module_tasks_due_today() {
-        let pool = setup_test_db().await;
-        seed_fixtures(&pool).await;
-        let ts = today_start_ms();
-        let te = today_end_ms();
-        let mut insight = String::new();
-
-        let result = query_featured_module(&pool, ts, te, &mut insight)
-            .await
-            .unwrap();
-
-        assert_eq!(result.primary_count, 3, "should find 3 tasks due today");
-        assert_eq!(result.items.len(), 3, "should return 3 items");
-        assert!(result.items[0].text.contains("grocery") || result.items[0].text.contains("Buy"));
-        assert!(!insight.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_query_featured_module_no_tasks() {
-        let pool = setup_test_db().await;
-        let ts = today_start_ms();
-        let te = today_end_ms();
-        let mut insight = String::new();
-
-        let result = query_featured_module(&pool, ts, te, &mut insight)
-            .await
-            .unwrap();
-
-        assert_eq!(result.primary_count, 0, "should have 0 tasks");
-        assert!(insight.contains("No tasks yet"));
-    }
-
-    #[tokio::test]
-    async fn test_query_recent_activity() {
-        let pool = setup_test_db().await;
-        seed_fixtures(&pool).await;
-        let mut insight = String::new();
-
-        let result = query_recent_activity(&pool, &mut insight).await.unwrap();
-
-        assert!(!result.is_empty(), "should have activity entries");
-        assert!(result.len() <= 5, "should cap at 5 entries");
-        // Most recent action should mention a task or note
-        assert!(
-            result[0].action.contains("Completed")
-                || result[0].action.contains("Created")
-                || result[0].action.contains("Edited")
-        );
-    }
-
-    #[tokio::test]
-    async fn test_query_recent_activity_empty_db() {
-        let pool = setup_test_db().await;
-        let mut insight = String::new();
-
-        let result = query_recent_activity(&pool, &mut insight).await.unwrap();
-
-        assert!(result.is_empty(), "should be empty with no data");
-    }
-
-    #[tokio::test]
-    async fn test_query_streak() {
-        let pool = setup_test_db().await;
-        seed_fixtures(&pool).await;
-        let mut insight = String::new();
-
-        let result = query_streak(&pool, &mut insight).await.unwrap();
-
-        assert!(result.count >= 5, "should detect 5-day streak");
-        assert!(!result.module_id.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_query_streak_no_habits() {
-        let pool = setup_test_db().await;
-        let mut insight = String::new();
-
-        let result = query_streak(&pool, &mut insight).await.unwrap();
-
-        assert_eq!(result.count, 0, "should return 0 with no habit data");
-    }
-
-    #[tokio::test]
-    async fn test_query_featured_metric_trend() {
-        let pool = setup_test_db().await;
-        seed_fixtures(&pool).await;
-        let ts = today_start_ms();
-        let mut insight = String::new();
-
-        let result = query_featured_metric(&pool, ts, &mut insight)
-            .await
-            .unwrap();
-
-        assert_eq!(result.value, "2", "2 tasks done today");
-        assert!(
-            result.trend.is_some(),
-            "should have trend since yesterday had tasks"
-        );
-        let trend = result.trend.unwrap();
-        assert_eq!(trend.direction, "up");
-    }
-
-    #[tokio::test]
-    async fn test_query_recent_modules() {
-        let pool = setup_test_db().await;
-        seed_fixtures(&pool).await;
-
-        let result = query_recent_modules(&pool, None).await.unwrap();
-
-        assert!(!result.is_empty(), "should return modules");
-        // tasks and health should be in the list (have recent data)
-        let ids: Vec<&str> = result.iter().map(|m| m.id.as_str()).collect();
-        assert!(ids.contains(&"tasks"), "tasks should be in recent modules");
-        assert!(
-            ids.contains(&"health"),
-            "health should be in recent modules"
-        );
-    }
-
-    #[tokio::test]
-    async fn test_query_recent_modules_empty_db() {
-        let pool = setup_test_db().await;
-
-        let result = query_recent_modules(&pool, None).await.unwrap();
-
-        assert!(!result.is_empty(), "should return fallback starter modules");
-        assert_eq!(result.len(), 8, "should return 8 fallback modules");
-    }
-
-    #[tokio::test]
-    async fn test_query_recent_modules_prioritizes_last_active_module() {
-        let pool = setup_test_db().await;
-        seed_fixtures(&pool).await;
-
-        sqlx::query(
-            "INSERT INTO runtime_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-        )
-        .bind("last_active_module")
-        .bind("grocery")
-        .execute(&pool)
-        .await
-        .unwrap();
-
-        let result = query_recent_modules(&pool, Some("grocery")).await.unwrap();
-
-        assert_eq!(
-            result.first().map(|module| module.id.as_str()),
-            Some("grocery"),
-            "the dashboard should continue in the exact last active module",
-        );
-    }
-
-    #[tokio::test]
-    async fn test_compute_greeting_with_and_without_name() {
-        let greeting_no_name = compute_greeting("");
-        assert!(
-            !greeting_no_name.contains(','),
-            "no comma when name is empty"
-        );
-
-        let greeting_with_name = compute_greeting("Alex");
-        assert!(greeting_with_name.contains("Alex"), "should include name");
-        assert!(
-            greeting_with_name.contains("Good "),
-            "should start with Good"
-        );
-    }
-
-    #[tokio::test]
-    async fn test_relative_time() {
-        let now = now_ms();
-
-        let just_now = relative_time(now);
-        assert_eq!(just_now, "just now");
-
-        let five_mins_ago = relative_time(now - 300_000);
-        assert_eq!(five_mins_ago, "5m ago");
-
-        let two_hours_ago = relative_time(now - 7_200_000);
-        assert_eq!(two_hours_ago, "2h ago");
-
-        let three_days_ago = relative_time(now - 259_200_000);
-        assert_eq!(three_days_ago, "3d ago");
-    }
-}

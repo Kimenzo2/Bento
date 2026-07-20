@@ -147,30 +147,17 @@ const sections: LegalSection[] = [
     content: (
       <>
         <P>
-          Bento uses a privacy-respecting analytics approach. If we collect analytics data, it is:
+          Our marketing website (iamazeyou.me) uses <B>Vercel Analytics</B>, a
+          privacy-first analytics service that collects anonymised, aggregated page view data.
+          Vercel Analytics does not use cookies and does not track individual users.
         </P>
-        <DashList
-          items={[
-            <>
-              <B>Anonymised by default</B>: IP addresses are anonymised at the earliest practical
-              point
-            </>,
-            <>
-              <B>Aggregated</B>: we look at trends and patterns, not individual behaviour
-            </>,
-            <>
-              <B>Opt-out available</B>: you can disable analytics in your account settings if you
-              prefer
-            </>,
-            <>
-              <B>No data sharing</B>: analytics data is used only by Bento and is not shared with
-              third parties for their own purposes
-            </>,
-          ]}
-        />
         <P>
-          Any analytics provider we use must operate under a data processing agreement that
-          prohibits them from using our analytics data for their own purposes.
+          We also use <B>Vercel Speed Insights</B> to measure website performance
+          metrics (load times, Core Web Vitals). This data is anonymised and aggregated.
+        </P>
+        <P>
+          The desktop app itself does not use any analytics. No usage data, telemetry, or
+          performance metrics are collected from the installed application.
         </P>
       </>
     ),

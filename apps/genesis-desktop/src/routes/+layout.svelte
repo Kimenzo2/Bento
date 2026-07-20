@@ -4,8 +4,7 @@
   import { onMount } from "svelte";
   import { get } from "svelte/store";
   import { page } from "$app/stores";
-  import LogRocket from "logrocket";
-  import { invoke, invokeWithTimeout, setLogRocketInstance, trackShortcut, trackEvent } from "$lib/ipc";
+  import { invoke, invokeWithTimeout } from "$lib/ipc";
   import { listen } from "@tauri-apps/api/event";
   import { isTauri } from "@tauri-apps/api/core";
   import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -59,15 +58,6 @@
     isIsland = windowKind === "island" || windowKind === "/island";
     isAgent = windowKind === "agent" || windowKind === "/agent";
     if (isIsland || isAgent) return;
-
-    // ── LogRocket session recording (diagnostics for IPC issues) ──
-    try {
-      LogRocket.init("itajip/palma");
-      setLogRocketInstance(LogRocket);
-      console.log("[LogRocket] initialized for app itajip/palma");
-    } catch (e) {
-      console.warn("[LogRocket] init failed:", e);
-    }
 
     // Enterprise polish — native-feel behaviors (context menu, zoom, etc.)
     initEnterprisePolish();
@@ -413,15 +403,11 @@
       if (!e.shiftKey) return;
       if (e.key === "A" || e.key === "a") {
         e.preventDefault();
-        trackShortcut("Ctrl+Shift+A");
-        trackEvent("shortcut", "toggle_agent");
-        console.log("[shortcut] Ctrl+Shift+A — agent toggle (tracked to LogRocket)");
+        console.log("[shortcut] Ctrl+Shift+A — agent toggle");
       }
       if (e.key === "D" || e.key === "d") {
         e.preventDefault();
-        trackShortcut("Ctrl+Shift+D");
-        trackEvent("shortcut", "toggle_island");
-        console.log("[shortcut] Ctrl+Shift+D — island toggle (tracked to LogRocket)");
+        console.log("[shortcut] Ctrl+Shift+D — island toggle");
       }
     }
 

@@ -210,7 +210,7 @@
               </span>
             </div>
             <div class="water-day-bar">
-              <div class="water-day-fill" style="width: {Math.min((day.total / dailyGoal) * 100, 100)}%"></div>
+              <div class="water-day-fill" style="width: {Math.min((day.total / dailyGoal) * 100, 100)}%" role="meter" aria-label="{new Date(day.date).toLocaleDateString(undefined, { weekday: 'long' })}: {day.total} of {dailyGoal} cups" aria-valuemin={0} aria-valuemax={dailyGoal} aria-valuenow={day.total}></div>
             </div>
           </div>
         {/each}

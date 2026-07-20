@@ -15,6 +15,7 @@ use std::sync::{
     atomic::{AtomicBool, AtomicU32, Ordering},
     mpsc, Arc, Mutex,
 };
+use tracing::info;
 use std::thread;
 use tauri::Emitter;
 
@@ -395,7 +396,7 @@ impl RecordingEngine {
                     }
                 },
                 move |err| {
-                    eprintln!("[audio] Stream error: {err}");
+                    info!("[audio] Stream error: {err}");
                     // Device was unplugged or lost — signal the monitoring loop to finalize.
                     // On macOS, cpal triggers DeviceNotAvailable when a USB mic is unplugged
                     // or an AirPod switches away. On Windows, this can happen with device removal.
@@ -407,7 +408,7 @@ impl RecordingEngine {
             ) {
                 Ok(stream) => stream,
                 Err(e) => {
-                    eprintln!("[audio] Failed to build input stream: {e}");
+                    info!("[audio] Failed to build input stream: {e}");
                     return;
                 }
             };
@@ -423,7 +424,7 @@ impl RecordingEngine {
             loop {
                 std::thread::sleep(std::time::Duration::from_millis(500));
 
-                // Sleep detection check (every ~2 seconds)
+                // Sleep detection check (every ~2 seconds);
                 sleep_check_count += 1;
                 if sleep_check_count % 4 == 0 {
                     let mut guard = session_arc.lock().unwrap_or_else(|e| e.into_inner());
@@ -433,7 +434,7 @@ impl RecordingEngine {
                         let drift = wall_clock_elapsed - monotonic_elapsed;
                         if drift > SLEEP_THRESHOLD_MS && !inner.sleep_detected {
                             inner.sleep_detected = true;
-                            eprintln!(
+                            info!(
                                 "[audio] Sleep detected mid-recording: drift={}ms (threshold={}ms)",
                                 drift, SLEEP_THRESHOLD_MS
                             );
@@ -493,7 +494,7 @@ impl RecordingEngine {
                             .execute(&db)
                             .await
                         }) {
-                            eprintln!("[audio] Failed to persist recording metadata: {e}");
+                            info!("[audio] Failed to persist recording metadata: {e}");
                         }
                     }
                     drop(guard);

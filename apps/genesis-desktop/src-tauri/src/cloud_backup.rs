@@ -125,8 +125,8 @@ struct StorageObjectMetadata {
 
 fn storage_key_for_module(module_id: &str) -> Option<&'static str> {
     match module_id {
-        "dashboard" | "settings" | "grocery" | "recipes" | "time" | "goals" | "clipboard"
-        | "breathing" | "voice-memos" | "countdown" | "telemetry" | "ai" => Some("app.db"),
+        "dashboard" | "settings" | "goals" | "clipboard"
+        | "voice-memos" | "countdown" | "ai" => Some("app.db"),
         "notes" => Some("notes.db"),
         "tasks" => Some("tasks.db"),
         "journal" => Some("journal.db"),
@@ -135,8 +135,7 @@ fn storage_key_for_module(module_id: &str) -> Option<&'static str> {
         "health" => Some("health.db"),
         "habits" => Some("habits.db"),
         "focus" => Some("focus.db"),
-        "flashcards" => Some("flashcards.db"),
-        "reading" => Some("reading.db"),
+
         _ => None,
     }
 }
@@ -152,17 +151,10 @@ fn default_module_ids() -> Vec<String> {
         "passwords",
         "health",
         "budget",
-        "flashcards",
-        "reading",
-        "grocery",
-        "recipes",
-        "time",
         "goals",
         "clipboard",
-        "breathing",
         "voice-memos",
         "countdown",
-        "telemetry",
         "ai",
         "settings",
     ]

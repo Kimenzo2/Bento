@@ -107,7 +107,30 @@ export const legalDocuments = [
   {
     id: "privacy",
     title: "Privacy",
-    summary: "How Bento stores project metadata, exports, and local AI traces.",
+    summary:
+      "Bento is a local-first desktop application. All your personal data — tasks, notes, journal entries, health logs, passwords, and clipboard history — is stored in encrypted SQLite databases on your device.\n\n" +
+      "What we collect:\n" +
+      "• Authentication: When you sign in with Google, we store your name, email, and avatar URL via Supabase. This is used only to identify you and sync your billing status.\n" +
+      "• Billing: Payment processing is handled by Paystack through your web browser. The desktop app never stores or transmits payment card details.\n" +
+      "• Crash reports: Optionally, if you opt in, anonymized crash diagnostics can be sent to help us fix bugs. This is disabled by default.\n" +
+      "• AI API calls: If you use AI features, your prompts and context are sent to the AI provider you choose (OpenAI, Anthropic, Gemini, Grok, or a local model via Ollama). You manage your own API keys.\n\n" +
+      "What we NEVER do:\n" +
+      "• No telemetry, analytics, or usage tracking (all tracking code was removed in v0.2.22)\n" +
+      "• No session recording or keystroke capture\n" +
+      "• No third-party cookies\n" +
+      "• No data mining or profiling\n" +
+      "• No sharing of your personal data with advertisers or data brokers\n" +
+      "• No cloud storage of your content (all data stays local on your device)\n\n" +
+      "Network connections:\n" +
+      "• Supabase (for authentication and billing profile sync)\n" +
+      "• AI provider APIs (only when you use AI features)\n" +
+      "• Update server (to check for app updates)\n" +
+      "• No other outbound connections — the app does not phone home or report usage statistics.\n\n" +
+      "Security:\n" +
+      "• All local databases are encrypted with SQLCipher using your master password.\n" +
+      "• Passwords are encrypted at rest with per-entry encryption keys.\n" +
+      "• The clipboard module includes on-device pattern detection to automatically flag and expire sensitive content (API keys, tokens, credit card numbers).\n" +
+      "• The MCP server requires an authentication token for all requests.",
   },
   {
     id: "terms",

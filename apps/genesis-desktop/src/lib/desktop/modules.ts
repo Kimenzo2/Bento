@@ -56,7 +56,6 @@ export function moduleFromPath(pathname: string): BentoModuleId {
   if (pathname.startsWith("/notes")) return "notes";
   if (pathname.startsWith("/project") || pathname.startsWith("/create")) return "tasks";
   if (pathname.startsWith("/gamification")) return "habits";
-  if (pathname.startsWith("/visual-studio")) return "ai";
   if (pathname.startsWith("/settings")) return "settings";
   return "dashboard";
 }
@@ -197,9 +196,7 @@ const MODULE_TITLES: Record<string, string> = {
   focus: "Focus — Bento",
   health: "Health — Bento",
   budget: "Budget — Bento",
-  grocery: "Grocery — Bento",
   passwords: "Vault — Bento",
-  telemetry: "System — Bento",
 };
 
 export async function setWindowTitle(moduleId: string) {

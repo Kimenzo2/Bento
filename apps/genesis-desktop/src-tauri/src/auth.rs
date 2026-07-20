@@ -2309,9 +2309,9 @@ pub(crate) fn module_required_tier(module_id: &str) -> BillingTier {
         "dashboard" | "settings" => BillingTier::Free,
         "notes" | "journal" | "tasks" | "passwords" | "budget" => BillingTier::Core,
         "ai" => BillingTier::Pro,
-        "telemetry" | "habits" | "focus" | "health" | "sleep" | "nutrition" | "mood"
-        | "flashcards" | "reading" | "grocery" | "recipes" | "time" | "goals" | "clipboard"
-        | "breathing" | "voice-memos" | "countdown" => BillingTier::Pro,
+        "habits" | "focus" | "health" | "sleep" | "nutrition" | "mood"
+        | "goals" | "clipboard"
+        | "voice-memos" | "countdown" => BillingTier::Pro,
         _ => BillingTier::Pro,
     }
 }

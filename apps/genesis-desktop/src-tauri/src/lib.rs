@@ -12,7 +12,6 @@ pub mod commands;
 pub mod crypto;
 pub mod crypto_commands;
 pub mod db;
-pub mod flashcards;
 pub mod goals;
 pub mod habits;
 pub mod health;
@@ -20,7 +19,6 @@ pub mod ipc_util;
 pub mod island;
 pub mod local_store;
 pub mod mcp;
-pub mod meal_db;
 pub mod media_player;
 pub mod modules;
 pub mod mood;
@@ -28,7 +26,6 @@ pub mod notes;
 pub mod notifications;
 pub mod payments;
 pub mod ping;
-pub mod recipes;
 pub mod runtime;
 pub mod scheduler;
 pub mod search;
@@ -91,6 +88,7 @@ use crate::search::SearchService;
 use crate::session::ManagedTabSession;
 use std::sync::atomic::{AtomicBool, Ordering};
 use sysinfo::System;
+use tracing::{error, info, warn};
 
 /// Set by `recover_from_startup_crash()` when it performs a WebView2
 /// profile reset. Checked in `setup()` to notify the frontend via the
@@ -196,7 +194,7 @@ fn install_runtime_panic_hook(app: AppHandle) {
             .map(|value| format!("{}:{}:{}", value.file(), value.line(), value.column()))
             .unwrap_or_else(|| "unknown".to_string());
 
-        eprintln!("[panic] {location}: {message}");
+        error!(target: "panic", "{location}: {message}");
 
         if let Some(payload) = write_crash_log(Some(&app), &message, info) {
             let _ = emit_main_window_event(&app, "bento://crash", payload.clone());
@@ -213,15 +211,12 @@ fn configure_webview2_user_data_folder() {
     }
 
     let base = env::var_os("LOCALAPPDATA")
-        .map(std::path::PathBuf::from)
+.map(std::path::PathBuf::from)
         .unwrap_or_else(|| env::temp_dir());
     let folder = base.join("Bento").join("WebView2").join("User Data");
 
     if let Err(error) = fs::create_dir_all(&folder) {
-        eprintln!(
-            "[startup] failed to create WebView2 user data folder {}: {error}",
-            folder.display()
-        );
+        warn!(target: "startup", "failed to create WebView2 user data folder {}: {error}", folder.display());
         return;
     }
 
@@ -254,7 +249,7 @@ fn load_desktop_env() {
         }
 
         if dotenvy::from_path(&path).is_ok() {
-            eprintln!("[startup] loaded env from {}", path.display());
+            info!(target: "startup", "loaded env from {}", path.display());
             if env::var("VITE_SUPABASE_URL").is_ok() && env::var("VITE_SUPABASE_ANON_KEY").is_ok() {
                 break;
             }
@@ -378,14 +373,14 @@ fn delete_webview2_profile() {
     let folder = base.join("Bento").join("WebView2").join("User Data");
 
     if folder.exists() {
-        eprintln!(
+        info!(
             "[startup] removing corrupt WebView2 profile: {}",
             folder.display()
         );
         write_startup_log(&format!("removing WebView2 profile: {}", folder.display()));
         if let Err(e) = std::fs::remove_dir_all(&folder) {
-            eprintln!("[startup] WARN: failed to remove WebView2 profile: {e}");
-            write_startup_log(&format!("WARN: remove_dir_all failed: {e}"));
+            warn!("[startup] WARN: failed to remove WebView2 profile: {e}");
+                write_startup_log(&format!("WARN: remove_dir_all failed: {e}"));
         } else {
             write_startup_log("WebView2 profile removed successfully");
         }
@@ -405,19 +400,19 @@ fn recover_from_startup_crash() {
         let count = read_crash_count() + 1;
         write_crash_count(count);
 
-        eprintln!("[startup] sentinel found — previous launch crashed (crash #{count})");
+        info!("[startup] sentinel found — previous launch crashed (crash #{count})");
         write_startup_log(&format!("crash sentinel found (#{count})"));
 
         if count >= MAX_CRASH_LOOP {
             // Nuclear: nuke whole profile
-            eprintln!("[startup] crash loop detected ({count}+), nuking WebView2 profile");
+            info!("[startup] crash loop detected ({count}+), nuking WebView2 profile");
             write_startup_log("crash loop — nuking WebView2 profile");
             delete_webview2_profile();
             RECOVERY_PERFORMED.store(true, Ordering::Release);
             reset_crash_count();
         } else if count > 1 {
             // Escalating: delete user data folder
-            eprintln!("[startup] deleting WebView2 profile for recovery (crash #{count})");
+            info!("[startup] deleting WebView2 profile for recovery (crash #{count})");
             write_startup_log(&format!("deleting WebView2 profile (crash #{count})"));
             delete_webview2_profile();
             RECOVERY_PERFORMED.store(true, Ordering::Release);
@@ -460,14 +455,15 @@ fn cleanup_stale_processes() {
         }
         let name = process.name().to_string_lossy().to_lowercase();
         if name.contains("bento-desktop") || name.contains("bento_desktop") {
-            eprintln!("[startup] killing stale process PID={pid_u32} name={name}");
-            write_startup_log(&format!("killing stale process PID={pid_u32}"));
+            info!("[startup] killing stale process PID={pid_u32} name={name}");
+                write_startup_log(&format!("killing stale process PID={pid_u32}"));
             process.kill();
         }
     }
 }
 
 pub fn run() {
+    tracing_subscriber::fmt::init();
     cleanup_stale_processes();
     recover_from_startup_crash();
     configure_webview2_user_data_folder();
@@ -538,10 +534,7 @@ pub fn run() {
             Ok(d) => d,
             Err(e) => {
                 let fallback = std::env::temp_dir().join("bento-desktop").join("data");
-                eprintln!(
-                    "[init] WARN: app_data_dir failed ({e}), using {}",
-                    fallback.display()
-                );
+                warn!("[init] WARN: app_data_dir failed ({e}), using {}", fallback.display());
                 write_startup_log(&format!(
                     "app_data_dir failed, fallback: {}",
                     fallback.display()
@@ -558,8 +551,8 @@ pub fn run() {
         install_runtime_panic_hook(app.handle().clone());
         let log_phase = |phase: &str, elapsed: &str| {
             let msg = format!("[init] {phase}  +{elapsed}ms");
-            eprintln!("{msg}");
-            write_startup_log(&msg);
+            info!("{msg}");
+                write_startup_log(&msg);
         };
         log_phase("phase=0 install_runtime_panic_hook", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
@@ -576,8 +569,8 @@ pub fn run() {
         let settings = settings::load_desktop_settings(app.handle());
         app.manage(DesktopRuntime::new(settings.clone()));
         if let Err(e) = settings::apply_configured_shortcuts(app.handle(), &settings) {
-            eprintln!("[init] apply_configured_shortcuts failed: {e}");
-            write_startup_log(&format!("apply_configured_shortcuts failed: {e}"));
+            warn!("[init] apply_configured_shortcuts failed: {e}");
+                write_startup_log(&format!("apply_configured_shortcuts failed: {e}"));
         }
         log_phase("phase=3 load_desktop_settings", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
@@ -587,45 +580,45 @@ pub fn run() {
         if let Some(window) = app.get_webview_window("main") {
             if !settings.window.start_hidden {
                 if let Err(e) = window.set_background_color(Some(tauri::webview::Color(23, 23, 23, 255))) {
-                    eprintln!("[window] set_background_color failed: {e}");
-                }
+                    warn!("[window] set_background_color failed: {e}");
+}
                 // Tauri #11856 workaround: toggle resizable AFTER show() to
                 // prevent input death on Windows. Must happen before any IPC.
                 if let Err(e) = window.show() {
-                    eprintln!("[window] show() failed: {e}");
+                    warn!("[window] show() failed: {e}");
                     write_startup_log(&format!("window.show() failed: {e}"));
                 } else {
                     // Tauri #11856: visible(false) + show() kills input on Windows.
                     // Toggling resizable re-enables it. Log failures for diagnostics.
                     if let Err(e) = window.set_resizable(false) {
-                        eprintln!("[window] set_resizable(false) failed: {e}");
+                        warn!("[window] set_resizable(false) failed: {e}");
                         write_startup_log(&format!("set_resizable(false) failed: {e}"));
                     }
                     if let Err(e) = window.set_resizable(true) {
-                        eprintln!("[window] set_resizable(true) failed: {e}");
+                        warn!("[window] set_resizable(true) failed: {e}");
                         write_startup_log(&format!("set_resizable(true) failed: {e}"));
                     }
                     // Force-center + focus — ensures window is visible on the
                     // active monitor even if window-state plugin or previous
                     // session left it off-screen or corrupt.
                     if let Err(e) = window.center() {
-                        eprintln!("[window] center() failed: {e}");
+                        warn!("[window] center() failed: {e}");
                         write_startup_log(&format!("window.center() failed: {e}"));
                     } else {
                         write_startup_log("window.center() OK");
                     }
                     if let Err(e) = window.set_focus() {
-                        eprintln!("[window] set_focus() failed: {e}");
+                        warn!("[window] set_focus() failed: {e}");
                         write_startup_log(&format!("window.set_focus() failed: {e}"));
                     } else {
                         write_startup_log("window.set_focus() OK");
                     }
-                    eprintln!("[init] main window shown early (start_hidden=false)");
+                    info!("[init] main window shown early (start_hidden=false)");
                     write_startup_log("window.show() + center + focus OK");
                 }
             } else {
-                eprintln!("[init] start_hidden=true, deferring main window show");
-            }
+                info!("[init] start_hidden=true, deferring main window show");
+}
 
             // ── IPC custom protocol fallback ──
             // Tauri 2.x uses a custom protocol (ipc://) for invoke calls.
@@ -641,7 +634,7 @@ pub fn run() {
         // ── Dynamic Island overlay window ────────────────────────────
         t0 = Instant::now();
         if let Err(e) = crate::island::setup_island_window(app) {
-            eprintln!("[island] failed to setup island window (non-fatal): {e}");
+            error!("[island] failed to setup island window (non-fatal): {e}");
             write_startup_log(&format!("setup_island_window failed: {e}"));
         }
         log_phase("phase=4 setup_island_window", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
@@ -653,7 +646,7 @@ pub fn run() {
         //     controls whether show()/hide() is called later.
         t0 = Instant::now();
         if let Err(e) = crate::agent::setup_agent_window(app) {
-            eprintln!("[agent] failed to setup agent window (non-fatal): {e}");
+            error!("[agent] failed to setup agent window (non-fatal): {e}");
             write_startup_log(&format!("setup_agent_window failed: {e}"));
         }
         log_phase("phase=5 setup_agent_window", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
@@ -662,12 +655,12 @@ pub fn run() {
         t0 = Instant::now();
         if settings.agent_dock_enabled {
             if let Err(e) = crate::agent::setup_tray(app) {
-                eprintln!("[agent] failed to setup tray icon (non-fatal): {e}");
+                error!("[agent] failed to setup tray icon (non-fatal): {e}");
                 write_startup_log(&format!("setup_tray failed: {e}"));
             }
         } else {
-            eprintln!("[agent] tray disabled via settings, skipping");
-        }
+            info!("[agent] tray disabled via settings, skipping");
+}
         log_phase("phase=6 setup_tray", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
         // ── Global shortcut: Ctrl+Shift+A → toggle agent ──
@@ -686,10 +679,10 @@ pub fn run() {
                     let _ = crate::agent::toggle_agent(app_handle.clone());
                 },
             ) {
-                Ok(_) => eprintln!("[shortcut] registered Ctrl+Shift+A for agent toggle"),
+                Ok(_) => warn!("[shortcut] registered Ctrl+Shift+A for agent toggle"),
                 Err(e) => {
-                    eprintln!("[shortcut] failed to register agent shortcut: {e}");
-                    write_startup_log(&format!("register agent shortcut failed: {e}"));
+                    info!("[shortcut] failed to register agent shortcut: {e}");
+                write_startup_log(&format!("register agent shortcut failed: {e}"));
                 }
             }
         }
@@ -699,17 +692,17 @@ pub fn run() {
         t0 = Instant::now();
         let (db_writer, db_reader) = match tauri::async_runtime::block_on(db::init_db(app.handle())) {
             Ok((writer, reader)) => {
-                eprintln!("[init] phase=8 init_db OK (writer=1, reader=4)  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
+                info!("[init] phase=8 init_db OK (writer=1, reader=4)  +{:.2}ms", t0.elapsed().as_secs_f64() * 1000.0);
                 write_startup_log(&format!("init_db OK (writer=1, reader=4)"));
                 (writer, reader)
             }
             Err(error) => {
                 let elapsed = t0.elapsed().as_secs_f64() * 1000.0;
                 let msg = format!("init_db FAILED after {elapsed:.2}ms: {error}");
-                eprintln!("[init] {msg}");
+                info!("[init] {msg}");
                 write_startup_log(&msg);
                 // In-memory fallback: BentoAppState always needs a valid pool pair
-                eprintln!("[init] using in-memory DB fallback (degraded mode)");
+                warn!("[init] using in-memory DB fallback (degraded mode)");
                 write_startup_log("using in-memory DB fallback (degraded mode)");
                 let _ = app.emit("bento://startup-degraded", serde_json::json!({
                     "reason": "db_init_failed",
@@ -721,8 +714,8 @@ pub fn run() {
                 match tauri::async_runtime::block_on(db::init_in_memory_db()) {
                     Ok((w, r)) => (w, r),
                     Err(fatal) => {
-                        eprintln!("[init] FATAL: in-memory DB also failed: {fatal}");
-                        write_startup_log(&format!("FATAL: in-memory DB also failed: {fatal}"));
+                        error!("[init] FATAL: in-memory DB also failed: {fatal}");
+                write_startup_log(&format!("FATAL: in-memory DB also failed: {fatal}"));
                         return Err(std::io::Error::other(fatal).into());
                     }
                 }
@@ -734,8 +727,8 @@ pub fn run() {
         {
             let pool = app.state::<BentoAppState>().inner().db();
             if let Err(e) = tauri::async_runtime::block_on(crate::ai::agent_memory::ensure_tables(&pool)) {
-                eprintln!("[ai] failed to create agent memory tables: {e}");
-            }
+                warn!("[ai] failed to create agent memory tables: {e}");
+}
         }
 
         // ── Encryption service ────────────────────────────────────────
@@ -798,10 +791,10 @@ pub fn run() {
                         }
                     }
                 }) {
-                Ok(_) => eprintln!("[shortcut] registered Ctrl+Shift+D for island toggle"),
+                Ok(_) => warn!("[shortcut] registered Ctrl+Shift+D for island toggle"),
                 Err(e) => {
-                    eprintln!("[shortcut] failed to register island shortcut: {e}");
-                    write_startup_log(&format!("register island shortcut failed: {e}"));
+                    info!("[shortcut] failed to register island shortcut: {e}");
+                write_startup_log(&format!("register island shortcut failed: {e}"));
                 }
             }
         }
@@ -812,7 +805,7 @@ pub fn run() {
         let search_base_dir = match app.path().app_data_dir() {
             Ok(d) => d,
             Err(e) => {
-                eprintln!("[init] WARN: app_data_dir unavailable for search, using temp fallback: {e}");
+                warn!("[init] WARN: app_data_dir unavailable for search, using temp fallback: {e}");
                 write_startup_log(&format!("search fallback: {e}"));
                 std::env::temp_dir().join("bento-desktop").join("search")
             }
@@ -824,10 +817,10 @@ pub fn run() {
             }
             Err(e) => {
                 let msg = format!("search_service FAILED on primary dir: {e}");
-                eprintln!("[init] {msg}");
+                info!("[init] {msg}");
                 write_startup_log(&msg);
                 // Retry with temp dir fallback so State<SearchService> never panics
-                eprintln!("[init] search_service degraded (using temp fallback)");
+                warn!("[init] search_service degraded (using temp fallback)");
                 write_startup_log("search_service degraded (using temp fallback)");
                 let _ = app.emit("bento://startup-degraded", serde_json::json!({
                     "reason": "search_fallback",
@@ -839,13 +832,13 @@ pub fn run() {
                 let fallback = std::env::temp_dir().join("bento-desktop").join("search-fallback");
                 match SearchService::new(fallback) {
                     Ok(service) => {
-                        eprintln!("[init] search_service OK on temp fallback");
-                        write_startup_log("search_service OK on temp fallback");
+                        warn!("[init] search_service OK on temp fallback");
+                write_startup_log("search_service OK on temp fallback");
                         app.manage(service);
                     }
                     Err(e2) => {
-                        eprintln!("[init] search_service ALSO failed on temp fallback: {e2}");
-                        write_startup_log(&format!("search_service fallback also failed: {e2}"));
+                        error!("[init] search_service ALSO failed on temp fallback: {e2}");
+                write_startup_log(&format!("search_service fallback also failed: {e2}"));
                     }
                 }
                 log_phase("phase=13 search_service fallback", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
@@ -861,7 +854,7 @@ pub fn run() {
             }
             Err(e) => {
                 let msg = format!("auth_manager FAILED: {e}");
-                eprintln!("[init] {msg}");
+                info!("[init] {msg}");
                 write_startup_log(&msg);
                 log_phase("phase=14 auth_manager FAILED (skipped)", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
             }
@@ -872,8 +865,8 @@ pub fn run() {
         {
             #[cfg(any(windows, target_os = "linux"))]
             if let Err(error) = app.deep_link().register_all() {
-                eprintln!("deep-link registration skipped: {error}");
-            }
+                info!("deep-link registration skipped: {error}");
+}
 
             let pending = app.state::<PendingDeepLink>().inner().clone();
 
@@ -918,8 +911,8 @@ pub fn run() {
         if let Err(e) = tauri::async_runtime::block_on(crate::clipboard::ensure_clipboard_tables(
             &clipboard_pool,
         )) {
-            eprintln!("[clipboard] failed to ensure clipboard tables: {e}");
-        }
+            warn!("[clipboard] failed to ensure clipboard tables: {e}");
+}
         crate::clipboard::spawn_clipboard_monitor(app.handle().clone());
 
         // ── Agent action log table (moved to DB init later, but ensure here too) ─
@@ -928,8 +921,8 @@ pub fn run() {
             if let Err(e) = tauri::async_runtime::block_on(
                 crate::agent_core::action_gate::ensure_action_log_table(&pool),
             ) {
-                eprintln!("[agent_core] failed to create action_log table: {e}");
-            }
+                warn!("[agent_core] failed to create action_log table: {e}");
+}
         }
 
         // ── Spawn MCP Streamable HTTP server ────────────────────────────
@@ -940,20 +933,19 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 match crate::mcp::spawn_mcp_server(app_handle, pool).await {
                     Ok((port, _)) => {
-                        eprintln!("[mcp] MCP server started on port {port}");
-                    }
+                        info!("[mcp] MCP server started on port {port}");
+}
                     Err(e) => {
-                        eprintln!("[mcp] Failed to start MCP server: {e}");
-                    }
+                        error!("[mcp] Failed to start MCP server: {e}");
+}
                 }
             });
         }
         log_phase("phase=17 background_workers", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
         write_startup_log("setup complete — app is running");
-        eprintln!("[init] phase=18 setup_complete");
-
-        // Startup sentinel: mark as clean so crash recovery knows
+        info!("[init] phase=18 setup_complete");
+// Startup sentinel: mark as clean so crash recovery knows
         // the next boot wasn't a crash.
         clear_startup_sentinel();
 
@@ -961,8 +953,8 @@ pub fn run() {
         // via the existing StartupDegraded mechanism so it can show
         // a toast or notification to the user.
         if RECOVERY_PERFORMED.swap(false, Ordering::AcqRel) {
-            eprintln!("[init] startup crash recovery was performed");
-            write_startup_log("startup crash recovery was performed — WebView2 profile reset");
+            info!("[init] startup crash recovery was performed");
+                write_startup_log("startup crash recovery was performed — WebView2 profile reset");
             if let Some(degraded) = app.try_state::<StartupDegraded>() {
                 degraded.mark(
                     "WebView2 profile was reset due to a startup crash. Some site data may have been lost."
@@ -1251,34 +1243,7 @@ pub fn run() {
             crate::mood::mood_private_note_save,
             crate::mood::mood_private_notes_list,
             crate::mood::mood_private_note_delete,
-            // Recipes
-            crate::recipes::recipes_list,
-            crate::recipes::recipe_save,
-            crate::recipes::recipe_delete,
-            crate::recipes::recipe_toggle_favorite,
-            crate::recipes::recipe_rate,
-            crate::recipes::recipe_add_to_collection,
-            crate::recipes::recipe_toggle_ingredient,
-            crate::recipes::collections_list,
-            crate::recipes::collection_create,
-            crate::recipes::collection_delete,
-            crate::recipes::pantry_list,
-            crate::recipes::pantry_upsert,
-            crate::recipes::pantry_toggle,
-            crate::recipes::shopping_list,
-            crate::recipes::shopping_add,
-            crate::recipes::shopping_toggle,
-            crate::recipes::shopping_delete,
-            crate::recipes::shopping_clear_checked,
-            crate::recipes::shopping_add_from_recipe,
-            crate::recipes::meal_plan_get,
-            crate::recipes::meal_plan_set,
-            crate::recipes::meal_plan_clear_slot,
-            crate::recipes::diet_profile_get,
-            crate::recipes::diet_profile_save,
-            crate::recipes::cook_history_list,
-            crate::recipes::cook_history_add,
-            crate::recipes::recipes_seed_if_empty,
+
             // Sleep — session system (OS + manual)
             crate::sleep::get_sleep_sessions,
             crate::sleep::get_last_night,
@@ -1339,17 +1304,7 @@ pub fn run() {
             crate::commands::nutrition::nutrition_toggle_reminder,
             crate::commands::nutrition::nutrition_get_hydration_stats,
             crate::commands::nutrition::nutrition_export_data,
-            // Flashcards (Bento Recall)
-            crate::flashcards::flashcards_list,
-            crate::flashcards::flashcards_deck_create,
-            crate::flashcards::flashcards_deck_delete,
-            crate::flashcards::flashcards_card_create,
-            crate::flashcards::flashcards_card_grade,
-            crate::flashcards::flashcards_card_toggle_pin,
-            crate::flashcards::flashcards_card_archive,
-            crate::flashcards::flashcards_card_restore,
-            crate::flashcards::flashcards_search,
-            crate::flashcards::flashcards_review_queue,
+
             // Habits — Habit Tracker
             crate::habits::habits_list,
             crate::habits::habits_save,
@@ -1378,17 +1333,7 @@ pub fn run() {
             crate::goals::focus_areas_list,
             crate::goals::focus_area_save,
             crate::goals::focus_area_delete,
-            // TheMealDB Discover & Import
-            crate::meal_db::discover_search,
-            crate::meal_db::discover_random,
-            crate::meal_db::discover_meal_detail,
-            crate::meal_db::discover_categories,
-            crate::meal_db::discover_areas,
-            crate::meal_db::discover_ingredients,
-            crate::meal_db::discover_filter_by_category,
-            crate::meal_db::discover_filter_by_area,
-            crate::meal_db::discover_filter_by_ingredient,
-            crate::meal_db::discover_import_meal,
+
             // Tab session
             crate::session::tab_open,
             crate::session::tab_close,
@@ -1499,8 +1444,8 @@ pub fn run() {
         .run(tauri::generate_context!())
         .unwrap_or_else(|error| {
             let msg = format!("FATAL: Tauri run failed: {error}");
-            eprintln!("[startup] {msg}");
-            write_startup_log(&msg);
+            info!("[startup] {msg}");
+                write_startup_log(&msg);
             std::process::exit(1);
         });
 }

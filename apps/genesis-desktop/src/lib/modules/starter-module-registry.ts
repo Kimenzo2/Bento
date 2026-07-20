@@ -18,10 +18,6 @@ export const starterModuleLoaders = {
     import("../../modules/nutrition/App.svelte") as unknown as Promise<StarterModule>,
   mood: () => import("../../modules/mood/App.svelte") as unknown as Promise<StarterModule>,
   budget: () => import("../../modules/budget/App.svelte") as unknown as Promise<StarterModule>,
-  flashcards: () =>
-    import("../../modules/flashcards/App.svelte") as unknown as Promise<StarterModule>,
-  grocery: () => import("../../modules/grocery/App.svelte") as unknown as Promise<StarterModule>,
-  recipes: () => import("../../modules/recipes/App.svelte") as unknown as Promise<StarterModule>,
   goals: () => import("../../modules/goals/App.svelte") as unknown as Promise<StarterModule>,
   clipboard: () =>
     import("../../modules/clipboard/App.svelte") as unknown as Promise<StarterModule>,
