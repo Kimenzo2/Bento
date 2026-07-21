@@ -109,6 +109,9 @@ pub struct ChatParams {
     pub enable_tools: Option<bool>,
     pub api_key: Option<String>,
     pub base_url: Option<String>,
+    /// Raw `Cookie` header value for ChatGPT cookie-based auth.
+    /// Set by the ChatGPT auth commands; used in `send_codex_stream`.
+    pub cookie: Option<String>,
 }
 
 // ── Built-in tools ──────────────────────────────────────────────────────────
@@ -1074,7 +1077,12 @@ pub async fn stream_chat(
 
         // Send the request
         let response = match provider.as_str() {
-            "openai" | "grok" | "openrouter" | "chatgpt" => {
+            "chatgpt" => {
+                let include_tools = enable_tools && round < max_rounds - 1;
+                let body = build_codex_request(&chat_params, include_tools, true);
+                send_codex_stream(&chat_params, &base_url, body, &tx).await?
+            }
+            "openai" | "grok" | "openrouter" => {
                 let include_tools = enable_tools && round < max_rounds - 1;
                 let body = build_openai_request(&chat_params, include_tools, true);
                 send_openai_stream(&chat_params, &api_key, &base_url, body, &tx).await?
@@ -1459,6 +1467,243 @@ async fn send_ollama_stream(
 
     tx.send(ChatEvent::Done { finish_reason: Some("stop".into()), usage: None }).ok();
     Ok(StreamResult::Done)
+}
+
+// ── Codex (ChatGPT) provider ──────────────────────────────────────────────
+
+/// Build a Codex Responses API request body from ChatParams.
+fn build_codex_request(
+    params: &ChatParams,
+    include_tools: bool,
+    stream: bool,
+) -> Value {
+    let mut input = Vec::new();
+
+    if let Some(sys) = &params.system {
+        if !sys.is_empty() {
+            input.push(json!({
+                "type": "message",
+                "role": "developer",
+                "content": sys,
+            }));
+        }
+    }
+
+    for msg in &params.messages {
+        let mut item = json!({
+            "type": "message",
+            "role": msg.role,
+            "content": msg.content,
+        });
+        if let Some(tcs) = &msg.tool_calls {
+            let calls: Vec<Value> = tcs.iter().map(|tc| json!({
+                "id": tc.id,
+                "type": "function",
+                "function": {
+                    "name": tc.name,
+                    "arguments": tc.args.to_string(),
+                }
+            })).collect();
+            item["tool_calls"] = json!(calls);
+        }
+        if let Some(ref tid) = msg.tool_call_id {
+            item["tool_call_id"] = json!(tid);
+        }
+        input.push(item);
+    }
+
+    let mut body = json!({
+        "model": params.model,
+        "input": input,
+        "stream": stream,
+    });
+
+    if let Some(t) = params.max_tokens { body["max_output_tokens"] = json!(t); }
+    if let Some(t) = params.temperature { body["temperature"] = json!(t); }
+    if let Some(p) = params.top_p { body["top_p"] = json!(p); }
+
+    if include_tools {
+        let defs = default_tool_definitions();
+        let tools: Vec<Value> = defs.iter().map(|t| json!({
+            "type": "function",
+            "function": {
+                "name": t.name,
+                "description": t.description,
+                "parameters": t.input_schema,
+            }
+        })).collect();
+        body["tools"] = json!(tools);
+        body["tool_choice"] = json!("auto");
+    }
+
+    body
+}
+
+/// Send a Codex SSE stream request and parse events.
+///
+/// Codex SSE uses named events (`event:` + `data:` lines) instead of
+/// OpenAI's bare `data:` lines. The key events:
+///   - `response.text.delta` — text token delta
+///   - `response.function_call_arguments.delta` — tool call argument delta  
+///   - `response.output_item.added` — new output item (message or function_call)
+///   - `response.output_item.done` — output item complete
+///   - `response.done` — response complete (includes full output)
+async fn send_codex_stream(
+    params: &ChatParams,
+    base_url: &Option<String>,
+    body: Value,
+    tx: &UnboundedSender<ChatEvent>,
+) -> Result<StreamResult, String> {
+    let url = format!("{}/responses", base_url.as_deref().unwrap_or("http://localhost:3001/api"));
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(300))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {e}"))?;
+
+    let mut req = client.post(&url).header("Content-Type", "application/json");
+    if let Some(ref cookie) = params.cookie {
+        req = req.header("Cookie", cookie);
+    }
+    let resp = req
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Codex request failed: {e}"))?;
+
+    let status = resp.status();
+    if !status.is_success() {
+        let text = resp.text().await.unwrap_or_default();
+        return Err(format!("Codex proxy returned {status}: {text}"));
+    }
+
+    let mut stream = resp.bytes_stream();
+    let mut buffer = String::new();
+    let mut current_event = String::new();
+    let mut tool_calls: Vec<ToolCall> = Vec::new();
+    // Track partial tool call arguments across deltas
+    let mut partial_tool_args: std::collections::HashMap<String, (String, String)> = std::collections::HashMap::new();
+
+    while let Some(chunk_result) = futures::StreamExt::next(&mut stream).await {
+        let chunk = chunk_result.map_err(|e| format!("Stream error: {e}"))?;
+        buffer.push_str(&String::from_utf8_lossy(&chunk));
+
+        while let Some(newline_pos) = buffer.find('\n') {
+            let line = buffer[..newline_pos].trim().to_string();
+            buffer = buffer[newline_pos + 1..].to_string();
+
+            if line.is_empty() { continue; }
+
+            if line.starts_with("event: ") {
+                current_event = line[7..].to_string();
+            } else if line.starts_with("data: ") {
+                let data = &line[6..];
+                let json: Value = match serde_json::from_str(data) {
+                    Ok(v) => v,
+                    Err(_) => {
+                        current_event.clear();
+                        continue;
+                    }
+                };
+
+                match current_event.as_str() {
+                    "response.text.delta" => {
+                        if let Some(delta) = json["data"]["delta"].as_str() {
+                            if !delta.is_empty() {
+                                tx.send(ChatEvent::Token { content: delta.to_string() }).ok();
+                            }
+                        }
+                    }
+                    "response.output_item.added" => {
+                        let item_type = json["data"]["type"].as_str().unwrap_or("");
+                        if item_type == "function_call" {
+                            let id = json["data"]["id"].as_str().unwrap_or("").to_string();
+                            let name = json["data"]["name"].as_str().unwrap_or("").to_string();
+                            let args = json["data"]["arguments"].as_str().unwrap_or("");
+                            let trimmed = "".to_string();
+                            let args_str = trimmed + args;
+                            partial_tool_args.insert(id.clone(), (name, args_str));
+                            tool_calls.push(ToolCall {
+                                id,
+                                name: String::new(),
+                                args: json!(""),
+                            });
+                        }
+                    }
+                    "response.function_call_arguments.delta" => {
+                        if let Some(id) = json["data"]["id"].as_str() {
+                            if let Some(delta) = json["data"]["delta"].as_str() {
+                                if let Some((ref name, ref mut args)) = partial_tool_args.get_mut(id) {
+                                    args.push_str(delta);
+                                    // Update the corresponding tool call
+                                    if let Some(tc) = tool_calls.iter_mut().find(|t| t.id == id) {
+                                        tc.name = name.clone();
+                                        if let Ok(parsed) = serde_json::from_str::<Value>(args) {
+                                            tc.args = parsed;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    "response.output_item.done" => {
+                        let item_type = json["data"]["type"].as_str().unwrap_or("");
+                        if item_type == "function_call" {
+                            if let Some(id) = json["data"]["id"].as_str() {
+                                // Finalize args from JSON if we have partial accumulation
+                                if let Some((name, full_args)) = partial_tool_args.remove(id) {
+                                    if let Some(tc) = tool_calls.iter_mut().find(|t| t.id == id) {
+                                        tc.name = name;
+                                        if let Ok(parsed) = serde_json::from_str::<Value>(&full_args) {
+                                            tc.args = parsed;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    "response.done" => {
+                        // Check the done event for tool calls in the output
+                        if !tool_calls.is_empty() {
+                            return Ok(StreamResult::ToolCalls(tool_calls));
+                        }
+                        // Also check output for tool calls
+                        if let Some(output) = json["data"]["output"].as_array() {
+                            for item in output {
+                                if item["type"] == "function_call" {
+                                    let id = item["id"].as_str().unwrap_or("").to_string();
+                                    let name = item["name"].as_str().unwrap_or("").to_string();
+                                    let args_str = item["arguments"].as_str().unwrap_or("{}");
+                                    let args = serde_json::from_str(args_str).unwrap_or(json!({}));
+                                    tool_calls.push(ToolCall { id, name, args });
+                                }
+                            }
+                            if !tool_calls.is_empty() {
+                                return Ok(StreamResult::ToolCalls(tool_calls));
+                            }
+                        }
+                        tx.send(ChatEvent::Done { finish_reason: Some("stop".into()), usage: None }).ok();
+                        return Ok(StreamResult::Done);
+                    }
+                    "error" => {
+                        let msg = json["message"].as_str().unwrap_or("Codex API error");
+                        tx.send(ChatEvent::Error { message: msg.to_string() }).ok();
+                        return Err(msg.to_string());
+                    }
+                    _ => {}
+                }
+                current_event.clear();
+            }
+        }
+    }
+
+    // Stream ended without a response.done event
+    if !tool_calls.is_empty() {
+        Ok(StreamResult::ToolCalls(tool_calls))
+    } else {
+        tx.send(ChatEvent::Done { finish_reason: Some("stop".into()), usage: None }).ok();
+        Ok(StreamResult::Done)
+    }
 }
 
 /// Perform a non-streaming chat completion.

@@ -1,15 +1,17 @@
-//! ChatGPT Proxy provider.
+//! ChatGPT (Codex) provider.
 //!
-//! Routes through a self-hosted app-server which proxies to OpenAI API.
-//! The session JWT is used as Bearer token for authentication.
-//! Endpoint: {server_url}/api/v1/chat/completions
+//! Routes through the self-hosted Express proxy which uses real Codex OAuth.
+//! Auth is cookie-based (no API key). The reqwest Client from managed
+//! Tauri state carries the session cookie automatically.
+//! Endpoint: {server_url}/api/chatgpt/responses (Codex format)
 
+use serde_json::Value;
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::ai::stream::parse_sse_stream;
+use crate::ai::chat::ChatMessage;
 
 pub struct ChatGptProvider {
-    base_url: String,
+    pub base_url: String,
 }
 
 impl ChatGptProvider {
@@ -17,7 +19,76 @@ impl ChatGptProvider {
         Self { base_url }
     }
 
-    fn client() -> reqwest::Client {
+    /// Translate OpenAI-format messages into Codex `input` items.
+    fn messages_to_codex_input(messages: &[ChatMessage]) -> Vec<Value> {
+        messages.iter().map(|msg| {
+            let mut item = serde_json::json!({
+                "type": "message",
+                "role": msg.role,
+                "content": msg.content,
+            });
+            if let Some(tcs) = &msg.tool_calls {
+                item["tool_calls"] = serde_json::json!(tcs.iter().map(|tc| {
+                    serde_json::json!({
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {
+                            "name": tc.name,
+                            "arguments": tc.args.to_string(),
+                        }
+                    })
+                }).collect::<Vec<_>>());
+            }
+            if let Some(ref tid) = msg.tool_call_id {
+                item["tool_call_id"] = serde_json::json!(tid);
+            }
+            item
+        }).collect()
+    }
+
+    pub fn build_codex_request(
+        model: &str,
+        system: Option<&str>,
+        messages: &[ChatMessage],
+        tools: Option<&[Value]>,
+        stream: bool,
+        max_tokens: Option<u64>,
+        temperature: Option<f64>,
+        top_p: Option<f64>,
+    ) -> Value {
+        let mut input = Vec::new();
+
+        if let Some(sys) = system {
+            if !sys.is_empty() {
+                input.push(serde_json::json!({
+                    "type": "message",
+                    "role": "developer",
+                    "content": sys,
+                }));
+            }
+        }
+
+        input.extend(Self::messages_to_codex_input(messages));
+
+        let mut body = serde_json::json!({
+            "model": model,
+            "input": input,
+            "stream": stream,
+        });
+
+        if let Some(t) = max_tokens { body["max_output_tokens"] = serde_json::json!(t); }
+        if let Some(t) = temperature { body["temperature"] = serde_json::json!(t); }
+        if let Some(p) = top_p { body["top_p"] = serde_json::json!(p); }
+
+        if let Some(tools) = tools {
+            body["tools"] = serde_json::json!(tools);
+            body["tool_choice"] = serde_json::json!("auto");
+        }
+
+        body
+    }
+
+    pub fn client() -> reqwest::Client {
         reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(120))
             .build()
@@ -27,23 +98,21 @@ impl ChatGptProvider {
     pub async fn complete(
         &self,
         model: &str,
-        api_key: Option<&str>,
+        _api_key: Option<&str>,
         prompt: &str,
     ) -> Result<String, String> {
-        let key = api_key.ok_or_else(|| "Not signed in with ChatGPT".to_string())?;
+        let msg = ChatMessage {
+            role: "user".into(),
+            content: prompt.into(),
+            tool_calls: None,
+            tool_call_id: None,
+            tool_call_name: None,
+        };
+        let body = Self::build_codex_request(model, None, &[msg], None, false, None, None, None);
+
         let client = Self::client();
-
-        let body = serde_json::json!({
-            "model": model,
-            "messages": [{"role": "user", "content": prompt}],
-            "max_completion_tokens": 4096,
-            "temperature": 0.7,
-            "stream": false
-        });
-
         let resp = client
-            .post(format!("{}/v1/chat/completions", self.base_url))
-            .header("Authorization", format!("Bearer {key}"))
+            .post(format!("{}/responses", self.base_url))
             .header("Content-Type", "application/json")
             .json(&body)
             .send()
@@ -51,17 +120,20 @@ impl ChatGptProvider {
             .map_err(|e| format!("ChatGPT request failed: {e}"))?;
 
         let status = resp.status();
-        let json: serde_json::Value = resp.json().await.map_err(|e| format!("Parse error: {e}"))?;
+        let json: Value = resp.json().await.map_err(|e| format!("Parse error: {e}"))?;
 
         if !status.is_success() {
-            let msg = json["error"]["message"].as_str().unwrap_or("unknown error");
+            let msg = json["error"].as_str().unwrap_or("unknown error");
             return Err(format!("ChatGPT proxy ({status}): {msg}"));
         }
 
-        let text = json["choices"]
+        // Extract text from Codex response format
+        let text = json["output"]
             .as_array()
-            .and_then(|choices| choices.first())
-            .and_then(|c| c["message"]["content"].as_str())
+            .and_then(|arr| arr.iter().find(|o| o["type"] == "message"))
+            .and_then(|msg| msg["content"].as_array())
+            .and_then(|content| content.iter().find(|c| c["type"] == "output_text"))
+            .and_then(|t| t["text"].as_str())
             .map(String::from)
             .unwrap_or_default();
 
@@ -71,24 +143,22 @@ impl ChatGptProvider {
     pub async fn stream(
         &self,
         model: &str,
-        api_key: Option<&str>,
+        _api_key: Option<&str>,
         prompt: &str,
         tx: UnboundedSender<String>,
     ) -> Result<(), String> {
-        let key = api_key.ok_or_else(|| "Not signed in with ChatGPT".to_string())?;
+        let msg = ChatMessage {
+            role: "user".into(),
+            content: prompt.into(),
+            tool_calls: None,
+            tool_call_id: None,
+            tool_call_name: None,
+        };
+        let body = Self::build_codex_request(model, None, &[msg], None, true, None, None, None);
+
         let client = Self::client();
-
-        let body = serde_json::json!({
-            "model": model,
-            "messages": [{"role": "user", "content": prompt}],
-            "max_completion_tokens": 4096,
-            "temperature": 0.7,
-            "stream": true
-        });
-
         let resp = client
-            .post(format!("{}/v1/chat/completions", self.base_url))
-            .header("Authorization", format!("Bearer {key}"))
+            .post(format!("{}/responses", self.base_url))
             .header("Content-Type", "application/json")
             .json(&body)
             .send()
@@ -101,14 +171,7 @@ impl ChatGptProvider {
             return Err(format!("ChatGPT proxy returned {status}: {body_text}"));
         }
 
-        parse_sse_stream(resp, tx, |json| {
-            json["choices"]
-                .as_array()
-                .and_then(|choices| choices.first())
-                .and_then(|c| c["delta"]["content"].as_str())
-                .map(String::from)
-        })
-        .await
+        parse_codex_sse_stream(resp, tx).await
     }
 
     pub async fn list_models(&self, _api_key: Option<&str>) -> Result<Vec<String>, String> {
@@ -121,11 +184,69 @@ impl ChatGptProvider {
             "o3".into(),
             "o3-mini".into(),
             "o4-mini".into(),
+            "gpt-5.5".into(),
         ])
     }
 
     pub async fn validate_key(&self, _api_key: Option<&str>) -> Result<(), String> {
-        // Session validity is checked at request time; keyring presence is sufficient
         Ok(())
     }
+}
+
+/// Parse a Codex SSE stream and send text tokens through the channel.
+async fn parse_codex_sse_stream(
+    resp: reqwest::Response,
+    tx: UnboundedSender<String>,
+) -> Result<(), String> {
+    use futures::StreamExt;
+    let mut stream = resp.bytes_stream();
+    let mut buffer = String::new();
+    let mut current_event = String::new();
+
+    while let Some(chunk_result) = stream.next().await {
+        let chunk = chunk_result.map_err(|e| format!("Stream error: {e}"))?;
+        buffer.push_str(&String::from_utf8_lossy(&chunk));
+
+        while let Some(newline_pos) = buffer.find('\n') {
+            let line = buffer[..newline_pos].trim().to_string();
+            buffer = buffer[newline_pos + 1..].to_string();
+
+            if line.is_empty() { continue; }
+
+            if line.starts_with("event: ") {
+                current_event = line[7..].to_string();
+            } else if line.starts_with("data: ") {
+                let data = &line[6..];
+                let json: Value = match serde_json::from_str(data) {
+                    Ok(v) => v,
+                    Err(_) => continue,
+                };
+
+                match current_event.as_str() {
+                    "response.text.delta" => {
+                        if let Some(delta) = json["data"]["delta"].as_str() {
+                            if !delta.is_empty() {
+                                let _ = tx.send(delta.to_string());
+                            }
+                        }
+                    }
+                    "response.done" => {
+                        let _ = tx.send("__DONE__".to_string());
+                        return Ok(());
+                    }
+                    "error" => {
+                        let msg = json["message"].as_str().unwrap_or("Codex API error");
+                        let _ = tx.send(format!("__ERROR__:{msg}"));
+                        return Err(msg.to_string());
+                    }
+                    _ => {}
+                }
+                current_event.clear();
+            }
+        }
+    }
+
+    // Stream ended without response.done — unexpected
+    let _ = tx.send("__DONE__".to_string());
+    Ok(())
 }

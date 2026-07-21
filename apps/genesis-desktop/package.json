@@ -7,6 +7,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun run tauri dev",
+    "build:proxy": "bun run proxy:build",
     "dev:frontend": "svelte-kit sync && vite dev",
     "logs": "bun run dev:frontend",
     "build": "svelte-kit sync && vite build",
@@ -24,13 +25,15 @@
     "lint:fix": "oxlint --fix .",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
+    "proxy:build": "bun build --compile --target=bun-windows-x64-modern ../../apps/server/src/index.js --outfile ./src-tauri/binaries/chatgpt-proxy-x86_64-pc-windows-msvc",
+    "proxy:dev": "bun run ../../apps/server/src/index.js",
     "tauri": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/tauri.ps1"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.14",
     "@ai-sdk/google": "^4.0.14",
     "@ai-sdk/openai": "^4.0.13",
-    "@fontsource-variable/jetbrains-mono": "^5.2.8",
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@fontsource-variable/noto-sans-arabic": "^5.2.10",
     "@fontsource/fredoka": "^5.2.10",
     "@fontsource/ibm-plex-sans": "^5.2.8",

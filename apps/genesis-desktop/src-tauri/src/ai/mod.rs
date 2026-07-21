@@ -208,14 +208,14 @@ pub async fn get_ai_provider_status(app: AppHandle) -> Result<Vec<AiProviderStat
         });
     }
 
-    // ChatGPT (Sign in with ChatGPT) — treated as a separate provider
-    let chatgpt_session = chatgpt_auth::load_session().await.ok().flatten();
+    // ChatGPT (Sign in with ChatGPT) — cookie-based session
+    let has_chatgpt_url = chatgpt_auth::load_server_url().ok().flatten().is_some();
     results.push(AiProviderStatus {
         provider: "chatgpt".into(),
         display_name: "ChatGPT (Sign in)".into(),
-        is_configured: chatgpt_session.is_some(),
+        is_configured: has_chatgpt_url,
         requires_key: false,
-        has_key: chatgpt_session.is_some(),
+        has_key: has_chatgpt_url,
         is_active: active_provider == "chatgpt",
         default_base_url: "".into(),
     });
@@ -277,11 +277,25 @@ pub async fn ai_chat_stream(
                 .unwrap_or_else(|| "gpt-4o".to_string())
         });
 
-    let (api_key, base_url) = if provider_name == "chatgpt" {
-        // ChatGPT uses the OAuth session — load from keyring
-        let session = chatgpt_auth::load_session().await?
-            .ok_or_else(|| "Not signed in with ChatGPT. Sign in from Settings → AI.".to_string())?;
-        (Some(session.token), Some(format!("{}/api", session.server_url)))
+    let (api_key, base_url, cookie) = if provider_name == "chatgpt" {
+        // ChatGPT uses cookie-based auth — extract session cookie from managed client
+        let chatgpt_state = app.state::<chatgpt_auth::ChatGptClient>();
+        let server_url = chatgpt_auth::load_server_url()
+            .ok()
+            .flatten()
+            .or_else(|| {
+                chatgpt_state.server_url
+                    .lock()
+                    .map_err(|e| format!("Lock error: {e}"))
+                    .ok()
+                    .and_then(|g| g.clone())
+            })
+            .ok_or_else(|| "No ChatGPT server URL. Sign in from Settings → AI.".to_string())?;
+        let session_cookie = chatgpt_state.session_cookie
+            .lock()
+            .map_err(|e| format!("Lock error: {e}"))?
+            .clone();
+        (None, Some(format!("{server_url}/api/chatgpt")), session_cookie)
     } else {
         let key = if provider_name != "ollama" {
             Some(
@@ -292,7 +306,7 @@ pub async fn ai_chat_stream(
             None
         };
         let url = resolve_base_url(&provider_name, &settings.byok);
-        (key, url)
+        (key, url, None)
     };
 
     let params = chat::ChatParams {
@@ -310,6 +324,7 @@ pub async fn ai_chat_stream(
         enable_tools,
         api_key,
         base_url,
+        cookie,
     };
 
     let (tx, mut rx) = mpsc::unbounded_channel::<ChatEvent>();
@@ -374,10 +389,24 @@ pub async fn ai_chat_complete(
                 .unwrap_or_else(|| "gpt-4o".to_string())
         });
 
-    let (api_key, base_url) = if provider_name == "chatgpt" {
-        let session = chatgpt_auth::load_session().await?
-            .ok_or_else(|| "Not signed in with ChatGPT.".to_string())?;
-        (Some(session.token), Some(format!("{}/api", session.server_url)))
+    let (api_key, base_url, cookie) = if provider_name == "chatgpt" {
+        let chatgpt_state = app.state::<chatgpt_auth::ChatGptClient>();
+        let server_url = chatgpt_auth::load_server_url()
+            .ok()
+            .flatten()
+            .or_else(|| {
+                chatgpt_state.server_url
+                    .lock()
+                    .map_err(|e| format!("Lock error: {e}"))
+                    .ok()
+                    .and_then(|g| g.clone())
+            })
+            .ok_or_else(|| "No ChatGPT server URL. Sign in from Settings → AI.".to_string())?;
+        let session_cookie = chatgpt_state.session_cookie
+            .lock()
+            .map_err(|e| format!("Lock error: {e}"))?
+            .clone();
+        (None, Some(format!("{server_url}/api/chatgpt")), session_cookie)
     } else {
         let key = if provider_name != "ollama" {
             Some(
@@ -388,7 +417,7 @@ pub async fn ai_chat_complete(
             None
         };
         let url = resolve_base_url(&provider_name, &settings.byok);
-        (key, url)
+        (key, url, None)
     };
 
     let params = chat::ChatParams {
@@ -406,6 +435,7 @@ pub async fn ai_chat_complete(
         enable_tools: Some(false),
         api_key,
         base_url,
+        cookie,
     };
 
     chat::complete_chat(params, pool).await

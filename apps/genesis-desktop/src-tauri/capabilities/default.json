@@ -37,6 +37,23 @@
         {
           "name": "binaries/bento-mcp",
           "sidecar": true
+        },
+        {
+          "name": "chatgpt-proxy",
+          "sidecar": true
+        },
+        {
+          "name": "binaries/chatgpt-proxy",
+          "sidecar": true
+        }
+      ]
+    },
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "binaries/chatgpt-proxy",
+          "sidecar": true
         }
       ]
     }

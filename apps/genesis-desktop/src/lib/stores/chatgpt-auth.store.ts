@@ -3,39 +3,33 @@ import { invoke, isTauri } from "@tauri-apps/api/core";
 import { writable } from "svelte/store";
 
 export interface DeviceFlowInfo {
-  deviceCode: string;
   userCode: string;
-  verificationUri: string;
-  verificationUriComplete?: string;
-  expiresIn: number;
+  verificationUrl: string;
   interval: number;
+  expiresAt: number;
+}
+
+export interface ChatGptUserInfo {
+  accountId: string;
+  email?: string;
+  name?: string;
+  plan?: string;
 }
 
 export interface ChatGptSession {
   serverUrl: string;
-  sessionId: string;
-  token: string;
-  plan: string;
-  createdAt: number;
-  expiresAt: number;
-}
-
-export interface PlanInfo {
-  plan: string;
-  name: string;
-  tier: string;
-  description: string;
-  models: string[];
-  maxTokens: number;
-  rateLimit: { requestsPerMinute: number };
-  sessionExpiresAt: number;
-  activeModel: string;
+  user: ChatGptUserInfo | null;
+  status: string;
 }
 
 export interface ConnectionTestResult {
   ok: boolean;
   error: string | null;
   latencyMs: number | null;
+}
+
+export interface PollResult {
+  status: string;
 }
 
 const DEFAULT_SERVER_URL = "http://localhost:3001";
@@ -78,12 +72,9 @@ export const chatgptServerUrl = writable(loadSavedServerUrl());
 export const chatgptDeviceFlow = writable<{
   userCode: string;
   verificationUri: string;
-  verificationUriComplete: string | null;
   expiresAt: number;
 } | null>(null);
-export const chatgptPlanInfo = writable<PlanInfo | null>(null);
 
-// Persist server URL on writes
 chatgptServerUrl.subscribe((url) => {
   if (url) saveServerUrl(url);
 });
@@ -99,7 +90,10 @@ export async function loadChatGptSession(): Promise<ChatGptSession | null> {
     chatgptSession.set(session);
     chatgptReady.set(true);
     if (session) {
-      loadPlanInfo();
+      // Sync auto-detected server URL to frontend store
+      if (session.serverUrl) {
+        chatgptServerUrl.set(session.serverUrl);
+      }
     }
     return session;
   } catch {
@@ -115,54 +109,25 @@ export async function startDeviceFlow(serverUrl: string): Promise<DeviceFlowInfo
   const flow = await invoke<DeviceFlowInfo>("chatgpt_start_device_flow", { serverUrl });
   chatgptDeviceFlow.set({
     userCode: flow.userCode,
-    verificationUri: flow.verificationUri,
-    verificationUriComplete: flow.verificationUriComplete ?? null,
-    expiresAt: Date.now() + flow.expiresIn * 1000,
+    verificationUri: flow.verificationUrl,
+    expiresAt: flow.expiresAt,
   });
   return flow;
 }
 
-export interface PollResult {
-  status: string;
-  interval?: number;
-}
-
-export async function pollDeviceFlow(
-  deviceCode: string,
-  serverUrl: string,
-): Promise<{ approved: boolean; interval?: number }> {
-  if (!isAvailable()) return { approved: false };
-  const result = await invoke<PollResult>("chatgpt_check_device_flow", {
-    deviceCode,
-    serverUrl,
-  });
-  if (result.status === "approved") {
-    chatgptDeviceFlow.set(null);
-    await loadChatGptSession();
-    return { approved: true };
+export async function pollDeviceFlow(): Promise<PollResult> {
+  if (!isAvailable()) return { status: "error" };
+  try {
+    return await invoke<PollResult>("chatgpt_check_device_flow");
+  } catch (e) {
+    return { status: "error" };
   }
-  if (result.status === "slow_down") {
-    return { approved: false, interval: result.interval };
-  }
-  return { approved: false };
 }
 
 export async function signOut(): Promise<void> {
   if (!isAvailable()) return;
   await invoke("chatgpt_sign_out");
   chatgptSession.set(null);
-  chatgptPlanInfo.set(null);
-}
-
-export async function loadPlanInfo(): Promise<PlanInfo | null> {
-  if (!isAvailable()) return null;
-  try {
-    const info = await invoke<PlanInfo>("chatgpt_get_plan_info");
-    chatgptPlanInfo.set(info);
-    return info;
-  } catch {
-    return null;
-  }
 }
 
 export async function testConnection(serverUrl: string): Promise<ConnectionTestResult> {
@@ -172,9 +137,6 @@ export async function testConnection(serverUrl: string): Promise<ConnectionTestR
   return invoke<ConnectionTestResult>("chatgpt_test_connection", { serverUrl });
 }
 
-// ── Shared UI helpers ─────────────────────────────────────────────────
-
-/** Open a URL via Tauri's openUrl, falling back to window.open. */
 export async function openExternalUrl(url: string): Promise<void> {
   try {
     const { openUrl } = await import("@tauri-apps/plugin-opener");
@@ -184,32 +146,22 @@ export async function openExternalUrl(url: string): Promise<void> {
   }
 }
 
-/** Copy text to clipboard with a short-lived success state. */
-export function copyToClipboard(
-  text: string,
-  onCopied: () => void,
-): void {
+export function copyToClipboard(text: string, onCopied: () => void): void {
   navigator.clipboard.writeText(text).then(onCopied).catch(() => {});
 }
 
-/** True when a timestamp is in the past. */
 export function isExpired(ts: number): boolean {
   return Date.now() >= ts;
 }
 
-/**
- * Get the best URI to open for device code verification.
- * Prefers verification_uri_complete (which pre-fills the code) over the plain URI.
- */
 export function getVerificationUri(flow: {
   verificationUri: string;
-  verificationUriComplete: string | null;
 }): string {
-  return flow.verificationUriComplete ?? flow.verificationUri;
+  return flow.verificationUri;
 }
 
 export function formatExpiry(expiresAt: number | undefined | null): string {
-  if (expiresAt == null) return "N/A";
+  if (expiresAt == null || expiresAt <= 0) return "N/A";
   const remaining = expiresAt - Date.now();
   if (remaining <= 0) return "Expired";
   if (remaining < 60000) return "<1m";
@@ -220,27 +172,7 @@ export function formatExpiry(expiresAt: number | undefined | null): string {
   return `${minutes}m`;
 }
 
-/** True when the session is within 5 minutes of expiry. */
-export function isNearExpiry(expiresAt: number): boolean {
-  const remaining = expiresAt - Date.now();
-  return remaining > 0 && remaining < 300000;
-}
-
-/**
- * Start polling a device code flow with RFC 8628 compliance.
- * Handles expiry, slow_down, and cleanup automatically.
- * Returns a cleanup function to stop polling.
- *
- * @param deviceCode - The device code to poll
- * @param serverUrl - The server URL
- * @param intervalSec - Polling interval from server (seconds)
- * @param expiresAt - Timestamp when the device code expires
- * @param onError - Callback for polling errors
- * @param onExpired - Callback when device code expires
- */
 export function startDeviceFlowPolling(
-  deviceCode: string,
-  serverUrl: string,
   intervalSec: number,
   expiresAt: number,
   onError: (msg: string) => void,
@@ -257,12 +189,13 @@ export function startDeviceFlowPolling(
     }
 
     try {
-      const result = await pollDeviceFlow(deviceCode, serverUrl);
-      if (result.approved) {
+      const result = await pollDeviceFlow();
+      if (result.status === "authenticated") {
         cleanup();
-      } else if (result.interval) {
-        currentIntervalMs = Math.min(result.interval * 1000, 30000);
-        restartPolling();
+        await loadChatGptSession();
+      } else if (result.status === "expired") {
+        cleanup();
+        onExpired();
       }
     } catch {
       cleanup();

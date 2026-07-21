@@ -44,12 +44,16 @@ use std::{
     env, fs,
     panic::PanicHookInfo,
     path::PathBuf,
-    sync::Arc,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
     thread,
     time::{Duration, Instant},
 };
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
+use tauri_plugin_shell::ShellExt;
 
 #[cfg(not(debug_assertions))]
 use tauri_plugin_deep_link::DeepLinkExt;
@@ -87,7 +91,6 @@ use crate::notes::NoteFullCache;
 use crate::runtime::DesktopRuntime;
 use crate::search::SearchService;
 use crate::session::ManagedTabSession;
-use std::sync::atomic::{AtomicBool, Ordering};
 use sysinfo::System;
 use tracing::{error, info, warn};
 
@@ -463,6 +466,83 @@ fn cleanup_stale_processes() {
     }
 }
 
+const CHATGPT_PROXY_PORT: u16 = 3001;
+
+/// Spawn the ChatGPT proxy sidecar (compiled Express server) and wait
+/// for it to become healthy using exponential backoff.
+/// Stores the child handle for clean shutdown and detects process crashes
+/// by polling the sidecar's event stream in a tokio::select! loop.
+async fn spawn_chatgpt_proxy(app: AppHandle) -> Result<u16, String> {
+    use tauri_plugin_shell::process::CommandEvent;
+
+    let port = CHATGPT_PROXY_PORT;
+
+    // ── Step 1: Check if port is already in use (stale proxy) ─────────
+    if let Ok(resp) = reqwest::get(&format!("http://127.0.0.1:{port}/api/health")).await {
+        if resp.status().is_success() {
+            info!("[chatgpt] proxy already running on port {port}, reusing");
+            let state = app.state::<crate::chatgpt_auth::ChatGptClient>();
+            *state.server_url.lock().map_err(|e| format!("Lock: {e}"))? =
+                Some(format!("http://127.0.0.1:{port}"));
+            return Ok(port);
+        }
+    }
+
+    // ── Step 2: Spawn the sidecar ───────────────────────────────────
+    let sidecar = app
+        .shell()
+        .sidecar("chatgpt-proxy")
+        .map_err(|e| format!("Failed to create sidecar command: {e}"))?;
+
+    let (mut rx, child) = sidecar
+        .spawn()
+        .map_err(|e| format!("Failed to spawn ChatGPT proxy: {e}"))?;
+
+    // Store the child handle so Drop kills it on exit
+    let child_state = app.state::<crate::chatgpt_auth::ChatGptProxyChild>();
+    *child_state.0.lock().map_err(|e| format!("Lock: {e}"))? = Some(child);
+
+    // ── Step 3: Exponential backoff health check with crash detection ─
+    let delays = [
+        100, 100, 100, 100, 100,    // 5 × 100ms
+        250, 250, 250, 250,          // 4 × 250ms
+        500, 500, 500,                // 3 × 500ms
+        1000, 1000, 1000, 1000, 1000, // 5 × 1s
+    ];
+
+    for (i, &delay_ms) in delays.iter().enumerate() {
+        tokio::select! {
+            _ = tokio::time::sleep(Duration::from_millis(delay_ms)) => {}
+            event = rx.recv() => {
+                let msg = match event {
+                    Some(CommandEvent::Terminated(payload)) => {
+                        format!("ChatGPT proxy exited with code {:?} before becoming healthy", payload.code)
+                    }
+                    Some(CommandEvent::Error(e)) => {
+                        format!("ChatGPT proxy error: {e}")
+                    }
+                    _ => "ChatGPT proxy stream ended before becoming healthy".into(),
+                };
+                return Err(msg);
+            }
+        }
+
+        let ok = reqwest::get(&format!("http://127.0.0.1:{port}/api/health"))
+            .await
+            .ok()
+            .map_or(false, |r| r.status().is_success());
+        if ok {
+            let state = app.state::<crate::chatgpt_auth::ChatGptClient>();
+            *state.server_url.lock().map_err(|e| format!("Lock: {e}"))? =
+                Some(format!("http://127.0.0.1:{port}"));
+            info!("[chatgpt] proxy ready (attempt {} after {delay_ms}ms)", i + 1);
+            return Ok(port);
+        }
+    }
+
+    Err("ChatGPT proxy failed to become healthy within timeout".into())
+}
+
 pub fn run() {
     tracing_subscriber::fmt::init();
     cleanup_stale_processes();
@@ -478,7 +558,8 @@ pub fn run() {
         .manage(Arc::new(HistoryRegistry::new()))
         .manage(ManagedTabSession::new())
         .manage(StartupDegraded::new())
-        .manage(crate::chatgpt_auth::ActiveDeviceFlows::new());
+        .manage(crate::chatgpt_auth::ChatGptClient::new())
+        .manage(crate::chatgpt_auth::ChatGptProxyChild::new());
 
     #[cfg(not(debug_assertions))]
     {
@@ -551,6 +632,7 @@ pub fn run() {
         // ── Phase 0: Panic hook (always first) ──────────────────────────
         let mut t0 = Instant::now();
         install_runtime_panic_hook(app.handle().clone());
+
         let log_phase = |phase: &str, elapsed: &str| {
             let msg = format!("[init] {phase}  +{elapsed}ms");
             info!("{msg}");
@@ -943,6 +1025,16 @@ pub fn run() {
                 }
             });
         }
+        // ── Spawn ChatGPT proxy sidecar ───────────────────────────────
+        {
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                match spawn_chatgpt_proxy(app_handle).await {
+                    Ok(port) => info!("[chatgpt] proxy sidecar running on port {port}"),
+                    Err(e) => warn!("[chatgpt] failed to start proxy sidecar: {e}"),
+                }
+            });
+        }
         log_phase("phase=17 background_workers", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
 
         write_startup_log("setup complete — app is running");
@@ -1139,9 +1231,7 @@ pub fn run() {
             crate::chatgpt_auth::commands::chatgpt_start_device_flow,
             crate::chatgpt_auth::commands::chatgpt_check_device_flow,
             crate::chatgpt_auth::commands::chatgpt_get_session,
-            crate::chatgpt_auth::commands::chatgpt_refresh_session,
             crate::chatgpt_auth::commands::chatgpt_sign_out,
-            crate::chatgpt_auth::commands::chatgpt_get_plan_info,
             crate::chatgpt_auth::commands::chatgpt_test_connection,
             // Clipboard Manager
             crate::clipboard::clipboard_list,

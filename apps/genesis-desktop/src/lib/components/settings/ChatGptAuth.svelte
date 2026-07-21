@@ -5,7 +5,6 @@
     chatgptReady,
     chatgptServerUrl,
     chatgptDeviceFlow,
-    chatgptPlanInfo,
     loadChatGptSession,
     startDeviceFlow,
     startDeviceFlowPolling,
@@ -14,10 +13,8 @@
     validateServerUrl,
     formatExpiry,
     getVerificationUri,
-    isNearExpiry,
     openExternalUrl,
     copyToClipboard,
-    isExpired,
   } from "$lib/stores/chatgpt-auth.store";
 
   import BotIcon from "@lucide/svelte/icons/bot";
@@ -81,9 +78,8 @@
       const flow = await startDeviceFlow($chatgptServerUrl);
       const uri = getVerificationUri($chatgptDeviceFlow!);
       openExternalUrl(uri);
-      const expiresAt = Date.now() + flow.expiresIn * 1000;
       cleanupPolling = startDeviceFlowPolling(
-        flow.deviceCode, $chatgptServerUrl, flow.interval, expiresAt,
+        flow.interval, flow.expiresAt,
         (msg) => { signInError = msg; signingIn = false; },
         () => { signInError = "Code expired. Please try again."; signingIn = false; },
       );
@@ -136,44 +132,20 @@
         <span>Signed in</span>
       </div>
 
-      {#if $chatgptPlanInfo}
-        <div class="chatgpt-auth__plan">
+      <div class="chatgpt-auth__plan">
+        <div class="chatgpt-auth__plan-row">
+          <span class="chatgpt-auth__label">Account</span>
+          <span class="chatgpt-auth__value">
+            {$chatgptSession.user?.name || $chatgptSession.user?.email || $chatgptSession.user?.accountId || 'Connected'}
+          </span>
+        </div>
+        {#if $chatgptSession.user?.plan}
           <div class="chatgpt-auth__plan-row">
             <span class="chatgpt-auth__label">Plan</span>
-            <span class="chatgpt-auth__value">{$chatgptPlanInfo.name}</span>
+            <span class="chatgpt-auth__value">{$chatgptSession.user.plan}</span>
           </div>
-          <div class="chatgpt-auth__plan-row">
-            <span class="chatgpt-auth__label">Tier</span>
-            <span class="chatgpt-auth__value">
-              <span class="chatgpt-auth__tier-badge" class:chatgpt-auth__tier-badge--pro={$chatgptPlanInfo.tier === 'pro'}>
-                {$chatgptPlanInfo.tier === 'pro' ? 'Pro' : 'Plus'}
-              </span>
-            </span>
-          </div>
-          <div class="chatgpt-auth__plan-row">
-            <span class="chatgpt-auth__label">Models</span>
-            <span class="chatgpt-auth__value chatgpt-auth__models">
-              {$chatgptPlanInfo.models.slice(0, 4).join(', ')}
-              {#if $chatgptPlanInfo.models.length > 4}
-                <span class="chatgpt-auth__more">+{$chatgptPlanInfo.models.length - 4} more</span>
-              {/if}
-            </span>
-          </div>
-          <div class="chatgpt-auth__plan-row">
-            <span class="chatgpt-auth__label">Session</span>
-            <span class="chatgpt-auth__value"
-              class:chatgpt-auth__value--expired={isExpired($chatgptSession.expiresAt)}
-              class:chatgpt-auth__value--near-expiry={isNearExpiry($chatgptSession.expiresAt)}
-            >
-              {isNearExpiry($chatgptSession.expiresAt) ? 'Expires' : 'Expires'} {formatExpiry($chatgptSession.expiresAt)}
-            </span>
-          </div>
-        </div>
-      {:else}
-        <div class="chatgpt-auth__simple-info">
-          <span>Server: {$chatgptSession.serverUrl}</span>
-        </div>
-      {/if}
+        {/if}
+      </div>
 
       <div class="chatgpt-auth__actions">
         <button class="chatgpt-auth__btn chatgpt-auth__btn--secondary" onclick={async () => { await loadChatGptSession(); }}>

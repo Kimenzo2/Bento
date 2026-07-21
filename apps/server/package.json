@@ -10,10 +10,10 @@
     "render-start": "node src/index.js"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.21.0",
+    "@opencoredev/loginwithchatgpt-core": "^0.2.0",
+    "@opencoredev/loginwithchatgpt-server": "^0.2.0",
+    "express": "^4.21.2",
     "helmet": "^8.0.0",
-    "jsonwebtoken": "^9.0.2",
-    "uuid": "^11.0.0"
+    "methods": "^1.1.2"
   }
 }

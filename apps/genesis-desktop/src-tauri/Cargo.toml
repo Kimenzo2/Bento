@@ -62,6 +62,7 @@ reqwest = { version = "0.12", default-features = false, features = [
   "json",
   "rustls-tls",
   "stream",
+  "cookies",
 ] }
 futures = "0.3"
 tracing = "0.1"

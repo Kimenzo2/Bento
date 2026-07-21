@@ -1,88 +1,76 @@
-//! ChatGPT OAuth & Session Management
+//! ChatGPT OAuth & Session Management (Codex OAuth)
 //!
-//! Enables "Sign in with ChatGPT" flow via device code OAuth through a
-//! self-hosted app-server. Sessions are stored in the OS keyring for
-//! persistence across app restarts.
+//! Enables "Sign in with ChatGPT" via real Codex device-code OAuth through
+//! a self-hosted Express proxy. Sessions are cookie-based: the reqwest
+//! client's cookie jar handles auth transparently.
 //!
 //! Flow:
 //!   1. Frontend calls `chatgpt_start_device_flow(server_url)`
-//!   2. Backend POSTs to server's `/api/auth/device-code`, returns user_code + URI
-//!   3. Frontend shows code and verification URI to user
-//!   4. User opens URI, enters code, authorizes
-//!   5. Frontend polls `chatgpt_check_device_flow(device_code)` every 5s
-//!   6. On approval, session JWT is stored in OS keyring
-//!   7. Subsequent AI requests use the session to route through the proxy
+//!   2. Backend POSTs to server's `/api/chatgpt/login`, gets user_code + URL
+//!   3. Frontend shows code and verification URL to user
+//!   4. User opens URL, enters code on auth.openai.com, authorizes
+//!   5. Frontend polls `chatgpt_check_device_flow()` (cookie-driven)
+//!   6. On approval, the session cookie is stored in the reqwest client
+//!   7. Subsequent AI requests use the same client (cookie = auth)
 
 pub mod commands;
 
-pub use commands::load_session;
+pub use commands::load_server_url;
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::sync::Mutex;
+use tauri_plugin_shell::process::CommandChild;
 
-/// Device flow response from the app-server.
+// ── API response types (Codex `createChatGPTHandler` shapes) ──────────
+
+/// Response from POST /api/chatgpt/login.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DeviceFlowResponse {
-    pub device_code: String,
+pub struct LoginResponse {
+    pub status: String,
     pub user_code: String,
-    pub verification_uri: String,
-    #[serde(default)]
-    pub verification_uri_complete: Option<String>,
-    pub expires_in: u64,
+    pub verification_url: String,
     pub interval: u64,
+    pub expires_at: i64,
 }
 
-/// Poll response from the app-server.
+/// Public ChatGPT user profile from the server.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PollResponse {
-    pub status: String,
+pub struct ChatGptUserInfo {
+    pub account_id: String,
     #[serde(default)]
-    pub token: Option<String>,
+    pub email: Option<String>,
     #[serde(default)]
-    pub session_id: Option<String>,
-    #[serde(default)]
-    pub expires_in: Option<u64>,
+    pub name: Option<String>,
     #[serde(default)]
     pub plan: Option<String>,
-    /// Server-requested polling interval (seconds), used for slow_down
-    #[serde(default)]
-    pub interval: Option<u64>,
 }
 
-/// ChatGPT session stored locally.
+/// Response from GET /api/chatgpt/session or /api/chatgpt/status.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StatusResponse {
+    pub status: String,
+    #[serde(default)]
+    pub user: Option<ChatGptUserInfo>,
+}
+
+/// Response from GET /api/chatgpt/models.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelsResponse {
+    pub models: Vec<String>,
+}
+
+/// ChatGPT session info returned to the frontend.
+/// No tokens — auth is cookie-based.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatGptSession {
     pub server_url: String,
-    pub session_id: String,
-    pub token: String,
-    pub plan: String,
-    pub created_at: i64,
-    pub expires_at: i64,
-}
-
-/// Plan info returned by the server.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PlanInfo {
-    pub plan: String,
-    pub name: String,
-    pub tier: String,
-    pub description: String,
-    pub models: Vec<String>,
-    pub max_tokens: u64,
-    pub rate_limit: RateLimitInfo,
-    pub session_expires_at: i64,
-    pub active_model: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RateLimitInfo {
-    pub requests_per_minute: u64,
+    pub user: Option<ChatGptUserInfo>,
+    pub status: String,
 }
 
 /// Connection test result.
@@ -94,18 +82,61 @@ pub struct ConnectionTestResult {
     pub latency_ms: Option<u64>,
 }
 
-// ── Managed state ──────────────────────────────────────────────────────
+// ── Device flow info (returned to frontend for display) ───────────────
 
-/// In-memory tracker for active device flows.
-/// Tauri State already wraps in Arc, so plain Mutex is sufficient.
-pub struct ActiveDeviceFlows {
-    pub inner: Mutex<HashMap<String, DeviceFlowResponse>>,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeviceFlowInfo {
+    pub user_code: String,
+    pub verification_url: String,
+    pub interval: u64,
+    pub expires_at: i64,
 }
 
-impl ActiveDeviceFlows {
+// ── Managed state ──────────────────────────────────────────────────────
+
+/// Shared reqwest client with cookie store, plus persisted server URL.
+/// The cookie jar keeps the session alive across requests within the app
+/// session. Server URL is also persisted in OS keyring.
+pub struct ChatGptClient {
+    pub client: reqwest::Client,
+    pub server_url: Mutex<Option<String>>,
+    /// Extracted session cookie value for use by codex stream requests
+    /// that create their own reqwest clients (cannot share the cookie jar).
+    pub session_cookie: Mutex<Option<String>>,
+}
+
+impl ChatGptClient {
     pub fn new() -> Self {
         Self {
-            inner: Mutex::new(HashMap::new()),
+            client: reqwest::Client::builder()
+                .cookie_store(true)
+                .timeout(std::time::Duration::from_secs(30))
+                .build()
+                .expect("reqwest client with cookie store"),
+            server_url: Mutex::new(None),
+            session_cookie: Mutex::new(None),
+        }
+    }
+}
+
+/// Handle to the running ChatGPT proxy sidecar process.
+/// Stored in managed Tauri state so it can be killed on app exit.
+/// Implements Drop to kill the child process when managed state is dropped.
+pub struct ChatGptProxyChild(pub Mutex<Option<CommandChild>>);
+
+impl ChatGptProxyChild {
+    pub fn new() -> Self {
+        Self(Mutex::new(None))
+    }
+}
+
+impl Drop for ChatGptProxyChild {
+    fn drop(&mut self) {
+        if let Ok(mut guard) = self.0.lock() {
+            if let Some(child) = guard.take() {
+                let _ = child.kill();
+            }
         }
     }
 }

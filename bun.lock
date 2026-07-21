@@ -13,12 +13,12 @@
     },
     "apps/genesis-desktop": {
       "name": "@bento/desktop",
-      "version": "0.2.20",
+      "version": "0.2.21",
       "dependencies": {
         "@ai-sdk/anthropic": "^4.0.14",
         "@ai-sdk/google": "^4.0.14",
         "@ai-sdk/openai": "^4.0.13",
-        "@fontsource-variable/jetbrains-mono": "^5.2.8",
+        "@fontsource-variable/jetbrains-mono": "^5.3.0",
         "@fontsource-variable/noto-sans-arabic": "^5.2.10",
         "@fontsource/fredoka": "^5.2.10",
         "@fontsource/ibm-plex-sans": "^5.2.8",
@@ -56,7 +56,6 @@
         "d3-shape": "^3.2.0",
         "dompurify": "^3.3.1",
         "layerchart": "2.0.0-next.64",
-        "logrocket": "^12.1.1",
         "lucide-svelte": "^1.0.1",
         "marked": "^18.0.3",
         "runed": "^0.37.1",
@@ -310,7 +309,7 @@
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.11", "", {}, "sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg=="],
 
-    "@fontsource-variable/jetbrains-mono": ["@fontsource-variable/jetbrains-mono@5.2.8", "", {}, "sha512-WBA9elru6Jdp5df2mES55wuOO0WIrn3kpXnI4+W2ek5u3ZgLS9XS4gmIlcQhiZOWEKl95meYdvK7xI+ETLCq/Q=="],
+    "@fontsource-variable/jetbrains-mono": ["@fontsource-variable/jetbrains-mono@5.3.0", "", {}, "sha512-F32xpS2NsGYoQi2ADSkKTgpJj7ozajsGgDJ8woTnqjmIB+dxDIqImjl4pXZVEExu8UFZ2ndhmX18EBS/hdz3Lw=="],
 
     "@fontsource-variable/noto-sans-arabic": ["@fontsource-variable/noto-sans-arabic@5.2.10", "", {}, "sha512-6vP9gU5yQQE/4ClrVoS92rjwc3qUnSkoxaw/Hkrha1Nqn9UEwuh3WVxT2+DMlMdV49uxvxUKVauSd2nwLu/WBA=="],
 
@@ -1713,8 +1712,6 @@
     "lodash-es": ["lodash-es@4.18.1", "", {}, "sha512-J8xewKD/Gk22OZbhpOVSwcs60zhd95ESDwezOFuA3/099925PdHJ7OFHNTGtajL3AlZkykD32HykiMo+BIBI8A=="],
 
     "lodash.merge": ["lodash.merge@4.6.2", "", {}, "sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ=="],
-
-    "logrocket": ["logrocket@12.1.1", "", {}, "sha512-l7z9ii5nNV6NZ3nzEqbB3xJAqFJC6QdRYDK8DeCC6JKwzuI8nyUezUJAotgMyClrqB6eV/Bo0i/KihQlXSRDKw=="],
 
     "longest-streak": ["longest-streak@3.1.0", "", {}, "sha512-9Ri+o0JYgehTaVBBDoMqIl8GXtbWg711O3srftcHhZ0dqnETqLaoIK0x17fUw9rFSlK/0NlsKe0Ahhyl5pXE2g=="],
 

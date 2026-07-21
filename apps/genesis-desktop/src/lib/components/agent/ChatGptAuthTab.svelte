@@ -5,7 +5,6 @@
     chatgptReady,
     chatgptServerUrl,
     chatgptDeviceFlow,
-    chatgptPlanInfo,
     loadChatGptSession,
     startDeviceFlow,
     startDeviceFlowPolling,
@@ -14,10 +13,8 @@
     validateServerUrl,
     formatExpiry,
     getVerificationUri,
-    isNearExpiry,
     openExternalUrl,
     copyToClipboard,
-    isExpired,
   } from "$lib/stores/chatgpt-auth.store";
 
   import BotIcon from "@lucide/svelte/icons/bot";
@@ -80,9 +77,8 @@
       const flow = await startDeviceFlow($chatgptServerUrl);
       const uri = getVerificationUri($chatgptDeviceFlow!);
       openExternalUrl(uri);
-      const expiresAt = Date.now() + flow.expiresIn * 1000;
       cleanupPolling = startDeviceFlowPolling(
-        flow.deviceCode, $chatgptServerUrl, flow.interval, expiresAt,
+        flow.interval, flow.expiresAt,
         (msg) => { signInError = msg; signingIn = false; },
         () => { signInError = "Code expired. Please try again."; signingIn = false; },
       );
@@ -127,22 +123,20 @@
         <span>Signed in with ChatGPT</span>
       </div>
 
-      {#if $chatgptPlanInfo}
-        <div class="chatgpt-tab__plan">
+      <div class="chatgpt-tab__plan">
+        {#if $chatgptSession.user?.name || $chatgptSession.user?.email}
+          <div class="chatgpt-tab__row">
+            <span>Account</span>
+            <span>{$chatgptSession.user?.name || $chatgptSession.user?.email}</span>
+          </div>
+        {/if}
+        {#if $chatgptSession.user?.plan}
           <div class="chatgpt-tab__row">
             <span>Plan</span>
-            <span class="chatgpt-tab__tier" class:chatgpt-tab__tier--pro={$chatgptPlanInfo.tier === 'pro'}>
-              {$chatgptPlanInfo.name}
-            </span>
+            <span>{$chatgptSession.user.plan}</span>
           </div>
-          <div class="chatgpt-tab__row">
-            <span>Session</span>
-            <span class:chatgpt-tab__expired={isExpired($chatgptSession.expiresAt)} class:chatgpt-tab__near-expiry={isNearExpiry($chatgptSession.expiresAt)}>
-              {formatExpiry($chatgptSession.expiresAt)}
-            </span>
-          </div>
-        </div>
-      {/if}
+        {/if}
+      </div>
 
       <button class="chatgpt-tab__btn chatgpt-tab__btn--outline" onclick={handleSignOut}>
         <LogOutIcon size={14} />
