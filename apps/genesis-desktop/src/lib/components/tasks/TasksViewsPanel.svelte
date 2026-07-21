@@ -253,7 +253,7 @@
   .ts-view-row-icon { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 8px; background: color-mix(in srgb, var(--foreground) 4%, var(--background)); color: color-mix(in srgb, var(--foreground) 40%, var(--background)); flex-shrink: 0; }
   .ts-view-row-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
   .ts-view-row-name { font-size: 12.5px; font-weight: 500; color: var(--foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .ts-view-row-meta { display: flex; align-items: center; gap: 4px; font-size: 10px; color: color-mix(in srgb, var(--foreground) 30%, var(--background)); }
+  .ts-view-row-meta { display: flex; align-items: center; gap: 4px; font-size: 11px; color: color-mix(in srgb, var(--foreground) 30%, var(--background)); }
   .ts-view-row-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; opacity: 0; transition: opacity .12s; }
   .ts-view-row:hover .ts-view-row-actions { opacity: 1; }
   .ts-view-row-btn { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 6px; border: none; background: transparent; color: color-mix(in srgb, var(--foreground) 30%, var(--background)); cursor: pointer; transition: background .12s,color .12s; }

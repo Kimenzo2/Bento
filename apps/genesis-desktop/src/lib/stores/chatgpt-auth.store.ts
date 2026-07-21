@@ -47,7 +47,9 @@ function loadSavedServerUrl(): string {
 function saveServerUrl(url: string): void {
   try {
     localStorage.setItem(SERVER_URL_KEY, url);
-  } catch { /* storage full or unavailable */ }
+  } catch {
+    /* storage full or unavailable */
+  }
 }
 
 export function validateServerUrl(url: string): string | null {
@@ -55,9 +57,14 @@ export function validateServerUrl(url: string): string | null {
   const trimmed = url.trim();
   try {
     const parsed = new URL(trimmed);
-    if (!["http:", "https:"].includes(parsed.protocol)) return "URL must start with http:// or https://";
+    if (!["http:", "https:"].includes(parsed.protocol))
+      return "URL must start with http:// or https://";
     if (!parsed.hostname) return "Invalid hostname";
-    if (parsed.protocol === "http:" && parsed.hostname !== "localhost" && parsed.hostname !== "127.0.0.1") {
+    if (
+      parsed.protocol === "http:" &&
+      parsed.hostname !== "localhost" &&
+      parsed.hostname !== "127.0.0.1"
+    ) {
       return "Warning: Using HTTP (not HTTPS) is insecure for remote servers";
     }
     return null;
@@ -147,16 +154,17 @@ export async function openExternalUrl(url: string): Promise<void> {
 }
 
 export function copyToClipboard(text: string, onCopied: () => void): void {
-  navigator.clipboard.writeText(text).then(onCopied).catch(() => {});
+  navigator.clipboard
+    .writeText(text)
+    .then(onCopied)
+    .catch(() => {});
 }
 
 export function isExpired(ts: number): boolean {
   return Date.now() >= ts;
 }
 
-export function getVerificationUri(flow: {
-  verificationUri: string;
-}): string {
+export function getVerificationUri(flow: { verificationUri: string }): string {
   return flow.verificationUri;
 }
 

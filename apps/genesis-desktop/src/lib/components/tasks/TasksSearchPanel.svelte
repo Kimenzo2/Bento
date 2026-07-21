@@ -249,11 +249,11 @@
   .ts-result-icon { flex-shrink: 0; margin-top: 2px; }
   .ts-result-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .ts-result-title { font-size: 12.5px; font-weight: 500; color: var(--foreground); line-height: 1.3; overflow-wrap: break-word; }
-  .ts-result-meta { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: color-mix(in srgb, var(--foreground) 25%, var(--background)); }
-  .ts-result-tag { padding: 1px 5px; border-radius: 4px; background: color-mix(in srgb, var(--foreground) 4%, var(--background)); color: color-mix(in srgb, var(--foreground) 35%, var(--background)); font-size: 10px; }
+  .ts-result-meta { display: flex; align-items: center; gap: 6px; font-size: 11px; color: color-mix(in srgb, var(--foreground) 25%, var(--background)); }
+  .ts-result-tag { padding: 1px 5px; border-radius: 4px; background: color-mix(in srgb, var(--foreground) 4%, var(--background)); color: color-mix(in srgb, var(--foreground) 35%, var(--background)); font-size: 11px; }
   .ts-result-date { font-variant-numeric: tabular-nums; }
   .ts-result-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px; }
-  .ts-result-tag-item { font-size: 10px; padding: 1px 5px; border-radius: 4px; background: color-mix(in srgb, var(--foreground) 4%, var(--background)); color: color-mix(in srgb, var(--foreground) 40%, var(--background)); }
+  .ts-result-tag-item { font-size: 11px; padding: 1px 5px; border-radius: 4px; background: color-mix(in srgb, var(--foreground) 4%, var(--background)); color: color-mix(in srgb, var(--foreground) 40%, var(--background)); }
   :global(.ts-highlight) { background: color-mix(in srgb, var(--foreground) 12%, var(--background)); color: var(--foreground); border-radius: 2px; padding: 0 2px; }
   .ts-circle-icon { color: color-mix(in srgb, var(--foreground) 15%, var(--background)); }
 </style>

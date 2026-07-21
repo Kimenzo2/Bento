@@ -2935,7 +2935,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
                   <div class="tasks-import-conflict-row">
                     <div class="tasks-import-conflict-info">
                       <span style="color: color-mix(in srgb, var(--foreground) 70%, transparent);">"{conflict.title}"</span>
-                      <span style="color: color-mix(in srgb, var(--foreground) 50%, transparent); font-size: 10px;">
+                      <span style="color: color-mix(in srgb, var(--foreground) 50%, transparent); font-size: 11px;">
                         matches existing task
                         {#if conflict.existingDone}✅{/if}
                       </span>
@@ -2983,10 +2983,10 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
                     </Table.Cell>
                     <Table.Cell>
                       {#if entry.project !== 'inbox'}
-                        <span style="font-size: 10px; color: color-mix(in srgb, var(--foreground) 50%, transparent);">{entry.project}</span>
+                        <span style="font-size: 11px; color: color-mix(in srgb, var(--foreground) 50%, transparent);">{entry.project}</span>
                       {/if}
                     </Table.Cell>
-                    <Table.Cell style="font-size: 10px; color: color-mix(in srgb, var(--foreground) 50%, transparent);">
+                    <Table.Cell style="font-size: 11px; color: color-mix(in srgb, var(--foreground) 50%, transparent);">
                       {entry.dueDate ? time.formatCustom(parseInt(entry.dueDate), 'M j') : ''}
                     </Table.Cell>
                     <Table.Cell>
@@ -2994,7 +2994,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
                         <span class="tasks-import-tag">{tag}</span>
                       {/each}
                     </Table.Cell>
-                    <Table.Cell style="font-size: 10px;">
+                    <Table.Cell style="font-size: 11px;">
                       {#if entry.done}<span style="color: var(--primary);">Done</span>{:else}<span style="color: rgba(255,255,255,0.50);">Open</span>{/if}
                     </Table.Cell>
                   </Table.Row>

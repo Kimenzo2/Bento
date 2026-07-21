@@ -647,7 +647,6 @@
     gap: 0.6rem;
     padding: 1.5rem;
     color: var(--muted);
-    font-size: 0.9rem;
   }
   .byok-loading__spin {
     animation: spin 0.8s linear infinite;
@@ -689,7 +688,6 @@
   }
   .byok-onboarding__copy p {
     margin: 0;
-    font-size: 0.82rem;
     line-height: 1.5;
     color: var(--muted);
   }
@@ -702,7 +700,6 @@
     border-radius: 8px;
     background: color-mix(in srgb, #f59e0b 12%, var(--background));
     color: #d97706;
-    font-size: 0.78rem;
     line-height: 1.45;
   }
   .byok-onboarding__disclaimer svg {
@@ -762,7 +759,6 @@
   .byok-gate__desc {
     margin: 0;
     color: var(--muted);
-    font-size: 0.9rem;
     line-height: 1.5;
     max-width: 28rem;
   }
@@ -777,7 +773,6 @@
     display: flex;
     align-items: center;
     gap: 0.55rem;
-    font-size: 0.85rem;
     color: var(--muted);
     line-height: 1.4;
   }
@@ -817,7 +812,6 @@
   }
   .byok-toggle-row__info p {
     margin: 0;
-    font-size: 0.82rem;
     color: var(--muted);
   }
 
@@ -877,7 +871,6 @@
   }
   .byok-section__header p {
     margin: 0;
-    font-size: 0.82rem;
     color: var(--muted);
   }
 
@@ -895,7 +888,6 @@
     border-radius: 12px;
     background: color-mix(in srgb, var(--foreground) 4%, var(--background));
     color: var(--foreground);
-    font-size: 0.9rem;
     font-family: inherit;
     text-align: left;
     cursor: pointer;
@@ -937,7 +929,6 @@
   .byok-select-empty {
     padding: 1rem;
     color: var(--muted);
-    font-size: 0.85rem;
     text-align: center;
   }
   .byok-select-option {
@@ -949,7 +940,6 @@
     border: none;
     background: transparent;
     color: var(--foreground);
-    font-size: 0.88rem;
     text-align: left;
     cursor: pointer;
     transition: background 0.1s ease;
@@ -999,7 +989,6 @@
     gap: 0.4rem;
   }
   .byok-model-label {
-    font-size: 0.82rem;
     font-weight: 600;
     color: var(--muted);
   }
@@ -1042,7 +1031,6 @@
     min-width: 0;
   }
   .byok-provider-card__names strong {
-    font-size: 0.9rem;
     font-weight: 700;
     color: var(--foreground);
   }
@@ -1068,7 +1056,6 @@
     color: var(--muted);
   }
   .byok-provider-no-key {
-    font-size: 0.78rem;
     color: var(--muted);
     font-weight: 500;
   }
@@ -1089,7 +1076,6 @@
   }
   .byok-btn--sm {
     padding: 0.45rem 0.85rem;
-    font-size: 0.82rem;
     background: color-mix(in srgb, var(--foreground) 8%, var(--background));
     color: var(--foreground);
     border: none;
@@ -1150,7 +1136,6 @@
     gap: 0.3rem;
   }
   .byok-key-label {
-    font-size: 0.78rem;
     font-weight: 600;
     color: var(--muted);
   }
@@ -1166,7 +1151,6 @@
     border-radius: 10px;
     background: color-mix(in srgb, var(--foreground) 5%, var(--background));
     color: var(--foreground);
-    font-size: 0.88rem;
     font-family: var(--font-mono, monospace);
     outline: none;
     transition: outline-color 0.15s ease;
@@ -1183,7 +1167,6 @@
   }
   .byok-key-error {
     margin: 0;
-    font-size: 0.82rem;
     color: #ef4444;
     background: color-mix(in srgb, #ef4444 10%, var(--background));
     border-radius: 8px;
@@ -1191,7 +1174,6 @@
   }
   .byok-key-success {
     margin: 0;
-    font-size: 0.82rem;
     color: #10b981;
     background: color-mix(in srgb, #10b981 10%, var(--background));
     border-radius: 8px;
@@ -1214,7 +1196,6 @@
     border-radius: 10px;
     border: none;
     box-shadow: none;
-    font-size: 0.82rem;
     font-weight: 600;
     line-height: 1.4;
   }
@@ -1267,12 +1248,10 @@
     min-width: 0;
   }
   .byok-disclaimer__copy strong {
-    font-size: 0.85rem;
     color: var(--foreground);
   }
   .byok-disclaimer__copy p {
     margin: 0;
-    font-size: 0.78rem;
     line-height: 1.5;
     color: var(--muted);
   }

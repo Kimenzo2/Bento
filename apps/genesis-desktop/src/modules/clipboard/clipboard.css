@@ -1165,7 +1165,7 @@
   align-items: center;
   gap: 4px;
   color: #fff;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1;
   pointer-events: none;
@@ -1356,7 +1356,7 @@
   justify-content: center;
   gap: 3px;
   color: #fff;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1;
   pointer-events: none;
@@ -1444,7 +1444,7 @@
 }
 
 :global(.cb-pin-card__meta) :global(.cb-pin-card__recopy) {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   padding: 1px 5px;
   border-radius: 4px;

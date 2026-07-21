@@ -564,7 +564,6 @@
   }
   .ai-card-description p {
     margin: 0;
-    font-size: 0.82rem;
     line-height: 1.5;
     color: var(--muted);
   }
@@ -613,7 +612,6 @@
     text-overflow: ellipsis;
   }
   .ai-provider-label {
-    font-size: 0.75rem;
     color: var(--muted);
     white-space: nowrap;
     overflow: hidden;
@@ -654,7 +652,6 @@
     gap: 0.5rem;
     padding: 0.5rem 0;
     color: var(--muted);
-    font-size: 0.85rem;
   }
 
   /* ── Toggle Row ───────────────────────────────────────────────────────────── */
@@ -675,13 +672,11 @@
     min-width: 0;
   }
   .ai-toggle-row__info strong {
-    font-size: 0.88rem;
     font-weight: 700;
     color: var(--foreground);
   }
   .ai-toggle-row__info p {
     margin: 0;
-    font-size: 0.78rem;
     color: var(--muted);
   }
 
@@ -788,13 +783,11 @@
     gap: 0.05rem;
   }
   .ai-feature-item__info strong {
-    font-size: 0.85rem;
     font-weight: 700;
     color: var(--foreground);
   }
   .ai-feature-item__info p {
     margin: 0;
-    font-size: 0.75rem;
     line-height: 1.4;
     color: var(--muted);
   }
@@ -817,7 +810,6 @@
     border-radius: 10px;
     background: color-mix(in srgb, var(--foreground) 4%, var(--background));
     color: var(--foreground);
-    font-size: 0.88rem;
     font-family: inherit;
     line-height: 1.6;
     resize: vertical;
@@ -890,7 +882,6 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.78rem;
     font-weight: 600;
     color: var(--muted);
   }
@@ -915,7 +906,6 @@
     border: none;
     border-radius: 8px;
     background: color-mix(in srgb, var(--foreground) 4%, var(--background));
-    font-size: 0.8rem;
     font-family: var(--font-mono, monospace);
     color: var(--foreground);
     white-space: nowrap;
@@ -935,7 +925,6 @@
     padding: 0.5rem 0.75rem;
     border-radius: 8px;
     background: color-mix(in srgb, #10b981 8%, var(--background));
-    font-size: 0.8rem;
     font-weight: 600;
     color: #10b981;
   }
@@ -960,7 +949,6 @@
     border-radius: 8px;
     background: color-mix(in srgb, var(--muted) 8%, var(--background));
     color: var(--muted);
-    font-size: 0.82rem;
     line-height: 1.5;
   }
   .ai-mcp-offline :global(svg) {
@@ -980,7 +968,6 @@
     cursor: pointer;
     transition: all 0.12s ease;
     white-space: nowrap;
-    font-size: 0.82rem;
   }
   .ai-btn--sm {
     padding: 0.4rem 0.75rem;
@@ -1039,12 +1026,10 @@
     min-width: 0;
   }
   .ai-disclaimer__copy strong {
-    font-size: 0.85rem;
     color: var(--foreground);
   }
   .ai-disclaimer__copy p {
     margin: 0;
-    font-size: 0.78rem;
     line-height: 1.5;
     color: var(--muted);
   }

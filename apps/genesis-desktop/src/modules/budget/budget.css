@@ -132,12 +132,10 @@
   align-items: center;
   gap: 10px;
   font-weight: 600;
-  font-size: 15px;
 }
 
 .category-amount {
   font-weight: 600;
-  font-size: 15px;
   font-variant-numeric: tabular-nums;
 }
 .category-amount.positive {
@@ -191,7 +189,6 @@
 }
 
 .summary-value {
-  font-size: 15px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -375,7 +372,6 @@ select {
   flex-shrink: 0;
 }
 .bcat-name {
-  font-size: 14px;
   font-weight: 600;
   flex: 1;
 }

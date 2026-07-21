@@ -6,9 +6,7 @@
       "use": "@vercel/node"
     }
   ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "src/index.js" }
-  ],
+  "routes": [{ "src": "/api/(.*)", "dest": "src/index.js" }],
   "env": {
     "OPENAI_API_KEY": "@openai-api-key",
     "JWT_SECRET": "@jwt-secret"

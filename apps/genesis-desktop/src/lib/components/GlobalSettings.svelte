@@ -821,9 +821,9 @@
 
   /* ── Encryption ──────────────────────────────────────────────────────────── */
   .gs-enc-card { border:1px solid var(--border); border-radius:14px; padding:1rem; display:flex; flex-direction:column; gap:0.6rem; background:color-mix(in srgb,var(--foreground) 3%,var(--background)); }
-  .gs-enc-status { display:flex; align-items:center; gap:0.5rem; font-size:0.88rem; font-weight:600; }
+  .gs-enc-status { display:flex; align-items:center; gap:0.5rem; font-weight:600; }
   .gs-enc-badge { font-size:0.72rem; font-weight:800; border-radius:999px; padding:0.15rem 0.5rem; background:color-mix(in srgb,#10b981 15%,var(--background)); color:#10b981; letter-spacing:0.06em; }
-  .gs-enc-input { width:100%; border:1px solid var(--border); border-radius:10px; background:color-mix(in srgb,var(--foreground) 5%,var(--background)); padding:0.6rem 0.85rem; color:var(--foreground); font-size:0.9rem; outline:none; box-sizing:border-box; }
+  .gs-enc-input { width:100%; border:1px solid var(--border); border-radius:10px; background:color-mix(in srgb,var(--foreground) 5%,var(--background)); padding:0.6rem 0.85rem; color:var(--foreground); outline:none; box-sizing:border-box; }
   .gs-enc-input:focus { border-color:var(--primary); }
   .gs-enc-btn { border:none; border-radius:10px; background:var(--primary); color:var(--primary-foreground); padding:0.6rem 1rem; font-size:0.88rem; font-weight:700; cursor:pointer; white-space:nowrap; }
   .gs-enc-btn:disabled { opacity:0.45; cursor:not-allowed; }
@@ -834,7 +834,7 @@
   .global-settings__grid-2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0.75rem; }
   .gs-toggle-inline { justify-content:space-between; width:100%; }
   .cloud-backup-module-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0.45rem 0.75rem; }
-  .cloud-backup-module { display:flex; align-items:center; gap:0.55rem; font-size:0.88rem; color:var(--foreground); }
+  .cloud-backup-module { display:flex; align-items:center; gap:0.55rem; color:var(--foreground); }
   .cloud-backup-module input { width:1rem; height:1rem; }
   .cloud-backup-list { display:flex; flex-direction:column; gap:0.65rem; }
   .cloud-backup-item { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; padding:0.8rem 0.9rem; border:1px solid var(--border); border-radius:12px; background:color-mix(in srgb,var(--foreground) 3%,var(--background)); }
@@ -842,10 +842,10 @@
 
   /* ── Language picker ─────────────────────────────────────────────────────── */
   .global-settings__lang-search { margin-bottom:0.5rem; }
-  .global-settings__lang-input { width:100%; border:1px solid var(--border); border-radius:10px; background:color-mix(in srgb,var(--foreground) 4%,var(--background)); padding:0.55rem 0.85rem; color:var(--foreground); font-size:0.9rem; outline:none; box-sizing:border-box; }
+  .global-settings__lang-input { width:100%; border:1px solid var(--border); border-radius:10px; background:color-mix(in srgb,var(--foreground) 4%,var(--background)); padding:0.55rem 0.85rem; color:var(--foreground); outline:none; box-sizing:border-box; }
   .global-settings__lang-input:focus { border-color:var(--primary); }
   .global-settings__lang-list { display:flex; flex-direction:column; gap:0.15rem; max-height:14rem; overflow-y:auto; border:1px solid var(--border); border-radius:12px; padding:0.35rem; }
-  .global-settings__lang-item { display:flex; align-items:center; gap:0.55rem; border:none; border-radius:8px; background:transparent; padding:0.5rem 0.65rem; color:var(--foreground); font-size:0.88rem; text-align:left; cursor:default; transition:background 80ms ease; }
+  .global-settings__lang-item { display:flex; align-items:center; gap:0.55rem; border:none; border-radius:8px; background:transparent; padding:0.5rem 0.65rem; color:var(--foreground); text-align:left; cursor:default; transition:background 80ms ease; }
   .global-settings__lang-item:hover { background:color-mix(in srgb,var(--foreground) 7%,var(--background)); }
   .global-settings__lang-item--active { background:color-mix(in srgb,var(--primary) 10%,var(--background)) !important; color:var(--primary); font-weight:700; }
   .global-settings__lang-label { flex:1; min-width:0; }
@@ -855,7 +855,7 @@
   /* ── Misc ────────────────────────────────────────────────────────────────── */
   .global-settings__danger-zone { margin-top:1rem; border:none; border-radius:20px; background:color-mix(in srgb,var(--destructive) 8%,var(--background)); padding:1rem; display:grid; gap:0.65rem; }
   .global-settings__danger-zone h4 { margin:0; color:var(--destructive); font-size:0.82rem; text-transform:uppercase; letter-spacing:0.12em; }
-  .global-settings__danger-btn { border:none; border-radius:20px; background:color-mix(in srgb,var(--destructive) 10%,var(--background)); padding:0.65rem 1rem; color:var(--destructive); font-weight:700; font-size:0.85rem; text-align:left; cursor:default; }
+  .global-settings__danger-btn { border:none; border-radius:20px; background:color-mix(in srgb,var(--destructive) 10%,var(--background)); padding:0.65rem 1rem; color:var(--destructive); font-weight:700; font-size:0.88rem; text-align:left; cursor:default; }
   .global-settings__danger-btn:hover { background:color-mix(in srgb,var(--destructive) 18%,var(--background)); }
   .global-settings__about-card { display:grid; place-items:center; gap:0.5rem; border-radius:20px; background:color-mix(in srgb,var(--foreground) 5%,var(--background)); padding:2rem; text-align:center; }
   .global-settings__about-card h4 { margin:0; font-family:var(--font-heading); font-size:1.15rem; color:var(--foreground); }
@@ -871,7 +871,7 @@
   .global-settings__app-card { display:flex; align-items:center; gap:0.75rem; border:1px solid var(--border); border-radius:12px; background:color-mix(in srgb,var(--foreground) 3%,var(--background)); padding:0.75rem 1rem; text-align:left; cursor:default; }
   .global-settings__app-accent { width:0.35rem; height:2rem; border-radius:999px; background:var(--app-accent,var(--primary)); flex-shrink:0; }
   .global-settings__app-card > span { flex:1; min-width:0; display:grid; gap:0.1rem; }
-  .global-settings__app-card strong { font-size:0.9rem; color:var(--foreground); }
-  .global-settings__app-card small { font-size:0.78rem; color:var(--muted-foreground); }
-  .global-settings__app-card em { font-style:normal; font-size:0.78rem; font-weight:700; color:var(--primary); }
+  .global-settings__app-card strong { color:var(--foreground); }
+  .global-settings__app-card small { font-size:0.85rem; color:var(--muted-foreground); }
+  .global-settings__app-card em { font-style:normal; font-size:0.85rem; font-weight:700; color:var(--primary); }
 </style>

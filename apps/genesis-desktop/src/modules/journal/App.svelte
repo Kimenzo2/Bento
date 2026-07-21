@@ -705,7 +705,7 @@
   }
 
   .entry-row-words {
-    font-size: 10px;
+    font-size: 11px;
     color: color-mix(in srgb, var(--foreground) 25%, transparent);
     white-space: nowrap;
     flex-shrink: 0;

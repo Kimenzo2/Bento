@@ -289,14 +289,12 @@
 
   .chatgpt-auth__desc {
     margin: 0;
-    font-size: 13px;
     color: var(--muted);
     line-height: 1.5;
   }
 
   .chatgpt-auth__desc-small {
     margin: 0;
-    font-size: 12px;
     color: var(--muted);
     line-height: 1.4;
   }
@@ -305,7 +303,6 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
     color: var(--muted);
     padding: 16px 0;
   }
@@ -343,7 +340,6 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 13px;
   }
 
   .chatgpt-auth__label {
@@ -379,7 +375,6 @@
   }
 
   .chatgpt-auth__models {
-    font-size: 12px;
     max-width: 200px;
   }
 
@@ -389,7 +384,6 @@
   }
 
   .chatgpt-auth__simple-info {
-    font-size: 12px;
     color: var(--muted);
   }
 
@@ -414,7 +408,6 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
     color: var(--muted);
   }
 
@@ -426,7 +419,6 @@
   }
 
   .chatgpt-auth__code-label {
-    font-size: 12px;
     color: var(--muted);
   }
 
@@ -467,7 +459,6 @@
 
   .chatgpt-auth__device-desc {
     margin: 0;
-    font-size: 12px;
     color: var(--muted);
     max-width: 260px;
     line-height: 1.4;
@@ -483,7 +474,6 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 12px;
     color: var(--accent, #3b82f6);
     cursor: pointer;
     text-decoration: none;
@@ -510,7 +500,6 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 12px;
     font-weight: 500;
     color: var(--muted);
   }
@@ -527,7 +516,6 @@
     border-radius: 8px;
     background: color-mix(in srgb, var(--foreground) 3%, var(--background));
     color: var(--foreground);
-    font-size: 13px;
     font-family: inherit;
     outline: none;
     transition: border-color 0.15s ease;
@@ -549,7 +537,6 @@
     align-items: center;
     gap: 4px;
     margin: 0;
-    font-size: 12px;
     padding: 4px 8px;
     border-radius: 6px;
   }
@@ -573,7 +560,6 @@
     padding: 8px 14px;
     border: none;
     border-radius: 8px;
-    font-size: 13px;
     font-weight: 500;
     font-family: inherit;
     cursor: pointer;
@@ -625,7 +611,6 @@
 
   .chatgpt-auth__error {
     margin: 0;
-    font-size: 12px;
     color: #ef4444;
     padding: 6px 8px;
     background: color-mix(in srgb, #ef4444 10%, transparent);

@@ -1696,7 +1696,7 @@
   }
   :global(.subs-sqircle) {
     width: 26px; height: 26px; border-radius: 999px; border: none;
-    color: white; font-size: 10px; font-weight: 700; cursor: pointer;
+    color: white; font-size: 11px; font-weight: 700; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     transition: transform 160ms var(--ease-out), opacity 160ms var(--ease-out);
     -webkit-tap-highlight-color: transparent;
@@ -1708,7 +1708,7 @@
   :global(.subs-sqircle:active) {
     transform: scale(0.96);
   }
-  :global(.subs-overflow) { font-size: 9px; color: var(--bg-muted); font-weight: 600; }
+  :global(.subs-overflow) { font-size: 11px; color: var(--bg-muted); font-weight: 600; }
   :global(.subs-add-btn) {
     display: flex; align-items: center; gap: 6px; justify-content: center;
     padding: 10px; min-height: 40px; border-radius: 12px; border: 1px dashed var(--bg-border);

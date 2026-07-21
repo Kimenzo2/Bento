@@ -17,14 +17,14 @@ Express proxy that enables "Sign in with ChatGPT" — OAuth device flow with an 
 
 ### Environment Variables
 
-| Variable | Required | Description |
-|---|---|---|
-| `OPENAI_API_KEY` | Yes | Your OpenAI API key (`sk-...`) |
-| `JWT_SECRET` | Yes | Random hex string for signing JWTs (`openssl rand -hex 32`) |
-| `PORT` | No | Port (default `3001`) |
-| `ALLOWED_ORIGINS` | No | Comma-separated CORS origins (default `http://localhost:1420,tauri://localhost,bento://`) |
-| `OPENAI_MODEL` | No | Default model (default `gpt-4o`) |
-| `MAX_TOKENS` | No | Max tokens per response (default `4096`) |
+| Variable          | Required | Description                                                                               |
+| ----------------- | -------- | ----------------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`  | Yes      | Your OpenAI API key (`sk-...`)                                                            |
+| `JWT_SECRET`      | Yes      | Random hex string for signing JWTs (`openssl rand -hex 32`)                               |
+| `PORT`            | No       | Port (default `3001`)                                                                     |
+| `ALLOWED_ORIGINS` | No       | Comma-separated CORS origins (default `http://localhost:1420,tauri://localhost,bento://`) |
+| `OPENAI_MODEL`    | No       | Default model (default `gpt-4o`)                                                          |
+| `MAX_TOKENS`      | No       | Max tokens per response (default `4096`)                                                  |
 
 ### Verify Deployment
 

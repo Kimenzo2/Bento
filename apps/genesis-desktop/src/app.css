@@ -131,8 +131,8 @@
   --font-sans: var(--font-body);
 
   /* ── Type scale (fixed px — not responsive) ────────────────────── */
-  --font-size-xs: 11px;
-  --font-size-sm: 13px;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
   --font-size-base: 15px;
   --font-size-md: 17px;
   --font-size-lg: 22px;
@@ -252,6 +252,7 @@ html.glass-enabled .desktop-sidebar {
   line-height: var(--line-height-normal);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-synthesis: none;
 }
 
 /* ── Display font — Bricolage Grotesque Variable ────────────────────
@@ -263,6 +264,20 @@ h3 {
   font-family: var(--font-display);
   letter-spacing: var(--letter-spacing-tight);
   line-height: var(--line-height-tight);
+  text-wrap: balance;
+}
+
+p,
+li,
+blockquote,
+.description {
+  text-wrap: pretty;
+}
+
+a {
+  text-underline-position: from-font;
+  text-decoration-thickness: from-font;
+  text-decoration-skip-ink: auto;
 }
 
 .font-display,
@@ -344,7 +359,7 @@ body {
 }
 
 .module-root :where(label, small, .label) {
-  font-size: clamp(11px, 1.1vw, 14px);
+  font-size: clamp(12px, 1.1vw, 14px);
 }
 
 /* Scroll-capable lists: functional scroll, subtle theme scrollbar. */

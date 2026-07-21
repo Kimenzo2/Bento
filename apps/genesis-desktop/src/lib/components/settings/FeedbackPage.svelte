@@ -316,7 +316,6 @@
   }
   .feedback-page__header p {
     margin: 0;
-    font-size: 13px;
     color: var(--muted);
   }
 
@@ -372,7 +371,6 @@
   }
 
   .feedback-card__desc {
-    font-size: 0.92rem;
     color: var(--muted);
     line-height: 1.5;
     display: -webkit-box;
@@ -400,7 +398,6 @@
     border: none;
     background: transparent;
     color: var(--muted);
-    font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
     padding: 0;
@@ -433,13 +430,11 @@
   }
   .feedback-card__devnote p {
     margin: 0;
-    font-size: 0.9rem;
     color: var(--foreground);
     line-height: 1.45;
   }
 
   .feedback-card__meta {
-    font-size: 0.78rem;
     color: var(--muted);
   }
 
@@ -453,12 +448,10 @@
   }
   .feedback-page__empty p {
     margin: 0;
-    font-size: 14px;
     font-weight: 600;
     color: var(--muted);
   }
   .feedback-page__empty-sub {
-    font-size: 12px !important;
     font-weight: 400 !important;
     max-width: 260px;
   }
@@ -469,7 +462,6 @@
     border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
     background: transparent;
     color: var(--foreground);
-    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
   }

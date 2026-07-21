@@ -603,7 +603,7 @@
     font-weight: 600;
   }
   .tt-tag {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
     padding: 2px 8px;
     border-radius: 100px;
@@ -680,7 +680,7 @@
     color: var(--foreground);
   }
   .legend-tag {
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 600;
     padding: 1px 6px;
     border-radius: 100px;

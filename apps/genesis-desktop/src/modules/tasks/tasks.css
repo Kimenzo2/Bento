@@ -86,7 +86,6 @@
 }
 
 .tasks-sidebar-wordmark {
-  font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.02em;
   color: color-mix(in srgb, var(--foreground) 85%, transparent);
@@ -729,7 +728,7 @@
 
 /* ─── Project Select ─── */
 .tasks-project-select {
-  font-size: 10px;
+  font-size: 11px;
   padding: 2px 6px;
   border-radius: 3px;
   border: 1px solid color-mix(in srgb, var(--foreground) 5%, transparent);
@@ -1813,7 +1812,7 @@
 
 .tasks-context-menu-shortcut {
   margin-left: auto;
-  font-size: 9px;
+  font-size: 11px;
   color: color-mix(in srgb, var(--foreground) 15%, transparent);
   padding: 1px 4px;
   border-radius: 2px;
@@ -2091,7 +2090,7 @@
 }
 
 .tasks-reschedule-due {
-  font-size: 10px;
+  font-size: 11px;
   color: color-mix(in srgb, var(--foreground) 20%, transparent);
   display: flex;
   align-items: center;
@@ -2099,7 +2098,7 @@
 }
 
 .tasks-reschedule-priority {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 500;
   padding: 1px 5px;
   border-radius: 3px;
@@ -2107,7 +2106,7 @@
 }
 
 .tasks-reschedule-select {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 500;
   padding: 5px 10px;
   border-radius: 6px;
@@ -2304,7 +2303,7 @@
 }
 
 .tasks-import-preview-badge {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 4px;
@@ -2349,7 +2348,7 @@
 }
 
 .tasks-import-conflict-select {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   padding: 3px 8px;
   border-radius: 4px;
@@ -2429,7 +2428,7 @@
 
 .tasks-import-tag {
   display: inline-block;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 450;
   padding: 1px 4px;
   border-radius: 2px;
@@ -2559,7 +2558,7 @@
 
 .tasks-someday-btn {
   margin-left: auto;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   padding: 2px 7px;
   border-radius: 4px;
@@ -2897,7 +2896,7 @@
 .tasks-cal-record--more {
   background: transparent;
   color: color-mix(in srgb, var(--foreground) 50%, transparent);
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   padding: 1px 5px;
 }

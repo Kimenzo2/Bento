@@ -892,7 +892,7 @@
   .note-list::-webkit-scrollbar { display: none; }
   .notes-error-banner { margin: 0 10px 8px; padding: 8px 12px; border-radius: 8px; background: color-mix(in srgb, var(--destructive) 10%, transparent); border: 1px solid color-mix(in srgb, var(--destructive) 20%, transparent); color: var(--destructive); font-size: 12px; font-weight: 500; text-align: center; flex-shrink: 0; animation: error-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) both; }
   @keyframes error-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-  .list-group-label { padding: 8px 8px 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: color-mix(in srgb, var(--foreground) 30%, transparent); }
+  .list-group-label { padding: 8px 8px 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: color-mix(in srgb, var(--foreground) 30%, transparent); }
   .note-row { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: 10px; cursor: pointer; position: relative; transition: background 100ms ease; min-width: 0; }
   .note-row:hover { background: color-mix(in srgb, var(--foreground) 5%, transparent); }
   .note-row:hover .note-row-menu { opacity: 1; }
@@ -904,7 +904,7 @@
   .note-row-date { font-size: 11px; color: color-mix(in srgb, var(--foreground) 35%, transparent); flex-shrink: 0; }
   .note-row-preview { font-size: 11px; color: color-mix(in srgb, var(--foreground) 30%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .note-row-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 2px; }
-  .note-tag { display: inline-flex; padding: 1px 5px; border-radius: 4px; background: color-mix(in srgb, var(--primary) 12%, transparent); color: color-mix(in srgb, var(--primary) 70%, transparent); font-size: 10px; font-weight: 500; line-height: 1.3; }
+  .note-tag { display: inline-flex; padding: 1px 5px; border-radius: 4px; background: color-mix(in srgb, var(--primary) 12%, transparent); color: color-mix(in srgb, var(--primary) 70%, transparent); font-size: 11px; font-weight: 500; line-height: 1.3; }
   .note-row-menu { flex-shrink: 0; display: grid; place-items: center; width: 22px; height: 22px; border: none; border-radius: 6px; background: transparent; color: color-mix(in srgb, var(--foreground) 55%, transparent); cursor: pointer; opacity: 0; transition: background 100ms ease, opacity 100ms ease; }
   .note-row-menu:hover { background: color-mix(in srgb, var(--foreground) 10%, transparent); }
   .archive-actions { display: flex; gap: 2px; flex-shrink: 0; }
@@ -935,7 +935,7 @@
   .editor-empty-btn.secondary:hover { background: color-mix(in srgb, var(--foreground) 10%, transparent); }
   .editor-empty-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .editor-empty-shortcuts { display: flex; gap: 12px; margin-top: 12px; font-size: 11px; color: color-mix(in srgb, var(--foreground) 30%, transparent); }
-  .editor-empty-shortcuts kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; padding: 1px 5px; border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent); border-radius: 4px; background: color-mix(in srgb, var(--foreground) 3%, transparent); font-family: inherit; font-size: 10px; font-weight: 600; color: color-mix(in srgb, var(--foreground) 45%, transparent); margin-right: 3px; }
+  .editor-empty-shortcuts kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; padding: 1px 5px; border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent); border-radius: 4px; background: color-mix(in srgb, var(--foreground) 3%, transparent); font-family: inherit; font-size: 11px; font-weight: 600; color: color-mix(in srgb, var(--foreground) 45%, transparent); margin-right: 3px; }
   .ctx-menu { position: fixed; z-index: 9999; min-width: 160px; border-radius: 13px; background: var(--background); border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent); box-shadow: 0 8px 32px rgba(0,0,0,0.18); padding: 5px; display: flex; flex-direction: column; gap: 1px; animation: ctx-in 0.12s cubic-bezier(0.22, 1, 0.36, 1) both; }
   @keyframes ctx-in { from { opacity: 0; transform: scale(0.95) translateY(-4px); } to { opacity: 1; transform: scale(1) translateY(0); } }
   .ctx-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: none; border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; cursor: pointer; text-align: left; width: 100%; transition: background 100ms ease; }
