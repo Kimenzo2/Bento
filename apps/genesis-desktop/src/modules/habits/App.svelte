@@ -1486,6 +1486,7 @@
   flex-direction: column;
   gap: 18px;
   height: 100%;
+  padding: 28px 30px;
   box-sizing: border-box;
   overflow-y: auto;
   animation: hb-in .32s var(--ease-out);
@@ -1523,17 +1524,20 @@
   font-size: clamp(1.7rem, 2.5vw, 2.6rem);
   line-height: 1.05;
   font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 :global(.hb-page__intro) p {
-  margin: 10px 0 0;
+  margin: 12px 0 0;
   max-width: 42rem;
   color: var(--hb-muted);
-  font-size: 0.95rem;
+  font-size: 0.97rem;
   line-height: 1.55;
+  text-wrap: pretty;
 }
 :global(.hb-page__actions) {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   flex-shrink: 0;
 }
 

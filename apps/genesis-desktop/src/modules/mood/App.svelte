@@ -336,7 +336,7 @@
     <header class="mood-shell__header">
       <div class="mood-shell__intro">
         <div class="mood-shell__eyebrow">
-          <span>{_t('moduleMoodTitle')}</span>
+          <HeartHandshakeIcon size={13}/><span>{_t('moduleMoodTitle')}</span>
           <Badge variant="outline">{selectedSection}</Badge>
         </div>
         <h1>
@@ -617,16 +617,16 @@
   }
 
   :global(.mood-shell__intro) {
-    max-width: 640px;
+    max-width: 56rem;
   }
 
   :global(.mood-shell__eyebrow) {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     color: var(--mood-muted);
-    font-size: 0.78rem;
+    font-size: 0.82rem;
     letter-spacing: 0.18em;
     text-transform: uppercase;
   }
@@ -641,10 +641,11 @@
   }
 
   :global(.mood-shell__intro) p {
-    margin: 8px 0 0;
-    line-height: 1.5;
+    margin: 12px 0 0;
+    line-height: 1.55;
     color: var(--mood-muted);
-    font-size: 0.92rem;
+    font-size: 0.97rem;
+    max-width: 42rem;
     text-wrap: pretty;
   }
 

@@ -10,6 +10,7 @@
   import PlayIcon from "@lucide/svelte/icons/play";
   import RotateCcwIcon from "@lucide/svelte/icons/rotate-ccw";
   import SparklesIcon from "@lucide/svelte/icons/sparkles";
+  import TimerIcon from "@lucide/svelte/icons/timer";
   import Volume2Icon from "@lucide/svelte/icons/volume-2";
   import VolumeXIcon from "@lucide/svelte/icons/volume-x";
   import { startAmbient, getActiveAmbient, stopAmbientImmediate, preloadSounds, ensureAudioContext, isSoundLoaded, type SoundName } from "$lib/services/sounds";
@@ -300,6 +301,16 @@
         </Button>
       </div>
     {/if}
+
+    <header class="focus-shell__header">
+      <div class="focus-shell__intro">
+        <div class="focus-shell__eyebrow">
+          <TimerIcon size={13}/><span>Focus</span><Badge variant="outline">{selectedSection}</Badge>
+        </div>
+        <h1>Deep work sessions</h1>
+        <p>Block distractions, track time, and build focus habits.</p>
+      </div>
+    </header>
 
     {#if selectedSection === "Timer"}
     <section class="focus-hero-grid focus-hero-grid--full">
@@ -597,6 +608,8 @@
     gap: 0;
     height: 100%;
     min-height: 0;
+    padding: 28px 30px;
+    box-sizing: border-box;
   }
 
   :global(.focus-shell__header) {
@@ -612,7 +625,7 @@
 
   :global(.focus-shell__eyebrow) {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     align-items: center;
     margin-bottom: 12px;
     color: var(--focus-muted);
@@ -631,10 +644,11 @@
   }
 
   :global(.focus-shell__intro) p {
-    margin: 6px 0 0;
+    margin: 12px 0 0;
     max-width: 42rem;
     color: var(--focus-muted);
-    font-size: 0.85rem;
+    font-size: 0.97rem;
+    line-height: 1.55;
     text-wrap: pretty;
   }
 

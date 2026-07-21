@@ -374,7 +374,7 @@
     <header class="nutrition-shell__header">
       <div class="nutrition-shell__intro">
         <div class="nutrition-shell__eyebrow">
-          <span>{_t('moduleNutritionTitle')}</span>
+          <UtensilsCrossedIcon size={13}/><span>{_t('moduleNutritionTitle')}</span>
           <Badge variant="outline">{selectedSection}</Badge>
         </div>
         <h1>{_t('moduleNutritionDesc')}</h1>
@@ -816,11 +816,11 @@
     max-width: 56rem;
   }
 
-  :global(.nutrition-shell__eyebrow) {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
+:global(.nutrition-shell__eyebrow) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
     color: var(--nutrition-muted);
     font-size: 0.82rem;
     letter-spacing: 0.18em;
@@ -840,6 +840,8 @@
     margin: 12px 0 0;
     color: var(--nutrition-muted);
     max-width: 42rem;
+    font-size: 0.97rem;
+    line-height: 1.55;
     text-wrap: pretty;
   }
 

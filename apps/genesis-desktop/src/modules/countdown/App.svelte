@@ -9,13 +9,13 @@
   import CakeIcon from "@lucide/svelte/icons/cake";
   import HistoryIcon from "@lucide/svelte/icons/history";
   import EyeIcon from "@lucide/svelte/icons/eye";
+  import HourglassIcon from "@lucide/svelte/icons/hourglass";
   import RepeatIcon from "@lucide/svelte/icons/repeat-2";
   import Trash2Icon from "@lucide/svelte/icons/trash-2";
   import PencilIcon from "@lucide/svelte/icons/pencil";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "$lib/components/ui/card/index.js";
-  import { MiniAppHeader, MiniAppRoot } from "$lib/modules/mini-app/index.js";
   import { ensureModuleSection, getModuleSectionLabel, moduleSectionStore } from "$lib/stores/module-sections.store";
   import TiltCard from "$lib/components/TiltCard.svelte";
   import ShareIcon from "@lucide/svelte/icons/share-2";
@@ -452,7 +452,7 @@
   });
 </script>
 
-<MiniAppRoot class="cd-root">
+<main class="cd-root module-root" data-module="countdown">
 
   <!-- ══ FULLSCREEN overlay ══ -->
   {#if drawer === "fullscreen" && focusEvent}
@@ -576,24 +576,29 @@
   <!-- ══ MAIN CONTENT (always rendered — blur backdrop shows it underneath) ══ -->
   <div class="cd-main">
 
-    <MiniAppHeader
-      eyebrow="Countdown"
-      title={
-        selectedSection === "Events"     ? "What's next?" :
-        selectedSection === "Milestones" ? "How far have you come?" :
-        selectedSection === "Birthdays"  ? "People who matter." :
-        selectedSection === "Since"      ? "Look back." :
-        "Take your data with you."
-      }
-      description={
-        selectedSection === "Events"     ? "The nearest event is always at the top." :
-        selectedSection === "Milestones" ? "Track progress, not just deadlines." :
-        selectedSection === "Birthdays"  ? "Add once. Never miss again." :
-        selectedSection === "Since"      ? "Past events flip to days-since automatically." :
-        "Export to any calendar or backup locally."
-      }
-    >
-      {#snippet actions()}
+    <header class="cd-page__header">
+      <div class="cd-page__intro">
+        <div class="cd-page__eyebrow">
+          <HourglassIcon size={13}/><span>Countdown</span><Badge variant="outline">{selectedSection}</Badge>
+        </div>
+        <h1 class="cd-page__title">
+          {#if selectedSection === "Events"}What's next?
+          {:else if selectedSection === "Milestones"}How far have you come?
+          {:else if selectedSection === "Birthdays"}People who matter.
+          {:else if selectedSection === "Since"}Look back.
+          {:else}Take your data with you.
+          {/if}
+        </h1>
+        <p class="cd-page__desc">
+          {#if selectedSection === "Events"}The nearest event is always at the top.
+          {:else if selectedSection === "Milestones"}Track progress, not just deadlines.
+          {:else if selectedSection === "Birthdays"}Add once. Never miss again.
+          {:else if selectedSection === "Since"}Past events flip to days-since automatically.
+          {:else}Export to any calendar or backup locally.
+          {/if}
+        </p>
+      </div>
+      <div class="cd-page__actions">
         {#if selectedSection === "Events"}
           <Button onclick={() => drawer = "event"}>
             <PlusIcon data-icon="inline-start" />New event
@@ -607,8 +612,8 @@
             <PlusIcon data-icon="inline-start" />Add person
           </Button>
         {/if}
-      {/snippet}
-    </MiniAppHeader>
+      </div>
+    </header>
 
     <!-- ══ EVENTS ══ -->
     {#if selectedSection === "Events"}
@@ -918,10 +923,14 @@
 
   </div>
 
-</MiniAppRoot>
+</main>
 
 <style>
-  :global(.cd-root) { padding: 0 !important; gap: 0 !important; overflow: hidden; }
+  :global(.cd-root) {
+    padding: 28px 30px;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
   :global(.cd-root [data-slot="card"]) {
     background:
       linear-gradient(
@@ -931,12 +940,52 @@
       );
   }
 
+  /* ── Header ── */
+  .cd-page__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    flex-shrink: 0;
+  }
+  .cd-page__intro { max-width: 56rem; }
+  .cd-page__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    color: var(--muted);
+    font-size: 0.82rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .cd-page__title {
+    margin: 0;
+    font-size: clamp(1.7rem, 2.5vw, 2.6rem);
+    line-height: 1.05;
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .cd-page__desc {
+    margin: 12px 0 0;
+    max-width: 42rem;
+    color: var(--muted);
+    font-size: 0.97rem;
+    line-height: 1.55;
+    text-wrap: pretty;
+  }
+  .cd-page__actions {
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
   /* ── Main scroll area ── */
   .cd-main {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
-    padding: 1.75rem;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;

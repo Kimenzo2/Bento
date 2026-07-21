@@ -4,6 +4,7 @@
   import "./goals.css";
   import XIcon from "@lucide/svelte/icons/x";
   import UploadIcon from "@lucide/svelte/icons/upload";
+  import TargetIcon from "@lucide/svelte/icons/target";
   import {
     Card,
     CardContent,
@@ -11,6 +12,7 @@
     CardHeader,
     CardTitle,
   } from "$lib/components/ui/card/index.js";
+  import { Badge } from "$lib/components/ui/badge/index.js";
   import { getModuleSectionLabel, ensureModuleSection, moduleSectionStore } from '$lib/stores/module-sections.store';
   let { moduleId = "goals", settings = {} }: { moduleId?: string; settings?: Record<string, unknown> } =
     $props();
@@ -904,7 +906,9 @@
          ═══════════════════════════════════════════════════════════════════ -->
     <div class="goals-focus-page">
       <header class="goals-ambient-header">
-        <p class="goals-ambient-text">Strategic priorities. What matters most right now.</p>
+        <div class="gp1-eyebrow"><TargetIcon size={13}/><span>Goals</span><Badge variant="outline">Focus Areas</Badge></div>
+        <h1 class="gp1-title">Strategic priorities</h1>
+        <p class="goals-ambient-text">What matters most right now.</p>
         <hr class="goals-ambient-rule" />
       </header>
 
@@ -980,18 +984,20 @@
     <!-- ═══════════════════════════════════════════════════════════════════
          PAGE 4 — TIMELINE & HEATMAP
          ═══════════════════════════════════════════════════════════════════ -->
-    <Card>
-      <CardHeader>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;">
-          <CardTitle>ACTIVITY TIMELINE</CardTitle>
-          <div class="goals-timeline-tabs">
-            <button class="goals-timeline-tab" class:goals-timeline-tab--active={timelineView === 'timeline'} onclick={() => timelineView = 'timeline'}>Timeline</button>
-            <button class="goals-timeline-tab" class:goals-timeline-tab--active={timelineView === 'heatmap'} onclick={() => timelineView = 'heatmap'}>Heatmap</button>
-          </div>
+    <div class="goals-page-header">
+      <div class="gp1-eyebrow"><TargetIcon size={13}/><span>Goals</span><Badge variant="outline">Timeline</Badge></div>
+      <div class="goals-page-header__row">
+        <div>
+          <h1 class="gp1-title">Activity timeline</h1>
+          <p class="goals-ambient-text">Visualize your goal activity over time.</p>
         </div>
-        <CardDescription>Visualize your goal activity over time.</CardDescription>
-      </CardHeader>
-      <CardContent>
+        <div class="goals-timeline-tabs">
+          <button class="goals-timeline-tab" class:goals-timeline-tab--active={timelineView === 'timeline'} onclick={() => timelineView = 'timeline'}>Timeline</button>
+          <button class="goals-timeline-tab" class:goals-timeline-tab--active={timelineView === 'heatmap'} onclick={() => timelineView = 'heatmap'}>Heatmap</button>
+        </div>
+      </div>
+    </div>
+    <Card>
 
       {#if timelineView === 'timeline'}
         <!-- ── TIMELINE VIEW ──────────────────────────────────────── -->
@@ -1087,7 +1093,6 @@
           </div>
         {/if}
       {/if}
-      </CardContent>
     </Card>
 
   {:else if selectedSection === 'New Goal'}
@@ -1340,9 +1345,13 @@
            PAGE 1 — GOALS LIST  (alternating goal card ↔ memory image)
            ════════════════════════════════════════════════════════════════ -->
 
-      <!-- Header row: ambient sentence left, controls right -->
+      <!-- Header row: eyebrow + title + ambient subtitle, controls right -->
       <div class="gp1-header">
-        <p class="goals-ambient-text">{ambientSentence}</p>
+        <div class="gp1-header__left">
+          <div class="gp1-eyebrow"><TargetIcon size={13}/><span>Goals</span><Badge variant="outline">{selectedSection}</Badge></div>
+          <h1 class="gp1-title">Track what matters</h1>
+          <p class="goals-ambient-text">{ambientSentence}</p>
+        </div>
 
         <div class="gp1-header-controls">
           <!-- Horizon dropdown -->

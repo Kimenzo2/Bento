@@ -3,6 +3,8 @@
   import { onMount } from "svelte";
   import "./passwords.css";
   import type { VaultEntry, VaultFormData } from "./types";
+  import ShieldIcon from "@lucide/svelte/icons/shield";
+  import { Badge } from "$lib/components/ui/badge/index.js";
 
   let { moduleId = "passwords", settings = {} }: { moduleId?: string; settings?: Record<string, unknown> } = $props();
 
@@ -153,15 +155,15 @@
   <header class="pv-header">
     <div class="pv-header-top">
       <div class="pv-header-info">
-        <span class="pv-eyebrow">Vault</span>
-        <h1 class="pv-title">Passwords</h1>
+        <div class="pv-eyebrow"><ShieldIcon size={13}/><span>Vault</span><Badge variant="outline">Passwords</Badge></div>
+        <h1 class="pv-title">Encrypted credentials</h1>
+        <p class="pv-desc">Stored locally on this device.</p>
       </div>
       <button class="pv-add-btn" onclick={openAddForm} aria-label="Add entry">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         <span>New</span>
       </button>
     </div>
-    <p class="pv-desc">Encrypted credentials stored locally on this device.</p>
   </header>
 
   <!-- Stats bar -->

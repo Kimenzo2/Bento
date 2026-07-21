@@ -364,7 +364,7 @@
     <header class="memo-shell__header">
       <div class="memo-shell__intro">
         <div class="memo-shell__eyebrow">
-          <span>{_t("moduleVoiceMemosTitle", "Voice Memos")}</span>
+          <MicIcon size={13}/><span>{_t("moduleVoiceMemosTitle", "Voice Memos")}</span>
           <Badge variant="outline">{totalMemos} {totalMemos !== 1 ? _t("moduleVoiceMemosRecordings", "recordings") : _t("moduleVoiceMemosRecording", "recording")}</Badge>
         </div>
         <h1>{_t("moduleVoiceMemosDesc", "Record, play back, and keep voice notes.")}</h1>
@@ -533,11 +533,11 @@
 
   :global(.memo-shell__intro) { max-width: 56rem; }
 
-  :global(.memo-shell__eyebrow) {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    margin-bottom: 12px;
+:global(.memo-shell__eyebrow) {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
     color: var(--memo-muted);
     font-size: 0.82rem;
     letter-spacing: 0.18em;
@@ -550,12 +550,16 @@
     line-height: 1.05;
     font-family: var(--font-display);
     letter-spacing: -0.02em;
+    text-wrap: balance;
   }
 
   :global(.memo-shell__intro) p {
     margin: 12px 0 0;
     max-width: 42rem;
     color: var(--memo-muted);
+    font-size: 0.97rem;
+    line-height: 1.55;
+    text-wrap: pretty;
   }
 
   :global(.memo-shell__actions) { display: flex; gap: 12px; }

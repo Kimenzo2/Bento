@@ -85,13 +85,12 @@
 
 .goals-ambient-text {
   margin: 0;
-  font-size: clamp(1rem, 1.4vw, 1.15rem);
-  line-height: 1.5;
-  color: var(--foreground);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--muted);
   font-family: inherit;
   font-weight: 400;
-  letter-spacing: -0.01em;
-  max-width: 44rem;
+  max-width: 42rem;
 }
 
 .goals-ambient-rule {
@@ -1416,7 +1415,7 @@
   left: 6px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--foreground);
   font-family: inherit;
@@ -1462,7 +1461,7 @@
 }
 
 .goals-heatmap__month-header {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -1482,7 +1481,7 @@
 }
 
 .goals-heatmap__day-label {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
   font-family: inherit;
   line-height: 12px;
@@ -1840,18 +1839,43 @@
 
 .gp1-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 4px;
+  gap: 20px;
   flex-shrink: 0;
+}
+
+.gp1-header__left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 56rem;
+}
+
+.gp1-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.gp1-title {
+  margin: 0;
+  font-size: clamp(1.7rem, 2.5vw, 2.6rem);
+  line-height: 1.05;
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 
 .gp1-header-controls {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-shrink: 0;
 }
 
@@ -1992,7 +2016,7 @@
 }
 
 .gp1-horizon-badge {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.05em;
   padding: 2px 7px;
@@ -2277,6 +2301,17 @@
   .gp1-memory {
     min-height: 140px;
   }
+  .gp1-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .gp1-title {
+    font-size: 1.5rem;
+  }
+  .goals-page-header__row {
+    flex-direction: column;
+    gap: 12px;
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -2334,6 +2369,20 @@
   color: color-mix(in srgb, var(--muted) 80%, transparent);
   margin: 0 0 4px;
   font-family: inherit;
+}
+
+/* ── Page header (Timeline section) ─────────────────────────────── */
+.goals-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.goals-page-header__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
 }
 
 /* ── 2. Timeline: missing layout classes ───────────────────────────── */
@@ -2517,7 +2566,7 @@
   height: 16px;
 }
 .goals-heatmap__month-label {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -2538,7 +2587,7 @@
   align-items: center;
   gap: 4px;
   margin-top: 8px;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   font-family: inherit;
 }

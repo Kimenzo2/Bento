@@ -1149,7 +1149,7 @@
   :global(.sleep-shell__eyebrow) {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     margin-bottom: 12px;
     color: var(--sleep-muted);
     font-size: 0.82rem;
@@ -1167,10 +1167,11 @@
   }
 
   :global(.sleep-shell__intro) p {
-    max-width: 44rem;
+    max-width: 42rem;
     margin: 12px 0 0;
     color: var(--sleep-muted);
-    font-size: 0.98rem;
+    font-size: 0.97rem;
+    line-height: 1.55;
     text-wrap: pretty;
   }
 
