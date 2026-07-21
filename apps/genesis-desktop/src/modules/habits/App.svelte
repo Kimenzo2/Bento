@@ -618,16 +618,16 @@
 <main class="hb-workspace module-root" data-module="habits">
 
   {#if loading}
-    <div class="hb-loading">
+    <section class="hb-page hb-loading">
       <div class="hb-loading__orb"></div>
-      <span>Loading your habits…</span>
-    </div>
+      <p>Loading your habits…</p>
+    </section>
 
   {:else if loadError}
-    <div class="hb-loading">
+    <section class="hb-page hb-loading">
       <p>Could not load habits: {loadError}</p>
       <Button onclick={() => { location.reload(); }}>Retry</Button>
-    </div>
+    </section>
 
   {:else}
   <!-- ════════════════════════════════════════ TODAY ════════════════════════════════════════ -->
