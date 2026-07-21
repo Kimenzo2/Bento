@@ -14,38 +14,24 @@
 
 <script lang="ts">
   import { Button } from "$lib/components/ui/button";
-  import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-  } from "$lib/components/ui/tooltip";
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   let {
     children,
     class: className,
     variant = "ghost",
     size = "sm",
-    tooltip,
+    tooltip: tooltipText,
     onclick,
     disabled = false,
     ...restProps
   }: CheckpointTriggerProps = $props();
 </script>
 
-{#if tooltip}
-  <TooltipProvider>
-    <Tooltip delayDuration={150}>
-      <TooltipTrigger>
-        <Button {size} type="button" {variant} {onclick} {disabled} class={className} {...restProps}>
-          {@render children?.()}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="bottom" align="start">
-        <p>{tooltip}</p>
-      </TooltipContent>
-    </Tooltip>
-  </TooltipProvider>
+{#if tooltipText}
+  <Button {size} type="button" {variant} {onclick} {disabled} class={className} {...restProps} use:tooltip={{ text: tooltipText }}>
+    {@render children?.()}
+  </Button>
 {:else}
   <Button {size} type="button" {variant} {onclick} {disabled} class={className} {...restProps}>
     {@render children?.()}

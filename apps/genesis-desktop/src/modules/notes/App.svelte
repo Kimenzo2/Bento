@@ -13,6 +13,7 @@
   import ActivityTimeline from '$lib/components/ActivityTimeline.svelte';
   import GettingStarted from '$lib/components/GettingStarted.svelte';
   import TabBar from '$lib/components/TabBar.svelte';
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   let { moduleId = 'notes' } = $props();
 
@@ -588,14 +589,14 @@
       <div class="sidebar-header">
         <div class="sidebar-header-actions">
           <div class="filter-wrap" class:filter-active={filterActive} class:filter-has-value={searchQuery.length > 0} role="search" aria-label="Search notes">
-            <button class="filter-icon-btn" onclick={onFilterIconClick} aria-label="Search" tabindex="0" type="button">
+            <button class="filter-icon-btn" onclick={onFilterIconClick} aria-label="Search" tabindex="0" type="button" use:tooltip={{ text: "Search notes" }}>
               <Search size={14} strokeWidth={2} />
             </button>
             <div class="filter-input-wrap">
               <input bind:this={filterInputEl} class="filter-input" type="text" placeholder="Search notes\u2026" bind:value={searchQuery} onfocus={() => { filterFocused = true; }} onblur={() => { filterFocused = false; }} aria-label="Search notes" tabindex={filterActive ? 0 : -1} />
             </div>
             {#if searchQuery.length > 0}
-              <button class="filter-clear-btn" type="button" aria-label="Clear search" onmousedown={onFilterClear}><X size={12} strokeWidth={2.5} /></button>
+              <button class="filter-clear-btn" type="button" aria-label="Clear search" onmousedown={onFilterClear} use:tooltip={{ text: "Clear search" }}><X size={12} strokeWidth={2.5} /></button>
             {/if}
           </div>
           <button class="new-note-btn" onclick={openDailyNote} aria-label="Daily note" title="Daily note" type="button">
@@ -651,7 +652,7 @@
                     </span>
                   {/if}
                 </div>
-                <button class="note-row-menu" onclick={(e) => openContextMenu(e, note.id)} aria-label="Note options"><MoreHorizontal size={14} /></button>
+                <button class="note-row-menu" onclick={(e) => openContextMenu(e, note.id)} aria-label="Note options" use:tooltip={{ text: "Note options" }}><MoreHorizontal size={14} /></button>
               </div>
             {/each}
           {/if}
@@ -672,7 +673,7 @@
                     </span>
                   {/if}
                 </div>
-                <button class="note-row-menu" onclick={(e) => openContextMenu(e, note.id)} aria-label="Note options"><MoreHorizontal size={14} /></button>
+                <button class="note-row-menu" onclick={(e) => openContextMenu(e, note.id)} aria-label="Note options" use:tooltip={{ text: "Note options" }}><MoreHorizontal size={14} /></button>
               </div>
             {/each}
           {/if}

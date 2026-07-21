@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Plus, Command, Sun } from 'lucide-svelte';
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   let { onDismiss = () => {}, onCreateNote = () => {}, onOpenCommandPalette = () => {}, onOpenDailyNote = () => {} } = $props();
 
@@ -32,7 +33,7 @@
 {#if !dismissed}
   <div class="gs-overlay" onclick={skip} role="presentation">
     <div class="gs-pane" onclick={(e) => e.stopPropagation()} role="dialog" aria-label="Getting started">
-      <button class="gs-close" onclick={skip} type="button" aria-label="Dismiss">
+      <button class="gs-close" onclick={skip} type="button" aria-label="Dismiss" use:tooltip={{ text: "Dismiss" }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
 

@@ -19,6 +19,7 @@
   import { time } from '$lib/utils/time';
 import ShareSheet from '$lib/components/ShareSheet.svelte';
 import { formatTasksAsMarkdown } from '$lib/services/share-service';
+import { tooltip } from "$lib/components/Tooltip.svelte";
 
   /* ═══════════════════════════════════════════════════════════════════
      TYPES
@@ -2157,11 +2158,11 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
           </Select.Root>
         </div>
         <div class="tasks-cal-bar-right">
-          <button class="tasks-cal-arrow" aria-label="Previous month" onclick={calPrevMonth}>
+          <button class="tasks-cal-arrow" aria-label="Previous month" onclick={calPrevMonth} use:tooltip={{ text: "Previous month" }}>
             <ChevronLeft size={15} />
           </button>
           <button class="tasks-cal-today-btn" onclick={calGoToday}>Today</button>
-          <button class="tasks-cal-arrow" aria-label="Next month" onclick={calNextMonth}>
+          <button class="tasks-cal-arrow" aria-label="Next month" onclick={calNextMonth} use:tooltip={{ text: "Next month" }}>
             <ChevronRight size={15} />
           </button>
         </div>
@@ -2515,11 +2516,11 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
           {#if showCalendar}
             <div class="tasks-detail-calendar">
               <div class="tasks-detail-calendar-header">
-                <button onclick={prevMonth} aria-label="Previous month"><ChevronLeft size={14} /></button>
+                <button onclick={prevMonth} aria-label="Previous month" use:tooltip={{ text: "Previous month" }}><ChevronLeft size={14} /></button>
                 <span class="tasks-detail-calendar-month">
                   {time.formatCustom(time.fromComponents(calendarYear, calendarMonth + 1, 1), 'F Y')}
                 </span>
-                <button onclick={nextMonth} aria-label="Next month"><ChevronRight size={14} /></button>
+                <button onclick={nextMonth} aria-label="Next month" use:tooltip={{ text: "Next month" }}><ChevronRight size={14} /></button>
               </div>
               <div class="tasks-detail-calendar-grid">
                 {#each ['S','M','T','W','T','F','S'] as day}

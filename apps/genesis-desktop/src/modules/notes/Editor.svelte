@@ -28,6 +28,8 @@
     onTitleChange?: (id: string, title: string) => void;
   } = $props();
 
+  import { tooltip } from "$lib/components/Tooltip.svelte";
+
   // ── Floating UI state ────────────────────────────────────────────
   let showBlockActions = $state<string | null>(null);
   let actionMenuStyle = $state({ top: '0px', left: '0px' });
@@ -791,16 +793,16 @@
         role="toolbar"
         aria-label="Text formatting"
         tabindex="0">
-        <button class="format-toolbar-btn" type="button" aria-label="Bold" onclick={() => handleFormatAction(MarkType.Bold)}><Bold size={14} /></button>
-        <button class="format-toolbar-btn" type="button" aria-label="Italic" onclick={() => handleFormatAction(MarkType.Italic)}><Italic size={14} /></button>
-        <button class="format-toolbar-btn" type="button" aria-label="Underline" onclick={() => handleFormatAction(MarkType.Underline)}><Underline size={14} /></button>
-        <button class="format-toolbar-btn" type="button" aria-label="Strikethrough" onclick={() => handleFormatAction(MarkType.Strike)}><Strikethrough size={14} /></button>
+        <button class="format-toolbar-btn" type="button" aria-label="Bold" onclick={() => handleFormatAction(MarkType.Bold)} use:tooltip={{ text: "Bold" }}><Bold size={14} /></button>
+        <button class="format-toolbar-btn" type="button" aria-label="Italic" onclick={() => handleFormatAction(MarkType.Italic)} use:tooltip={{ text: "Italic" }}><Italic size={14} /></button>
+        <button class="format-toolbar-btn" type="button" aria-label="Underline" onclick={() => handleFormatAction(MarkType.Underline)} use:tooltip={{ text: "Underline" }}><Underline size={14} /></button>
+        <button class="format-toolbar-btn" type="button" aria-label="Strikethrough" onclick={() => handleFormatAction(MarkType.Strike)} use:tooltip={{ text: "Strikethrough" }}><Strikethrough size={14} /></button>
         <div class="format-toolbar-sep"></div>
-        <button class="format-toolbar-btn" type="button" aria-label="Code" onclick={() => handleFormatAction(MarkType.Code)}><Code2 size={14} /></button>
-        <button class="format-toolbar-btn" type="button" aria-label="Link" onclick={() => handleFormatAction(MarkType.Link)}><Link2 size={14} /></button>
+        <button class="format-toolbar-btn" type="button" aria-label="Code" onclick={() => handleFormatAction(MarkType.Code)} use:tooltip={{ text: "Code" }}><Code2 size={14} /></button>
+        <button class="format-toolbar-btn" type="button" aria-label="Link" onclick={() => handleFormatAction(MarkType.Link)} use:tooltip={{ text: "Link" }}><Link2 size={14} /></button>
         <div class="format-toolbar-sep"></div>
         <div class="color-btn-wrap">
-          <button class="format-toolbar-btn" type="button" aria-label="Text color" onclick={() => { showColorPicker = !showColorPicker; showHighlightPicker = false; }}>
+          <button class="format-toolbar-btn" type="button" aria-label="Text color" onclick={() => { showColorPicker = !showColorPicker; showHighlightPicker = false; }} use:tooltip={{ text: "Text color" }}>
             <span style="width:14px;height:14px;display:grid;place-items:center;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px;"><path d="M12 3L5.5 21M12 3l6.5 18M8.5 15h7"/></svg></span>
           </button>
           {#if showColorPicker}
@@ -813,7 +815,7 @@
           {/if}
         </div>
         <div class="color-btn-wrap">
-          <button class="format-toolbar-btn" type="button" aria-label="Highlight" onclick={() => { showHighlightPicker = !showHighlightPicker; showColorPicker = false; }}>
+          <button class="format-toolbar-btn" type="button" aria-label="Highlight" onclick={() => { showHighlightPicker = !showHighlightPicker; showColorPicker = false; }} use:tooltip={{ text: "Highlight" }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px;"><path d="M3 21l2-2 3-3 4-4 4-4 3-3-2-2-3 3-4 4-4 4-3 3z"/></svg>
           </button>
           {#if showHighlightPicker}

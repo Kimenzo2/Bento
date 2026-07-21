@@ -7,6 +7,7 @@
   import { createJournalEntry, listJournalEntries, deleteJournalEntry, type JournalEntry } from '$lib/services/journal-service';
   import { time } from '$lib/utils/time';
   import { moduleSectionStore, getModuleSectionLabel, ensureModuleSection } from '$lib/stores/module-sections.store';
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   const moduleId = 'journal';
   const sectionLabels = ['Today', 'History'] as const;
@@ -318,6 +319,7 @@
             aria-label="Search"
             tabindex="0"
             type="button"
+            use:tooltip={{ text: "Search entries" }}
           >
             <Search size={14} strokeWidth={2} />
           </button>
@@ -339,6 +341,7 @@
               type="button"
               aria-label="Clear search"
               onmousedown={onFilterClear}
+              use:tooltip={{ text: "Clear search" }}
             >
               <X size={12} strokeWidth={2.5} />
             </button>

@@ -27,6 +27,7 @@
   import WifiIcon from "@lucide/svelte/icons/wifi";
   import WifiOffIcon from "@lucide/svelte/icons/wifi-off";
   import XIcon from "@lucide/svelte/icons/x";
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   let testing = $state(false);
   let testResult = $state<{ ok: boolean; message: string } | null>(null);
@@ -152,7 +153,7 @@
       </div>
       <div class="chatgpt-tab__code">
         <code>{$chatgptDeviceFlow.userCode}</code>
-        <button class="chatgpt-tab__icon-btn" onclick={() => handleCopyCode($chatgptDeviceFlow.userCode)}>
+        <button class="chatgpt-tab__icon-btn" onclick={() => handleCopyCode($chatgptDeviceFlow.userCode)} use:tooltip={{ text: copied ? 'Copied' : 'Copy code' }}>
           {#if copied} <CheckCircle2Icon size={14} /> {:else} <CopyIcon size={14} /> {/if}
         </button>
       </div>

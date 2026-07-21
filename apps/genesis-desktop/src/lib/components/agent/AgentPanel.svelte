@@ -34,6 +34,7 @@
   } from "$lib/components/agent/message/index.js";
   import * as ChainOfThought from "$lib/components/agent/chain-of-thought/index.js";
   import * as Tool from "$lib/components/agent/tool/index.js";
+  import { tooltip } from "$lib/components/Tooltip.svelte";
   import {
     currentConversationId,
     setConversationId,
@@ -612,6 +613,7 @@
           class="agent-panel__header-btn"
           onclick={closeAgentPanel}
           aria-label="Collapse chat panel"
+          use:tooltip={{ text: "Collapse chat panel" }}
         >
           <PanelLeftCloseIcon size={16} />
         </button>
@@ -745,6 +747,7 @@
                 class="agent-panel__tool-btn"
                 onclick={agentMorph.toggleMenu}
                 aria-label="Attach files"
+                use:tooltip={{ text: "Attach files" }}
               >
                 <PaperclipIcon size={16} />
               </button>

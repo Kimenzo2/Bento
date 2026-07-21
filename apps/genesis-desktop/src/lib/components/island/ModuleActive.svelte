@@ -5,6 +5,7 @@
   import { getIcon } from "./island-icons";
   import { islandStore } from "$lib/stores/island.store.svelte";
   import TaskWidget from "./widgets/TaskWidget.svelte";
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   /** Waveform bar count — constant to avoid array allocation on every render. */
   const WAVEFORM_INDICES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -92,7 +93,7 @@
               <span class="mar-time">{formatTime(elapsed)}</span>
             </div>
             <!-- Dismiss to background — the full recording UI is in the main window -->
-            <button class="ma-back-btn" onclick={goBack} aria-label="Dismiss recording">
+            <button class="ma-back-btn" onclick={goBack} aria-label="Dismiss recording" use:tooltip={{ text: "Back to apps" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
               Back to apps
             </button>

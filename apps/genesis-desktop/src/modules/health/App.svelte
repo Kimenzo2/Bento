@@ -36,6 +36,7 @@
   import { activeBundle, createTranslator } from "$lib/i18n";
   import { onMount } from "svelte";
   import { time } from '$lib/utils/time';
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   let _t = $derived.by(() => createTranslator($activeBundle));
 
@@ -1141,7 +1142,7 @@
                 {#each medications as med (med.id)}
                   <article class="hl-med__item" class:hl-med--taken={med.takenToday}>
                     <button class="hl-med__check" class:hl-med__check--done={med.takenToday}
-                      type="button" onclick={()=>toggleMed(med.id)} aria-label={_t('moduleHealthToggleLabel').replace('{name}', med.name)}>
+                      type="button" onclick={()=>toggleMed(med.id)} aria-label={_t('moduleHealthToggleLabel').replace('{name}', med.name)} use:tooltip={{ text: med.takenToday ? 'Mark as not taken' : 'Mark as taken' }}>
                       {#if med.takenToday}<CheckIcon size={13}/>{/if}
                     </button>
                     <div class="hl-med__copy">
@@ -1150,7 +1151,7 @@
                     </div>
                     <div class="hl-med__right">
                       <Badge variant="outline">{med.timeOfDay}</Badge>
-                      <button class="hl-med__delete" type="button" onclick={()=>deleteMed(med.id, med.name)} aria-label={_t('moduleHealthRemoveLabel').replace('{name}', med.name)}>×</button>
+                      <button class="hl-med__delete" type="button" onclick={()=>deleteMed(med.id, med.name)} aria-label={_t('moduleHealthRemoveLabel').replace('{name}', med.name)} use:tooltip={{ text: "Remove medication" }}>×</button>
                     </div>
                   </article>
                 {/each}

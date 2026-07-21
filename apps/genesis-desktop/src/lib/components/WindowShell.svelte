@@ -12,6 +12,7 @@ import { isTauri } from "@tauri-apps/api/core";
   import { isDark } from "$lib/stores/theme.store";
   import { authStore } from "$lib/stores/auth.store";
   import { getShellTokens } from "$lib/shell-theme";
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   const isMac = browser && /mac/i.test(navigator.userAgent);
   const canUseTauri = browser && isTauri();
@@ -126,7 +127,7 @@ import { isTauri } from "@tauri-apps/api/core";
 
         {#if !isMac}
           <div class="window-shell__controls" aria-label={_t('windowWindowControls')}>
-            <button aria-label={_t('windowMinimize')} class="window-shell__control" type="button" onclick={() => void minimize()}>
+            <button aria-label={_t('windowMinimize')} class="window-shell__control" type="button" onclick={() => void minimize()} use:tooltip={{ text: "Minimize" }}>
               <MinusIcon />
             </button>
             <button
@@ -134,6 +135,7 @@ import { isTauri } from "@tauri-apps/api/core";
               class="window-shell__control window-shell__control--close"
               type="button"
               onclick={() => void close()}
+              use:tooltip={{ text: "Close" }}
             >
               <XIcon />
             </button>
@@ -154,7 +156,7 @@ import { isTauri } from "@tauri-apps/api/core";
 
     {#if !isAuthShell && !isMac}
       <div class="window-shell__controls" aria-label={_t('windowWindowControls')}>
-        <button aria-label={_t('windowMinimize')} class="window-shell__control" type="button" onclick={() => void minimize()}>
+        <button aria-label={_t('windowMinimize')} class="window-shell__control" type="button" onclick={() => void minimize()} use:tooltip={{ text: "Minimize" }}>
           <MinusIcon />
         </button>
         <button
@@ -163,6 +165,7 @@ import { isTauri } from "@tauri-apps/api/core";
           class="window-shell__control"
           type="button"
           onclick={() => void toggleMaximized()}
+          use:tooltip={{ text: isMaximized ? 'Restore' : 'Maximize' }}
         >
           {#if isMaximized}
             <svg aria-hidden="true" class="window-shell__restore-icon" viewBox="0 0 16 16">
@@ -184,6 +187,7 @@ import { isTauri } from "@tauri-apps/api/core";
           class="window-shell__control window-shell__control--close"
           type="button"
           onclick={() => void close()}
+          use:tooltip={{ text: "Close" }}
         >
           <XIcon />
         </button>

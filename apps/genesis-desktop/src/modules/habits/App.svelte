@@ -41,6 +41,7 @@
     getModuleSectionLabel,
     moduleSectionStore,
   } from "$lib/stores/module-sections.store";
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   let { moduleId = 'habits', settings = {} } = $props();
   $effect(() => { void settings; });
@@ -737,7 +738,7 @@
           {#if chainOrderedHabits.length > 0}
             {#each chainOrderedHabits as h (h.id)}
               <article class="hb-habit-row" class:hb-skip={blockedHabitIds.has(h.id)} style="--hc:{h.color}">
-                <button class="hb-check" aria-label="Toggle completion" onclick={() => toggleComplete(h.id)}>
+                <button class="hb-check" aria-label="Toggle completion" onclick={() => toggleComplete(h.id)} use:tooltip={{ text: "Complete habit" }}>
                   <CheckIcon size={14}/>
                 </button>
                 <div class="hb-identity">
@@ -759,7 +760,7 @@
                 {#if h.completionType !== 'binary'}
                   <div class="hb-count-block">
                     <span>{h.currentCount}/{h.targetCount}&thinsp;{h.unit}</span>
-                    <button class="hb-inc" aria-label="Increment count" onclick={() => incrementCount(h.id)}>+1</button>
+                    <button class="hb-inc" aria-label="Increment count" onclick={() => incrementCount(h.id)} use:tooltip={{ text: "Add one" }}>+1</button>
                   </div>
                 {/if}
                 {#if h.stackAfterName}
@@ -799,7 +800,7 @@
             <div class="hb-done-divider">✓ Done today</div>
             {#each completedTodayHabits as h (h.id)}
               <article class="hb-habit-row hb-done" style="--hc:{h.color}">
-                <button class="hb-check hb-check-on" aria-label="Undo completion" onclick={() => toggleComplete(h.id)}>
+                <button class="hb-check hb-check-on" aria-label="Undo completion" onclick={() => toggleComplete(h.id)} use:tooltip={{ text: "Undo completion" }}>
                   <CheckIcon size={14}/>
                 </button>
                 <div class="hb-identity">
@@ -815,7 +816,7 @@
                 <div class="hb-mood-group">
                   {#each [['😤','Frustrated'],['😐','Neutral'],['🙂','Slightly happy'],['😊','Happy'],['🔥','On fire']] as [mood, label]}
                     <button class="hb-mood-btn" aria-label={label} class:hb-mood-on={habitMoods[h.id] === mood}
-                      onclick={() => habitMoods = {...habitMoods, [h.id]: mood}}>{mood}</button>
+                      onclick={() => habitMoods = {...habitMoods, [h.id]: mood}} use:tooltip={{ text: label }}>{mood}</button>
                   {/each}
                 </div>
               </article>
@@ -1351,7 +1352,7 @@
   <div class="hb-modal">
     <div class="hb-modal-head">
       <h3>{isEditing ? 'Edit habit' : 'New habit'}</h3>
-      <button class="hb-icon-btn" onclick={closeAddModal} aria-label="Close"><span style="font-size:18px" aria-hidden="true">✕</span></button>
+      <button class="hb-icon-btn" onclick={closeAddModal} aria-label="Close" use:tooltip={{ text: "Close" }}><span style="font-size:18px" aria-hidden="true">✕</span></button>
     </div>
     <div class="hb-modal-body">
       <div class="hb-field">

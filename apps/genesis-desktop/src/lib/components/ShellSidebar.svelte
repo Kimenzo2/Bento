@@ -11,7 +11,7 @@
   import TrophyIcon from "@lucide/svelte/icons/trophy";
   import UserIcon from "@lucide/svelte/icons/user";
   import { Button } from "$lib/components/ui/button/index.js";
-  import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "$lib/components/ui/tooltip/index.js";
+  import { tooltip } from "$lib/components/Tooltip.svelte";
   import SidebarToggleIcon from "$lib/components/anytype-icons/SidebarToggleIcon.svelte";
   import { demoProjects } from "$lib/data/app-data";
   import { getStarterModuleEntry } from "$lib/data/module-catalog";
@@ -400,68 +400,45 @@
   style={`--desktop-sidebar-top:${$workspaceStore.sidebarTop}px;--desktop-sidebar-width:${$workspaceStore.sidebarWidth}px`}
   bind:this={sidebarEl}
 >
-  <TooltipProvider delayDuration={0}>
-    <button
-      aria-label="Move sidebar"
-      class="desktop-sidebar__move-handle"
-      title="Drag to reposition sidebar"
-      type="button"
-      onpointerdown={beginSidebarDrag}
-    >
-      <span class="desktop-sidebar__move-handle-dots" aria-hidden="true">
-        {#each Array.from({ length: 6 }) as _}
-          <span></span>
-        {/each}
-      </span>
-    </button>
+  <button
+    aria-label="Move sidebar"
+    class="desktop-sidebar__move-handle"
+    title="Drag to reposition sidebar"
+    type="button"
+    onpointerdown={beginSidebarDrag}
+  >
+    <span class="desktop-sidebar__move-handle-dots" aria-hidden="true">
+      {#each Array.from({ length: 6 }) as _}
+        <span></span>
+      {/each}
+    </span>
+  </button>
 
-    <div class="desktop-sidebar__header">
-      <button aria-label={_t('navGoToDashboard')} class="desktop-sidebar__brand" type="button" onclick={() => goto("/")}>
-        <span class="font-[var(--font-heading)] text-xl" style="font-family: 'Biscotti', var(--font-heading), system-ui, sans-serif; font-weight: 400;">Bento</span>
-      </button>
-      <Tooltip>
-        <TooltipTrigger>
-          {#snippet child({ props })}
-            <Button
-              {...props}
-              class="rounded-full"
-              size="icon-sm"
-              variant="ghost"
-              aria-label={$agentPanelOpen ? 'Close agent panel' : 'Open agent panel'}
-              onclick={toggleAgentPanel}
-            >
-              <BotIcon size={16} />
-            </Button>
-          {/snippet}
-        </TooltipTrigger>
-        <TooltipContent side="right" sideOffset={10}>
-          {$agentPanelOpen ? 'Close agent' : 'Open agent'}
-        </TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger>
-          {#snippet child({ props })}
-            <Button
-              {...props}
-              class="rounded-full"
-              size="icon-sm"
-              variant="ghost"
-              aria-label={$workspaceStore.sidebarCollapsed ? _t('navExpandSidebar') : _t('navCollapseSidebar')}
-              onclick={toggleSidebar}
-            >
-              <SidebarToggleIcon />
-            </Button>
-          {/snippet}
-        </TooltipTrigger>
-        <TooltipContent side="right" sideOffset={10}>
-          {#if $workspaceStore.sidebarCollapsed}
-            {_t('navExpandSidebar')}
-          {:else}
-            {_t('navCollapseSidebar')}
-          {/if}
-        </TooltipContent>
-      </Tooltip>
-    </div>
+  <div class="desktop-sidebar__header">
+    <button aria-label={_t('navGoToDashboard')} class="desktop-sidebar__brand" type="button" onclick={() => goto("/")}>
+      <span class="font-[var(--font-heading)] text-xl" style="font-family: 'Biscotti', var(--font-heading), system-ui, sans-serif; font-weight: 400;">Bento</span>
+    </button>
+    <Button
+      class="rounded-full"
+      size="icon-sm"
+      variant="ghost"
+      aria-label={$agentPanelOpen ? 'Close agent panel' : 'Open agent panel'}
+      onclick={toggleAgentPanel}
+      use:tooltip={{ text: $agentPanelOpen ? 'Close agent' : 'Open agent', typeX: 'right', typeY: 'auto' }}
+    >
+      <BotIcon size={16} />
+    </Button>
+    <Button
+      class="rounded-full"
+      size="icon-sm"
+      variant="ghost"
+      aria-label={$workspaceStore.sidebarCollapsed ? _t('navExpandSidebar') : _t('navCollapseSidebar')}
+      onclick={toggleSidebar}
+      use:tooltip={{ text: $workspaceStore.sidebarCollapsed ? _t('navExpandSidebar') : _t('navCollapseSidebar'), typeX: 'right', typeY: 'auto' }}
+    >
+      <SidebarToggleIcon />
+    </Button>
+  </div>
 
     <nav class="desktop-sidebar__nav" aria-label="Bento navigation">
       {#if activeStarterApp}
@@ -473,29 +450,23 @@
           {const isFlyout = item.action === 'flyout'}
           {const isActive = isFlyout ? flyoutPanel?.item.label === item.label : item.label === selectedAppSection}
           {#if $workspaceStore.sidebarCollapsed}
-            <Tooltip>
-              <TooltipTrigger>
-                {#snippet child({ props })}
-                  <button
-                    {...props}
-                    class:desktop-sidebar__nav-item--active={isActive}
-                    class="desktop-sidebar__nav-item desktop-sidebar__nav-item--app"
-                    class:desktop-sidebar__nav-item--flyout={isFlyout}
-                    aria-label={item.label}
-                    type="button"                      onclick={(e) => {
-                      if (isFlyout && activeStarterApp) {
-                        openFlyout(activeStarterApp.id, item, e);
-                      } else if (activeStarterApp) {
-                        setModuleSection(activeStarterApp.id, item.label, appSectionLabels);
-                      }
-                    }}
-                  >
-                    <item.icon />
-                  </button>
-                {/snippet}
-              </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={10}>{item.label}</TooltipContent>
-            </Tooltip>
+            <button
+              class:desktop-sidebar__nav-item--active={isActive}
+              class="desktop-sidebar__nav-item desktop-sidebar__nav-item--app"
+              class:desktop-sidebar__nav-item--flyout={isFlyout}
+              aria-label={item.label}
+              type="button"
+              onclick={(e) => {
+                if (isFlyout && activeStarterApp) {
+                  openFlyout(activeStarterApp.id, item, e);
+                } else if (activeStarterApp) {
+                  setModuleSection(activeStarterApp.id, item.label, appSectionLabels);
+                }
+              }}
+              use:tooltip={{ text: item.label, typeX: 'right', typeY: 'auto' }}
+            >
+              <item.icon />
+            </button>
           {:else}
             <button
               class:desktop-sidebar__nav-item--active={isActive}
@@ -523,23 +494,16 @@
         {/if}
         {#each navigationItems as item}
           {#if $workspaceStore.sidebarCollapsed}
-            <Tooltip>
-              <TooltipTrigger>
-                {#snippet child({ props })}
-                  <button
-                    {...props}
-                    class:desktop-sidebar__nav-item--active={currentPage === item.key}
-                    class="desktop-sidebar__nav-item"
-                    aria-label={item.label}
-                    type="button"
-                    onclick={() => navigateTo(item.path)}
-                  >
-                    <item.icon />
-                  </button>
-                {/snippet}
-              </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={10}>{item.label}</TooltipContent>
-            </Tooltip>
+            <button
+              class:desktop-sidebar__nav-item--active={currentPage === item.key}
+              class="desktop-sidebar__nav-item"
+              aria-label={item.label}
+              type="button"
+              onclick={() => navigateTo(item.path)}
+              use:tooltip={{ text: item.label, typeX: 'right', typeY: 'auto' }}
+            >
+              <item.icon />
+            </button>
           {:else}
             <button
               class:desktop-sidebar__nav-item--active={currentPage === item.key}
@@ -555,7 +519,6 @@
         {/each}
       {/if}
     </nav>
-  </TooltipProvider>
 </aside>
 
 <!-- ─── FLYOUT PANELS (Avnac-style) ─── -->

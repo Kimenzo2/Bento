@@ -28,6 +28,7 @@
     getModuleSectionLabel,
     moduleSectionStore,
   } from "$lib/stores/module-sections.store";
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   const moduleId = "nutrition";
   const sectionLabels = ["Today", "Water", "Meals", "Macros", "Reminders", "Export"] as const;
@@ -703,6 +704,7 @@
                     aria-label="Toggle {reminder.label}"
                     onclick={() => toggleReminder(reminder.id, reminder.enabled)}
                     disabled={reminderActionLoading === `toggle-${reminder.id}`}
+                    use:tooltip={{ text: reminder.enabled ? 'Disable reminder' : 'Enable reminder' }}
                   >
                     <span class="nutrition-reminder-toggle__thumb"></span>
                   </button>
@@ -712,6 +714,7 @@
                     aria-label="Delete {reminder.label}"
                     onclick={() => deleteReminder(reminder.id)}
                     disabled={reminderActionLoading === `delete-${reminder.id}`}
+                    use:tooltip={{ text: "Delete reminder" }}
                   >
                     <Trash2Icon size={14} />
                   </button>

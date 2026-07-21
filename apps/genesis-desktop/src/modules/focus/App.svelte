@@ -23,6 +23,7 @@
     CardHeader,
     CardTitle,
   } from "$lib/components/ui/card/index.js";
+  import { tooltip } from "$lib/components/Tooltip.svelte";
   import TrafficLogsChart from "./TrafficLogsChart.svelte";
   import PremiumRing from "$lib/components/charts/PremiumRing.svelte";
   import {
@@ -336,6 +337,7 @@
               class="focus-controls__button focus-controls__button--reset"
               aria-label={_t('commonRestart')}
               onclick={resetTimer}
+              use:tooltip={{ text: "Reset timer" }}
             >
               <RotateCcwIcon size={20} />
             </button>
@@ -344,6 +346,7 @@
               class="focus-controls__button focus-controls__button--play"
               aria-label={isRunning ? _t('moduleFocusPause') : _t('moduleFocusStart')}
               onclick={toggleTimer}
+              use:tooltip={{ text: isRunning ? 'Pause session' : 'Start session' }}
             >
               {#if isRunning}
                 <PauseIcon size={26} />

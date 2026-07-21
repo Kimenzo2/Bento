@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import { journalFontVariationId, applyJournalFont } from '$lib/stores/journal-font.store';
   import { journalFontVariations, getJournalFontVariationName } from '$lib/data/preferences';
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   let { onclose = () => {} }: { onclose: () => void } = $props();
 
@@ -33,7 +34,7 @@
         <div class="jfont-eyebrow">Journal Typography</div>
         <h2>Editor Font</h2>
       </div>
-      <button class="jfont-close" onclick={onclose} aria-label="Close">
+      <button class="jfont-close" onclick={onclose} aria-label="Close" use:tooltip={{ text: "Close" }}>
         <X size={18} />
       </button>
     </div>

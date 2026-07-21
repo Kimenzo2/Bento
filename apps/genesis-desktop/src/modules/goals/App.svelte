@@ -14,6 +14,7 @@
   } from "$lib/components/ui/card/index.js";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { getModuleSectionLabel, ensureModuleSection, moduleSectionStore } from '$lib/stores/module-sections.store';
+  import { tooltip } from "$lib/components/Tooltip.svelte";
   let { moduleId = "goals", settings = {} }: { moduleId?: string; settings?: Record<string, unknown> } =
     $props();
 
@@ -1244,7 +1245,7 @@
       <!-- ── PAGE 2 — Full Detail View ──────────────────────────────── -->
       <div class="goals-detail-page">
         <header class="goals-detail-page__header">
-          <button class="goals-detail-page__back" onclick={goBackToList} aria-label="Back to goals list">
+          <button class="goals-detail-page__back" onclick={goBackToList} aria-label="Back to goals list" use:tooltip={{ text: "Back to goals" }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
             Back
           </button>
@@ -1545,7 +1546,7 @@
         <aside class="goals-detail-panel">
           <div class="goals-panel__scrim" onclick={closePanel}></div>
           <div class="goals-panel__body">
-            <button class="goals-panel__close" onclick={closePanel} aria-label="Close panel"><XIcon /></button>
+            <button class="goals-panel__close" onclick={closePanel} aria-label="Close panel" use:tooltip={{ text: "Close panel" }}><XIcon /></button>
             <div class="goals-panel__scroll">
               <div class="goals-panel__header">
                 <h2 class="goals-panel__title">{selectedGoal.title}</h2>

@@ -3,6 +3,7 @@
   import { desktopSettings, saveDesktopSettings } from '$lib/desktop/settings';
   import { fontPairings, getFontPairingName, getEditorFontFamily } from '$lib/data/preferences';
   import { onMount } from 'svelte';
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   let { onclose = () => {} }: { onclose: () => void } = $props();
 
@@ -47,7 +48,7 @@
         <div class="font-pref-eyebrow">Typography</div>
         <h2>Editor Font</h2>
       </div>
-      <button class="font-pref-close" onclick={onclose} aria-label="Close">
+      <button class="font-pref-close" onclick={onclose} aria-label="Close" use:tooltip={{ text: "Close" }}>
         <X size={18} />
       </button>
     </div>

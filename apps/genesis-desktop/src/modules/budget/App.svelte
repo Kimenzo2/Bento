@@ -18,6 +18,7 @@
   import {
     Card, CardContent, CardDescription, CardHeader, CardTitle,
   } from '$lib/components/ui/card/index.js';
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   let { moduleId = "budget" } = $props<{ moduleId?: string }>();
   $effect(() => { void moduleId; });
@@ -605,7 +606,7 @@
                           {tx.txType === 'expense' ? '-' : '+'}€{tx.amount.toFixed(2)}
                         </Table.Cell>
                         <Table.Cell>
-                          <button class="bg-icon-btn bg-icon-btn--danger" onclick={() => deleteTransaction(tx.id)}>
+                          <button class="bg-icon-btn bg-icon-btn--danger" onclick={() => deleteTransaction(tx.id)} use:tooltip={{ text: "Delete transaction" }}>
                             <Trash2 size={14} />
                           </button>
                         </Table.Cell>
@@ -1073,7 +1074,7 @@
                         <Table.Cell class="text-right font-mono">€{entry.cost.toFixed(4)}</Table.Cell>
                         <Table.Cell class="text-right text-[var(--bg-muted)]">{(entry.tokensIn + entry.tokensOut).toLocaleString()}</Table.Cell>
                         <Table.Cell>
-                          <button class="bg-icon-btn bg-icon-btn--danger" onclick={() => deleteAiCost(entry.id)}>
+                          <button class="bg-icon-btn bg-icon-btn--danger" onclick={() => deleteAiCost(entry.id)} use:tooltip={{ text: "Delete cost entry" }}>
                             <Trash2 size={12} />
                           </button>
                         </Table.Cell>

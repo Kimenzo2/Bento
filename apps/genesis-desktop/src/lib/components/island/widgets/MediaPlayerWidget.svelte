@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import WidgetWrapper from "./WidgetWrapper.svelte";
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   interface NowPlayingData {
     title: string | null;
@@ -160,12 +161,12 @@
       </div>
 
       <div class="media-controls">
-        <button class="ctrl-btn" onclick={handlePrev} aria-label="Previous track">
+        <button class="ctrl-btn" onclick={handlePrev} aria-label="Previous track" use:tooltip={{ text: "Previous track" }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
             <polygon points="19 20 9 12 19 4 19 20" /><path d="M5 19V5" stroke="currentColor" stroke-width="2" fill="none" />
           </svg>
         </button>
-        <button class="ctrl-btn ctrl-btn--play" onclick={handlePlayPause} aria-label={data.is_playing ? "Pause" : "Play"}>
+        <button class="ctrl-btn ctrl-btn--play" onclick={handlePlayPause} aria-label={data.is_playing ? "Pause" : "Play"} use:tooltip={{ text: data.is_playing ? "Pause" : "Play" }}>
           {#if data.is_playing}
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none">
               <rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" />
@@ -176,7 +177,7 @@
             </svg>
           {/if}
         </button>
-        <button class="ctrl-btn" onclick={handleNext} aria-label="Next track">
+        <button class="ctrl-btn" onclick={handleNext} aria-label="Next track" use:tooltip={{ text: "Next track" }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
             <polygon points="5 4 15 12 5 20 5 4" /><path d="M19 5v14" stroke="currentColor" stroke-width="2" fill="none" />
           </svg>

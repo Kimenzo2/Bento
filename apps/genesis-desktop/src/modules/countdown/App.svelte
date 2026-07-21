@@ -19,6 +19,7 @@
   import { ensureModuleSection, getModuleSectionLabel, moduleSectionStore } from "$lib/stores/module-sections.store";
   import TiltCard from "$lib/components/TiltCard.svelte";
   import ShareIcon from "@lucide/svelte/icons/share-2";
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   let { moduleId = "countdown" }: { moduleId?: string } = $props();
 
@@ -459,7 +460,7 @@
     {const remaining = msToTarget(focusEvent.targetMs)}
     {const { days, hours, mins, secs } = decompose(remaining)}
     <div class="cd-overlay cd-overlay--fullscreen" role="dialog" aria-modal="true" aria-label="Fullscreen countdown: {focusEvent.name}">
-      <button class="cd-overlay-close" onclick={closeFullscreen} aria-label="Close fullscreen (Escape)">
+      <button class="cd-overlay-close" onclick={closeFullscreen} aria-label="Close fullscreen (Escape)" use:tooltip={{ text: "Close" }}>
         <XIcon size={18}/>
       </button>
       <p class="cd-fs-name">{focusEvent.name}</p>
@@ -485,7 +486,7 @@
     <div class="cd-overlay cd-overlay--backdrop" role="dialog" aria-modal="true"
       onclick={(e) => { if ((e.target as HTMLElement).classList.contains('cd-overlay--backdrop')) drawer = null; }}>
       <div class="cd-sheet">
-        <button class="cd-overlay-close" onclick={() => drawer = null} aria-label="Close (Escape)">
+        <button class="cd-overlay-close" onclick={() => drawer = null} aria-label="Close (Escape)" use:tooltip={{ text: "Close" }}>
           <XIcon size={18}/>
         </button>
 
@@ -625,7 +626,7 @@
           <CardContent class="cd-hero__body">
             <div class="cd-hero__top">
               <Badge variant="outline" class="cd-category-badge">{heroEvent.category}</Badge>
-              <button class="cd-fs-trigger" onclick={() => openFullscreen(heroEvent.id)} aria-label="Full screen countdown">
+              <button class="cd-fs-trigger" onclick={() => openFullscreen(heroEvent.id)} aria-label="Full screen countdown" use:tooltip={{ text: "View fullscreen" }}>
                 <EyeIcon size={13}/> Full screen
               </button>
             </div>
@@ -660,8 +661,8 @@
                   <div class="cd-event-days" aria-label="{daysTo(ev.targetMs)} days remaining">
                     <span>{daysTo(ev.targetMs)}</span><small>days</small>
                   </div>
-                  <button class="cd-icon-btn" onclick={() => openFullscreen(ev.id)} aria-label="Full screen {ev.name}"><EyeIcon size={13}/></button>
-                  <button class="cd-icon-btn cd-icon-btn--del" onclick={() => removeEvent(ev.id)} aria-label="Remove {ev.name}"><Trash2Icon size={13}/></button>
+                  <button class="cd-icon-btn" onclick={() => openFullscreen(ev.id)} aria-label="Full screen {ev.name}" use:tooltip={{ text: "View fullscreen" }}><EyeIcon size={13}/></button>
+                  <button class="cd-icon-btn cd-icon-btn--del" onclick={() => removeEvent(ev.id)} aria-label="Remove {ev.name}" use:tooltip={{ text: "Remove event" }}><Trash2Icon size={13}/></button>
                 </div>
               </article>
             {/each}
@@ -692,7 +693,7 @@
                   <div class="cd-event-days">
                     <span>{Math.abs(daysTo(ev.targetMs))}</span><small>days ago</small>
                   </div>
-                  <button class="cd-icon-btn cd-icon-btn--del" onclick={(e) => { e.stopPropagation(); removeEvent(ev.id); }} aria-label="Remove {ev.name}"><Trash2Icon size={13}/></button>
+                  <button class="cd-icon-btn cd-icon-btn--del" onclick={(e) => { e.stopPropagation(); removeEvent(ev.id); }} aria-label="Remove {ev.name}" use:tooltip={{ text: "Remove event" }}><Trash2Icon size={13}/></button>
                 </div>
               </article>
             {/each}
@@ -745,8 +746,8 @@
                 </div>
                 <div class="cd-ms-actions">
                   <!-- Edit progress in place — this is the missing action -->
-                  <button class="cd-icon-btn" onclick={() => startEditProgress(ms)} aria-label="Update progress for {ms.name}"><PencilIcon size={13}/></button>
-                  <button class="cd-icon-btn cd-icon-btn--del" onclick={() => removeMilestone(ms.id)} aria-label="Remove {ms.name}"><Trash2Icon size={13}/></button>
+                  <button class="cd-icon-btn" onclick={() => startEditProgress(ms)} aria-label="Update progress for {ms.name}" use:tooltip={{ text: "Edit progress" }}><PencilIcon size={13}/></button>
+                  <button class="cd-icon-btn cd-icon-btn--del" onclick={() => removeMilestone(ms.id)} aria-label="Remove {ms.name}" use:tooltip={{ text: "Remove milestone" }}><Trash2Icon size={13}/></button>
                 </div>
               </div>
 
@@ -823,7 +824,7 @@
                     <span>{daysUntilBirthday(bd)}</span><small>days</small>
                   </div>
                   <Badge variant="outline" class="cd-repeat-badge"><RepeatIcon size={10}/> Yearly</Badge>
-                  <button class="cd-icon-btn cd-icon-btn--del" onclick={() => removeBirthday(bd.id)} aria-label="Remove {bd.name}"><Trash2Icon size={13}/></button>
+                  <button class="cd-icon-btn cd-icon-btn--del" onclick={() => removeBirthday(bd.id)} aria-label="Remove {bd.name}" use:tooltip={{ text: "Remove birthday" }}><Trash2Icon size={13}/></button>
                 </div>
               </article>
             {/each}

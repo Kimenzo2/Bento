@@ -166,17 +166,6 @@
   border-radius: 16px !important;
 }
 
-/* Tooltip inverts: dark bg with light text — highest contrast possible */
-[data-slot="tooltip-content"] {
-  background: var(--foreground) !important;
-  color: var(--background) !important;
-  border: none !important;
-  box-shadow: none !important;
-  --tw-ring-shadow: none !important;
-  --tw-shadow: none !important;
-  border-radius: 8px !important;
-}
-
 /* ═══════════════════════════════════════════════════════════════════
    GLOBAL SETTINGS PANEL — var(--background), no border, no shadow
    ═══════════════════════════════════════════════════════════════════ */

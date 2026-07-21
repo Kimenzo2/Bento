@@ -23,6 +23,7 @@
     getModuleSectionLabel,
     moduleSectionStore,
   } from "$lib/stores/module-sections.store";
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   const moduleId = "sleep";
   const sectionLabels = ["Tonight", "Score", "Routine", "Trends", "Alarm", "Export", "Sessions", "Goal"] as const;
@@ -685,7 +686,7 @@
                     <strong>{step.title}</strong>
                     <p>{step.note}</p>
                   </div>
-                  <button class="sl-routine-toggle" class:sl-routine--done={step.status === 'Done'} onclick={() => toggleRoutine(step.id)} aria-label={step.status === 'Done' ? 'Mark incomplete' : 'Mark complete'}>
+                  <button class="sl-routine-toggle" class:sl-routine--done={step.status === 'Done'} onclick={() => toggleRoutine(step.id)} aria-label={step.status === 'Done' ? 'Mark incomplete' : 'Mark complete'} use:tooltip={{ text: step.status === 'Done' ? 'Mark incomplete' : 'Mark complete' }}>
                     {#if step.status === 'Done'}
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="14" height="14"><path d="M5 13l4 4L19 7"/></svg>
                     {:else}
@@ -758,14 +759,14 @@
                   <p>{step.note}</p>
                 </div>
                 <div class="sr-actions">
-                  <button class="sl-routine-toggle" class:sl-routine--done={step.status === 'Done'} onclick={() => toggleRoutine(step.id)} aria-label={step.status === 'Done' ? 'Mark incomplete' : 'Mark complete'}>
+                  <button class="sl-routine-toggle" class:sl-routine--done={step.status === 'Done'} onclick={() => toggleRoutine(step.id)} aria-label={step.status === 'Done' ? 'Mark incomplete' : 'Mark complete'} use:tooltip={{ text: step.status === 'Done' ? 'Mark incomplete' : 'Mark complete' }}>
                     {#if step.status === 'Done'}
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="13" height="13"><path d="M5 13l4 4L19 7"/></svg>
                     {:else}
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="9"/></svg>
                     {/if}
                   </button>
-                  <button class="sr-del" onclick={() => deleteRoutine(step.id)} aria-label="Delete routine"><Trash2Icon size={14} /></button>
+                  <button class="sr-del" onclick={() => deleteRoutine(step.id)} aria-label="Delete routine" use:tooltip={{ text: "Delete routine" }}><Trash2Icon size={14} /></button>
                 </div>
               </article>
             {/each}
@@ -885,14 +886,14 @@
                 </div>
                 <div class="sleep-alarm-list__time" class:sa-time--inactive={!alarm.active}>{alarm.time}</div>
                 <div class="sa-actions">
-                  <button class="sa-toggle" onclick={() => toggleAlarm(alarm.id)} aria-label={alarm.active ? 'Disable alarm' : 'Enable alarm'}>
+                  <button class="sa-toggle" onclick={() => toggleAlarm(alarm.id)} aria-label={alarm.active ? 'Disable alarm' : 'Enable alarm'} use:tooltip={{ text: alarm.active ? 'Disable alarm' : 'Enable alarm' }}>
                     {#if alarm.active}
                       <BellIcon size={16} />
                     {:else}
                       <BellOffIcon size={16} />
                     {/if}
                   </button>
-                  <button class="sr-del" onclick={() => deleteAlarm(alarm.id)} aria-label="Delete alarm"><Trash2Icon size={14} /></button>
+                  <button class="sr-del" onclick={() => deleteAlarm(alarm.id)} aria-label="Delete alarm" use:tooltip={{ text: "Delete alarm" }}><Trash2Icon size={14} /></button>
                 </div>
               </article>
             {/each}
@@ -1007,7 +1008,7 @@
                       <Badge variant="outline">{session.source === 'auto' ? 'Detected' : 'Manual'}</Badge>
                     </div>
                     {#if sessionDeleteLoading !== session.id}
-                      <button class="ss-row-delete" onclick={() => deleteSession(session.id)} aria-label="Delete session">
+                      <button class="ss-row-delete" onclick={() => deleteSession(session.id)} aria-label="Delete session" use:tooltip={{ text: "Delete session" }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                       </button>
                     {:else}

@@ -43,6 +43,7 @@
   import { browser } from "$app/environment";
   import { trackEvent, trackSetting, trackPageView } from "$lib/ipc";
   import { sanitizeError } from "$lib/utils/logger";
+  import { tooltip } from "$lib/components/Tooltip.svelte";
   import {
     needsSetup,
     setupMasterPassword,
@@ -442,7 +443,7 @@
         <h2>{_t('settingsTitle')}</h2>
       </div>
       {#if surface !== "page"}
-        <button class="global-settings__close" type="button" aria-label="Close settings" onclick={hide}>
+        <button class="global-settings__close" type="button" aria-label="Close settings" onclick={hide} use:tooltip={{ text: "Close" }}>
           <XIcon size={16} />
         </button>
       {/if}
