@@ -1,0 +1,19 @@
+{
+  "name": "bento-chatgpt-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Bento app-server for Sign in with ChatGPT — proxies OpenAI API requests",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "render-start": "node src/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "uuid": "^11.0.0"
+  }
+}

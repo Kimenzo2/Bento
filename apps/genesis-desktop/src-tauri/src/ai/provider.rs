@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::anthropic::AnthropicProvider;
+use super::chatgpt::ChatGptProvider;
 use super::gemini::GeminiProvider;
 use super::grok::GrokProvider;
 use super::ollama::OllamaProvider;
@@ -20,6 +21,7 @@ pub enum AiProvider {
     Grok(GrokProvider),
     Ollama(OllamaProvider),
     Gemini(GeminiProvider),
+    ChatGpt(ChatGptProvider),
 }
 
 impl AiProvider {
@@ -36,6 +38,7 @@ impl AiProvider {
             Self::Grok(p) => p.complete(model, api_key, prompt).await,
             Self::Ollama(p) => p.complete(model, api_key, prompt).await,
             Self::Gemini(p) => p.complete(model, api_key, prompt).await,
+            Self::ChatGpt(p) => p.complete(model, api_key, prompt).await,
         }
     }
 
@@ -54,6 +57,7 @@ impl AiProvider {
             Self::Grok(p) => p.stream(model, api_key, prompt, tx).await,
             Self::Ollama(p) => p.stream(model, api_key, prompt, tx).await,
             Self::Gemini(p) => p.stream(model, api_key, prompt, tx).await,
+            Self::ChatGpt(p) => p.stream(model, api_key, prompt, tx).await,
         }
     }
 
@@ -67,6 +71,7 @@ impl AiProvider {
             Self::Grok(p) => p.list_models(api_key).await,
             Self::Ollama(p) => p.list_models(api_key).await,
             Self::Gemini(p) => p.list_models(api_key).await,
+            Self::ChatGpt(p) => p.list_models(api_key).await,
         }
     }
 
@@ -78,6 +83,7 @@ impl AiProvider {
             Self::Grok(p) => p.validate_key(api_key).await,
             Self::Ollama(p) => p.validate_key(api_key).await,
             Self::Gemini(p) => p.validate_key(api_key).await,
+            Self::ChatGpt(p) => p.validate_key(api_key).await,
         }
     }
 }
@@ -133,6 +139,16 @@ pub fn create_provider(
                 .cloned()
                 .unwrap_or_else(|| "https://openrouter.ai/api/v1".to_string());
             Ok(AiProvider::OpenAI(OpenAIProvider::new(base_url)))
+        }
+        "chatgpt" => {
+            // ChatGPT proxy uses the app-server URL (set at request time from session).
+            // The base_url here is a fallback; the actual server URL is loaded from the
+            // ChatGPT session keyring entry at request time in ai_chat_stream.
+            let base_url = base_url_overrides
+                .get("chatgpt")
+                .cloned()
+                .unwrap_or_else(|| "http://localhost:3001/api".to_string());
+            Ok(AiProvider::ChatGpt(ChatGptProvider::new(base_url)))
         }
         other => Err(format!("Unknown AI provider: {other}")),
     }

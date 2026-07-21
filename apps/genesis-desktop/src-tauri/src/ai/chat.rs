@@ -279,7 +279,7 @@ pub fn default_tool_definitions() -> &'static [ToolDefinition] {
 
 /// Check if a provider supports tool calling.
 fn provider_supports_tools(provider: &str) -> bool {
-    matches!(provider, "openai" | "anthropic" | "gemini" | "grok" | "openrouter")
+    matches!(provider, "openai" | "anthropic" | "gemini" | "grok" | "openrouter" | "chatgpt")
 }
 
 // ── Tool execution ──────────────────────────────────────────────────────────
@@ -1074,7 +1074,7 @@ pub async fn stream_chat(
 
         // Send the request
         let response = match provider.as_str() {
-            "openai" | "grok" | "openrouter" => {
+            "openai" | "grok" | "openrouter" | "chatgpt" => {
                 let include_tools = enable_tools && round < max_rounds - 1;
                 let body = build_openai_request(&chat_params, include_tools, true);
                 send_openai_stream(&chat_params, &api_key, &base_url, body, &tx).await?
@@ -1546,6 +1546,7 @@ mod tests {
         assert!(super::provider_supports_tools("anthropic"));
         assert!(super::provider_supports_tools("gemini"));
         assert!(super::provider_supports_tools("grok"));
+        assert!(super::provider_supports_tools("chatgpt"));
         assert!(!super::provider_supports_tools("ollama"));
         assert!(!super::provider_supports_tools("unknown"));
     }

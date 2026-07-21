@@ -6,6 +6,7 @@ pub mod audio;
 pub mod auth;
 pub mod budget;
 pub mod byok;
+pub mod chatgpt_auth;
 pub mod clipboard;
 pub mod cloud_backup;
 pub mod commands;
@@ -476,7 +477,8 @@ pub fn run() {
         .manage(Arc::new(NoteFullCache::new()))
         .manage(Arc::new(HistoryRegistry::new()))
         .manage(ManagedTabSession::new())
-        .manage(StartupDegraded::new());
+        .manage(StartupDegraded::new())
+        .manage(crate::chatgpt_auth::ActiveDeviceFlows::new());
 
     #[cfg(not(debug_assertions))]
     {
@@ -1133,6 +1135,14 @@ pub fn run() {
             crate::byok::commands::byok_toggle_enabled,
             crate::byok::commands::byok_dismiss_onboarding,
             crate::byok::commands::byok_validate_key,
+            // ChatGPT — Sign in with ChatGPT
+            crate::chatgpt_auth::commands::chatgpt_start_device_flow,
+            crate::chatgpt_auth::commands::chatgpt_check_device_flow,
+            crate::chatgpt_auth::commands::chatgpt_get_session,
+            crate::chatgpt_auth::commands::chatgpt_refresh_session,
+            crate::chatgpt_auth::commands::chatgpt_sign_out,
+            crate::chatgpt_auth::commands::chatgpt_get_plan_info,
+            crate::chatgpt_auth::commands::chatgpt_test_connection,
             // Clipboard Manager
             crate::clipboard::clipboard_list,
             crate::clipboard::clipboard_get,

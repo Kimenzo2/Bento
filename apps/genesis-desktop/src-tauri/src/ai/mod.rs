@@ -9,6 +9,7 @@
 pub mod agent_memory;
 pub mod anthropic;
 pub mod chat;
+pub mod chatgpt;
 pub mod gemini;
 pub mod grok;
 pub mod ollama;
@@ -22,6 +23,7 @@ use tokio::sync::mpsc;
 
 use crate::byok;
 use crate::byok::ByokProvider;
+use crate::chatgpt_auth;
 use crate::db::BentoAppState;
 use crate::settings;
 use chat::ChatEvent;
@@ -148,6 +150,20 @@ pub async fn ai_stream(
 /// List available models for a given provider.
 #[tauri::command]
 pub async fn list_ai_models(app: AppHandle, provider_name: String) -> Result<Vec<String>, String> {
+    if provider_name == "chatgpt" {
+        // Return known chat models available via ChatGPT proxy
+        return Ok(vec![
+            "gpt-4o".into(),
+            "gpt-4o-mini".into(),
+            "gpt-4.1".into(),
+            "gpt-4.1-mini".into(),
+            "gpt-4.1-nano".into(),
+            "o3".into(),
+            "o3-mini".into(),
+            "o4-mini".into(),
+        ]);
+    }
+
     let settings = settings::current_settings(&app);
     let overrides = &settings.byok.base_url_overrides;
 
@@ -171,6 +187,8 @@ pub async fn get_ai_provider_status(app: AppHandle) -> Result<Vec<AiProviderStat
     let active_provider = settings.byok.active_provider.as_deref().unwrap_or("");
 
     let mut results = Vec::new();
+
+    // BYOK providers
     for bp in byok::ByokProvider::all() {
         let name = serde_json::to_value(&bp)
             .ok()
@@ -189,6 +207,18 @@ pub async fn get_ai_provider_status(app: AppHandle) -> Result<Vec<AiProviderStat
             default_base_url: bp.default_base_url().to_string(),
         });
     }
+
+    // ChatGPT (Sign in with ChatGPT) — treated as a separate provider
+    let chatgpt_session = chatgpt_auth::load_session().await.ok().flatten();
+    results.push(AiProviderStatus {
+        provider: "chatgpt".into(),
+        display_name: "ChatGPT (Sign in)".into(),
+        is_configured: chatgpt_session.is_some(),
+        requires_key: false,
+        has_key: chatgpt_session.is_some(),
+        is_active: active_provider == "chatgpt",
+        default_base_url: "".into(),
+    });
 
     Ok(results)
 }
@@ -247,16 +277,23 @@ pub async fn ai_chat_stream(
                 .unwrap_or_else(|| "gpt-4o".to_string())
         });
 
-    let api_key = if provider_name != "ollama" {
-        Some(
-            byok::get_api_key(&provider_name, &settings.byok)?
-                .ok_or_else(|| format!("No API key configured for {provider_name}"))?,
-        )
+    let (api_key, base_url) = if provider_name == "chatgpt" {
+        // ChatGPT uses the OAuth session — load from keyring
+        let session = chatgpt_auth::load_session().await?
+            .ok_or_else(|| "Not signed in with ChatGPT. Sign in from Settings → AI.".to_string())?;
+        (Some(session.token), Some(format!("{}/api", session.server_url)))
     } else {
-        None
+        let key = if provider_name != "ollama" {
+            Some(
+                byok::get_api_key(&provider_name, &settings.byok)?
+                    .ok_or_else(|| format!("No API key configured for {provider_name}"))?,
+            )
+        } else {
+            None
+        };
+        let url = resolve_base_url(&provider_name, &settings.byok);
+        (key, url)
     };
-
-    let base_url = resolve_base_url(&provider_name, &settings.byok);
 
     let params = chat::ChatParams {
         messages,
@@ -337,16 +374,22 @@ pub async fn ai_chat_complete(
                 .unwrap_or_else(|| "gpt-4o".to_string())
         });
 
-    let api_key = if provider_name != "ollama" {
-        Some(
-            byok::get_api_key(&provider_name, &settings.byok)?
-                .ok_or_else(|| format!("No API key configured for {provider_name}"))?,
-        )
+    let (api_key, base_url) = if provider_name == "chatgpt" {
+        let session = chatgpt_auth::load_session().await?
+            .ok_or_else(|| "Not signed in with ChatGPT.".to_string())?;
+        (Some(session.token), Some(format!("{}/api", session.server_url)))
     } else {
-        None
+        let key = if provider_name != "ollama" {
+            Some(
+                byok::get_api_key(&provider_name, &settings.byok)?
+                    .ok_or_else(|| format!("No API key configured for {provider_name}"))?,
+            )
+        } else {
+            None
+        };
+        let url = resolve_base_url(&provider_name, &settings.byok);
+        (key, url)
     };
-
-    let base_url = resolve_base_url(&provider_name, &settings.byok);
 
     let params = chat::ChatParams {
         messages,

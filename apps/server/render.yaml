@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: bento-chatgpt-proxy
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install --production
+    startCommand: node src/index.js
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PORT
+        value: 3001
+      - key: ALLOWED_ORIGINS
+        value: http://localhost:1420,tauri://localhost,bento://
+      - key: OPENAI_MODEL
+        value: gpt-4o

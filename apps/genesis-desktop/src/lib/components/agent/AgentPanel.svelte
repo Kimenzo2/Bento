@@ -41,6 +41,8 @@
   } from "$lib/stores/agent-conversation.store";
   import PlusIcon from "@lucide/svelte/icons/plus";
   import HistoryIcon from "@lucide/svelte/icons/history";
+  import { goto } from "@mateothegreat/svelte5-router";
+  import { chatgptSession, loadChatGptSession } from "$lib/stores/chatgpt-auth.store";
 
   let message = $state("");
   let textareaRef = $state<HTMLTextAreaElement | null>(null);
@@ -58,6 +60,15 @@
       });
     });
   }
+
+  // Load ChatGPT session on mount
+  let chatgptLoaded = $state(false);
+  $effect(() => {
+    if (!chatgptLoaded) {
+      chatgptLoaded = true;
+      loadChatGptSession();
+    }
+  });
 
   // Observe content resize to auto-scroll when user is near bottom
   let resizeObserver: ResizeObserver | undefined;
@@ -605,6 +616,23 @@
           <PanelLeftCloseIcon size={16} />
         </button>
       </div>
+    </div>
+
+    <div class="agent-panel__auth-bar">
+      {#if $chatgptSession}
+        <svg class="agent-panel__auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+        <span class="agent-panel__auth-label">ChatGPT</span>
+        <span class="agent-panel__auth-dot"></span>
+      {:else}
+        <button
+          type="button"
+          class="agent-panel__auth-btn"
+          onclick={() => goto("/settings")}
+        >
+          <svg class="agent-panel__auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
+          Sign in with ChatGPT
+        </button>
+      {/if}
     </div>
 
     <div class="agent-panel__messages-wrap">
@@ -1307,5 +1335,50 @@
 
   .agent-panel__resize--active .agent-panel__resize-bar::after {
     background: color-mix(in srgb, var(--foreground) 40%, transparent);
+  }
+
+  /* ── Auth Bar ───────────────────────────────────────── */
+  .agent-panel__auth-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.75rem;
+    border-top: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+    background: color-mix(in srgb, var(--surface) 60%, transparent);
+    font-size: 0.75rem;
+  }
+  .agent-panel__auth-icon {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    color: var(--muted);
+  }
+  .agent-panel__auth-label {
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .agent-panel__auth-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    flex-shrink: 0;
+  }
+  .agent-panel__auth-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: none;
+    background: none;
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.2rem 0.35rem;
+    border-radius: 4px;
+    transition: background 0.12s ease;
+  }
+  .agent-panel__auth-btn:hover {
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
   }
 </style>

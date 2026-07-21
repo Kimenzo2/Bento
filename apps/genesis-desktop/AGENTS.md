@@ -60,3 +60,12 @@ Then get the token from Settings → Integrations → MCP and set it as the `x-b
 - All responses include `data_coverage` (0.0–1.0)
 - Partial data on empty states (never error)
 - Commitment bonds use TEXT UUID v4
+
+## Git Workflow
+
+- **Active branch:** `Gemini-api-connections`
+- **Remotes:** `origin` (Kimenzo/Bento) + `kimenzo2` (Kimenzo2/Bento)
+- **ALWAYS push to `Gemini-api-connections` on both remotes.**
+- **NEVER push to `kimenzo2/main`** or any `main` branch — push will fail and may cause stash issues.
+- Before committing: run `git status` first to check for dirty files.
+- When staging: use `git add <specific-files>`, never `git add -A` (to avoid sweeping unrelated changes into the commit).

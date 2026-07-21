@@ -45,6 +45,7 @@
   import { byokSettings } from '$lib/stores/byok.store';
   import { providerDisplayName, providerKnownModels } from '$lib/stores/byok.store';
   import { activeBundle, createTranslator } from '$lib/i18n';
+  import ChatGptAuth from '$lib/components/settings/ChatGptAuth.svelte';
 
   let _t = $derived.by(() => createTranslator($activeBundle));
 
@@ -345,6 +346,9 @@
       {/each}
     </div>
   </div>
+
+  <!-- ── ChatGPT Account ──────────────────────────────── -->
+  <ChatGptAuth />
 
   <!-- ── System Prompt / Custom Instructions ──────────── -->
   <div class="ai-card">
