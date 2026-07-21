@@ -418,26 +418,24 @@
     <button aria-label={_t('navGoToDashboard')} class="desktop-sidebar__brand" type="button" onclick={() => goto("/")}>
       <span class="font-[var(--font-heading)] text-xl" style="font-family: 'Biscotti', var(--font-heading), system-ui, sans-serif; font-weight: 400;">Bento</span>
     </button>
-    <Button
-      class="rounded-full"
-      size="icon-sm"
-      variant="ghost"
+    <button
+      class="rounded-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-7 w-7"
       aria-label={$agentPanelOpen ? 'Close agent panel' : 'Open agent panel'}
+      type="button"
       onclick={toggleAgentPanel}
       use:tooltip={{ text: $agentPanelOpen ? 'Close agent' : 'Open agent', typeX: 'right', typeY: 'auto' }}
     >
       <BotIcon size={16} />
-    </Button>
-    <Button
-      class="rounded-full"
-      size="icon-sm"
-      variant="ghost"
+    </button>
+    <button
+      class="rounded-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-7 w-7"
       aria-label={$workspaceStore.sidebarCollapsed ? _t('navExpandSidebar') : _t('navCollapseSidebar')}
+      type="button"
       onclick={toggleSidebar}
       use:tooltip={{ text: $workspaceStore.sidebarCollapsed ? _t('navExpandSidebar') : _t('navCollapseSidebar'), typeX: 'right', typeY: 'auto' }}
     >
       <SidebarToggleIcon />
-    </Button>
+    </button>
   </div>
 
     <nav class="desktop-sidebar__nav" aria-label="Bento navigation">

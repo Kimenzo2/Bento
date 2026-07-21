@@ -29,9 +29,9 @@
 </script>
 
 {#if tooltipText}
-  <Button {size} type="button" {variant} {onclick} {disabled} class={className} {...restProps} use:tooltip={{ text: tooltipText }}>
+  <button type="button" {onclick} {disabled} class={className} {...restProps} use:tooltip={{ text: tooltipText }}>
     {@render children?.()}
-  </Button>
+  </button>
 {:else}
   <Button {size} type="button" {variant} {onclick} {disabled} class={className} {...restProps}>
     {@render children?.()}
