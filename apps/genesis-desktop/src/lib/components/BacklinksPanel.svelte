@@ -2,6 +2,7 @@
   import { invoke } from '@tauri-apps/api/core';
   import { untrack } from 'svelte';
   import { ArrowLeft, FileText } from 'lucide-svelte';
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   interface Backlink {
     id: string;
@@ -47,7 +48,7 @@
 
 <div class="backlinks-panel">
   <div class="backlinks-header">
-    <button class="backlinks-back" onclick={() => onClose()} aria-label="Close backlinks" type="button">
+    <button class="backlinks-back" onclick={() => onClose()} aria-label="Close backlinks" type="button" use:tooltip={{ text: "Close backlinks" }}>
       <ArrowLeft size={14} />
     </button>
     <span class="backlinks-title">Backlinks</span>
@@ -59,7 +60,7 @@
     {#if loading}
       <div class="backlinks-empty">
         <div class="bl-spinner"></div>
-        <span>Loading\u2026</span>
+        <span>Loading…</span>
       </div>
     {:else if backlinks.length === 0}
       <div class="backlinks-empty">

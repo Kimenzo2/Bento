@@ -13,14 +13,28 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { type NextRequest, NextResponse } from 'next/server';
 
+const FALLBACK_SUPABASE_URL = 'https://qjjocfnqwtccuxbnoult.supabase.co';
+const FALLBACK_SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqam9jZm5xd3RjY3V4Ym5vdWx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2NzY3MzUsImV4cCI6MjA3OTI1MjczNX0.oPqt-rffxO2gtX7xv4RisONqIdSSJ98hl7QNDjM_Y4c';
+
+function resolveUrl(): string {
+  const raw = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+  return /^https?:\/\//.test(raw) ? raw : FALLBACK_SUPABASE_URL;
+}
+
+function resolveKey(): string {
+  const raw = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+  return raw.length > 10 ? raw : FALLBACK_SUPABASE_ANON_KEY;
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    resolveUrl(),
+    resolveKey(),
     {
       auth: {
         flowType: 'pkce',

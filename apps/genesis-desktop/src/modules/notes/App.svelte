@@ -551,14 +551,14 @@
       <div class="sidebar-header">
         <div class="sidebar-header-actions" style="justify-content: space-between;">
           <span class="archive-header-title">Archive</span>
-          <button class="new-note-btn" onclick={closeArchiveView} aria-label="Back to notes" title="Back to notes" type="button">
+          <button class="new-note-btn" onclick={closeArchiveView} aria-label="Back to notes" type="button" use:tooltip={{ text: "Back to notes" }}>
             <X size={15} strokeWidth={2.2} />
           </button>
         </div>
       </div>
       <div class="note-list" role="listbox" aria-label="Archived notes">
         {#if loadingArchived}
-          <div class="sidebar-loading"><div class="spinner"></div><span>Loading\u2026</span></div>
+          <div class="sidebar-loading"><div class="spinner"></div><span>Loading…</span></div>
         {:else if archivedNotes.length === 0}
           <div class="sidebar-empty">No archived notes</div>
         {:else}
@@ -572,10 +572,10 @@
                 <span class="note-row-date">{formatDate(note.updatedAt)}</span>
               </div>
               <div class="archive-actions">
-                <button class="archive-action-btn" onclick={() => restoreNote(note.id)} aria-label="Restore" title="Restore">
+                <button class="archive-action-btn" onclick={() => restoreNote(note.id)} aria-label="Restore" use:tooltip={{ text: "Restore" }}>
                   <RotateCcw size={13} />
                 </button>
-                <button class="archive-action-btn danger" onclick={() => permanentlyDeleteNote(note.id)} aria-label="Delete permanently" title="Delete permanently">
+                <button class="archive-action-btn danger" onclick={() => permanentlyDeleteNote(note.id)} aria-label="Delete permanently" use:tooltip={{ text: "Delete permanently" }}>
                   <Trash2 size={13} />
                 </button>
               </div>
@@ -593,19 +593,19 @@
               <Search size={14} strokeWidth={2} />
             </button>
             <div class="filter-input-wrap">
-              <input bind:this={filterInputEl} class="filter-input" type="text" placeholder="Search notes\u2026" bind:value={searchQuery} onfocus={() => { filterFocused = true; }} onblur={() => { filterFocused = false; }} aria-label="Search notes" tabindex={filterActive ? 0 : -1} />
+              <input bind:this={filterInputEl} class="filter-input" type="text" placeholder="Search notes…" bind:value={searchQuery} onfocus={() => { filterFocused = true; }} onblur={() => { filterFocused = false; }} aria-label="Search notes" tabindex={filterActive ? 0 : -1} />
             </div>
             {#if searchQuery.length > 0}
               <button class="filter-clear-btn" type="button" aria-label="Clear search" onmousedown={onFilterClear} use:tooltip={{ text: "Clear search" }}><X size={12} strokeWidth={2.5} /></button>
             {/if}
           </div>
-          <button class="new-note-btn" onclick={openDailyNote} aria-label="Daily note" title="Daily note" type="button">
+          <button class="new-note-btn" onclick={openDailyNote} aria-label="Daily note" type="button" use:tooltip={{ text: "Daily note" }}>
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="position:relative;top:-1px;" aria-hidden="true"><path d="M2 3.5C2 3.22 2.22 3 2.5 3H13.5C13.78 3 14 3.22 14 3.5V13C14 13.28 13.78 13.5 13.5 13.5H2.5C2.22 13.5 2 13.28 2 13V3.5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 6H14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M5.5 1.5V4.5M10.5 1.5V4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="10" r="1.2" stroke="currentColor" stroke-width="1.4"/></svg>
           </button>
-          <button class="new-note-btn" onclick={openTemplatePicker} aria-label="Templates" title="Create from template" type="button">
+          <button class="new-note-btn" onclick={openTemplatePicker} aria-label="Templates" type="button" use:tooltip={{ text: "Create from template" }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
           </button>
-          <button class="new-note-btn" onclick={createNote} disabled={creating} aria-label="New note" title="New note (Ctrl+N)" type="button">
+          <button class="new-note-btn" onclick={createNote} disabled={creating} aria-label="New note" type="button" use:tooltip={{ text: "New note (Ctrl+N)" }}>
             <Plus size={15} strokeWidth={2.2} />
           </button>
         </div>
@@ -626,7 +626,7 @@
 
       <div class="note-list" role="listbox" aria-label="Notes">
         {#if loading}
-          <div class="sidebar-loading"><div class="spinner"></div><span>Loading\u2026</span></div>
+          <div class="sidebar-loading"><div class="spinner"></div><span>Loading…</span></div>
         {:else if filtered.length === 0 && searchQuery}
           <div class="sidebar-empty">No results for "{searchQuery}"</div>
         {:else if notes.length === 0}
@@ -739,7 +739,7 @@
           {/if}
         </div>
       {:else}
-        <div class="editor-loading"><div class="spinner"></div><span>Loading editor\u2026</span></div>
+        <div class="editor-loading"><div class="spinner"></div><span>Loading editor…</span></div>
       {/if}
     {:else}
       <div class="editor-empty">
@@ -809,11 +809,11 @@
     <div class="modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-label="Choose template">
       <div class="modal-header">
         <h3 class="modal-title">Create from template</h3>
-        <button class="modal-close-btn" onclick={() => showTemplatePicker = false} aria-label="Close" type="button"><X size={14} /></button>
+        <button class="modal-close-btn" onclick={() => showTemplatePicker = false} aria-label="Close" type="button" use:tooltip={{ text: "Close" }}><X size={14} /></button>
       </div>
       <div class="modal-body">
         {#if loadingTemplates}
-          <div class="sidebar-loading"><div class="spinner"></div><span>Loading\u2026</span></div>
+          <div class="sidebar-loading"><div class="spinner"></div><span>Loading…</span></div>
         {:else if templates.length === 0}
           <div class="modal-empty">
             <p>No templates yet.</p>
@@ -864,7 +864,7 @@
 {/if}
 
 <style>
-  .notes-root { display: grid; grid-template-columns: 260px 1fr; height: 100%; width: 100%; min-width: 0; overflow: hidden; border-radius: 18px; background: var(--background); color: var(--foreground); font-size: 13px; padding: 8px 0 8px 8px; gap: 0; box-sizing: border-box; }
+  .notes-root { display: grid; grid-template-columns: 260px 1fr; height: 100%; width: 100%; min-width: 0; overflow: hidden; border-radius: 18px; background: var(--background); color: var(--foreground); font-size: 13px; padding: 8px; gap: 0; box-sizing: border-box; }
   .notes-sidebar { display: flex; flex-direction: column; height: 100%; overflow: hidden; border-radius: 10px; background: color-mix(in srgb, var(--foreground) 2%, var(--background)); }
   .sidebar-header { display: flex; align-items: center; padding: 12px 10px 8px 10px; flex-shrink: 0; }
   .sidebar-header-actions { display: flex; align-items: center; gap: 2px; width: 100%; }

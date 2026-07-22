@@ -1308,7 +1308,7 @@
             {/if}
             <section class="goals-detail-page__section">
               <h3 class="goals-detail-page__section-title">Notes</h3>
-              <textarea class="goals-detail-page__notes" placeholder="Reflections, updates, anything that comes to mind\u2026" bind:value={detailPageNotes} onblur={() => { if (detailGoalId) saveNotes(detailGoalId, detailPageNotes); }}></textarea>
+              <textarea class="goals-detail-page__notes" placeholder="Reflections, updates, anything that comes to mind…" bind:value={detailPageNotes} onblur={() => { if (detailGoalId) saveNotes(detailGoalId, detailPageNotes); }}></textarea>
             </section>
           </main>
 
@@ -1317,7 +1317,7 @@
               <p class="goals-detail-page__prompt">{reflectionPrompt(detailGoal.progress)}</p>
             </div>
             <div class="goals-detail-page__review-input">
-              <textarea class="goals-detail-page__review-textarea" placeholder="Write your reflection\u2026" bind:value={reviewText}></textarea>
+              <textarea class="goals-detail-page__review-textarea" placeholder="Write your reflection…" bind:value={reviewText}></textarea>
               <button class="goals-detail-page__review-submit" onclick={saveReview} disabled={savingReview || !reviewText.trim()}>
                 {savingReview ? "Saving..." : "Save reflection"}
               </button>
@@ -1578,7 +1578,7 @@
               {/if}
               <div class="goals-panel__section">
                 <span class="goals-panel__label">Notes</span>
-                <textarea class="goals-panel__notes" placeholder="Reflections, updates\u2026" bind:value={panelNotes} onblur={() => saveNotes(selectedGoal.id, panelNotes)}></textarea>
+                <textarea class="goals-panel__notes" placeholder="Reflections, updates…" bind:value={panelNotes} onblur={() => saveNotes(selectedGoal.id, panelNotes)}></textarea>
               </div>
               <div class="goals-panel__reflection">
                 <span class="goals-panel__label">Reflection</span>

@@ -9,8 +9,8 @@
 -->
 <script lang="ts">
   import { tick } from 'svelte';
-  import type { Block, ContentText } from '$lib/local-store/block';
-  import { TextStyle as TS } from '$lib/local-store/block';
+  import type { Block, ContentText, Mark, TextRange } from '$lib/local-store/block';
+  import { TextStyle as TS, MarkType } from '$lib/local-store/block';
   import { editorStore } from '$lib/local-store/store';
 
   // ── Props ──────────────────────────────────────────────────────────
@@ -18,7 +18,7 @@
 
   // ── Menu state ─────────────────────────────────────────────────────
   let menuOpen = $state(false);
-  let subMenu  = $state<'style'|'align'|'color'|'background'|null>(null);
+  let subMenu  = $state<'style'|'align'|'color'|'background'|'copyas'|null>(null);
   let filter   = $state('');
   let menuX    = $state(0);
   let menuY    = $state(0);
@@ -90,7 +90,8 @@
     if (menuEl) {
       const mr = menuEl.getBoundingClientRect();
       if (mr.right  > window.innerWidth)  menuX = rect.left - mr.width - 6;
-      if (mr.bottom > window.innerHeight) menuY = window.innerHeight - mr.height - 8;
+      if (mr.bottom > window.innerHeight) menuY = rect.top - mr.height - 4;
+      if (menuY < 8) menuY = 8;
     }
   }
 
@@ -108,6 +109,8 @@
   }
 
   function onKeydown(e: KeyboardEvent) {
+    // Ignore when the filter input is focused — let it handle its own keys
+    if (document.activeElement?.tagName === 'INPUT') return;
     if (e.key === 'Escape') closeAll();
     // port of onKeyDownHandler: Ctrl+D = duplicate
     if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
@@ -120,6 +123,17 @@
   }
 
   // ── Actions — every one calls the real editorStore ─────────────────
+
+  async function runInsertBelow() {
+    closeAll();
+    const newId = await editorStore.addBlock(block.id, '', TS.Paragraph);
+    if (newId) {
+      setTimeout(() => {
+        const el = document.querySelector<HTMLElement>(`[data-block-id="${newId}"] .editable`);
+        el?.focus();
+      }, 80);
+    }
+  }
 
   // port of Action.duplicate() → store.duplicateBlock()
   async function runDuplicate() {
@@ -168,6 +182,67 @@
     const el = document.querySelector<HTMLElement>(`[data-block-id="${block.id}"] .editable`);
     const text = el?.innerText ?? ct.text ?? '';
     navigator.clipboard.writeText(text).catch(() => {});
+    closeAll();
+  }
+
+  // ── Copy as Markdown ──────────────────────────────────────────────
+  function blockToMarkdown(): string {
+    const ct2 = block.content as ContentText;
+    let text = ct2.text;
+    const marks = [...(ct2.marks ?? [])].sort((a, b) => a.range.from - b.range.from);
+    if (marks.length > 0) {
+      let result = '';
+      let pos = 0;
+      for (const m of marks) {
+        if (m.range.from > pos) result += text.slice(pos, m.range.from);
+        const t = text.slice(m.range.from, m.range.to);
+        switch (m.type) {
+          case MarkType.Bold: result += `**${t}**`; break;
+          case MarkType.Italic: result += `*${t}*`; break;
+          case MarkType.Strike: result += `~~${t}~~`; break;
+          case MarkType.Code: result += `\`${t}\``; break;
+          case MarkType.Link: result += `[${t}](${m.param || ''})`; break;
+          case MarkType.Underline: result += t; break;
+          case MarkType.Subscript: result += `<sub>${t}</sub>`; break;
+          case MarkType.Superscript: result += `<sup>${t}</sup>`; break;
+          default: result += t;
+        }
+        pos = m.range.to;
+      }
+      if (pos < text.length) result += text.slice(pos);
+      text = result;
+    }
+    const style = ct2.style;
+    if (style === TS.Header1) return `# ${text}`;
+    if (style === TS.Header2) return `## ${text}`;
+    if (style === TS.Header3) return `### ${text}`;
+    if (style === TS.Header4) return `#### ${text}`;
+    if (style === TS.Quote) return `> ${text}`;
+    if (style === TS.Code) return '```\n' + text + '\n```';
+    if (style === TS.Bulleted) return `- ${text}`;
+    if (style === TS.Numbered) return `1. ${text}`;
+    if (style === TS.Checkbox) return `- [${ct2.checked ? 'x' : ' '}] ${text}`;
+    if (style === TS.Toggle) return `<details><summary>${text}</summary></details>`;
+    if (style === TS.Callout) return `> **${text}**`;
+    return text;
+  }
+
+  function runCopyMarkdown() {
+    const md = blockToMarkdown();
+    navigator.clipboard.writeText(md).catch(() => {});
+    closeAll();
+  }
+
+  function runCopyJSON() {
+    const ct2 = block.content as ContentText;
+    const json = JSON.stringify({
+      type: 'text',
+      style: ct2.style,
+      text: ct2.text,
+      marks: ct2.marks ?? [],
+      checked: ct2.checked ?? false,
+    }, null, 2);
+    navigator.clipboard.writeText(json).catch(() => {});
     closeAll();
   }
 
@@ -331,7 +406,7 @@
   {/if}
 
   <!-- ══ CLIPBOARD + DUPLICATE + DELETE ══════════════════════════════ -->
-  {#if matches('Copy') || matches('Cut') || matches('Paste') || matches('Duplicate') || matches('Delete')}
+  {#if matches('Copy') || matches('Cut') || matches('Paste') || matches('Insert') || matches('Duplicate') || matches('Delete') || matches('Markdown') || matches('JSON')}
   <div class="bam-section">
 
     {#if matches('Copy')}
@@ -340,6 +415,25 @@
       <span class="bam-label">Copy</span>
       <span class="bam-caption">Ctrl+C</span>
     </button>
+    {/if}
+
+    {#if matches('Copy as') || matches('Markdown') || matches('JSON')}
+    <button class="bam-item {subMenu === 'copyas' ? 'is-active' : ''}"
+      onclick={() => subMenu = subMenu === 'copyas' ? null : 'copyas'}>
+      <svg class="bam-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      <span class="bam-label">Copy as</span>
+      <svg class="bam-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+    {#if subMenu === 'copyas'}
+    <div class="bam-sub">
+      <button class="bam-item" onclick={runCopyMarkdown}>
+        <span class="bam-label">Markdown</span>
+      </button>
+      <button class="bam-item" onclick={runCopyJSON}>
+        <span class="bam-label">JSON</span>
+      </button>
+    </div>
+    {/if}
     {/if}
 
     {#if matches('Cut')}
@@ -355,6 +449,13 @@
       <svg class="bam-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
       <span class="bam-label">Paste</span>
       <span class="bam-caption">Ctrl+V</span>
+    </button>
+    {/if}
+
+    {#if matches('Insert')}
+    <button class="bam-item" onclick={runInsertBelow}>
+      <svg class="bam-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span class="bam-label">Insert below</span>
     </button>
     {/if}
 

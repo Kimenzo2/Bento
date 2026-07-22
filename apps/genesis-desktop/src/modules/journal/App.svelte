@@ -183,6 +183,7 @@
       blocks: '[]',
       wordCount: 0,
       mood: null,
+      weather: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -256,7 +257,7 @@
         const ct = typeof b.content === 'string' ? JSON.parse(b.content) : b.content;
         const text = ct?.text?.trim();
         if (text && text.length > 0) {
-          return text.length > 65 ? text.slice(0, 65) + 'â€¦' : text;
+          return text.length > 65 ? text.slice(0, 65) + '…' : text;
         }
       }
     } catch { /* ignore parse errors */ }
@@ -352,8 +353,8 @@
           onclick={createEntry}
           disabled={creating}
           aria-label="New entry"
-          title="New entry"
           type="button"
+          use:tooltip={{ text: "New entry" }}
         >
           <Plus size={15} strokeWidth={2.2} />
         </button>
@@ -370,7 +371,7 @@
       {#if loading}
         <div class="sidebar-loading">
           <div class="spinner"></div>
-          <span>Loadingâ€¦</span>
+          <span>Loading…</span>
         </div>
 
       {:else if sortedEntries.length === 0}
@@ -419,7 +420,7 @@
                 class="entry-row-delete"
                 onclick={(e) => { e.stopPropagation(); handleDelete(entry.id); }}
                 aria-label="Delete entry"
-                title="Delete entry"
+                use:tooltip={{ text: "Delete entry" }}
               >
                 <Trash2 size={12} strokeWidth={2} />
               </button>
@@ -450,7 +451,7 @@
         {:else}
           <div class="editor-loading">
             <div class="spinner"></div>
-            <span>Loading editorâ€¦</span>
+            <span>Loading editor…</span>
           </div>
         {/if}
       {/key}
