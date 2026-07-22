@@ -768,15 +768,8 @@ pub async fn set_notification_config(config: NotificationConfig) -> Result<(), S
 }
 
 #[tauri::command]
-pub async fn send_test_notification(app: AppHandle) -> Result<(), String> {
-    use tauri_plugin_notification::NotificationExt;
-    app.notification()
-        .builder()
-        .title("Bento")
-        .body("This is a test notification from your settings.")
-        .show()
-        .map_err(|e| e.to_string())?;
-    Ok(())
+pub fn send_test_notification(app: AppHandle) -> Result<(), String> {
+    crate::notifications::dispatch_notification(&app, "Bento", "This is a test notification from your settings.")
 }
 
 // ──────────────────────────────────────────────────────────

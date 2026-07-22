@@ -3,16 +3,11 @@
   import CheckCircle2Icon from '@lucide/svelte/icons/check-circle-2';
   import ClipboardCheckIcon from '@lucide/svelte/icons/clipboard-check';
   import CopyIcon from '@lucide/svelte/icons/copy';
-  import LightbulbIcon from '@lucide/svelte/icons/lightbulb';
   import Loader2Icon from '@lucide/svelte/icons/loader-2';
   import MessageSquareIcon from '@lucide/svelte/icons/message-square';
-  import PenLineIcon from '@lucide/svelte/icons/pen-line';
   import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
-  import SparklesIcon from '@lucide/svelte/icons/sparkles';
   import ServerIcon from '@lucide/svelte/icons/server';
   import ShieldIcon from '@lucide/svelte/icons/shield';
-  import TargetIcon from '@lucide/svelte/icons/target';
-  import ZapIcon from '@lucide/svelte/icons/zap';
   import BotIcon from '@lucide/svelte/icons/bot';
 
   import {
@@ -28,13 +23,9 @@
     flushPendingAiPrefsSave,
     refreshAiProviderStatus,
     refreshMcpConnection,
-    allFeatures,
-    toggleAiFeature,
     updateSystemPrompt,
     resetSystemPrompt,
-    updateAiFeatures,
     fetchModelsForProvider,
-    type AiFeatureId,
     type AiProviderStatus,
     type McpConnectionInfo,
   } from '$lib/stores/ai-features.store';
@@ -91,19 +82,6 @@
     return colors[provider] ?? '#666';
   }
 
-  // Feature icon helper
-  function featureIcon(featureId: AiFeatureId) {
-    const icons: Record<string, any> = {
-      smartSuggestions: LightbulbIcon,
-      journalPrompts: PenLineIcon,
-      noteSummarization: MessageSquareIcon,
-      taskBreakdown: TargetIcon,
-      moodInsights: SparklesIcon,
-      habitRecommendations: ZapIcon,
-    };
-    return icons[featureId] ?? BotIcon;
-  }
-
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   onMount(() => {
     void initAiFeaturesPrefs();
@@ -153,16 +131,6 @@
       refreshMcpConnection(),
     ]);
     await loadModels();
-  }
-
-  // Toggle AI features globally
-  function handleToggleGlobal(enabled: boolean) {
-    updateAiFeatures({ enabled });
-  }
-
-  // Toggle individual feature
-  function handleToggleFeature(featureId: AiFeatureId) {
-    toggleAiFeature(featureId, !$aiFeaturesPrefs.features[featureId]);
   }
 
   // System prompt handlers
@@ -292,60 +260,7 @@
     </div>
   </div>
 
-  <!-- ── AI Features Toggle ───────────────────────────── -->
-  <div class="ai-card">
-    <div class="ai-card-header">
-      <SparklesIcon size={16} />
-      <h4>AI Features</h4>
-    </div>
 
-    <div class="ai-toggle-row">
-      <div class="ai-toggle-row__info">
-        <strong>Enable AI Features</strong>
-        <p>Master toggle for all AI-powered capabilities across Bento</p>
-      </div>
-      <label class="ai-toggle" aria-label="Toggle AI features">
-        <input
-          type="checkbox"
-          checked={$aiFeaturesPrefs.enabled}
-          onchange={(e) => void handleToggleGlobal(e.currentTarget.checked)}
-        />
-        <span class="ai-toggle__track">
-          <span class="ai-toggle__thumb"></span>
-        </span>
-      </label>
-    </div>
-
-    <!-- Feature list -->
-    <div class="ai-feature-list">
-      {#each allFeatures as feature}
-        {const Icon = featureIcon(feature.id)}
-        <label
-          class="ai-feature-item"
-          class:ai-feature-item--disabled={!$aiFeaturesPrefs.enabled}
-        >
-          <div class="ai-feature-item__icon-wrap">
-            <Icon size={16} />
-          </div>
-          <div class="ai-feature-item__info">
-            <strong>{feature.label}</strong>
-            <p>{feature.description}</p>
-          </div>
-          <label class="ai-toggle ai-toggle--sm" aria-label="Toggle {feature.label}">
-            <input
-              type="checkbox"
-              checked={$aiFeaturesPrefs.features[feature.id]}
-              disabled={!$aiFeaturesPrefs.enabled}
-              onchange={() => void handleToggleFeature(feature.id)}
-            />
-            <span class="ai-toggle__track">
-              <span class="ai-toggle__thumb"></span>
-            </span>
-          </label>
-        </label>
-      {/each}
-    </div>
-  </div>
 
   <!-- ── ChatGPT Account ──────────────────────────────── -->
   <ChatGptAuth />
@@ -530,7 +445,7 @@
   /* ── Layout ───────────────────────────────────────────────────────────────── */
   .ai-features {
     display: grid;
-    gap: 1.25rem;
+    gap: 1.75rem;
   }
   .ai-features--page {
     max-width: 48rem;
@@ -541,16 +456,17 @@
     border: none;
     box-shadow: none;
     border-radius: 1.15rem;
-    padding: 0.95rem;
+    padding: 1.25rem;
     background: var(--surface);
     display: grid;
-    gap: 0.85rem;
+    gap: 1rem;
   }
   .ai-card-header {
     display: flex;
     align-items: center;
     gap: 0.55rem;
     color: var(--foreground);
+    padding-bottom: 0.25rem;
   }
   .ai-card-header :global(svg) {
     color: var(--muted);
@@ -566,10 +482,11 @@
     margin: 0;
     line-height: 1.5;
     color: var(--muted);
+    padding-bottom: 0.25rem;
   }
   .ai-card-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.6rem;
   }
 
   /* ── Status Row ───────────────────────────────────────────────────────────── */
@@ -578,7 +495,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
-    padding: 0.65rem 0.75rem;
+    padding: 0.85rem 1rem;
     border-radius: 10px;
     background: color-mix(in srgb, var(--foreground) 4%, var(--background));
     border: none;
@@ -600,7 +517,7 @@
   }
   .ai-provider-details {
     display: grid;
-    gap: 0.05rem;
+    gap: 0.1rem;
     min-width: 0;
   }
   .ai-provider-name {
@@ -630,7 +547,7 @@
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.03em;
-    padding: 0.25rem 0.55rem;
+    padding: 0.3rem 0.65rem;
     border-radius: 999px;
   }
   .ai-status-badge--ok {
@@ -650,152 +567,14 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 0;
-    color: var(--muted);
-  }
-
-  /* ── Toggle Row ───────────────────────────────────────────────────────────── */
-  .ai-toggle-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.65rem 0.75rem;
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--foreground) 4%, var(--background));
-    border: none;
-    box-shadow: none;
-  }
-  .ai-toggle-row__info {
-    display: grid;
-    gap: 0.1rem;
-    min-width: 0;
-  }
-  .ai-toggle-row__info strong {
-    font-weight: 700;
-    color: var(--foreground);
-  }
-  .ai-toggle-row__info p {
-    margin: 0;
-    color: var(--muted);
-  }
-
-  /* ── Toggle Switch ────────────────────────────────────────────────────────── */
-  .ai-toggle {
-    display: inline-flex;
-    align-items: center;
-    cursor: pointer;
-    flex-shrink: 0;
-  }
-  .ai-toggle input {
-    position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
-    pointer-events: none;
-  }
-  .ai-toggle__track {
-    position: relative;
-    width: 2.75rem;
-    height: 1.55rem;
-    border-radius: 9999px;
-    background: color-mix(in srgb, var(--foreground) 15%, var(--background));
-    transition: background 0.2s ease;
-  }
-  .ai-toggle input:checked + .ai-toggle__track {
-    background: var(--primary);
-  }
-  .ai-toggle__thumb {
-    position: absolute;
-    top: 0.15rem;
-    left: 0.15rem;
-    width: 1.25rem;
-    height: 1.25rem;
-    border-radius: 9999px;
-    background: white;
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-  .ai-toggle input:checked + .ai-toggle__track .ai-toggle__thumb {
-    transform: translateX(1.2rem);
-  }
-
-  .ai-toggle--sm .ai-toggle__track {
-    width: 2.25rem;
-    height: 1.25rem;
-  }
-  .ai-toggle--sm .ai-toggle__thumb {
-    width: 1rem;
-    height: 1rem;
-  }
-  .ai-toggle--sm input:checked + .ai-toggle__track .ai-toggle__thumb {
-    transform: translateX(1rem);
-  }
-  .ai-toggle input:disabled {
-    cursor: not-allowed;
-  }
-  .ai-toggle input:disabled + .ai-toggle__track {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  /* ── Feature List ─────────────────────────────────────────────────────────── */
-  .ai-feature-list {
-    display: grid;
-    gap: 0.35rem;
-  }
-  .ai-feature-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.6rem 0.75rem;
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--foreground) 3%, var(--background));
-    border: none;
-    box-shadow: none;
-    cursor: pointer;
-    transition: background 0.15s ease;
-    user-select: none;
-  }
-  .ai-feature-item:hover {
-    background: color-mix(in srgb, var(--primary) 7%, var(--background));
-  }
-  .ai-feature-item--disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
-  .ai-feature-item--disabled:hover {
-    background: color-mix(in srgb, var(--foreground) 3%, var(--background));
-  }
-  .ai-feature-item__icon-wrap {
-    width: 1.75rem;
-    height: 1.75rem;
-    border-radius: 8px;
-    display: grid;
-    place-items: center;
-    background: color-mix(in srgb, var(--primary) 10%, var(--background));
-    color: var(--primary);
-    flex-shrink: 0;
-  }
-  .ai-feature-item__info {
-    flex: 1;
-    min-width: 0;
-    display: grid;
-    gap: 0.05rem;
-  }
-  .ai-feature-item__info strong {
-    font-weight: 700;
-    color: var(--foreground);
-  }
-  .ai-feature-item__info p {
-    margin: 0;
-    line-height: 1.4;
+    padding: 0.65rem 0;
     color: var(--muted);
   }
 
   /* ── Prompt Header ──────────────────────────────────────────────────────── */
   .ai-prompt-header {
     display: grid;
-    gap: 0.6rem;
+    gap: 0.85rem;
   }
 
   /* ── Textarea ────────────────────────────────────────────────────────────── */
@@ -804,8 +583,9 @@
   }
   .ai-textarea {
     width: 100%;
+    max-width: 32rem;
     min-height: 6rem;
-    padding: 0.75rem 0.85rem;
+    padding: 0.85rem 1rem;
     border: none;
     border-radius: 10px;
     background: color-mix(in srgb, var(--foreground) 4%, var(--background));
@@ -838,7 +618,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
+    gap: 0.6rem;
     min-height: 1.5rem;
   }
   .ai-prompt-status {
@@ -870,13 +650,14 @@
   .ai-prompt-actions {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.5rem;
   }
 
   /* ── MCP Connection ──────────────────────────────────────────────────────── */
   .ai-mcp-row {
     display: grid;
-    gap: 0.3rem;
+    gap: 0.45rem;
+    max-width: 32rem;
   }
   .ai-mcp-label {
     display: flex;
@@ -898,11 +679,11 @@
   .ai-mcp-value-row {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.5rem;
   }
   .ai-mcp-value {
     flex: 1;
-    padding: 0.5rem 0.75rem;
+    padding: 0.6rem 0.85rem;
     border: none;
     border-radius: 8px;
     background: color-mix(in srgb, var(--foreground) 4%, var(--background));
@@ -922,7 +703,7 @@
     display: flex;
     align-items: center;
     gap: 0.45rem;
-    padding: 0.5rem 0.75rem;
+    padding: 0.65rem 0.85rem;
     border-radius: 8px;
     background: color-mix(in srgb, #10b981 8%, var(--background));
     font-weight: 600;
@@ -945,7 +726,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.65rem 0.75rem;
+    padding: 0.85rem 1rem;
     border-radius: 8px;
     background: color-mix(in srgb, var(--muted) 8%, var(--background));
     color: var(--muted);
@@ -1007,8 +788,8 @@
   /* ── Disclaimer ──────────────────────────────────────────────────────────── */
   .ai-disclaimer {
     display: flex;
-    gap: 0.75rem;
-    padding: 1rem;
+    gap: 0.85rem;
+    padding: 1.15rem;
     border-radius: 1.15rem;
     border: none;
     box-shadow: none;
@@ -1022,7 +803,7 @@
   }
   .ai-disclaimer__copy {
     display: grid;
-    gap: 0.3rem;
+    gap: 0.4rem;
     min-width: 0;
   }
   .ai-disclaimer__copy strong {

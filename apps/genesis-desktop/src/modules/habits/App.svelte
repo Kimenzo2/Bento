@@ -1117,6 +1117,7 @@
                       {#if dayTotal > 0}
                         <span class="hl-wc-val">{dayTotal}</span>
                       {/if}
+                      <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
                       <div class="hl-wc-bar"
                         style="height:{Math.max(4, pct * 100)}%"
                         tabindex="0"

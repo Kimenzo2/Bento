@@ -208,12 +208,6 @@
   border: none !important;
   box-shadow: none !important;
 }
-/* Segmented control — NOT a card, just a row of buttons */
-.global-settings__segmented {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
 
 /* ═══════════════════════════════════════════════════════════════════
    PRICING / UPGRADE PAGE — surface cards on var(--background)

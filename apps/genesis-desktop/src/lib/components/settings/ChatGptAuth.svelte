@@ -273,6 +273,7 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+    max-width: 32rem;
   }
 
   .chatgpt-auth__header {
@@ -575,6 +576,7 @@
   .chatgpt-auth__btn--primary {
     background: var(--foreground);
     color: var(--background);
+    align-self: flex-start;
   }
 
   .chatgpt-auth__btn--primary:hover:not(:disabled) {

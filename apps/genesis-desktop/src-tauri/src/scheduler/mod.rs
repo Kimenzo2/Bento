@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::{Row, SqlitePool};
 use tauri::{Emitter, Manager};
 
+use crate::settings;
 use crate::util::time;
 
 // ─── Schedule Types ───────────────────────────────────────────────────
@@ -370,6 +371,7 @@ pub async fn ensure_scheduler_tables(pool: &sqlx::SqlitePool) -> Result<(), Stri
 // ─── Background Scheduler Worker ──────────────────────────────────────
 
 pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri::AppHandle) {
+    println!("[scheduler] >>> spawn_scheduler_worker called!");
     tauri::async_runtime::spawn(async move {
         // Initial interval: 30s. On pool timeout, interval DOUBLES (up to 8 min)
         // to avoid hammering an already-congested DB. Resets to 30s on success.
@@ -380,13 +382,15 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
 
         // Ensure scheduler + notification tables exist before entering the loop
         if let Err(e) = ensure_scheduler_tables(&db).await {
-            eprintln!("[scheduler] Failed to bootstrap scheduler tables: {e}");
+            println!("[scheduler] Failed to bootstrap scheduler tables: {e}");
         }
         if let Err(e) = crate::notifications::ensure_notification_tables(&db).await {
-            eprintln!("[scheduler] Failed to bootstrap notification tables: {e}");
+            println!("[scheduler] Failed to bootstrap notification tables: {e}");
         }
 
-        loop {
+        println!("[scheduler] Background worker started, initial poll in {poll_interval_secs}s");
+
+    loop {
             tokio::time::sleep(tokio::time::Duration::from_secs(poll_interval_secs)).await;
 
             let store = ScheduleStore::new(db.clone());
@@ -397,15 +401,15 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
                     // Reset poll interval on success
                     if poll_interval_secs > 30 {
                         poll_interval_secs = 30;
-                        eprintln!("[scheduler] poll interval reset to 30s after successful query");
+                        println!("[scheduler] poll interval reset to 30s after successful query");
                     }
                     schedules
                 }
                 Err(e) => {
-                    eprintln!("[scheduler] Failed to query due schedules: {e}");
+                    println!("[scheduler] Failed to query due schedules: {e}");
                     // Exponential backoff: double interval up to 8 min max
                     poll_interval_secs = (poll_interval_secs * 2).min(480);
-                    eprintln!("[scheduler] backing off — next poll in {poll_interval_secs}s");
+                    println!("[scheduler] backing off — next poll in {poll_interval_secs}s");
                     continue;
                 }
             };
@@ -414,11 +418,19 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
                 continue;
             }
 
+            println!("[scheduler] {} due schedule(s) found", due.len());
+            for s in &due {
+                println!("[scheduler]   due: id={:?} label={} module={} next_fire={}", s.id, s.label, s.module_id, s.next_fire_at.unwrap_or(0));
+            }
+
+            // Read settings once per poll cycle to avoid repeated filesystem I/O
+            let notif_settings = settings::current_settings(&app_handle).notifications;
+
             for schedule in due {
                 // Guard: skip if already fired within the last 60s (crash recovery guard)
                 if let Some(last) = schedule.last_fired_at {
                     if time::now_ms() - last < 60_000 {
-                        eprintln!(
+                        println!(
                             "[scheduler] Skip {} — fired {}ms ago",
                             schedule.label,
                             time::now_ms() - last
@@ -430,9 +442,11 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
                 let app = app_handle.clone();
                 let sched = schedule.clone();
                 let dbc = db.clone();
+                let sched_notif_settings = notif_settings.clone();
 
                 // Fire notification for this schedule
                 tauri::async_runtime::spawn(async move {
+
                     // 1. Emit event to frontend so passive-intelligence can pick it up
                     if let Some(window) = app.get_webview_window("main") {
                         let payload: serde_json::Value = serde_json::json!({
@@ -442,17 +456,31 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
                             "sound": sched.sound,
                         });
                         if let Err(e) = window.emit("bento://schedule-fire", payload) {
-                            eprintln!("[scheduler] Failed to emit schedule-fire event: {e}");
-                        }
+                            println!("[scheduler] Failed to emit schedule-fire event: {e}");
+                        } else {
+                    println!("[scheduler] Emitted schedule-fire event for '{}'", sched.label);
+                    }
+                } else {
+                    println!("[scheduler] Webview window 'main' not found — cannot emit schedule-fire event");
                     }
 
-                    // 2. Dispatch native OS notification (with sound for sleep alarms)
+                    // 2. Dispatch native OS notification (with sound if enabled)
                     let title = &sched.label;
                     let body = &format!("Your scheduled {} reminder is due.", sched.label);
-                    if let Err(e) =
-                        crate::notifications::dispatch_sound_notification(&app, title, body)
-                    {
-                        eprintln!("[scheduler] Notification dispatch failed: {e}");
+                    let permission = crate::notifications::is_permission_granted(&app);
+                    println!("[scheduler] Dispatching notification for '{}': background_alerts={}, sound_enabled={}, permission_granted={}", sched.label, sched_notif_settings.background_alerts, sched_notif_settings.sound_enabled, permission);
+                    if sched_notif_settings.background_alerts {
+                        if let Err(e) =
+                            crate::notifications::dispatch_notification_with_sound(
+                                &app, title, body, sched_notif_settings.sound_enabled,
+                            )
+                        {
+                            println!("[scheduler] Notification dispatch failed: {e}");
+                        } else {
+                            println!("[scheduler] Notification dispatched successfully for '{}'", sched.label);
+                        }
+                    } else {
+                        println!("[scheduler] Background alerts disabled, skipping native notification for '{}'", sched.label);
                     }
                     // Record in history (best-effort)
                     let notif_store = crate::notifications::NotificationStore::new(dbc.clone());
@@ -460,7 +488,7 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
                         .record_fired(&sched.module_id, title, body, sched.id.as_deref())
                         .await
                     {
-                        eprintln!("[scheduler] Failed to record notification: {e}");
+                        println!("[scheduler] Failed to record notification: {e}");
                     }
 
                     // 3. Advance schedule (snaps daily to start_at to prevent drift)
@@ -471,7 +499,7 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
                     let store = ScheduleStore::new(dbc.clone());
                     if let Some(id) = updated.id.as_ref() {
                         if let Err(e) = store.update(&updated).await {
-                            eprintln!("[scheduler] Failed to persist advanced schedule {id}: {e}");
+                            println!("[scheduler] Failed to persist advanced schedule {id}: {e}");
                         }
                     }
 
@@ -479,10 +507,10 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
                     if let Ok(pending) = notif_store.get_pending_snoozed().await {
                         for n in pending {
                             if let Some(_nid) = n.id {
-                                if let Err(e) = crate::notifications::dispatch_sound_notification(
-                                    &app, &n.title, &n.body,
+                                if let Err(e) = crate::notifications::dispatch_notification_with_sound(
+                                    &app, &n.title, &n.body, sched_notif_settings.sound_enabled,
                                 ) {
-                                    eprintln!("[scheduler] Snoozed dispatch failed: {e}");
+                                    println!("[scheduler] Snoozed dispatch failed: {e}");
                                 }
                             }
                         }
@@ -550,4 +578,29 @@ pub async fn get_due_schedules(
     ensure_scheduler_tables(&pool).await?;
     let store = ScheduleStore::new(pool.clone());
     store.get_due().await
+}
+
+#[tauri::command]
+pub async fn scheduler_health_check(
+    db: tauri::State<'_, crate::db::BentoAppState>,
+) -> Result<serde_json::Value, String> {
+    let pool = db.db();
+    ensure_scheduler_tables(&pool).await?;
+    let store = ScheduleStore::new(pool.clone());
+    let all = store.list_all_enabled().await.unwrap_or_default();
+    let due = store.get_due().await.unwrap_or_default();
+    Ok(serde_json::json!({
+        "total_enabled": all.len(),
+        "due_count": due.len(),
+        "schedules": all.into_iter().map(|s| {
+            serde_json::json!({
+                "id": s.id,
+                "label": s.label,
+                "module_id": s.module_id,
+                "enabled": s.enabled,
+                "next_fire_at": s.next_fire_at,
+                "last_fired_at": s.last_fired_at,
+            })
+        }).collect::<Vec<_>>(),
+    }))
 }

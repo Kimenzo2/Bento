@@ -232,7 +232,7 @@
           type="button"
           class="update-notification__close"
           aria-label={_t('updateDismiss')}
-          onclick={dismiss}
+          onclick={(e) => { e.stopPropagation(); dismiss(); }}
         >
           <svg viewBox="0 0 10 10" fill="none">
             <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" stroke-width="1.4"
@@ -309,10 +309,10 @@
     <!-- Action buttons -->
     {#if !$updateStore.installing}
       <div class="update-notification__actions">
-        <Button variant="secondary" size="sm" onclick={dismiss}>
+        <Button variant="secondary" size="sm" onclick={(e) => { e.stopPropagation(); dismiss(); }}>
           {_t('updateLater')}
         </Button>
-        <Button variant="default" size="sm" onclick={installAndRestart}>
+        <Button variant="default" size="sm" onclick={(e) => { e.stopPropagation(); installAndRestart(); }}>
           {_t('updateInstallRestart')}
         </Button>
       </div>
@@ -327,7 +327,7 @@
     position: fixed;
     bottom: 1.25rem;
     right: 1.25rem;
-    z-index: 999;
+    z-index: 10001;
 
     width: 320px;
     max-height: min(90vh - 2.5rem, 480px);

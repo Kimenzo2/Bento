@@ -1,10 +1,3 @@
-// ═══════════════════════════════════════════════════════════════════════
-// Notification Engine — Desktop notification delivery, snooze, dismissal
-// ═══════════════════════════════════════════════════════════════════════
-// Wraps tauri-plugin-notification with snooze, dismissal tracking,
-// and analytics logging for user engagement.
-// ═══════════════════════════════════════════════════════════════════════
-
 use serde::{Deserialize, Serialize};
 use sqlx::{Row, SqlitePool};
 use tauri::AppHandle;
@@ -12,8 +5,6 @@ use tauri::AppHandle;
 use tauri::Manager;
 
 use crate::util::time;
-
-// ─── Notification Record ──────────────────────────────────────────────
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -28,8 +19,6 @@ pub struct NotificationRecord {
     pub snoozed_until: Option<i64>,
     pub action_taken: Option<String>,
 }
-
-// ─── Notification Store ───────────────────────────────────────────────
 
 pub struct NotificationStore {
     db: SqlitePool,
@@ -101,28 +90,18 @@ impl NotificationStore {
         module_id: Option<&str>,
         limit: i64,
     ) -> Result<Vec<NotificationRecord>, String> {
-        let rows = match module_id {
-            Some(mid) => {
-                sqlx::query(
-                    "SELECT * FROM notification_history WHERE module_id = ? ORDER BY fired_at DESC LIMIT ?",
-                )
-                .bind(mid)
-                .bind(limit)
-                .fetch_all(&self.db)
-                .await
-                    .map_err(|e| e.to_string())?
-            }
-            None => {
-                sqlx::query(
-                    "SELECT * FROM notification_history ORDER BY fired_at DESC LIMIT ?",
-                )
-                .bind(limit)
-                .fetch_all(&self.db)
-                .await
-                    .map_err(|e| e.to_string())?
-            }
+        let query = match module_id {
+            Some(_) => "SELECT * FROM notification_history WHERE module_id = ? ORDER BY fired_at DESC LIMIT ?",
+            None => "SELECT * FROM notification_history ORDER BY fired_at DESC LIMIT ?",
         };
 
+        let mut q = sqlx::query(query);
+        if let Some(mid) = module_id {
+            q = q.bind(mid);
+        }
+        q = q.bind(limit);
+
+        let rows = q.fetch_all(&self.db).await.map_err(|e| e.to_string())?;
         Ok(rows.into_iter().map(Self::row_to_record).collect())
     }
 
@@ -141,7 +120,7 @@ impl NotificationStore {
 
     fn row_to_record(row: sqlx::sqlite::SqliteRow) -> NotificationRecord {
         NotificationRecord {
-            id: Some(row.try_get("id").unwrap_or_default()),
+            id: row.try_get("id").ok(),
             schedule_id: row.try_get("schedule_id").ok().flatten(),
             module_id: row.try_get("module_id").unwrap_or_default(),
             title: row.try_get("title").unwrap_or_default(),
@@ -154,10 +133,48 @@ impl NotificationStore {
     }
 }
 
+// ─── Permission Handling ──────────────────────────────────────────────
+
+pub fn is_permission_granted(app: &AppHandle) -> bool {
+    use tauri_plugin_notification::NotificationExt;
+    app.notification()
+        .permission_state()
+        .ok()
+        .map(|s| s == tauri_plugin_notification::PermissionState::Granted)
+        .unwrap_or(false)
+}
+
+pub fn request_notification_permission(app: &AppHandle) -> bool {
+    use tauri_plugin_notification::NotificationExt;
+    match app.notification().request_permission() {
+        Ok(tauri_plugin_notification::PermissionState::Granted) => {
+            true
+        }
+        Ok(state) => {
+            eprintln!("[notifications] Permission denied: {state:?}");
+            false
+        }
+        Err(e) => {
+            eprintln!("[notifications] Permission request error: {e}");
+            false
+        }
+    }
+}
+
+pub fn ensure_permission(app: &AppHandle) -> bool {
+    if is_permission_granted(app) {
+        return true;
+    }
+    request_notification_permission(app)
+}
+
 // ─── Notification Dispatch ────────────────────────────────────────────
-// Uses tauri-plugin-notification to show native OS notifications.
 
 pub fn dispatch_notification(app: &AppHandle, title: &str, body: &str) -> Result<(), String> {
+    if !ensure_permission(app) {
+        return Err("Notification permission not granted".to_string());
+    }
+
     use tauri_plugin_notification::NotificationExt;
 
     app.notification()
@@ -170,9 +187,11 @@ pub fn dispatch_notification(app: &AppHandle, title: &str, body: &str) -> Result
     Ok(())
 }
 
-/// Like `dispatch_notification` but includes a platform-appropriate alert sound.
-/// Sleep alarms use this so the user actually hears the alarm.
 pub fn dispatch_sound_notification(app: &AppHandle, title: &str, body: &str) -> Result<(), String> {
+    if !ensure_permission(app) {
+        return Err("Notification permission not granted".to_string());
+    }
+
     use tauri_plugin_notification::NotificationExt;
 
     let mut builder = app.notification().builder().title(title).body(body);
@@ -187,21 +206,33 @@ pub fn dispatch_sound_notification(app: &AppHandle, title: &str, body: &str) -> 
     }
     #[cfg(target_os = "windows")]
     {
-        // Use bundled .wav via resource path
         if let Ok(resource_dir) = app.path().resource_dir() {
-            let wav_path = resource_dir.join("assets/alarm.wav");
+            let wav_path = resource_dir.join("assets").join("alarm.wav");
             if wav_path.exists() {
-                // Windows .sound() expects a file path string
                 builder = builder.sound(wav_path.to_string_lossy());
             }
         }
     }
 
-    builder.show().map_err(|e| e.to_string())?;
+    builder.show().map_err(|e| {
+        e.to_string()
+    })?;
     Ok(())
 }
 
-/// Send a notification and record it in the history store.
+pub fn dispatch_notification_with_sound(
+    app: &AppHandle,
+    title: &str,
+    body: &str,
+    play_sound: bool,
+) -> Result<(), String> {
+    if play_sound {
+        dispatch_sound_notification(app, title, body)
+    } else {
+        dispatch_notification(app, title, body)
+    }
+}
+
 pub async fn notify_and_record(
     app: &AppHandle,
     db: &SqlitePool,
@@ -210,12 +241,17 @@ pub async fn notify_and_record(
     body: &str,
     schedule_id: Option<&str>,
 ) -> Result<i64, String> {
-    let _ = dispatch_notification(app, title, body);
+    let dispatch_result = dispatch_notification(app, title, body);
 
     let store = NotificationStore::new(db.clone());
-    store
-        .record_fired(module_id, title, body, schedule_id)
-        .await
+    match dispatch_result {
+        Ok(()) => {
+            store
+                .record_fired(module_id, title, body, schedule_id)
+                .await
+        }
+        Err(e) => Err(format!("Notification dispatch failed and was not recorded: {e}"))
+    }
 }
 
 // ─── Table Bootstrap ─────────────────────────────────────────────────
@@ -249,6 +285,18 @@ pub async fn ensure_notification_tables(pool: &sqlx::SqlitePool) -> Result<(), S
 }
 
 // ─── Tauri Commands ───────────────────────────────────────────────────
+
+#[tauri::command]
+pub fn request_notification_permission_cmd(
+    app: AppHandle,
+) -> Result<bool, String> {
+    Ok(request_notification_permission(&app))
+}
+
+#[tauri::command]
+pub fn check_notification_permission(app: AppHandle) -> Result<bool, String> {
+    Ok(is_permission_granted(&app))
+}
 
 #[tauri::command]
 pub async fn send_module_notification(

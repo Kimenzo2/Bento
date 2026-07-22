@@ -10,7 +10,8 @@
   import SparklesIcon from "@lucide/svelte/icons/sparkles";
   import TrophyIcon from "@lucide/svelte/icons/trophy";
   import UserIcon from "@lucide/svelte/icons/user";
-  import { Button } from "$lib/components/ui/button/index.js";
+  import { Button, buttonVariants } from "$lib/components/ui/button/index.js";
+  import { cn } from "$lib/utils.js";
   import { tooltip } from "$lib/components/Tooltip.svelte";
   import SidebarToggleIcon from "$lib/components/anytype-icons/SidebarToggleIcon.svelte";
   import { demoProjects } from "$lib/data/app-data";
@@ -428,7 +429,7 @@
       <BotIcon size={16} />
     </button>
     <button
-      class="rounded-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-7 w-7"
+      class={cn(buttonVariants({ size: "icon-sm", variant: "ghost" }), "rounded-full")}
       aria-label={$workspaceStore.sidebarCollapsed ? _t('navExpandSidebar') : _t('navCollapseSidebar')}
       type="button"
       onclick={toggleSidebar}

@@ -746,7 +746,6 @@ body {
 .global-settings__theme-grid button,
 .global-settings__app-card {
   color: var(--foreground);
-  cursor: default;
 }
 
 .global-settings__close {
@@ -757,6 +756,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface) 86%, transparent);
+  cursor: pointer;
 }
 
 .global-settings__body {
@@ -787,6 +787,13 @@ body {
   font-size: 14px;
   font-weight: 470;
   text-align: left;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.global-settings__nav button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .global-settings__nav button:hover:not(.global-settings__nav-active) {
@@ -835,6 +842,17 @@ body {
   border-radius: 999px;
   background: transparent;
   font-weight: 800;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.global-settings__segmented button:hover:not(.global-settings__segment-active) {
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+
+.global-settings__segmented button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .global-settings__segment-active {
@@ -866,28 +884,8 @@ body {
   min-height: 3.25rem;
   font-weight: 800;
   text-align: left;
-}
-
-.global-settings__theme-active,
-.global-settings__theme-grid button:hover,
-.global-settings__app-card:hover {
-  border-color: color-mix(in srgb, var(--primary) 58%, var(--border)) !important;
-  background: color-mix(in srgb, var(--primary) 10%, var(--surface)) !important;
-}
-
-.global-settings__app-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.8rem;
-  text-align: left;
-}
-
-.global-settings__app-accent {
-  width: 0.7rem;
-  height: 2.4rem;
-  border-radius: 999px;
-  background: var(--app-accent);
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
 }
 
 .global-settings__app-card small,
@@ -897,14 +895,6 @@ body {
   margin-top: 0.25rem;
   color: var(--muted);
   line-height: 1.4;
-}
-
-.global-settings__app-card em {
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-style: normal;
-  font-weight: 800;
-  text-transform: uppercase;
 }
 
 .global-settings__info-card,

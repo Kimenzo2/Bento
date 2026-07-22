@@ -11,6 +11,7 @@
   import { setAvailableUpdate, setUpdateChecking, showUpdatePanel } from "$lib/stores/update.store";
   import { eventBus, BentoEventType, initEventBridge } from "$lib/services/event-bus";
   import { playAlarmSound, stopAlarmSound, preloadAlarmAudios, type SoundName } from "$lib/services/sounds";
+  import { ensureNotificationPermission } from "$lib/services/notifications";
 
   const themeTokens = $derived(getThemeTokens($themeState));
   let arabicFontReady = false;
@@ -204,10 +205,15 @@
         });
 
         // Show an in-app toast + play alarm sound when a schedule fires
+        // (Native OS notification is dispatched from the Rust scheduler backend)
         const unsubSchedule = eventBus.on(BentoEventType.ScheduleDue, (_event) => {
+          console.log("[RuntimeBridge] ScheduleDue event received:", _event?.payload);
           const label = (_event?.payload?.label as string) ?? "";
           const moduleId = (_event?.payload?.moduleId as string) ?? "";
-          if (!label) return;
+          if (!label) {
+            console.warn("[RuntimeBridge] ScheduleDue event missing label, skipping");
+            return;
+          }
           const ctx = moduleId === "sleep" ? "Alarm" : "Reminder";
           toast.info(label, {
             description: ctx,
@@ -221,6 +227,13 @@
         });
         unlistenPromises.push(
           Promise.resolve(() => { unsubSchedule(); }),
+        );
+
+        // Request notification permission at startup
+        cancelDeferredTasks.push(
+          scheduleAfterFirstPaint(() => {
+            void ensureNotificationPermission();
+          }, 500)
         );
 
         cancelDeferredTasks.push(

@@ -52,6 +52,7 @@ const storeKeys = {
   startHidden: "window.startHidden",
   reopenId: "shortcuts.reopenId",
   backgroundAlerts: "notifications.backgroundAlerts",
+  soundEnabled: "notifications.soundEnabled",
   telemetryConsented: "telemetry.consented",
   telemetryCrashReports: "telemetry.crashReports",
   exportDirectory: "files.exportDirectory",
@@ -171,6 +172,7 @@ const desktopSettingsSchema = z
     notifications: z
       .object({
         backgroundAlerts: z.boolean(),
+        soundEnabled: z.boolean().default(true),
       })
       .passthrough(),
     telemetry: z
@@ -263,6 +265,7 @@ export const defaultDesktopSettings: DesktopSettings = {
   },
   notifications: {
     backgroundAlerts: true,
+    soundEnabled: true,
   },
   telemetry: {
     consented: false,
@@ -690,6 +693,9 @@ async function readStoreSettings(): Promise<DesktopSettings> {
       backgroundAlerts:
         (await store.get<boolean>(storeKeys.backgroundAlerts)) ??
         defaultDesktopSettings.notifications.backgroundAlerts,
+      soundEnabled:
+        (await store.get<boolean>(storeKeys.soundEnabled)) ??
+        defaultDesktopSettings.notifications.soundEnabled,
     },
     telemetry: {
       consented:

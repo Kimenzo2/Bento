@@ -1314,7 +1314,10 @@ pub fn run() {
             crate::scheduler::delete_schedule,
             crate::scheduler::get_schedules,
             crate::scheduler::get_due_schedules,
+            crate::scheduler::scheduler_health_check,
             // Notifications
+            crate::notifications::request_notification_permission_cmd,
+            crate::notifications::check_notification_permission,
             crate::notifications::send_module_notification,
             crate::notifications::dismiss_notification,
             crate::notifications::snooze_notification,
@@ -1484,6 +1487,8 @@ pub fn run() {
             crate::settings::commands::get_active_language,
             crate::settings::commands::set_interface_language,
             crate::settings::commands::get_supported_languages,
+            // Notifications
+            crate::settings::commands::send_test_notification,
             // Share — central middle layer
             crate::share::share_content,
             crate::share::share_markdown,

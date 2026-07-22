@@ -209,6 +209,12 @@ pub struct ShortcutSettings {
 pub struct NotificationSettings {
     #[serde(default = "default_background_alerts")]
     pub background_alerts: bool,
+    #[serde(default = "default_sound_enabled")]
+    pub sound_enabled: bool,
+}
+
+fn default_sound_enabled() -> bool {
+    true
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -637,6 +643,7 @@ pub fn default_settings() -> DesktopSettings {
         },
         notifications: NotificationSettings {
             background_alerts: default_background_alerts(),
+            sound_enabled: default_sound_enabled(),
         },
         telemetry: TelemetrySettings {
             consented: false,
@@ -1002,7 +1009,7 @@ mod tests {
             "workspace": { "sidebarCollapsed": false },
             "window": { "restoreOnLaunch": true, "startHidden": false },
             "shortcuts": { "reopenId": "ctrlShiftG" },
-            "notifications": { "backgroundAlerts": true },
+            "notifications": { "backgroundAlerts": true, "soundEnabled": true },
             "telemetry": { "consented": false, "crashReports": false },
             "files": { "exportDirectory": "" },
             "migration": { "legacyBrowserStorageMigrated": false }

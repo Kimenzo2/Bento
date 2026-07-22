@@ -122,6 +122,17 @@
   let routineInput = $state("");
   let routineSaving = $state(false);
 
+  function formatTime24to12(time24: string): string {
+    const parts = time24.split(':');
+    if (parts.length < 2) return time24;
+    const h = parseInt(parts[0], 10);
+    const m = parts[1];
+    if (isNaN(h)) return time24;
+    const period = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${m} ${period}`;
+  }
+
   // Alarm add form
   const alarmSoundOptions: { value: string; label: string }[] = [
     { value: "alarm", label: "Default Alarm" },
@@ -862,7 +873,10 @@
             <!-- Add alarm form -->
             <div class="sa-add-form">
               <input type="text" bind:value={alarmLabel} placeholder="Alarm label..." class="sa-input" />
-              <input type="time" bind:value={alarmTime} class="sa-time" />
+              <div class="sa-time-wrap">
+                <input type="time" bind:value={alarmTime} class="sa-time" />
+                <span class="sa-time-hint">{formatTime24to12(alarmTime)}</span>
+              </div>
               <select class="sa-sound" onchange={(e) => previewAlarmSound(e)}>
                 {#each alarmSoundOptions as opt}
                   <option value={opt.value}>{opt.label}</option>
@@ -884,7 +898,7 @@
                   <strong>{alarm.label}</strong>
                   <p>{alarm.wakeWindow}{alarm.sound && alarm.sound !== 'alarm' ? ` · ${soundLabelMap.get(alarm.sound) ?? alarm.sound}` : ''}</p>
                 </div>
-                <div class="sleep-alarm-list__time" class:sa-time--inactive={!alarm.active}>{alarm.time}</div>
+                <div class="sleep-alarm-list__time" class:sa-time--inactive={!alarm.active}>{formatTime24to12(alarm.time)}</div>
                 <div class="sa-actions">
                   <button class="sa-toggle" onclick={() => toggleAlarm(alarm.id)} aria-label={alarm.active ? 'Disable alarm' : 'Enable alarm'} use:tooltip={{ text: alarm.active ? 'Disable alarm' : 'Enable alarm' }}>
                     {#if alarm.active}
@@ -1557,7 +1571,13 @@
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--sleep-accent) 20%, transparent);
   }
 
-  :global(.sa-time) {
+  :global(.sa-time-wrap) {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  :global(.sa-time-wrap .sa-time) {
     padding: 8px 10px;
     border-radius: 10px;
     border: 1px solid var(--sleep-border);
@@ -1568,7 +1588,15 @@
     width: 100px;
   }
 
-  :global(.sa-time:focus) {
+  :global(.sa-time-hint) {
+    font-size: 0.78rem;
+    color: var(--sleep-muted);
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+    min-width: 60px;
+  }
+
+  :global(.sa-time-wrap .sa-time:focus) {
     outline: none;
     border-color: var(--sleep-accent);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--sleep-accent) 20%, transparent);

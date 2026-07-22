@@ -557,6 +557,7 @@
                           {#if d.wellness > 0}
                             <span class="hl-wc-val">{d.wellness}</span>
                           {/if}
+                          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
                           <div class="hl-wc-bar"
                             style="height:{Math.max(4, d.wellness)}%"
                             tabindex="0"
@@ -846,6 +847,7 @@
                           {#if d.sys}
                             <span class="hl-wc-val">{d.sys}/{d.dia}</span>
                           {/if}
+                          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
                           <div class="hl-wc-bar-pair" style="height:{d.sys ? Math.max(4, ((d.sys - 80) / 90) * 100) : 4}%"
                             tabindex="0"
                             role="meter" aria-label="{d.label}: {d.sys ?? '—'}/{d.dia ?? '—'} mmHg"
@@ -1009,6 +1011,7 @@
                           {#if d.wellness > 0}
                             <span class="hl-wc-val">{d.wellness}</span>
                           {/if}
+                          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
                           <div class="hl-wc-bar"
                             style="height:{Math.max(4, d.wellness)}%"
                             tabindex="0"

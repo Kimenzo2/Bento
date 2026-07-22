@@ -40,6 +40,7 @@
   import { activeBundle, createTranslator, INTERFACE_LANGUAGES, DATE_FORMATS, TIME_FORMATS, FIRST_DAY_OPTIONS } from "$lib/i18n";
   import { toast } from "svelte-sonner";
   import { invoke, isTauri } from "@tauri-apps/api/core";
+  import { sendTestNotification, ensureNotificationPermission } from "$lib/services/notifications";
   import { browser } from "$app/environment";
   import { trackEvent, trackSetting, trackPageView } from "$lib/ipc";
   import { sanitizeError } from "$lib/utils/logger";
@@ -115,6 +116,7 @@
   let encChangeConfirm = $state("");
   let encLoading = $state(false);
   let encError = $state<string | null>(null);
+  let sendingTest = $state(false);
   let encSuccess = $state<string | null>(null);
 
   type CloudBackupObjectInfo = {
@@ -457,6 +459,7 @@
           <button
             type="button"
             class:global-settings__nav-active={activeSection === section.id}
+            aria-current={activeSection === section.id ? "true" : "false"}
             onclick={() => {
               activeSection = section.id;
               if (section.id === "backup") {
@@ -496,8 +499,8 @@
               <div class="gs-row">
                 <span><strong>{_t('settingsAccountSubscription')}</strong><small>{_t('settingsAccountFreePlan')}</small></span>
                 <div class="gs-actions">
-                  <button class="gs-text-btn" onclick={() => void goto("/pricing")}>{_t('settingsAccountPricing')}</button>
-                  <button class="gs-text-btn" onclick={() => void handleManageBilling()}>{_t('settingsAccountManage')}</button>
+                  <button type="button" class="gs-text-btn" onclick={() => void goto("/pricing")}>{_t('settingsAccountPricing')}</button>
+                  <button type="button" class="gs-text-btn" onclick={() => void handleManageBilling()}>{_t('settingsAccountManage')}</button>
                 </div>
               </div>
             </div>
@@ -514,16 +517,16 @@
               <h3>{_t('settingsAppearanceTitle')}</h3>
               <p>{_t('settingsAppearanceSubtitle')}</p>
             </div>
-            <div class="global-settings__label">{_t('settingsAppearanceModeLabel')}</div>
-            <div class="global-settings__segmented">
-              <button type="button" class:global-settings__segment-active={$desktopSettings.appearance.mode === "light"} onclick={() => void setMode("light")}>{_t('commonLight')}</button>
-              <button type="button" class:global-settings__segment-active={$desktopSettings.appearance.mode === "system"} onclick={() => void setMode("system")}>{_t('commonSystem')}</button>
-              <button type="button" class:global-settings__segment-active={$desktopSettings.appearance.mode === "dark"} onclick={() => void setMode("dark")}>{_t('commonDark')}</button>
+            <div class="global-settings__label" id="mode-label">{_t('settingsAppearanceModeLabel')}</div>
+            <div class="global-settings__segmented" role="group" aria-labelledby="mode-label">
+              <button type="button" aria-current={$desktopSettings.appearance.mode === "light" ? "true" : "false"} class:global-settings__segment-active={$desktopSettings.appearance.mode === "light"} onclick={() => void setMode("light")}>{_t('commonLight')}</button>
+              <button type="button" aria-current={$desktopSettings.appearance.mode === "system" ? "true" : "false"} class:global-settings__segment-active={$desktopSettings.appearance.mode === "system"} onclick={() => void setMode("system")}>{_t('commonSystem')}</button>
+              <button type="button" aria-current={$desktopSettings.appearance.mode === "dark" ? "true" : "false"} class:global-settings__segment-active={$desktopSettings.appearance.mode === "dark"} onclick={() => void setMode("dark")}>{_t('commonDark')}</button>
             </div>
-            <div class="global-settings__label">{_t('settingsAppearanceThemeLabel')}</div>
+            <div class="global-settings__label" id="theme-label">{_t('settingsAppearanceThemeLabel')}</div>
             <div class="global-settings__theme-grid">
               {#each availableThemes as theme}
-                <button type="button" class:global-settings__theme-active={$desktopSettings.appearance.themeId === theme.id} onclick={() => void setTheme(theme.id)}>
+                <button type="button" aria-current={$desktopSettings.appearance.themeId === theme.id ? "true" : "false"} class:global-settings__theme-active={$desktopSettings.appearance.themeId === theme.id} onclick={() => void setTheme(theme.id)}>
                   <span>{theme.name}</span>
                   {#if $desktopSettings.appearance.themeId === theme.id}<CheckIcon size={15} />{/if}
                 </button>
@@ -548,7 +551,7 @@
             <div class="global-settings__label">{_t('settingsTypographyFontPairing')}</div>
             <div class="global-settings__pill-group">
               {#each ["playful-classic", "editorial-focus", "bilingual-modern"] as id}
-                <button type="button" class:global-settings__pill-active={$fontStore.id === id} onclick={() => setFontPairing(id)}>
+                <button type="button" aria-current={$fontStore.id === id ? "true" : "false"} class:global-settings__pill-active={$fontStore.id === id} onclick={() => setFontPairing(id)}>
                   {id === "playful-classic" ? _t('settingsTypographyPairingPlayfulClassic') : id === "editorial-focus" ? _t('settingsTypographyPairingEditorialFocus') : _t('settingsTypographyPairingBilingualModern')}
                 </button>
               {/each}
@@ -584,6 +587,29 @@
               <span><strong>{_t('settingsNotificationsBackgroundAlerts')}</strong><small>{_t('settingsNotificationsBackgroundAlertsHint')}</small></span>
               <input type="checkbox" checked={$desktopSettings.notifications.backgroundAlerts} onchange={(e) => void updateDesktopSettings((c) => ({ ...c, notifications: { ...c.notifications, backgroundAlerts: e.currentTarget.checked } })) } />
             </label>
+            <label class="global-settings__toggle">
+              <span><strong>Notification Sound</strong><small>Play a sound when native notifications arrive</small></span>
+              <input type="checkbox" checked={$desktopSettings.notifications.soundEnabled ?? true} onchange={(e) => void updateDesktopSettings((c) => ({ ...c, notifications: { ...c.notifications, soundEnabled: e.currentTarget.checked } })) } />
+            </label>
+            <div style="margin-top: 1rem;">
+              <button class="global-settings__btn" disabled={sendingTest} onclick={async () => {
+                if (sendingTest) return;
+                sendingTest = true;
+                try {
+                  const permitted = await ensureNotificationPermission();
+                  if (!permitted) {
+                    toast.error("Notification permission denied. Check your system settings.");
+                    return;
+                  }
+                  const ok = await sendTestNotification();
+                  toast.success(ok ? "Test notification sent!" : "Failed to send test notification.");
+                } finally {
+                  sendingTest = false;
+                }
+              }}>
+                {sendingTest ? "Sending..." : "Send Test Notification"}
+              </button>
+            </div>
           </div>
 
         {:else if activeSection === "shortcuts"}
@@ -706,24 +732,24 @@
               {/each}
             </div>
 
-            <div class="global-settings__label" style="margin-top:1.5rem">{_t('settingsLanguageDateFormat')}</div>
+            <div class="global-settings__label" id="date-format-label" style="margin-top:1.5rem">{_t('settingsLanguageDateFormat')}</div>
             <div class="global-settings__pill-group">
               {#each DATE_FORMATS as fmt}
-                <button type="button" class:global-settings__pill-active={$desktopSettings.language.dateFormat === fmt.id} onclick={() => void updateDesktopSettings((c) => ({ ...c, language: { ...c.language, dateFormat: fmt.id } }))}>{fmt.label}</button>
+                <button type="button" aria-current={$desktopSettings.language.dateFormat === fmt.id ? "true" : "false"} class:global-settings__pill-active={$desktopSettings.language.dateFormat === fmt.id} onclick={() => void updateDesktopSettings((c) => ({ ...c, language: { ...c.language, dateFormat: fmt.id } }))}>{fmt.label}</button>
               {/each}
             </div>
 
-            <div class="global-settings__label" style="margin-top:1rem">{_t('settingsLanguageTimeFormat')}</div>
-            <div class="global-settings__segmented">
+            <div class="global-settings__label" id="time-format-label" style="margin-top:1rem">{_t('settingsLanguageTimeFormat')}</div>
+            <div class="global-settings__segmented" role="group" aria-labelledby="time-format-label">
               {#each TIME_FORMATS as fmt}
-                <button type="button" class:global-settings__segment-active={$desktopSettings.language.timeFormat === fmt.id} onclick={() => void updateDesktopSettings((c) => ({ ...c, language: { ...c.language, timeFormat: fmt.id } }))}>{fmt.label}</button>
+                <button type="button" aria-current={$desktopSettings.language.timeFormat === fmt.id ? "true" : "false"} class:global-settings__segment-active={$desktopSettings.language.timeFormat === fmt.id} onclick={() => void updateDesktopSettings((c) => ({ ...c, language: { ...c.language, timeFormat: fmt.id } }))}>{fmt.label}</button>
               {/each}
             </div>
 
-            <div class="global-settings__label" style="margin-top:1rem">{_t('settingsLanguageFirstDay')}</div>
-            <div class="global-settings__segmented">
+            <div class="global-settings__label" id="first-day-label" style="margin-top:1rem">{_t('settingsLanguageFirstDay')}</div>
+            <div class="global-settings__segmented" role="group" aria-labelledby="first-day-label">
               {#each FIRST_DAY_OPTIONS as day}
-                <button type="button" class:global-settings__segment-active={$desktopSettings.language.firstDay === day.id} onclick={() => void updateDesktopSettings((c) => ({ ...c, language: { ...c.language, firstDay: day.id } }))}>{day.label}</button>
+                <button type="button" aria-current={$desktopSettings.language.firstDay === day.id ? "true" : "false"} class:global-settings__segment-active={$desktopSettings.language.firstDay === day.id} onclick={() => void updateDesktopSettings((c) => ({ ...c, language: { ...c.language, firstDay: day.id } }))}>{day.label}</button>
               {/each}
             </div>
           </div>
@@ -817,7 +843,7 @@
   .gs-row > span { display:grid; gap:0.15rem; min-width:0; }
   .gs-row small { color:var(--muted-foreground); font-size:0.85rem; }
   .gs-actions { display:inline-flex; align-items:center; gap:0.75rem; }
-  .gs-text-btn { appearance:none; border:none; background:transparent; color:var(--foreground); font-size:0.9rem; font-weight:600; cursor:pointer; opacity:0.82; }
+  .gs-text-btn { appearance:none; border:none; background:transparent; color:var(--foreground); font-size:0.9rem; font-weight:600; cursor:pointer; opacity:0.82; transition:opacity 120ms ease; }
   .gs-text-btn:hover { opacity:1; }
 
   /* ── Encryption ──────────────────────────────────────────────────────────── */
@@ -846,7 +872,7 @@
   .global-settings__lang-input { width:100%; border:1px solid var(--border); border-radius:10px; background:color-mix(in srgb,var(--foreground) 4%,var(--background)); padding:0.55rem 0.85rem; color:var(--foreground); outline:none; box-sizing:border-box; }
   .global-settings__lang-input:focus { border-color:var(--primary); }
   .global-settings__lang-list { display:flex; flex-direction:column; gap:0.15rem; max-height:14rem; overflow-y:auto; border:1px solid var(--border); border-radius:12px; padding:0.35rem; }
-  .global-settings__lang-item { display:flex; align-items:center; gap:0.55rem; border:none; border-radius:8px; background:transparent; padding:0.5rem 0.65rem; color:var(--foreground); text-align:left; cursor:default; transition:background 80ms ease; }
+  .global-settings__lang-item { display:flex; align-items:center; gap:0.55rem; border:none; border-radius:8px; background:transparent; padding:0.5rem 0.65rem; color:var(--foreground); text-align:left; cursor:pointer; transition:background 80ms ease; }
   .global-settings__lang-item:hover { background:color-mix(in srgb,var(--foreground) 7%,var(--background)); }
   .global-settings__lang-item--active { background:color-mix(in srgb,var(--primary) 10%,var(--background)) !important; color:var(--primary); font-weight:700; }
   .global-settings__lang-label { flex:1; min-width:0; }
@@ -856,20 +882,24 @@
   /* ── Misc ────────────────────────────────────────────────────────────────── */
   .global-settings__danger-zone { margin-top:1rem; border:none; border-radius:20px; background:color-mix(in srgb,var(--destructive) 8%,var(--background)); padding:1rem; display:grid; gap:0.65rem; }
   .global-settings__danger-zone h4 { margin:0; color:var(--destructive); font-size:0.82rem; text-transform:uppercase; letter-spacing:0.12em; }
-  .global-settings__danger-btn { border:none; border-radius:20px; background:color-mix(in srgb,var(--destructive) 10%,var(--background)); padding:0.65rem 1rem; color:var(--destructive); font-weight:700; font-size:0.88rem; text-align:left; cursor:default; }
+  .global-settings__danger-btn { border:none; border-radius:20px; background:color-mix(in srgb,var(--destructive) 10%,var(--background)); padding:0.65rem 1rem; color:var(--destructive); font-weight:700; font-size:0.88rem; text-align:left; cursor:pointer; transition:background 120ms ease; }
   .global-settings__danger-btn:hover { background:color-mix(in srgb,var(--destructive) 18%,var(--background)); }
   .global-settings__about-card { display:grid; place-items:center; gap:0.5rem; border-radius:20px; background:color-mix(in srgb,var(--foreground) 5%,var(--background)); padding:2rem; text-align:center; }
   .global-settings__about-card h4 { margin:0; font-family:var(--font-heading); font-size:1.15rem; color:var(--foreground); }
   .global-settings__preview-card { border-radius:20px; background:color-mix(in srgb,var(--foreground) 5%,var(--background)); padding:1.25rem; }
   .global-settings__preview-text { font-family:var(--font-heading); font-size:1.35rem; color:var(--foreground); letter-spacing:-0.02em; }
   .global-settings__pill-group { display:flex; flex-wrap:wrap; gap:0.5rem; }
-  .global-settings__pill-group button { display:inline-flex; align-items:center; justify-content:center; min-height:2.4rem; border:none; border-radius:999px; background:color-mix(in srgb,var(--foreground) 6%,var(--background)); padding:0 1rem; color:var(--foreground); font-weight:700; font-size:0.82rem; cursor:default; }
+  .global-settings__pill-group button { display:inline-flex; align-items:center; justify-content:center; min-height:2.4rem; border:none; border-radius:999px; background:color-mix(in srgb,var(--foreground) 6%,var(--background)); padding:0 1rem; color:var(--foreground); font-weight:700; font-size:0.82rem; cursor:pointer; transition:background 120ms ease, color 120ms ease; }
+  .global-settings__pill-group button:hover:not(.global-settings__pill-active) { background:color-mix(in srgb,var(--foreground) 12%,var(--background)); }
   .global-settings__pill-active { background:var(--foreground) !important; color:var(--background) !important; }
   .global-settings__theme-grid { display:flex; flex-wrap:wrap; gap:0.5rem; }
-  .global-settings__theme-grid button { display:inline-flex; align-items:center; gap:0.4rem; border:1px solid var(--border); border-radius:10px; background:color-mix(in srgb,var(--foreground) 4%,var(--background)); padding:0.55rem 0.85rem; color:var(--foreground); font-weight:600; font-size:0.85rem; cursor:default; }
+  .global-settings__theme-grid button { display:inline-flex; align-items:center; gap:0.4rem; border:1px solid var(--border); border-radius:10px; background:color-mix(in srgb,var(--foreground) 4%,var(--background)); padding:0.55rem 0.85rem; color:var(--foreground); font-weight:600; font-size:0.85rem; cursor:pointer; transition:border-color 120ms ease, background 120ms ease, color 120ms ease; }
+  .global-settings__theme-grid button:focus-visible,
+  .global-settings__app-card:focus-visible,
+  .global-settings__pill-group button:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
   .global-settings__theme-active { border-color:var(--primary) !important; color:var(--primary) !important; }
   .global-settings__apps { display:flex; flex-direction:column; gap:0.5rem; }
-  .global-settings__app-card { display:flex; align-items:center; gap:0.75rem; border:1px solid var(--border); border-radius:12px; background:color-mix(in srgb,var(--foreground) 3%,var(--background)); padding:0.75rem 1rem; text-align:left; cursor:default; }
+  .global-settings__app-card { display:flex; align-items:center; gap:0.75rem; border:1px solid var(--border); border-radius:12px; background:color-mix(in srgb,var(--foreground) 3%,var(--background)); padding:0.75rem 1rem; text-align:left; cursor:pointer; transition:border-color 120ms ease, background 120ms ease; }
   .global-settings__app-accent { width:0.35rem; height:2rem; border-radius:999px; background:var(--app-accent,var(--primary)); flex-shrink:0; }
   .global-settings__app-card > span { flex:1; min-width:0; display:grid; gap:0.1rem; }
   .global-settings__app-card strong { color:var(--foreground); }
