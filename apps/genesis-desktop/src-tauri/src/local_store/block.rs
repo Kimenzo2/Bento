@@ -164,6 +164,8 @@ pub enum MarkType {
     Emoji = 9,
     Object = 10,
     Latex = 11,
+    Subscript = 12,
+    Superscript = 13,
     Change = 100,
     Highlight = 101,
     Search = 102,

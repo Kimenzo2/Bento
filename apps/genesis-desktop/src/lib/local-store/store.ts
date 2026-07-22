@@ -12,5 +12,6 @@ export {
   getIsEditorLoaded,
   getToggleStateVersion,
   getObjectId,
+  getBlock,
   blockById,
 } from "./editor-state.svelte";

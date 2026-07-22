@@ -3,6 +3,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import WidgetWrapper from "./WidgetWrapper.svelte";
   import { getIcon } from "../island-icons";
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   let isEditing = $state(false);
   let notesHeaderIcon = $derived(getIcon(isEditing ? "check" : "edit"));
@@ -108,6 +109,7 @@
       }
     }}
     aria-label={isEditing ? "Save notes" : "Edit notes"}
+    use:tooltip={{ text: isEditing ? "Save notes" : "Edit notes" }}
     >
       <notesHeaderIcon size={14} strokeWidth={1.8}></notesHeaderIcon>
     </button>

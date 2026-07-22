@@ -6,9 +6,11 @@
   import { onMount, onDestroy, tick } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import type { Block } from '$lib/local-store/block';
-  import { MarkType } from '$lib/local-store/block';
-  import { editorStore } from '$lib/local-store/store';
   import { time } from '$lib/utils/time';
+
+  interface TableRow { id: string; cells: Record<string, { text: string }>; isHeader?: boolean }
+  interface TableColumn { id: string; width: number }
+  interface TableData { rows: TableRow[]; columns: TableColumn[] }
 
   let { block, rootId = '', readonly = false }: {
     block: Block;
@@ -17,50 +19,51 @@
   } = $props();
 
   // ── Table data ────────────────────────────────────────────────────
-  // In Bento, table content stores { rows: [], columns: [] } directly.
-  // Each row = { id, cells: Record<columnId, { text, marks }> }
-  let content = $derived(block.content as any);
-
-  interface Cell { text: string; marks?: any[] }
-  interface TableRow { id: string; isHeader?: boolean; cells: Record<string, Cell> }
-  interface TableCol { id: string; width: number }
-
-  let rows: TableRow[] = $derived((block.content as any)?.rows ?? []);
-  let columns: TableCol[] = $derived((block.content as any)?.columns ?? []);
-  let editingCell: string | null = $state(null); // `${rowId}-${colId}`
-  let focusedCell: string | null = $state(null);
-
   const MIN_COL_WIDTH = 80;
   const DEFAULT_COL_WIDTH = 160;
 
-  // ── Init empty table ──────────────────────────────────────────────
-  function initEmpty() {
-    if (rows.length && columns.length) return;
-    columns = [
-      { id: 'col-0', width: DEFAULT_COL_WIDTH },
-      { id: 'col-1', width: DEFAULT_COL_WIDTH },
-      { id: 'col-2', width: DEFAULT_COL_WIDTH },
-    ];
-    rows = [
-      { id: 'row-header', isHeader: true, cells: Object.fromEntries(columns.map(c => [c.id, { text: '' }])) },
-      { id: 'row-0', cells: Object.fromEntries(columns.map(c => [c.id, { text: '' }])) },
-      { id: 'row-1', cells: Object.fromEntries(columns.map(c => [c.id, { text: '' }])) },
-    ];
+  function loadTable(): TableData {
+    const c = block.content as any;
+    return {
+      rows: (c?.rows ?? []).map((r: any) => ({ id: r.id, cells: { ...(r.cells ?? {}) }, isHeader: r.isHeader })),
+      columns: (c?.columns ?? []).map((c2: any) => ({ id: c2.id, width: c2.width ?? DEFAULT_COL_WIDTH })),
+    };
+  }
+
+  let tableData = $state<TableData>(loadTable());
+  let rows = $derived(tableData.rows);
+  let columns = $derived(tableData.columns);
+
+  let editingCell: string | null = $state(null);
+
+  function persistTable() {
+    if (!block.id) return;
+    invoke('local_store_block_update', {
+      id: block.id,
+      content: { columns: tableData.columns, rows: tableData.rows },
+      fields: null,
+      align: null,
+      bgColor: null,
+    }).catch((e) => console.error('[BlockTable] persist', e));
   }
 
   // ── Cell ops ──────────────────────────────────────────────────────
   function getCellKey(rowId: string, colId: string) { return `${rowId}--${colId}`; }
 
   function cellText(rowId: string, colId: string): string {
-    return rows.find(r => r.id === rowId)?.cells[colId]?.text ?? '';
+    return tableData.rows.find(r => r.id === rowId)?.cells[colId]?.text ?? '';
   }
 
   function updateCell(rowId: string, colId: string, text: string) {
-    rows = rows.map(r =>
-      r.id === rowId
-        ? { ...r, cells: { ...r.cells, [colId]: { ...r.cells[colId], text } } }
-        : r
-    );
+    tableData = {
+      ...tableData,
+      rows: tableData.rows.map(r =>
+        r.id === rowId
+          ? { ...r, cells: { ...r.cells, [colId]: { ...r.cells[colId], text } } }
+          : r
+      ),
+    };
+    persistTable();
   }
 
   // ── Keyboard navigation ───────────────────────────────────────────
@@ -104,58 +107,133 @@
   }
 
   async function focusCell(rowIdx: number, colIdx: number) {
-    const rowId = rows[rowIdx]?.id;
-    const colId = columns[colIdx]?.id;
+    const rowId = tableData.rows[rowIdx]?.id;
+    const colId = tableData.columns[colIdx]?.id;
     if (!rowId || !colId) return;
-    editingCell = getCellKey(rowId, colId);
+    const key = getCellKey(rowId, colId);
+    editingCell = key;
+    // Wait for DOM to update with textarea
     await tick();
-    const el = document.querySelector<HTMLElement>(
-      `[data-cell="${getCellKey(rowId, colId)}"] .cell-input`
+    await tick();
+    // Use rAF to ensure the textarea is painted and focusable
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    const el = document.querySelector<HTMLTextAreaElement>(
+      `[data-cell="${key}"] textarea.cell-input`
     );
-    el?.focus();
+    if (el) {
+      el.focus();
+      // Place cursor at end of text
+      const len = el.value.length;
+      el.setSelectionRange(len, len);
+      autoResize(el);
+    } else {
+      // Retry once more after another frame
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      const el2 = document.querySelector<HTMLTextAreaElement>(
+        `[data-cell="${key}"] textarea.cell-input`
+      );
+      if (el2) {
+        el2.focus();
+        const len2 = el2.value.length;
+        el2.setSelectionRange(len2, len2);
+        autoResize(el2);
+      }
+    }
+  }
+
+  function autoResize(el: HTMLTextAreaElement) {
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
   }
 
   // ── Row / column management ────────────────────────────────────────
   function addRow(afterIdx?: number) {
-    const newRow: TableRow = {
+    const newRow = {
       id: `row-${time.now()}`,
-      cells: Object.fromEntries(columns.map(c => [c.id, { text: '' }])),
+      cells: Object.fromEntries(tableData.columns.map(c => [c.id, { text: '' }])),
     };
-    const idx = afterIdx ?? rows.length;
-    rows = [...rows.slice(0, idx + 1), newRow, ...rows.slice(idx + 1)];
+    const idx = afterIdx ?? tableData.rows.length;
+    tableData = {
+      ...tableData,
+      rows: [...tableData.rows.slice(0, idx + 1), newRow, ...tableData.rows.slice(idx + 1)],
+    };
+    persistTable();
   }
 
   function addColumn(afterIdx?: number) {
     const newColId = `col-${time.now()}`;
-    const idx = afterIdx ?? columns.length;
-    columns = [
-      ...columns.slice(0, idx + 1),
-      { id: newColId, width: DEFAULT_COL_WIDTH },
-      ...columns.slice(idx + 1),
-    ];
-    rows = rows.map(r => ({
-      ...r,
-      cells: { ...r.cells, [newColId]: { text: '' } },
-    }));
+    const idx = afterIdx ?? tableData.columns.length;
+    tableData = {
+      columns: [
+        ...tableData.columns.slice(0, idx + 1),
+        { id: newColId, width: DEFAULT_COL_WIDTH },
+        ...tableData.columns.slice(idx + 1),
+      ],
+      rows: tableData.rows.map(r => ({
+        ...r,
+        cells: { ...r.cells, [newColId]: { text: '' } },
+      })),
+    };
+    persistTable();
   }
 
   function deleteRow(rowId: string) {
-    if (rows.length <= 1) return;
-    rows = rows.filter(r => r.id !== rowId);
+    if (tableData.rows.length <= 1) return;
+    tableData = { ...tableData, rows: tableData.rows.filter(r => r.id !== rowId) };
+    persistTable();
+  }
+
+  function moveRowUp(rowId: string) {
+    const idx = tableData.rows.findIndex(r => r.id === rowId);
+    if (idx <= 0) return;
+    const r = tableData.rows;
+    tableData = { ...tableData, rows: [...r.slice(0, idx - 1), r[idx], r[idx - 1], ...r.slice(idx + 1)] };
+    persistTable();
+  }
+
+  function moveRowDown(rowId: string) {
+    const idx = tableData.rows.findIndex(r => r.id === rowId);
+    if (idx < 0 || idx >= tableData.rows.length - 1) return;
+    const r = tableData.rows;
+    tableData = { ...tableData, rows: [...r.slice(0, idx), r[idx + 1], r[idx], ...r.slice(idx + 2)] };
+    persistTable();
+  }
+
+  function moveColLeft(colId: string) {
+    const idx = tableData.columns.findIndex(c => c.id === colId);
+    if (idx <= 0) return;
+    const c = tableData.columns;
+    tableData = { ...tableData, columns: [...c.slice(0, idx - 1), c[idx], c[idx - 1], ...c.slice(idx + 1)] };
+    persistTable();
+  }
+
+  function moveColRight(colId: string) {
+    const idx = tableData.columns.findIndex(c => c.id === colId);
+    if (idx < 0 || idx >= tableData.columns.length - 1) return;
+    const c = tableData.columns;
+    tableData = { ...tableData, columns: [...c.slice(0, idx), c[idx + 1], c[idx], ...c.slice(idx + 2)] };
+    persistTable();
   }
 
   function deleteColumn(colId: string) {
-    if (columns.length <= 1) return;
-    columns = columns.filter(c => c.id !== colId);
-    rows = rows.map(r => {
-      const cells = { ...r.cells };
-      delete cells[colId];
-      return { ...r, cells };
-    });
+    if (tableData.columns.length <= 1) return;
+    tableData = {
+      columns: tableData.columns.filter(c => c.id !== colId),
+      rows: tableData.rows.map(r => {
+        const cells = { ...r.cells };
+        delete cells[colId];
+        return { ...r, cells };
+      }),
+    };
+    persistTable();
   }
 
   function toggleHeader(rowId: string) {
-    rows = rows.map(r => r.id === rowId ? { ...r, isHeader: !r.isHeader } : r);
+    tableData = {
+      ...tableData,
+      rows: tableData.rows.map(r => r.id === rowId ? { ...r, isHeader: !r.isHeader } : r),
+    };
+    persistTable();
   }
 
   // ── Column resize ──────────────────────────────────────────────────
@@ -175,7 +253,10 @@
   function onResizeMove(e: MouseEvent) {
     if (resizingColIdx === null) return;
     const newWidth = Math.max(MIN_COL_WIDTH, resizeStartWidth + (e.pageX - resizeStartX));
-    columns = columns.map((c, i) => i === resizingColIdx ? { ...c, width: newWidth } : c);
+    tableData = {
+      ...tableData,
+      columns: tableData.columns.map((c, i) => i === resizingColIdx ? { ...c, width: newWidth } : c),
+    };
   }
 
   function onResizeEnd() {
@@ -206,8 +287,31 @@
 
   function closeMenus() { rowMenuId = null; colMenuId = null; }
 
+  // Initialize from block content on mount / block change
+  let prevBlockId = '';
+  $effect(() => {
+    if (block?.id && block.id !== prevBlockId) {
+      prevBlockId = block.id;
+      const t = loadTable();
+      if (t.rows.length === 0 || t.columns.length === 0) {
+        tableData = {
+          columns: [
+            { id: 'col-0', width: DEFAULT_COL_WIDTH },
+            { id: 'col-1', width: DEFAULT_COL_WIDTH },
+            { id: 'col-2', width: DEFAULT_COL_WIDTH },
+          ],
+          rows: [
+            { id: 'row-header', isHeader: true, cells: { 'col-0': { text: '' }, 'col-1': { text: '' }, 'col-2': { text: '' } } },
+            { id: 'row-0', cells: { 'col-0': { text: '' }, 'col-1': { text: '' }, 'col-2': { text: '' } } },
+          ],
+        };
+      } else {
+        tableData = t;
+      }
+    }
+  });
+
   onMount(() => {
-    initEmpty();
     document.addEventListener('mousedown', closeMenus);
   });
 
@@ -272,25 +376,29 @@
 
           <!-- Cells -->
           {#each columns as col, colIdx (col.id)}
-            {const key = getCellKey(row.id, col.id)}
-            {const isEditing = editingCell === key}
             <div
               class="table-cell"
               class:is-header-cell={row.isHeader}
-              class:is-editing={isEditing}
-              data-cell={key}
-              onclick={() => { if (!readonly) { editingCell = key; } }}
+              class:is-editing={editingCell === getCellKey(row.id, col.id)}
+              data-cell={getCellKey(row.id, col.id)}
+              onclick={(e) => { if (!readonly) { e.stopPropagation(); editingCell = getCellKey(row.id, col.id); focusCell(rowIdx, colIdx); } }}
+              ondblclick={(e) => { if (!readonly) { e.stopPropagation(); editingCell = getCellKey(row.id, col.id); focusCell(rowIdx, colIdx); } }}
               onkeydown={(e) => handleCellKey(e, rowIdx, colIdx)}
               role="gridcell"
               tabindex="0"
             >
-              {#if isEditing && !readonly}
+              {#if editingCell === getCellKey(row.id, col.id) && !readonly}
                 <textarea
                   class="cell-input"
                   value={cellText(row.id, col.id)}
-                  oninput={(e) => updateCell(row.id, col.id, (e.target as HTMLTextAreaElement).value)}
+                  oninput={(e) => {
+                    updateCell(row.id, col.id, (e.target as HTMLTextAreaElement).value);
+                    autoResize(e.target as HTMLTextAreaElement);
+                  }}
+                  onclick={(e) => { e.stopPropagation(); }}
                   onkeydown={(e) => handleCellKey(e, rowIdx, colIdx)}
                   onblur={() => { editingCell = null; }}
+                  onmousedown={(e) => e.stopPropagation()}
                   rows={1}
                   spellcheck={false}
                 ></textarea>
@@ -338,6 +446,9 @@
       <button class="ctx-item" role="menuitem" onclick={() => { addRow(rows.findIndex(r => r.id === rowMenuId)); closeMenus(); }}>Insert row below</button>
       <button class="ctx-item" role="menuitem" onclick={() => { addRow(rows.findIndex(r => r.id === rowMenuId) - 1); closeMenus(); }}>Insert row above</button>
       <div class="ctx-sep"></div>
+      <button class="ctx-item" role="menuitem" onclick={() => { moveRowUp(rowMenuId!); closeMenus(); }} disabled={rows.findIndex(r=>r.id===rowMenuId) <= 0}>Move row up</button>
+      <button class="ctx-item" role="menuitem" onclick={() => { moveRowDown(rowMenuId!); closeMenus(); }} disabled={rows.findIndex(r=>r.id===rowMenuId) >= rows.length - 1}>Move row down</button>
+      <div class="ctx-sep"></div>
       <button class="ctx-item" role="menuitem" onclick={() => { toggleHeader(rowMenuId!); closeMenus(); }}>
         {rows.find(r => r.id === rowMenuId)?.isHeader ? 'Remove header' : 'Make header row'}
       </button>
@@ -357,6 +468,9 @@
     >
       <button class="ctx-item" role="menuitem" onclick={() => { addColumn(columns.findIndex(c => c.id === colMenuId)); closeMenus(); }}>Insert column right</button>
       <button class="ctx-item" role="menuitem" onclick={() => { addColumn(columns.findIndex(c => c.id === colMenuId) - 1); closeMenus(); }}>Insert column left</button>
+      <div class="ctx-sep"></div>
+      <button class="ctx-item" role="menuitem" onclick={() => { moveColLeft(colMenuId!); closeMenus(); }} disabled={columns.findIndex(c=>c.id===colMenuId) <= 0}>Move column left</button>
+      <button class="ctx-item" role="menuitem" onclick={() => { moveColRight(colMenuId!); closeMenus(); }} disabled={columns.findIndex(c=>c.id===colMenuId) >= columns.length - 1}>Move column right</button>
       <div class="ctx-sep"></div>
       <button class="ctx-item ctx-danger" role="menuitem" onclick={() => { deleteColumn(colMenuId!); closeMenus(); }}>Delete column</button>
     </div>
@@ -449,7 +563,7 @@
     outline: none;
     box-sizing: border-box;
     min-height: 36px;
-    field-sizing: content;
+    overflow: hidden;
   }
 
   /* ── Column headers ─────────────────────────────────────────────── */
@@ -578,6 +692,7 @@
     min-width: 160px;
   }
 
+  .ctx-item:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
   .ctx-item {
     all: unset;
     display: block;

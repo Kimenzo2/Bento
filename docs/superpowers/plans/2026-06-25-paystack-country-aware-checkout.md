@@ -13,6 +13,7 @@
 ### Task 1: Add Supabase-backed payment method rules
 
 **Files:**
+
 - Create: `apps/genesis-desktop/supabase/migrations/0006_paystack_payment_method_rules.sql`
 - Modify: `apps/landing/lib/supabase/server.ts` if a new helper needs admin access
 
@@ -48,6 +49,7 @@ Run Supabase table listing and confirm the table exists with RLS enabled.
 ### Task 2: Add country detection and payment method routing helpers
 
 **Files:**
+
 - Create: `apps/landing/lib/paystack/country.ts`
 - Create: `apps/landing/lib/paystack/payment-methods.ts`
 - Create: `apps/landing/lib/paystack/checkout-intents.ts`
@@ -55,6 +57,7 @@ Run Supabase table listing and confirm the table exists with RLS enabled.
 - [ ] **Step 1: Write the failing tests**
 
 Cover:
+
 - profile country wins over IP
 - manual country wins over profile
 - fallback to IP header works
@@ -84,6 +87,7 @@ Use Supabase-backed rules first, default to card-only if no other method exists.
 - [ ] **Step 4: Implement checkout intent persistence**
 
 Store:
+
 - detected country
 - selected method
 - plan code
@@ -97,6 +101,7 @@ Store:
 ### Task 3: Wire the pricing page to the router
 
 **Files:**
+
 - Modify: `apps/landing/app/pricing/page.tsx`
 - Modify: `apps/landing/app/api/paystack/initialize/route.ts`
 - Create: `apps/landing/app/api/paystack/payment-methods/route.ts`
@@ -122,6 +127,7 @@ Persist the checkout intent before redirecting to Paystack.
 ### Task 4: Keep webhook-driven billing sync idempotent
 
 **Files:**
+
 - Modify: `apps/landing/app/api/paystack/webhook/route.ts`
 - Modify: `apps/landing/lib/paystack-webhook.ts`
 - Modify: `apps/landing/lib/paystack-webhook.test.ts`
@@ -143,6 +149,7 @@ Continue to update `profiles` and `payments` only for billing events.
 ### Task 5: Verify and document
 
 **Files:**
+
 - Modify: `apps/landing/.env.example`
 - Modify: `apps/genesis-desktop/.env.example`
 

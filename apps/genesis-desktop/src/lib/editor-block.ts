@@ -46,6 +46,7 @@ export function blocksToJSON(blocks: Block[]): string {
   if (nonEmpty.length === 1 && nonEmpty[0].type === "p" && !nonEmpty[0].text) return "";
   return JSON.stringify(
     blocks.map((b) => ({
+      id: b.id,
       t: b.type,
       text: b.text,
       marks: b.marks,
@@ -75,7 +76,7 @@ export function blocksFromJSON(json: string): Block[] {
         "divider",
       ]);
       return parsed.map((p: any) => ({
-        id: uid(),
+        id: p.id || uid(),
         type: validTypes.has(p.t) ? p.t : ("p" as BlockType),
         text: p.text || "",
         level: typeof p.lv === "number" ? Math.max(0, Math.min(p.lv, 5)) : 0,

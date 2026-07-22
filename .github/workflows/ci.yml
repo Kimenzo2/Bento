@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, develop, 'release/**', 'Gemini-api-connections']
+    branches: [main, develop, "release/**", "Gemini-api-connections"]
   pull_request:
-    branches: ['**']
+    branches: ["**"]
   workflow_dispatch:
 
 concurrency:

@@ -79,6 +79,15 @@
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  function isUrl(str: string): boolean {
+    try {
+      const url = new URL(str);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
   function markTag(m: TextMark, close: boolean): string {
     if (close) {
       switch (m.type) {
@@ -370,8 +379,16 @@
       if (e.key === 'i') { e.preventDefault(); applyFormatToSelection('I'); return; }
       if (e.key === 'k') {
         e.preventDefault();
+        const savedSel = window.getSelection();
+        const savedRange = savedSel?.rangeCount ? savedSel.getRangeAt(0) : null;
         const url = prompt('Enter link URL:');
-        if (url) applyFormatToSelection('A', url);
+        if (url && isUrl(url)) {
+          if (savedRange) {
+            const sel = window.getSelection();
+            if (sel) { sel.removeAllRanges(); sel.addRange(savedRange); }
+          }
+          applyFormatToSelection('A', url);
+        }
         return;
       }
     }
@@ -557,8 +574,16 @@
     <button class="j-fmt-btn" onclick={() => applyFormatToSelection('S')} title="Strikethrough"><s>S</s></button>
     <span class="j-fmt-divider"></span>
     <button class="j-fmt-btn" onclick={() => {
+      const savedSel = window.getSelection();
+      const savedRange = savedSel?.rangeCount ? savedSel.getRangeAt(0) : null;
       const url = prompt('Enter link URL:');
-      if (url) applyFormatToSelection('A', url);
+      if (url && isUrl(url)) {
+        if (savedRange) {
+          const sel = window.getSelection();
+          if (sel) { sel.removeAllRanges(); sel.addRange(savedRange); }
+        }
+        applyFormatToSelection('A', url);
+      }
     }} title="Insert link (Ctrl+K)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="j-fmt-icon"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
     </button>

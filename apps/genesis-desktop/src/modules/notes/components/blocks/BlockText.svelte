@@ -4,7 +4,7 @@
   import { TextStyle as TS, MarkType, DivStyle } from '$lib/local-store/block';
   import { isTextBlock, isTextCode, isTextTitle, isTextDescription, isTextHeader, isTextToggle } from '$lib/local-store/block';
   import { editorStore } from '$lib/local-store/store';
-  
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   let { block, rootId, readonly = false, blockIndex = 0, softEnter = false, onUpdate = () => {}, onFocus = () => {}, onBlur = () => {}, onKeyDown = () => {}, onKeyUp = () => {}, onToggle = () => {}, onStyleConvert = () => {} }: {
     block: Block;
@@ -70,12 +70,29 @@
     }
   });
 
+  let prevMarksKey = '';
+
   $effect(() => {
     if (block && block.content && isFocused) {
-      // Still sync style/checked even during editing (they affect the chrome)
       const ct = block.content as ContentText;
       style = ct.style ?? style;
       checked = ct.checked ?? checked;
+
+      const newMarksKey = JSON.stringify(ct.marks ?? []);
+      if (newMarksKey !== prevMarksKey) {
+        prevMarksKey = newMarksKey;
+        marks = ct.marks ?? [];
+        if (editableEl && !isSyncing) {
+          const savedSel = saveSelection(editableEl);
+          try {
+            isSyncing = true;
+            syncEditable();
+          } finally {
+            isSyncing = false;
+          }
+          if (savedSel) restoreSelection(editableEl, savedSel);
+        }
+      }
     }
   });
 
@@ -194,54 +211,105 @@
   }
 
   // ── ContentEditable sync ────────────────────────────────────────────
+  function saveSelection(el: HTMLElement): { start: number; end: number } | null {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return null;
+    const range = sel.getRangeAt(0);
+    const pre = document.createRange();
+    pre.selectNodeContents(el);
+    pre.setEnd(range.startContainer, range.startOffset);
+    const start = pre.toString().length;
+    const end = start + range.toString().length;
+    return { start, end };
+  }
+
+  function restoreSelection(el: HTMLElement, saved: { start: number; end: number }) {
+    const textNode = el.firstChild;
+    if (!textNode) return;
+    const text = el.innerText || '';
+    const sel = window.getSelection();
+    if (!sel) return;
+    const range = document.createRange();
+    let charCount = 0;
+    let startNode: Node | null = null, startOffset = 0;
+    let endNode: Node | null = null, endOffset = 0;
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let node: Text | null;
+    while ((node = walker.nextNode() as Text | null)) {
+      const len = node.textContent?.length ?? 0;
+      if (!startNode && charCount + len >= saved.start) {
+        startNode = node;
+        startOffset = saved.start - charCount;
+      }
+      if (!endNode && charCount + len >= saved.end) {
+        endNode = node;
+        endOffset = saved.end - charCount;
+        break;
+      }
+      charCount += len;
+    }
+    if (startNode && endNode) {
+      range.setStart(startNode, startOffset);
+      range.setEnd(endNode, endOffset);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  }
+
   // Build HTML from plain text + marks.
   // Marks are applied in sorted order on the PLAIN TEXT (not on growing HTML),
   // then the result is HTML-encoded. This avoids offset shifting.
   function buildHtml(text: string, marksArr: Mark[]): string {
     if (!text) return '';
 
-    // Collect all open/close events sorted by position
-    type Evt = { pos: number; order: number; tag: string };
-    const events: Evt[] = [];
-    const sorted = [...marksArr].sort((a, b) => a.range.from - b.range.from || b.range.to - a.range.to);
+    // Sort marks by from, then by to
+    const sorted = [...marksArr].sort((a, b) => a.range.from - b.range.from || a.range.to - b.range.to);
 
-    sorted.forEach((m, i) => {
-      const { from, to } = m.range;
-      if (from >= to || from < 0 || to > text.length) return;
-      const [open, close] = markToTags(m);
-      events.push({ pos: from, order: i,     tag: open  });
-      events.push({ pos: to,   order: -i - 1, tag: close });
-    });
-
-    // Sort: by position, then closes before opens at same pos
-    events.sort((a, b) => a.pos - b.pos || a.order - b.order);
-
-    let html = '';
-    let pos = 0;
-    for (const ev of events) {
-      if (ev.pos > pos) {
-        html += escHtml(text.slice(pos, ev.pos));
-        pos = ev.pos;
-      }
-      html += ev.tag;
+    // Collect all boundary positions
+    const boundaries = new Set<number>();
+    boundaries.add(0);
+    boundaries.add(text.length);
+    for (const m of sorted) {
+      boundaries.add(m.range.from);
+      boundaries.add(m.range.to);
     }
-    if (pos < text.length) html += escHtml(text.slice(pos));
+    const points = [...boundaries].sort((a, b) => a - b);
+
+    // Walk each segment and wrap with active marks
+    let html = '';
+    for (let i = 0; i < points.length - 1; i++) {
+      const segStart = points[i], segEnd = points[i + 1];
+      if (segStart >= segEnd) continue;
+
+      const active = sorted.filter(m => m.range.from <= segStart && m.range.to >= segEnd);
+      for (const m of active) {
+        const [open, _] = markToTags(m);
+        html += open;
+      }
+      html += escHtml(text.slice(segStart, segEnd));
+      for (let j = active.length - 1; j >= 0; j--) {
+        const [_, close] = markToTags(active[j]);
+        html += close;
+      }
+    }
     return html;
   }
 
   function escHtml(s: string): string {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
   function markToTags(m: Mark): [string, string] {
     switch (m.type) {
-      case MarkType.Bold:      return ['<strong>', '</strong>'];
-      case MarkType.Italic:    return ['<em>', '</em>'];
-      case MarkType.Code:      return ['<code>', '</code>'];
-      case MarkType.Strike:    return ['<s>', '</s>'];
-      case MarkType.Underline: return ['<u>', '</u>'];
-      case MarkType.Link:      return [`<a href="${m.param || '#'}" rel="noopener">`, '</a>'];
-      default:                 return ['<span>', '</span>'];
+      case MarkType.Bold:        return ['<strong>', '</strong>'];
+      case MarkType.Italic:      return ['<em>', '</em>'];
+      case MarkType.Code:        return ['<code>', '</code>'];
+      case MarkType.Strike:      return ['<s>', '</s>'];
+      case MarkType.Underline:   return ['<u>', '</u>'];
+      case MarkType.Subscript:   return ['<sub>', '</sub>'];
+      case MarkType.Superscript: return ['<sup>', '</sup>'];
+      case MarkType.Link:        return [`<a href="${m.param || '#'}" rel="noopener">`, '</a>'];
+      default:                   return ['<span>', '</span>'];
     }
   }
 
@@ -355,6 +423,12 @@
         // Insert soft newline within the same block (journal-style)
         const insertAt = getCaretPosition(editableEl);
         textValue = textValue.slice(0, insertAt) + '\n' + textValue.slice(insertAt);
+        // Adjust marks after the insertion point
+        marks = marks.map(m => {
+          if (m.range.to <= insertAt) return m;
+          if (m.range.from >= insertAt) return { ...m, range: { from: m.range.from + 1, to: m.range.to + 1 } };
+          return { ...m, range: { from: m.range.from, to: m.range.to + 1 } };
+        });
         syncEditable();
         setCaretPosition(editableEl, insertAt + 1);
         onUpdate(block.id || '', textValue, marks);
@@ -370,6 +444,11 @@
       e.preventDefault();
       const insertAt = getCaretPosition(editableEl);
       textValue = textValue.slice(0, insertAt) + '\n' + textValue.slice(insertAt);
+      marks = marks.map(m => {
+        if (m.range.to <= insertAt) return m;
+        if (m.range.from >= insertAt) return { ...m, range: { from: m.range.from + 1, to: m.range.to + 1 } };
+        return { ...m, range: { from: m.range.from, to: m.range.to + 1 } };
+      });
       syncEditable();
       setCaretPosition(editableEl, insertAt + 1);
       onUpdate(block.id || '', textValue, marks);
@@ -422,7 +501,7 @@
       textValue.length > 0
     ) {
       for (const [trigger, newStyle] of Object.entries(MARKDOWN_MAP)) {
-        if (textValue.startsWith(trigger) && textValue.length <= trigger.length + 2) {
+        if (textValue.startsWith(trigger) && textValue.length <= trigger.length + 20) {
           // Trigger matched! Strip the prefix and convert block style
           const remaining = textValue.slice(trigger.length);
           textValue = remaining;
@@ -441,10 +520,38 @@
     onKeyUp(e, textValue, marks, { from: pos, to: pos }, { block, rootId, readonly });
   }
 
+  function isUrl(str: string): boolean {
+    try {
+      const u = new URL(str.trim());
+      return u.protocol === 'http:' || u.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }
+
   function handlePaste(e: ClipboardEvent) {
     e.preventDefault();
-    const html = e.clipboardData?.getData('text/html') || '';
     const text = e.clipboardData?.getData('text/plain') || '';
+    if (!text) return;
+
+    const sel = window.getSelection();
+    const trimmed = text.trim();
+    if (isUrl(trimmed) && block.id) {
+      const el = document.querySelector(`[data-block-id="${block.id}"] .editable`);
+      if (!el) return;
+      if (sel && !sel.isCollapsed) {
+        const range = sel.getRangeAt(0);
+        const pre = document.createRange();
+        pre.selectNodeContents(el);
+        pre.setEnd(range.startContainer, range.startOffset);
+        const from = pre.toString().length;
+        const to = from + range.toString().length;
+        if (from < to) {
+          editorStore.toggleMark(block.id, MarkType.Link, { from, to }, trimmed);
+          return;
+        }
+      }
+    }
 
     const pos = getCaretPosition(editableEl);
     textValue = textValue.slice(0, pos) + text + textValue.slice(pos);
@@ -455,8 +562,10 @@
 
   function handleCheckboxToggle() {
     if (readonly) return;
+    const bid = block.id;
+    if (!bid) return;
     checked = !checked;
-    onToggle();
+    editorStore.setBlockChecked(bid, checked);
   }
 
   // ── Link dialog handlers ────────────────────────────────────────────
@@ -471,7 +580,7 @@
     pre.setEnd(range.startContainer, range.startOffset);
     const from = pre.toString().length;
     const to = from + range.toString().length;
-    if (from < to && linkUrl.trim()) {
+    if (from < to && isUrl(linkUrl)) {
       editorStore.toggleMark(block.id, MarkType.Link, { from, to }, linkUrl.trim());
     }
     showLinkDialog = false;
@@ -490,6 +599,7 @@
 
 
   // ── CSS class helpers ──────────────────────────────────────────────
+  let hasBg = $derived(resolvedBg !== 'transparent' && resolvedBg !== '');
   const styleClassMap: Record<TextStyle, string> = {
     [TS.Paragraph]: 'style-paragraph',
     [TS.Header1]: 'style-h1',
@@ -546,6 +656,7 @@
   class:is-readonly={readonly}
   class:is-checked={checked && style === TS.Checkbox}
   data-block-id={block.id}
+  data-has-bg={hasBg || undefined}
   style="{blockStyle}{blockStyle ? ';' : ''}text-align:{resolvedAlign}"
 >
   {#if style === TS.Checkbox}
@@ -553,6 +664,7 @@
       class="checkbox-toggle"
       onclick={handleCheckboxToggle}
       aria-label={checked ? 'Uncheck' : 'Check'}
+      use:tooltip={{ text: checked ? 'Uncheck' : 'Check' }}
     >
       {#if checked}
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -576,7 +688,7 @@
   {/if}
 
   {#if style === TS.Toggle || style === TS.ToggleHeader1 || style === TS.ToggleHeader2 || style === TS.ToggleHeader3}
-    <button class="toggle-arrow" onclick={() => onToggle()} aria-label="Toggle">
+    <button class="toggle-arrow" onclick={() => onToggle()} aria-label="Toggle" use:tooltip={{ text: "Toggle section" }}>
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
         <path d="M4 2.5L7.5 6L4 9.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
@@ -664,9 +776,7 @@
   }
 
   /* Give coloured-background blocks visible padding */
-  .block-text[style*="background:color-mix"],
-  .block-text[style*="background:rgb"],
-  .block-text[style*="background:#"] {
+  .block-text[data-has-bg] {
     padding: 4px 8px;
     border-radius: 6px;
   }

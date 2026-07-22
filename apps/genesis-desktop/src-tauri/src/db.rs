@@ -288,47 +288,6 @@ async fn delete_from_table_if_exists(pool: &SqlitePool, table_name: &str) -> Res
     Ok(())
 }
 
-async fn local_user_content_exists(pool: &SqlitePool) -> Result<bool, String> {
-    for table_name in [
-        "notes",
-        "objects",
-        "note_objects",
-        "tasks",
-        "habits",
-        "health_logs",
-        "journal_entries",
-        "recording_metadata",
-        "mood_checkins",
-        "health_daily_logs",
-        "dashboard_events",
-    ] {
-        let exists = sqlx::query_scalar::<_, i64>(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?",
-        )
-        .bind(table_name)
-        .fetch_one(pool)
-        .await
-        .map_err(|error| error.to_string())?;
-
-        if exists == 0 {
-            continue;
-        }
-
-        let escaped = table_name.replace('"', "\"\"");
-        let count =
-            sqlx::query_scalar::<_, i64>(&format!("SELECT COUNT(*) FROM \"{escaped}\" LIMIT 1"))
-                .fetch_one(pool)
-                .await
-                .map_err(|error| error.to_string())?;
-
-        if count > 0 {
-            return Ok(true);
-        }
-    }
-
-    Ok(false)
-}
-
 async fn purge_local_user_content(pool: &SqlitePool) -> Result<(), String> {
     sqlx::query("PRAGMA foreign_keys=ON")
         .execute(pool)
@@ -405,7 +364,7 @@ pub async fn enforce_auth_user_boundary(
     let should_purge = match previous_user_id.as_deref() {
         Some(previous) if previous == user_id => false,
         Some(_) => true,
-        None => local_user_content_exists(&pool).await?,
+        None => false,
     };
 
     if should_purge {
@@ -684,7 +643,7 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), String> {
         CREATE TABLE IF NOT EXISTS runtime_state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS dashboard_events (id INTEGER PRIMARY KEY AUTOINCREMENT, event_type TEXT NOT NULL, module_id TEXT NOT NULL, related_module_id TEXT, action TEXT NOT NULL, payload TEXT NOT NULL DEFAULT '{}', created_at INTEGER NOT NULL);
         CREATE INDEX IF NOT EXISTS idx_dashboard_events_created_at ON dashboard_events(created_at DESC);
-        CREATE TABLE IF NOT EXISTS journal_entries (id TEXT PRIMARY KEY, date TEXT NOT NULL UNIQUE, blocks TEXT NOT NULL DEFAULT '[]', word_count INTEGER DEFAULT 0, mood TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)
+        CREATE TABLE IF NOT EXISTS journal_entries (id TEXT PRIMARY KEY, date TEXT NOT NULL UNIQUE, blocks TEXT NOT NULL DEFAULT '[]', word_count INTEGER DEFAULT 0, mood TEXT, weather TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)
         "#,
         // Batch 8: Nutrition
         r#"
@@ -787,6 +746,7 @@ async fn run_migrations(pool: &SqlitePool) -> Result<(), String> {
         "ALTER TABLE tasks ADD COLUMN archived INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE tasks ADD COLUMN parent_id TEXT",
         "ALTER TABLE tasks ADD COLUMN completed_at INTEGER",
+        "ALTER TABLE journal_entries ADD COLUMN weather TEXT",
     ];
 
     for stmt in alter_statements {

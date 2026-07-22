@@ -1,7 +1,7 @@
 use std::{
     env,
     path::PathBuf,
-    sync::atomic::{AtomicU8, Ordering},
+    sync::atomic::{AtomicI64, AtomicU8, Ordering},
     sync::Arc,
 };
 
@@ -43,16 +43,20 @@ static BUILD_TIME_FLOOR: Lazy<DateTime<Utc>> = Lazy::new(|| {
 // a race window). Resets after 30s of no denials.
 struct GateDenialCounter {
     count: AtomicU8,
+    last_hit_epoch_ms: AtomicI64,
 }
 
 impl GateDenialCounter {
     fn new() -> Self {
         Self {
             count: AtomicU8::new(0),
+            last_hit_epoch_ms: AtomicI64::new(0),
         }
     }
 
     fn hit(&self) -> u8 {
+        self.last_hit_epoch_ms
+            .store(crate::util::time::now_ms(), Ordering::Release);
         let prev = self.count.fetch_add(1, Ordering::AcqRel);
         prev + 1
     }
@@ -62,7 +66,18 @@ impl GateDenialCounter {
     }
 
     fn is_throttled(&self) -> bool {
-        self.count.load(Ordering::Acquire) >= 10
+        let count = self.count.load(Ordering::Acquire);
+        if count < 10 {
+            return false;
+        }
+        // Auto-reset after 30s of no denials (matches documented behavior)
+        let last_hit = self.last_hit_epoch_ms.load(Ordering::Acquire);
+        let elapsed = crate::util::time::now_ms() - last_hit;
+        if elapsed > 30_000 {
+            self.reset();
+            return false;
+        }
+        true
     }
 }
 

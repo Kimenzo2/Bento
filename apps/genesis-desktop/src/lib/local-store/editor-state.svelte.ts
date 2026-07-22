@@ -114,11 +114,18 @@ function normStyle(style: unknown): TextStyle {
   return TS.Paragraph;
 }
 function rowToBlock(row: BlockRow): Block {
+  const blockType = row.type;
+  let content: any;
+  if (blockType === 'text' || blockType === 'title' || blockType === 'description') {
+    content = parseContentText(row.content);
+  } else {
+    try { content = JSON.parse(row.content); } catch { content = {}; }
+  }
   return {
     id: row.id,
-    type: row.type as any,
+    type: blockType as any,
     parentId: row.parentId ?? undefined,
-    content: parseContentText(row.content),
+    content,
     childrenIds: [],
     bgColor: row.bgColor || undefined,
     fields: row.fields ? tryJson(row.fields) : undefined,
@@ -411,11 +418,13 @@ function initEmpty(newObjectId: string) {
 /**
  * Init the editor for a given object — Anytype's `page.tsx useEffect([rootId])`.
  * @param forceEmpty — when true, skip backend fetch and start with a blank document immediately.
+ * @param quiet — when true, skip setting `loading = true` to avoid a loading flash (used for undo/redo).
  */
 export async function init(
   objectIdParam: string,
   source: "notes" | "journal" = "notes",
   forceEmpty = false,
+  quiet = false,
 ) {
   pendingInitId = objectIdParam;
   const cur = () => pendingInitId === objectIdParam;
@@ -424,8 +433,10 @@ export async function init(
   if (!cur()) return;
 
   objectId = objectIdParam;
-  loading = true;
-  loaded = false;
+  if (!quiet) {
+    loading = true;
+    loaded = false;
+  }
   if (!cur()) return;
 
   // When forceEmpty, skip the backend fetch entirely — start with a blank document.
@@ -672,14 +683,27 @@ export async function convertBlockStyle(blockId: string, newStyle: TextStyle) {
   if (!b || !isTextBlock(b)) return;
   const ct = b.content as ContentText;
 
-  // Update title/description tracking
   const styleNum = Number(newStyle);
   if (styleNum === TS.Title) {
+    if (titleBlockId && titleBlockId !== blockId) {
+      const existing = blocks.get(titleBlockId);
+      if (existing) {
+        const ect = existing.content as ContentText;
+        blocks.set(titleBlockId, { ...existing, content: { ...ect, style: TS.Paragraph } });
+      }
+    }
     titleBlockId = blockId;
   } else if (titleBlockId === blockId && styleNum !== TS.Title) {
     titleBlockId = null;
   }
   if (styleNum === TS.Description) {
+    if (descriptionBlockId && descriptionBlockId !== blockId) {
+      const existing = blocks.get(descriptionBlockId);
+      if (existing) {
+        const ect = existing.content as ContentText;
+        blocks.set(descriptionBlockId, { ...existing, content: { ...ect, style: TS.Paragraph } });
+      }
+    }
     descriptionBlockId = blockId;
   } else if (descriptionBlockId === blockId && styleNum !== TS.Description) {
     descriptionBlockId = null;
@@ -701,6 +725,7 @@ export async function addBlock(
   afterId?: string,
   text = "",
   style: TextStyle = TS.Paragraph,
+  opts?: { blockType?: string; content?: any },
 ): Promise<string> {
   const oid = objectId;
   if (!oid) return "";
@@ -710,14 +735,16 @@ export async function addBlock(
     const idx = children.indexOf(afterId);
     if (idx !== -1) position = idx + 1;
   }
+  const blockType = opts?.blockType ?? "text";
+  const content = opts?.content ?? mkContent(text, style);
   try {
     const result: BlockRow = await invoke("notes_block_create", {
       params: {
         noteId: oid,
         parentId: null,
         targetId: afterId ?? null,
-        blockType: "text",
-        content: mkContent(text, style),
+        blockType,
+        content,
         position,
         align: 0,
         bgColor: null,
@@ -742,17 +769,27 @@ export async function deleteBlock(blockId: string) {
   if (titleBlockId === blockId || descriptionBlockId === blockId) return;
   const oid = objectId;
   if (!oid) return;
-  const childIds = blocks.get(blockId)?.childrenIds ?? [];
-  blocks.delete(blockId);
-  for (const c of childIds) blocks.delete(c);
+
+  // Collect all descendants recursively
+  function collectDescendants(id: string): string[] {
+    const ids: string[] = [id];
+    const children = blocks.get(id)?.childrenIds ?? [];
+    for (const c of children) {
+      ids.push(...collectDescendants(c));
+    }
+    return ids;
+  }
+  const allIds = collectDescendants(blockId);
+
+  for (const id of allIds) blocks.delete(id);
   for (let i = rootChildren.length - 1; i >= 0; i--) {
-    if (rootChildren[i] === blockId || childIds.includes(rootChildren[i])) {
+    if (allIds.includes(rootChildren[i])) {
       rootChildren.splice(i, 1);
     }
   }
   if (focusedId === blockId) focusedId = null;
   try {
-    await invoke("notes_block_unlink", { noteId: oid, blockIds: [blockId, ...childIds] });
+    await invoke("notes_block_unlink", { noteId: oid, blockIds: allIds });
   } catch (e) {
     console.error("[editor-state] deleteBlock", e);
   }
@@ -963,6 +1000,8 @@ export function clearBlocks() {
   blocks = newBlocks;
   rootChildren = [pid];
   focusedId = null;
+  titleBlockId = null;
+  descriptionBlockId = null;
 }
 
 // ─── `editorStore` wrapper object — backward-compat for method calls ────

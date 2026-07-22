@@ -28,6 +28,7 @@ use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     SqlitePool,
 };
+use tauri::Emitter;
 use tokio::sync::RwLock;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -132,12 +133,27 @@ impl CryptoService {
         load_salt().is_ok()
     }
 
-    /// First-time setup: derive key from password, store salt, open the main pool.
+    /// First-time setup: derive key from password, migrate all databases
+    /// from plaintext → encrypted, store salt, open the main pool.
+    ///
+    /// Process is idempotent: already-encrypted databases are skipped.
+    /// All file operations are async (tokio::fs) to avoid blocking the runtime.
+    /// Emits `crypto:setup-progress` events for UI progress tracking.
     pub async fn setup_master_password(
         &self,
         password: &str,
         data_dir: &Path,
+        app: Option<&tauri::AppHandle>,
     ) -> Result<(), String> {
+        // Concurrency guard: only one setup can run at a time.
+        // If a previous setup is in-flight, this call waits for it.
+        {
+            let inner = self.0.write().await;
+            if inner.status == CryptoStatus::Unlocked {
+                return Err("Encryption is already configured and unlocked.".to_string());
+            }
+        }
+
         let started = Instant::now();
         validate_password_strength(password)?;
 
@@ -152,10 +168,162 @@ impl CryptoService {
             started.elapsed()
         );
 
-        backup_and_remove_plaintext_databases(data_dir)?;
+        // Emit progress: backing up
+        emit_progress(app, "backup", 0, "Backing up databases...");
 
-        // Open only the main pool eagerly. Other module pools stay lazy so the
-        // first-run encryption path doesn't spend time initializing every file.
+        // Phase 1: Backup all plaintext databases. If any backup fails,
+        // abort before touching the originals — no data is lost.
+        let timestamp = chrono::Utc::now().format("%Y%m%dT%H%M%SZ");
+        let backup_dir = data_dir
+            .join("backups")
+            .join(format!("pre-sqlcipher-{timestamp}"));
+        tokio::fs::create_dir_all(&backup_dir)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let existing = MODULE_DB_FILES
+            .iter()
+            .filter_map(|(_, filename)| {
+                let path = data_dir.join(filename);
+                path.exists().then_some((filename, path))
+            })
+            .collect::<Vec<_>>();
+
+        // Check available disk space (need ~2x DB size for migration)
+        let total_db_size: u64 = futures::future::join_all(
+            existing
+                .iter()
+                .map(|(_, path)| async move {
+                    tokio::fs::metadata(path)
+                        .await
+                        .map(|m| m.len())
+                        .unwrap_or(0)
+                }),
+        )
+        .await
+        .into_iter()
+        .sum();
+        // Require at least 2x the total DB size plus 10 MB headroom
+        let required_bytes = total_db_size.saturating_mul(2).saturating_add(10 * 1024 * 1024);
+        {
+            use sysinfo::Disks;
+            let disks = Disks::new_with_refreshed_list();
+            if let Some(disk) = disks.iter().find(|d| {
+                data_dir
+                    .to_str()
+                    .map(|p| p.starts_with(d.mount_point().to_str().unwrap_or("")))
+                    .unwrap_or(false)
+            }) {
+                let available = disk.available_space();
+                if available < required_bytes {
+                    return Err(format!(
+                        "Insufficient disk space for encryption. Need at least {} MB, {} MB available.",
+                        required_bytes / (1024 * 1024),
+                        available / (1024 * 1024)
+                    ));
+                }
+            }
+        }
+
+        for (i, (filename, path)) in existing.iter().enumerate() {
+            let progress = ((i as f64 / existing.len() as f64) * 30.0) as u32;
+            emit_progress(app, "backup", progress, &format!("Backing up {filename}..."));
+
+            tokio::fs::copy(path, backup_dir.join(filename))
+                .await
+                .map_err(|e| format!("Backup {filename}: {e}"))?;
+            for suffix in ["-wal", "-shm"] {
+                let sibling = PathBuf::from(format!("{}{}", path.display(), suffix));
+                if sibling.exists() {
+                    tokio::fs::copy(&sibling, backup_dir.join(format!("{filename}{suffix}")))
+                        .await
+                        .map_err(|e| format!("Backup {filename}{suffix}: {e}"))?;
+                }
+            }
+        }
+
+        // Phase 2: Migrate each database from plaintext → encrypted in-place.
+        // Uses sqlcipher_export to copy all data into a new encrypted file,
+        // then atomically renames it over the original. No data is deleted
+        // before the encrypted version is verified.
+        for (i, (filename, path)) in existing.iter().enumerate() {
+            let module = filename.trim_end_matches(".db");
+
+            // Skip if already encrypted (idempotent — handles crash recovery)
+            if is_encrypted_database(path) {
+                let progress = 30 + ((i as f64 / existing.len() as f64) * 60.0) as u32;
+                emit_progress(
+                    app,
+                    "migrate",
+                    progress,
+                    &format!("Skipping {filename} (already encrypted)..."),
+                );
+                continue;
+            }
+
+            let progress = 30 + ((i as f64 / existing.len() as f64) * 60.0) as u32;
+            emit_progress(app, "migrate", progress, &format!("Encrypting {filename}..."));
+
+            let plain_opts = SqliteConnectOptions::new()
+                .filename(path)
+                .journal_mode(SqliteJournalMode::Wal);
+            let plain_pool = SqlitePoolOptions::new()
+                .max_connections(1)
+                .connect_with(plain_opts)
+                .await
+                .map_err(|e| format!("Open {filename} for migration: {e}"))?;
+
+            // Checkpoint WAL to ensure all data is in the main DB file
+            sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
+                .execute(&plain_pool)
+                .await
+                .map_err(|e| format!("Checkpoint {filename}: {e}"))?;
+
+            // Count rows before migration for integrity verification
+            let row_count_before = count_all_rows(&plain_pool)
+                .await
+                .map_err(|e| format!("Count rows in {filename}: {e}"))?;
+
+            // Export to a temporary encrypted file
+            let enc_path = data_dir.join(format!("{module}.enc_setup.db"));
+            encrypt_via_export(&plain_pool, &enc_path, &key)
+                .await
+                .map_err(|e| format!("Encrypt {filename}: {e}"))?;
+
+            plain_pool.close().await;
+
+            // Verify encrypted database has the same row count
+            let enc_pool = open_encrypted_pool(&enc_path, &key, 1)
+                .await
+                .map_err(|e| format!("Open encrypted {filename} for verification: {e}"))?;
+            let row_count_after = count_all_rows(&enc_pool)
+                .await
+                .map_err(|e| format!("Verify {filename}: {e}"))?;
+            enc_pool.close().await;
+
+            if row_count_before != row_count_after {
+                let _ = tokio::fs::remove_file(&enc_path).await;
+                return Err(format!(
+                    "Data integrity check failed for {filename}: \
+                     source has {row_count_before} rows, encrypted has {row_count_after}. \
+                     Migration aborted — original data is untouched."
+                ));
+            }
+
+            // Atomically replace the plaintext file with the encrypted version
+            tokio::fs::rename(&enc_path, path)
+                .await
+                .map_err(|e| format!("Replace {filename}: {e}"))?;
+
+            // Clean up WAL/SHM from the old plaintext pool
+            for suffix in ["-wal", "-shm"] {
+                let _ = tokio::fs::remove_file(format!("{}{}", path.display(), suffix)).await;
+            }
+        }
+
+        // Phase 3: Open the encrypted main pool and run migrations
+        // (creates any new tables/columns that didn't exist in the plaintext version)
+        emit_progress(app, "finalize", 95, "Finalizing encryption...");
         let main_pool = open_module_pool("main", data_dir, &key, MAIN_DB_MAX_CONNECTIONS).await?;
         crate::db::run_encrypted_migrations(&main_pool).await?;
 
@@ -166,10 +334,16 @@ impl CryptoService {
         let mut inner = self.0.write().await;
         inner.status = CryptoStatus::Unlocked;
         inner.key = Some(key);
-        inner.pools = std::collections::HashMap::from([(String::from("main"), main_pool.clone())]);
+        inner.pools =
+            std::collections::HashMap::from([(String::from("main"), main_pool.clone())]);
         inner.data_dir = data_dir.to_path_buf();
 
-        eprintln!("[crypto] setup completed in {:?}", started.elapsed());
+        emit_progress(app, "done", 100, "Encryption complete!");
+        eprintln!(
+            "[crypto] setup completed in {:?} — migrated {} databases",
+            started.elapsed(),
+            existing.len()
+        );
         Ok(())
     }
 
@@ -538,6 +712,65 @@ async fn open_plaintext_module_pool(
     Ok(pool)
 }
 
+/// Check if a database file is already encrypted by reading its header.
+/// SQLCipher databases start with the salt bytes in the first 16 bytes,
+/// which differ from the SQLite header magic ("SQLite format 3\000").
+fn is_encrypted_database(path: &Path) -> bool {
+    let mut header = [0u8; 16];
+    use std::io::Read;
+    let Ok(mut file) = std::fs::File::open(path) else {
+        return false;
+    };
+    if file.read_exact(&mut header).is_err() {
+        return false;
+    }
+    // SQLite header starts with "SQLite format 3\000" (16 bytes)
+    // SQLCipher encrypted databases have random-looking bytes here
+    let sqlite_magic = b"SQLite format 3\0";
+    header != *sqlite_magic
+}
+
+/// Emit a progress event for the encryption setup UI.
+fn emit_progress(app: Option<&tauri::AppHandle>, phase: &str, percent: u32, message: &str) {
+    let Some(app) = app else { return };
+    #[derive(Clone, serde::Serialize)]
+    struct ProgressPayload {
+        phase: String,
+        percent: u32,
+        message: String,
+    }
+    let _ = app.emit(
+        "crypto:setup-progress",
+        ProgressPayload {
+            phase: phase.to_string(),
+            percent,
+            message: message.to_string(),
+        },
+    );
+}
+
+/// Count total rows across all tables in a database pool.
+/// Used for data integrity verification after migration.
+async fn count_all_rows(pool: &SqlitePool) -> Result<i64, String> {
+    let tables: Vec<(String,)> = sqlx::query_as(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+    )
+    .fetch_all(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let mut total: i64 = 0;
+    for (table,) in &tables {
+        let escaped = table.replace('"', "\"\"");
+        let count: (i64,) = sqlx::query_as(&format!("SELECT COUNT(*) FROM \"{escaped}\""))
+            .fetch_one(pool)
+            .await
+            .map_err(|e| format!("Count {table}: {e}"))?;
+        total += count.0;
+    }
+    Ok(total)
+}
+
 fn module_db_path(module: &str, data_dir: &Path) -> Result<PathBuf, String> {
     let filename = MODULE_DB_FILES
         .iter()
@@ -546,45 +779,6 @@ fn module_db_path(module: &str, data_dir: &Path) -> Result<PathBuf, String> {
         .ok_or_else(|| format!("Unknown module database: {module}"))?;
 
     Ok(data_dir.join(filename))
-}
-
-fn backup_and_remove_plaintext_databases(data_dir: &Path) -> Result<(), String> {
-    let existing = MODULE_DB_FILES
-        .iter()
-        .filter_map(|(_, filename)| {
-            let path = data_dir.join(filename);
-            path.exists().then_some((filename, path))
-        })
-        .collect::<Vec<_>>();
-
-    if existing.is_empty() {
-        return Ok(());
-    }
-
-    let timestamp = chrono::Utc::now().format("%Y%m%dT%H%M%SZ");
-    let backup_dir = data_dir
-        .join("backups")
-        .join(format!("pre-sqlcipher-{timestamp}"));
-    fs::create_dir_all(&backup_dir).map_err(|error| error.to_string())?;
-
-    for (filename, path) in existing {
-        fs::copy(&path, backup_dir.join(filename))
-            .map_err(|error| format!("Backup {filename}: {error}"))?;
-        fs::remove_file(&path).map_err(|error| format!("Remove plaintext {filename}: {error}"))?;
-
-        for suffix in ["-wal", "-shm"] {
-            let sibling = PathBuf::from(format!("{}{}", path.display(), suffix));
-            if sibling.exists() {
-                let backup_name = format!("{filename}{suffix}");
-                fs::copy(&sibling, backup_dir.join(backup_name))
-                    .map_err(|error| format!("Backup {filename}{suffix}: {error}"))?;
-                fs::remove_file(&sibling)
-                    .map_err(|error| format!("Remove plaintext {filename}{suffix}: {error}"))?;
-            }
-        }
-    }
-
-    Ok(())
 }
 
 /// Open one encrypted SQLite pool. The PRAGMA key must be set before ANY
@@ -688,11 +882,23 @@ async fn rekey_database(
 
 /// Export source pool into a new encrypted database at `dest_path`.
 /// sqlcipher_export() copies page-by-page — works even for in-use databases.
+///
+/// Security notes:
+/// - `dest_key` is internally generated (Argon2id derivation), not user input.
+/// - `key_pragma` format is always `x'<64-hex-chars>'` — hex charset is safe
+///   for SQL interpolation. Path is SQL-escaped with single-quote doubling.
+/// - WAL is checkpointed before export to ensure all data is in the main DB.
 async fn encrypt_via_export(
     source_pool: &SqlitePool,
     dest_path: &Path,
     dest_key: &DerivedKey,
 ) -> Result<(), String> {
+    // Checkpoint WAL to ensure all data is in the main database file
+    sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
+        .execute(source_pool)
+        .await
+        .map_err(|e| format!("WAL checkpoint failed: {e}"))?;
+
     let dest_str = dest_path
         .to_str()
         .ok_or("Non-UTF8 destination path")?

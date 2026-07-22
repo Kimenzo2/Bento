@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
   import { X, Calendar, Clock, Hash, FileText } from 'lucide-svelte';
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   let {
     noteId = '',
@@ -42,7 +43,7 @@
 <div class="properties-panel">
   <div class="properties-header">
     <span class="properties-title">Properties</span>
-    <button class="properties-close" onclick={() => onClose()} aria-label="Close" type="button"><X size={14} /></button>
+    <button class="properties-close" onclick={() => onClose()} aria-label="Close" type="button" use:tooltip={{ text: "Close" }}><X size={14} /></button>
   </div>
 
   {#if loading}

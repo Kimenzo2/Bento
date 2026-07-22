@@ -183,8 +183,11 @@ apps/genesis-desktop/src-tauri/src/saved_settings.rs.bak
 
 .opencode/
 
-EchoIsland/
 NUL
 glyph-temp/
 
 tmp-clicky/
+
+# Removed from Genesis — kept outside repo
+expo-morphing-menu/
+openNook

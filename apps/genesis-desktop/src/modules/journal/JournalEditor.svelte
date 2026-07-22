@@ -8,6 +8,7 @@
   import { editorStore, getRootBlocks, getIsEditorLoading } from '$lib/local-store/store';
   import { TextStyle } from '$lib/local-store/block';
   import { getJournalEntry, saveJournalEntry } from '$lib/services/journal-service';
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -108,6 +109,7 @@
         entryLabel = formatEntryDate(entry.date);
         entryYear = formatEntryYear(entry.date);
         if (entry.mood) selectedMood = entry.mood;
+        if (entry.weather) selectedWeather = entry.weather;
       }
     } catch {
       // getJournalEntry failed entirely (network, backend down, etc.)
@@ -140,14 +142,10 @@
     entryTimeLabel = formatTimeLabel();
 
     await editorStore.init(objectId, 'journal');
-    // Auto-focus the first paragraph block
+    // Auto-focus the first block
     await tick();
     const blocks = getRootBlocks();
-    const firstBlock = blocks.find((b: any) => (b.content as any)?.style !== 0);
-    if (firstBlock?.id) {
-      editorStore.focusBlock(firstBlock.id);
-      focusBlock(firstBlock.id, 0);
-    } else if (blocks[0]?.id) {
+    if (blocks[0]?.id) {
       editorStore.focusBlock(blocks[0].id);
       focusBlock(blocks[0].id, 0);
     }
@@ -210,15 +208,15 @@
     if (isSavingNow) return;
     isSavingNow = true;
     try {
-      // Serialise blocks directly from contenteditable without syncing
-      // back into the reactive store (which would cause re-renders).
-      // The store already has the live text cached via persistBlockText,
-      // but the reactive blocks map doesn't need updating for save.
-      const rootBlocks = getRootBlocks();
-      const textContent = rootBlocks.map(b => {
-        // Read text directly from DOM for the currently-focused block,
-        // so we don't need to call syncBlockTextToStore (which triggers
-        // a reactive cascade through every BlockRenderer).
+      // Sync all blocks from the live text cache before serializing,
+      // so saved data reflects the user's latest typing.
+      const rootBlockIds = getRootBlocks().map(b => b.id).filter(Boolean) as string[];
+      for (const id of rootBlockIds) {
+        editorStore.syncBlockTextToStore(id);
+      }
+      // Re-read blocks after syncing — the store replaced the objects
+      const syncedBlocks = getRootBlocks();
+      const textContent = syncedBlocks.map(b => {
         if (b.id) {
           const el = document.querySelector<HTMLElement>(`[data-block-id="${b.id}"] .editable`);
           if (el) {
@@ -229,7 +227,7 @@
       }).join('\n').trim();
       const wc = textContent ? textContent.split(/\s+/).filter(Boolean).length : 0;
       const blocksJson = JSON.stringify(
-        rootBlocks.map(b => ({
+        syncedBlocks.map(b => ({
           id: b.id,
           type: b.type,
           content: b.content,
@@ -238,7 +236,7 @@
 
 
       try {
-        await saveJournalEntry(objectId, entryDate || time.toISODate(time.now()), blocksJson, wc);
+        await saveJournalEntry(objectId, entryDate || time.toISODate(time.now()), blocksJson, wc, selectedMood, selectedWeather);
         // Clear any stale localStorage entry now that DB save succeeded
         localStorage.removeItem(`journal:id:${objectId}`);
       } catch {
@@ -308,7 +306,29 @@
   async function focusBlock(blockId: string, pos = 0) {
     await tick();
     const el = document.querySelector<HTMLElement>(`[data-block-id="${blockId}"] .editable`);
-    if (el) { el.focus(); }
+    if (!el) return;
+    el.focus();
+    const sel = window.getSelection();
+    if (!sel) return;
+    const range = document.createRange();
+    let charIndex = 0;
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let node: Text | null;
+    while ((node = walker.nextNode() as Text | null)) {
+      const nextIndex = charIndex + node.textContent!.length;
+      if (charIndex <= pos && pos <= nextIndex) {
+        range.setStart(node, pos - charIndex);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        return;
+      }
+      charIndex = nextIndex;
+    }
+    range.selectNodeContents(el);
+    range.collapse(pos > 0);
+    sel.removeAllRanges();
+    sel.addRange(range);
   }
 
   function handleUpdate(blockId: string, text: string, marks: any[]) {
@@ -345,9 +365,10 @@
       const idx = getRootBlocks().findIndex((b: any) => b.id === blockId);
       if (idx <= 0) return;
       const prev = getRootBlocks()[idx - 1];
+      const prevText = (prev.content as any)?.text ?? '';
       await editorStore.deleteBlock(blockId);
       editorStore.focusBlock(prev.id!);
-      focusBlock(prev.id!);
+      focusBlock(prev.id!, prevText.length);
       scheduleAutoSave();
       return;
     }
@@ -393,7 +414,13 @@
 
   async function handleSlashSelect(cmd: typeof SLASH_COMMANDS[0]) {
     if (!slashAnchorBlockId) return;
-    if (cmd.style !== null) {
+    if (cmd.type === 'divider') {
+      const anchorIdx = getRootBlocks().findIndex((b: any) => b.id === slashAnchorBlockId);
+      const afterId = anchorIdx > 0 ? getRootBlocks()[anchorIdx - 1].id : undefined;
+      await editorStore.deleteBlock(slashAnchorBlockId);
+      const newId = await editorStore.addBlock(afterId, '', 0, { blockType: 'div', content: { style: 0 } });
+      if (newId) { editorStore.focusBlock(newId); focusBlock(newId, 0); }
+    } else if (cmd.style !== null) {
       await editorStore.convertBlockStyle(slashAnchorBlockId, cmd.style);
     } else {
       const newId = await editorStore.addBlock(slashAnchorBlockId, '');
@@ -509,7 +536,7 @@
               onclick={() => { selectedMood = selectedMood === mood.id ? null : mood.id; scheduleAutoSave(); }}
               aria-label={mood.label}
               aria-pressed={selectedMood === mood.id}
-              title={mood.label}
+              use:tooltip={{ text: mood.label }}
             ></button>
           {/each}
         </div>
@@ -524,7 +551,7 @@
               class:je-weather-btn--selected={selectedWeather === w.id}
               onclick={() => { selectedWeather = selectedWeather === w.id ? null : w.id; scheduleAutoSave(); }}
               aria-label={w.label}
-              title={w.label}
+              use:tooltip={{ text: w.label }}
             >
               {@html weatherSvg(w.id)}
             </button>
@@ -584,7 +611,7 @@
               onToggle={handleToggle}
               onStyleConvert={handleStyleConvert}
             />
-            <button class="je-add-btn" onclick={() => addBlockBelow(block.id)} aria-label="Add block below">
+            <button class="je-add-btn" onclick={() => addBlockBelow(block.id)} aria-label="Add block below" use:tooltip={{ text: "Add block" }}>
               <Plus size={13} />
             </button>
           </div>
@@ -609,12 +636,20 @@
 
     <!-- Slash menu -->
     {#if showSlashMenu}
-      <div class="je-slash-menu" style="top:{slashMenuStyle.top}; left:{slashMenuStyle.left};" role="listbox" tabindex="0">
+      <div class="je-slash-menu" style="top:{slashMenuStyle.top}; left:{slashMenuStyle.left};" role="listbox" tabindex="0"
+        onkeydown={(e) => {
+          if (e.key === 'ArrowDown') { e.preventDefault(); slashMenuIndex = (slashMenuIndex + 1) % filteredCommands.length; }
+          else if (e.key === 'ArrowUp') { e.preventDefault(); slashMenuIndex = (slashMenuIndex - 1 + filteredCommands.length) % filteredCommands.length; }
+          else if (e.key === 'Enter') { e.preventDefault(); handleSlashSelect(filteredCommands[slashMenuIndex]); }
+          else if (e.key === 'Escape') { e.preventDefault(); showSlashMenu = false; }
+        }}>
         <div class="je-slash-header">Blocks</div>
         {#each filteredCommands as cmd, i}
           <button
             class="je-slash-item"
             class:je-slash-item--active={i === slashMenuIndex}
+            role="option"
+            aria-selected={i === slashMenuIndex}
             onclick={() => handleSlashSelect(cmd)}
           >
             <span class="je-slash-icon"><cmd.icon size={15} /></span>

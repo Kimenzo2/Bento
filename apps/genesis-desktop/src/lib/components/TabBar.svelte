@@ -1,5 +1,6 @@
 <script lang="ts">
   import { X, Plus, ChevronLeft, ChevronRight } from 'lucide-svelte';
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   interface Tab {
     id: string;
@@ -31,8 +32,8 @@
 
 <div class="tab-bar">
   <div class="tab-nav">
-    <button class="tab-nav-btn" disabled={!canGoBack} onclick={() => onGoBack()} type="button" aria-label="Go back"><ChevronLeft size={14} /></button>
-    <button class="tab-nav-btn" disabled={!canGoForward} onclick={() => onGoForward()} type="button" aria-label="Go forward"><ChevronRight size={14} /></button>
+    <button class="tab-nav-btn" disabled={!canGoBack} onclick={() => onGoBack()} type="button" aria-label="Go back" use:tooltip={{ text: "Go back" }}><ChevronLeft size={14} /></button>
+    <button class="tab-nav-btn" disabled={!canGoForward} onclick={() => onGoForward()} type="button" aria-label="Go forward" use:tooltip={{ text: "Go forward" }}><ChevronRight size={14} /></button>
   </div>
 
   <div class="tab-strip">
@@ -40,7 +41,7 @@
       <button class="tab-item" class:active={tab.id === activeTabId} onclick={() => onSelectTab(tab.id)} type="button" role="tab" aria-selected={tab.id === activeTabId}>
         <span class="tab-icon">{tab.icon ?? '\u{1F4C4}'}</span>
         <span class="tab-label">{tabLabel(tab)}</span>
-        <span class="tab-close" onclick={(e) => handleClose(e, tab.id)} role="button" tabindex="0" aria-label="Close tab">
+        <span class="tab-close" onclick={(e) => handleClose(e, tab.id)} role="button" tabindex="0" aria-label="Close tab" use:tooltip={{ text: "Close tab" }}>
           <X size={12} />
         </span>
       </button>

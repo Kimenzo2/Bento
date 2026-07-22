@@ -309,6 +309,7 @@ export const desktopSettings = writable<DesktopSettings>(defaultDesktopSettings)
 export const desktopSettingsReady = writable(false);
 
 let settingsStorePromise: Promise<Store> | null = null;
+let hydrationPromise: Promise<DesktopSettings> | null = null;
 
 export function normalizeThemeId(themeId: string): ThemeId {
   return desktopThemes.find((theme) => theme.id === themeId)?.id ?? defaultThemeId;
@@ -982,6 +983,8 @@ export async function saveDesktopSettings(nextSettings: DesktopSettings): Promis
 }
 
 export async function hydrateDesktopSettings(): Promise<DesktopSettings> {
+  if (hydrationPromise) return hydrationPromise;
+  const p = (async () => {
   const current = await loadDesktopSettings();
   const legacySettings = readLegacyBrowserSettings();
   const nativeMirror = await readNativeSettingsMirror();
@@ -1051,6 +1054,12 @@ export async function hydrateDesktopSettings(): Promise<DesktopSettings> {
     clearLegacyBrowserSettings();
   }
   return finalized;
+})();
+  hydrationPromise = p.catch((e) => {
+    hydrationPromise = null;
+    throw e;
+  });
+  return hydrationPromise;
 }
 
 export async function updateDesktopSettings(

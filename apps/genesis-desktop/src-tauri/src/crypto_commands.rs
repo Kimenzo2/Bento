@@ -87,7 +87,7 @@ pub async fn crypto_setup_master_password(
     }
 
     // Now setup encryption — no other pool holds app.db open.
-    crypto.setup_master_password(&password, &data_dir).await?;
+    crypto.setup_master_password(&password, &data_dir, Some(&app)).await?;
 
     // Hot-swap in the real encrypted pool pair.
     if let Some(state) = app.try_state::<BentoAppState>() {

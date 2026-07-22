@@ -30,6 +30,7 @@ fn journal_search_document(entry: &JournalEntry) -> SearchDocument {
         extra: serde_json::json!({
             "wordCount": entry.word_count,
             "mood": entry.mood,
+            "weather": entry.weather,
         }),
     }
 }
@@ -42,6 +43,7 @@ pub struct JournalEntry {
     pub blocks: String, // JSON array of Block objects
     pub word_count: i32,
     pub mood: Option<String>,
+    pub weather: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
 }
@@ -54,6 +56,7 @@ pub struct SaveEntryParams {
     pub blocks: String,
     pub word_count: i32,
     pub mood: Option<String>,
+    pub weather: Option<String>,
 }
 
 /// Create a new blank journal entry for the given date.
@@ -72,12 +75,13 @@ pub async fn create_journal_entry(
     let id = Uuid::new_v4().to_string();
 
     sqlx::query(
-        "INSERT INTO journal_entries (id, date, blocks, word_count, mood, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO journal_entries (id, date, blocks, word_count, mood, weather, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(&id)
     .bind(&date)
     .bind("[]")
     .bind(0)
+    .bind(&None::<String>)
     .bind(&None::<String>)
     .bind(now)
     .bind(now)
@@ -91,6 +95,7 @@ pub async fn create_journal_entry(
         blocks: "[]".to_string(),
         word_count: 0,
         mood: None,
+        weather: None,
         created_at: now,
         updated_at: now,
     };
@@ -126,11 +131,12 @@ pub async fn save_journal_entry(
 
     if exists {
         sqlx::query(
-            "UPDATE journal_entries SET blocks = ?, word_count = ?, mood = ?, updated_at = ? WHERE id = ?",
+            "UPDATE journal_entries SET blocks = ?, word_count = ?, mood = ?, weather = ?, updated_at = ? WHERE id = ?",
         )
         .bind(&params.blocks)
         .bind(params.word_count)
         .bind(&params.mood)
+        .bind(&params.weather)
         .bind(now)
         .bind(&params.id)
         .execute(&db)
@@ -139,12 +145,13 @@ pub async fn save_journal_entry(
     } else {
         // Insert a new row (shouldn't normally happen — use create_journal_entry instead)
         sqlx::query(
-            "INSERT INTO journal_entries (id, date, blocks, word_count, mood, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO journal_entries (id, date, blocks, word_count, mood, weather, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&params.id)            .bind(&params.date)
             .bind(&params.blocks)
         .bind(params.word_count)
         .bind(&params.mood)
+        .bind(&params.weather)
         .bind(now)
         .bind(now)
         .execute(&db)
@@ -154,7 +161,7 @@ pub async fn save_journal_entry(
 
     // Fetch the full row to return accurate data (including date, created_at)
     let row = sqlx::query(
-        "SELECT id, date, blocks, word_count, mood, created_at, updated_at FROM journal_entries WHERE id = ?",
+        "SELECT id, date, blocks, word_count, mood, weather, created_at, updated_at FROM journal_entries WHERE id = ?",
     )
     .bind(&params.id)
     .fetch_optional(&db)
@@ -168,6 +175,7 @@ pub async fn save_journal_entry(
         blocks: row.try_get("blocks").unwrap_or_else(|_| "[]".to_string()),
         word_count: row.try_get("word_count").unwrap_or(0),
         mood: row.try_get("mood").ok().flatten(),
+        weather: row.try_get("weather").ok().flatten(),
         created_at: row.try_get("created_at").unwrap_or(0),
         updated_at: row.try_get("updated_at").unwrap_or(0),
     };
@@ -191,7 +199,7 @@ pub async fn get_journal_entry(
     let db = state.db();
 
     let row = sqlx::query(
-        "SELECT id, date, blocks, word_count, mood, created_at, updated_at FROM journal_entries WHERE id = ?",
+        "SELECT id, date, blocks, word_count, mood, weather, created_at, updated_at FROM journal_entries WHERE id = ?",
     )
     .bind(&id)
     .fetch_optional(&db)
@@ -205,6 +213,7 @@ pub async fn get_journal_entry(
             blocks: r.try_get("blocks").unwrap_or_else(|_| "[]".to_string()),
             word_count: r.try_get("word_count").unwrap_or(0),
             mood: r.try_get("mood").ok().flatten(),
+            weather: r.try_get("weather").ok().flatten(),
             created_at: r.try_get("created_at").unwrap_or(0),
             updated_at: r.try_get("updated_at").unwrap_or(0),
         })),
@@ -247,7 +256,7 @@ pub async fn list_journal_entries(
     let limit = limit.unwrap_or(30).clamp(1, 365);
 
     let rows = sqlx::query(
-        "SELECT id, date, blocks, word_count, mood, created_at, updated_at FROM journal_entries ORDER BY created_at DESC LIMIT ?",
+        "SELECT id, date, blocks, word_count, mood, weather, created_at, updated_at FROM journal_entries ORDER BY created_at DESC LIMIT ?",
     )
     .bind(limit)
     .fetch_all(&db)
@@ -262,6 +271,7 @@ pub async fn list_journal_entries(
             blocks: r.try_get("blocks").unwrap_or_else(|_| "[]".to_string()),
             word_count: r.try_get("word_count").unwrap_or(0),
             mood: r.try_get("mood").ok().flatten(),
+            weather: r.try_get("weather").ok().flatten(),
             created_at: r.try_get("created_at").unwrap_or(0),
             updated_at: r.try_get("updated_at").unwrap_or(0),
         })

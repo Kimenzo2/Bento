@@ -10,6 +10,7 @@ const journalEntrySchema = z
     blocks: z.string(),
     wordCount: z.number().int(),
     mood: z.string().nullable(),
+    weather: z.string().nullable(),
     createdAt: z.number().int(),
     updatedAt: z.number().int(),
   })
@@ -22,6 +23,7 @@ const saveEntryParamsSchema = z
     blocks: z.string(),
     wordCount: z.number().int(),
     mood: z.string().nullable(),
+    weather: z.string().nullable(),
   })
   .strict();
 
@@ -44,8 +46,10 @@ export async function saveJournalEntry(
   date: string,
   blocks: string,
   wordCount: number,
+  mood: string | null = null,
+  weather: string | null = null,
 ): Promise<JournalEntry> {
-  const params: SaveEntryParams = { id, date, blocks, wordCount, mood: null };
+  const params: SaveEntryParams = { id, date, blocks, wordCount, mood, weather };
   const parsed = saveEntryParamsSchema.parse(params);
   const result = await invoke<unknown>("save_journal_entry", { params: parsed });
   return journalEntrySchema.parse(result);

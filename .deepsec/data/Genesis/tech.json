@@ -1,13 +1,6 @@
 {
-  "tags": [
-    "bun",
-    "github-actions",
-    "node"
-  ],
-  "sentinels": [
-    "bun.lock",
-    "package.json"
-  ],
+  "tags": ["bun", "github-actions", "node"],
+  "sentinels": ["bun.lock", "package.json"],
   "detectedAt": "2026-07-03T09:41:59.714Z",
   "rootPath": "C:\\Users\\admin\\Downloads\\Genesis"
 }
