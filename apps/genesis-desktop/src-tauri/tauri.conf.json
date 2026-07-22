@@ -56,7 +56,6 @@
     "active": true,
     "targets": "all",
     "createUpdaterArtifacts": true,
-    "externalBin": ["binaries/bento-mcp", "binaries/genesis-mcp", "binaries/chatgpt-proxy"],
     "resources": ["assets/*"],
     "icon": [
       "icons/32x32.png",
