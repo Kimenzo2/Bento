@@ -18,7 +18,7 @@
   let arabicFontReady = false;
 
   // ── Ringing alarm state (dismiss/snooze) ──
-  let ringingAlarm = $state<{ label: string; moduleId: string; handle: SoundHandle } | null>(null);
+  let ringingAlarm = $state<{ label: string; moduleId: string; soundName: SoundName; handle: SoundHandle } | null>(null);
   let ringingTimer: ReturnType<typeof setTimeout> | null = null;
 
   function dismissAlarm() {
@@ -35,11 +35,12 @@
       stopAlarmSound(handle);
       const label = ringingAlarm.label;
       const moduleId = ringingAlarm.moduleId;
+      const soundName = ringingAlarm.soundName;
       ringingAlarm = null;
       if (ringingTimer) clearTimeout(ringingTimer);
       ringingTimer = setTimeout(() => {
-        const newHandle = playAlarmSound("alarm" as SoundName, { loop: true, volume: 0.6 });
-        if (newHandle) ringingAlarm = { label, moduleId, handle: newHandle };
+        const newHandle = playAlarmSound(soundName, { loop: true, volume: 0.6 });
+        if (newHandle) ringingAlarm = { label, moduleId, soundName, handle: newHandle };
       }, minutes * 60_000);
     }
   }
@@ -247,10 +248,11 @@
             description: ctx,
             duration: 8000,
           });
-          const soundName = (_event?.payload?.sound as string) ?? "alarm";
-          const handle = playAlarmSound(soundName as SoundName, { loop: true, volume: 0.6 });
+          const rawSound = _event?.payload?.sound;
+          const soundName: SoundName = (rawSound != null && rawSound !== "" ? String(rawSound) : "alarm") as SoundName;
+          const handle = playAlarmSound(soundName, { loop: true, volume: 0.6 });
           if (handle) {
-            ringingAlarm = { label, moduleId, handle };
+            ringingAlarm = { label, moduleId, soundName, handle };
             if (ringingTimer) clearTimeout(ringingTimer);
             ringingTimer = setTimeout(() => {
               stopAlarmSound(handle);
@@ -306,6 +308,8 @@
 
     return () => {
       cancelDeferredTasks.forEach((cancel) => cancel());
+      if (ringingTimer) { clearTimeout(ringingTimer); ringingTimer = null; }
+      if (ringingAlarm) { stopAlarmSound(ringingAlarm.handle); ringingAlarm = null; }
       void Promise.all(unlistenPromises).then((callbacks) => {
         callbacks.forEach((callback) => callback());
       });

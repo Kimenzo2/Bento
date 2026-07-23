@@ -40,6 +40,20 @@
 
   let _t = $derived.by(() => createTranslator($activeBundle));
 
+  function toErr(e: unknown): string {
+    return e instanceof Error ? e.message : String(e);
+  }
+
+  function setBanner(msg: string) {
+    bannerError = msg;
+    setTimeout(() => { if (bannerError === msg) bannerError = ""; }, 8000);
+  }
+
+  function setExportFeedback(msg: string) {
+    exportFeedback = msg;
+    setTimeout(() => { if (exportFeedback === msg) exportFeedback = ""; }, 5000);
+  }
+
   const healthGreeting = $derived.by(() => {
     const hour = new Date().getHours();
     if (hour >= 0 && hour < 12) return "Good morning";
@@ -97,10 +111,14 @@
   let logSaving        = $state(false);
   let logSaved         = $state(false);
   let logError         = $state("");
+  let bannerError      = $state("");
+  let exportFeedback   = $state("");
 
   // Real data from DB
   let todayLog: DailyLogRow | null = $state(null);
   let weekLogs: DailyLogRow[] = $state([]);
+  let deepLogs: DailyLogRow[] = $state([]);
+  let correlationRange = $state(30); // 7 | 30 | 90
 
   function toggleSymptom(s: string) {
     selectedSymptoms = selectedSymptoms.includes(s)
@@ -144,12 +162,12 @@
         selectedSymptoms = row.symptoms;
         logNote          = row.note ?? "";
       }
-    } catch (e) { console.error("health_log_today failed:", e); }
+    } catch (e) { setBanner("Failed to load today's log: " + toErr(e)); }
   }
 
   async function loadWeekLogs() {
     try { weekLogs = await invoke("health_logs_week"); }
-    catch (e) { console.error("health_logs_week failed:", e); }
+    catch (e) { setBanner("Failed to load weekly logs: " + toErr(e)); }
   }
 
   // ── Vitals state ──────────────────────────────────────────────
@@ -185,7 +203,17 @@
 
   async function loadVitals() {
     try { vitalHistory = await invoke("health_vitals_list"); }
-    catch (e) { console.error("health_vitals_list failed:", e); }
+    catch (e) { setBanner("Failed to load vitals: " + toErr(e)); }
+  }
+
+  async function deleteVital(id: string) {
+    if (!confirm("Delete this vitals reading?")) return;
+    try {
+      await invoke("health_vitals_delete", { vitalId: id });
+      vitalHistory = vitalHistory.filter(r => r.id !== id);
+    } catch (e: any) {
+      vitalError = e?.toString() ?? "Failed to delete.";
+    }
   }
 
   // #8 fix: use actual entry dates, not day-of-week (avoids collision)
@@ -208,15 +236,19 @@
   async function loadMeds() {
     medLoading = true;
     try { medications = await invoke("health_meds_list"); }
-    catch (e) { console.error("health_meds_list failed:", e); }
+    catch (e) { setBanner("Failed to load medications: " + toErr(e)); }
     finally { medLoading = false; }
   }
 
   async function toggleMed(id: string) {
+    const prev = medications.find(m => m.id === id);
+    medications = medications.map(m => m.id === id ? { ...m, takenToday: !m.takenToday } : m);
     try {
-      const taken: boolean = await invoke("health_med_toggle", { medId: id });
-      medications = medications.map(m => m.id === id ? { ...m, takenToday: taken } : m);
-    } catch (e) { console.error("health_med_toggle failed:", e); }
+      await invoke("health_med_toggle", { medId: id });
+    } catch (e) {
+      medications = medications.map(m => m.id === id && prev ? { ...m, takenToday: prev.takenToday } : m);
+      setBanner("Failed to toggle medication: " + toErr(e));
+    }
   }
 
   async function addMed() {
@@ -248,7 +280,7 @@
     try {
       await invoke("health_med_delete", { medId: id });
       medications = medications.filter(m => m.id !== id);
-    } catch (e) { console.error("health_med_delete failed:", e); }
+    } catch (e) { medError = "Failed to delete medication: " + toErr(e); }
   }
 
   // #7 fix: history view toggle on Daily Log page
@@ -260,14 +292,20 @@
   let takenCount   = $derived(medications.filter(m => m.takenToday).length);
   let adherencePct = $derived(medications.length ? Math.round((takenCount / medications.length) * 100) : 0);
 
+  async function loadDeepLogs() {
+    try { deepLogs = await invoke("health_logs_range", { days: correlationRange }); }
+    catch (e) { setBanner("Failed to load deeper logs: " + toErr(e)); }
+  }
+
   // #6 fix: richer correlation engine — 5 pattern types
   let correlations = $derived.by((): {label:string; positive:boolean; strength:number; note:string}[] => {
-    if (weekLogs.length < 3) return [];
+    const logs = deepLogs.length > 0 ? deepLogs : weekLogs;
+    if (logs.length < 3) return [];
     const avg = (arr: number[]) => arr.length ? arr.reduce((a,b) => a+b, 0) / arr.length : 0;
     const items: {label:string; positive:boolean; strength:number; note:string}[] = [];
 
-    const highSleep = weekLogs.filter(l => l.sleepHours >= 7);
-    const lowSleep  = weekLogs.filter(l => l.sleepHours < 7);
+    const highSleep = logs.filter(l => l.sleepHours >= 7);
+    const lowSleep  = logs.filter(l => l.sleepHours < 7);
     if (highSleep.length && lowSleep.length) {
       const diff = avg(highSleep.map(l => l.energy)) - avg(lowSleep.map(l => l.energy));
       if (Math.abs(diff) > 0.3)
@@ -276,8 +314,8 @@
           note: `Energy averages ${avg(highSleep.map(l=>l.energy)).toFixed(1)}/10 on 7h+ nights vs ${avg(lowSleep.map(l=>l.energy)).toFixed(1)}/10 otherwise.` });
     }
 
-    const highWater = weekLogs.filter(l => l.waterGlasses >= 8);
-    const lowWater  = weekLogs.filter(l => l.waterGlasses < 8);
+    const highWater = logs.filter(l => l.waterGlasses >= 8);
+    const lowWater  = logs.filter(l => l.waterGlasses < 8);
     if (highWater.length && lowWater.length) {
       const hwHeadache = highWater.filter(l => l.symptoms.includes("Headache")).length / highWater.length;
       const lwHeadache = lowWater.filter(l => l.symptoms.includes("Headache")).length / lowWater.length;
@@ -287,8 +325,8 @@
           note: `Headache rate: ${Math.round(hwHeadache*100)}% on high-water days vs ${Math.round(lwHeadache*100)}% on low-water days.` });
     }
 
-    const highEnergy = weekLogs.filter(l => l.energy >= 7);
-    const lowEnergy  = weekLogs.filter(l => l.energy < 7);
+    const highEnergy = logs.filter(l => l.energy >= 7);
+    const lowEnergy  = logs.filter(l => l.energy < 7);
     if (highEnergy.length && lowEnergy.length) {
       const diff = avg(highEnergy.map(l => l.sleepHours)) - avg(lowEnergy.map(l => l.sleepHours));
       if (diff > 0.3)
@@ -297,8 +335,8 @@
           note: `You sleep ${diff.toFixed(1)}h more on average on high-energy days.` });
     }
 
-    const symptomDays = weekLogs.filter(l => l.symptoms.length > 0);
-    const clearDays   = weekLogs.filter(l => l.symptoms.length === 0);
+    const symptomDays = logs.filter(l => l.symptoms.length > 0);
+    const clearDays   = logs.filter(l => l.symptoms.length === 0);
     if (symptomDays.length && clearDays.length) {
       const diff = avg(clearDays.map(l => l.energy)) - avg(symptomDays.map(l => l.energy));
       if (diff > 0.5)
@@ -307,14 +345,14 @@
           note: `Energy is ${diff.toFixed(1)} points higher on days with no symptoms logged.` });
     }
 
-    if (weekLogs.length >= 5) {
-      const allSymptoms = weekLogs.flatMap(l => l.symptoms);
+    if (logs.length >= 5) {
+      const allSymptoms = logs.flatMap(l => l.symptoms);
       const freq = [...allSymptoms.reduce((m,s) => m.set(s,(m.get(s)||0)+1), new Map<string,number>())];
       if (freq.length) {
         const [topSym, count] = freq.sort((a,b) => b[1]-a[1])[0];
         items.push({ label: `Most common symptom: ${topSym}`, positive: false,
-          strength: Math.min(98, Math.round((count / weekLogs.length) * 100)),
-          note: `"${topSym}" appeared in ${count} of your last ${weekLogs.length} logs.` });
+          strength: Math.min(98, Math.round((count / logs.length) * 100)),
+          note: `"${topSym}" appeared in ${count} of your last ${logs.length} logs.` });
       }
     }
 
@@ -332,11 +370,18 @@
   });
 
   // ── Exports ───────────────────────────────────────────────────
-  let exportingCsv    = $state(false);
-  let exportingPdf    = $state(false);
-  let exportingRecap  = $state(false);
-  let exportingVitals = $state(false);
-  let exportingMedLog = $state(false);
+  function csvField(val: string): string {
+    if (val.includes(",") || val.includes("\"") || val.includes("\n")) {
+      return `"${val.replace(/"/g, "\"\"")}"`;
+    }
+    return val;
+  }
+
+  let exportingCsv         = $state(false);
+  let exportingDoctorReport = $state(false);
+  let exportingRecap       = $state(false);
+  let exportingVitals      = $state(false);
+  let exportingMedLog      = $state(false);
 
   async function writeExport(filename: string, content: string): Promise<boolean> {
     const dir: string | null = await invoke("pick_export_directory");
@@ -350,16 +395,17 @@
     exportingCsv = true;
     try {
       const rows = weekLogs.map(l =>
-        [l.dateKey, l.mood, l.energy, l.waterGlasses, l.sleepHours, l.symptoms.join("|"), l.note ?? ""].join(",")
+        [csvField(l.dateKey), csvField(l.mood), String(l.energy), String(l.waterGlasses), String(l.sleepHours), csvField(l.symptoms.join("|")), csvField(l.note ?? "")].join(",")
       );
       const csv = ["date,mood,energy,water_glasses,sleep_hours,symptoms,note", ...rows].join("\n");
-      await writeExport(`health-logs-${time.toISODate(time.now())}.csv`, csv);
-    } catch (e) { console.error("Export failed", e); }
+      const ok = await writeExport(`health-logs-${time.toISODate(time.now())}.csv`, csv);
+      setExportFeedback(ok ? "CSV exported successfully." : "Export cancelled.");
+    } catch (e) { setBanner("Export failed: " + toErr(e)); }
     finally { exportingCsv = false; }
   }
 
-  async function exportDoctorPdf() {
-    exportingPdf = true;
+  async function exportDoctorReport() {
+    exportingDoctorReport = true;
     try {
       const lines = [
         "HEALTH REPORT — " + new Date().toLocaleDateString(),
@@ -377,12 +423,13 @@
           `${l.dateKey}  Mood:${l.mood}  Energy:${l.energy}/10  Water:${l.waterGlasses}g  Sleep:${l.sleepHours}h  Symptoms:[${l.symptoms.join(",")}]${l.note ? "  Note:"+l.note : ""}`
         ),
       ];
-      await writeExport(`health-doctor-report-${time.toISODate(time.now())}.txt`, lines.join("\n"));
-    } catch (e) { console.error("Export failed", e); }
-    finally { exportingPdf = false; }
+      const ok = await writeExport(`health-doctor-report-${time.toISODate(time.now())}.txt`, lines.join("\n"));
+      setExportFeedback(ok ? "Doctor report exported." : "Export cancelled.");
+    } catch (e) { setBanner("Doctor report export failed: " + toErr(e)); }
+    finally { exportingDoctorReport = false; }
   }
 
-  async function exportMonthlyRecap() {
+  async function exportWeeklyRecap() {
     exportingRecap = true;
     try {
       const avgEnergy = weekLogs.length ? (weekLogs.reduce((a,b) => a+b.energy,0)/weekLogs.length).toFixed(1) : "—";
@@ -392,7 +439,7 @@
         ? [...allSymptoms.reduce((m,s) => m.set(s,(m.get(s)||0)+1), new Map())].sort((a,b)=>b[1]-a[1])[0][0]
         : "None";
       const recap = [
-        "MONTHLY WELLNESS RECAP",
+        "WEEKLY WELLNESS RECAP",
         `Generated: ${new Date().toLocaleDateString()}`,
         "",
         `Days logged this week: ${weekLogs.length}/7`,
@@ -404,8 +451,9 @@
         "",
         correlations.length ? "Top pattern: " + correlations[0].label : "Log more days to surface patterns.",
       ].join("\n");
-      await writeExport(`health-recap-${time.toISODate(time.now())}.txt`, recap);
-    } catch (e) { console.error("Export failed", e); }
+      const ok = await writeExport(`health-recap-${time.toISODate(time.now())}.txt`, recap);
+      setExportFeedback(ok ? "Weekly recap exported." : "Export cancelled.");
+    } catch (e) { setBanner("Recap export failed: " + toErr(e)); }
     finally { exportingRecap = false; }
   }
 
@@ -413,11 +461,12 @@
     exportingVitals = true;
     try {
       const rows = vitalHistory.map(v =>
-        [v.dateKey, v.bp ?? "", v.hr ?? "", v.weight ?? "", v.temp ?? "", v.spo2 ?? ""].join(",")
+        [csvField(v.dateKey), csvField(v.bp ?? ""), csvField(v.hr ?? ""), csvField(v.weight ?? ""), csvField(v.temp ?? ""), csvField(v.spo2 ?? "")].join(",")
       );
       const csv = ["date,bp,hr,weight,temp,spo2", ...rows].join("\n");
-      await writeExport(`health-vitals-${time.toISODate(time.now())}.csv`, csv);
-    } catch (e) { console.error("Export failed", e); }
+      const ok = await writeExport(`health-vitals-${time.toISODate(time.now())}.csv`, csv);
+      setExportFeedback(ok ? "Vitals CSV exported." : "Export cancelled.");
+    } catch (e) { setBanner("Vitals export failed: " + toErr(e)); }
     finally { exportingVitals = false; }
   }
 
@@ -425,17 +474,18 @@
     exportingMedLog = true;
     try {
       const rows = medications.map(m =>
-        [m.name, m.dose, m.timeOfDay, m.notes, m.takenToday ? "taken" : "pending"].join(",")
+        [csvField(m.name), csvField(m.dose), csvField(m.timeOfDay), csvField(m.notes), m.takenToday ? "taken" : "pending"].join(",")
       );
       const csv = ["name,dose,time,notes,status", ...rows].join("\n");
-      await writeExport(`health-medications-${time.toISODate(time.now())}.csv`, csv);
-    } catch (e) { console.error("Export failed", e); }
+      const ok = await writeExport(`health-medications-${time.toISODate(time.now())}.csv`, csv);
+      setExportFeedback(ok ? "Medication log exported." : "Export cancelled.");
+    } catch (e) { setBanner("Medication export failed: " + toErr(e)); }
     finally { exportingMedLog = false; }
   }
 
   // ── Bootstrap ─────────────────────────────────────────────────
   onMount(async () => {
-    await Promise.all([loadTodayLog(), loadWeekLogs(), loadVitals(), loadMeds()]);
+    await Promise.all([loadTodayLog(), loadWeekLogs(), loadDeepLogs(), loadVitals(), loadMeds()]);
     appLoading = false;
   });
 </script>
@@ -451,6 +501,7 @@
   <!-- ═══════════════════ DASHBOARD ═══════════════════ -->
   {:else if selectedSection === "Dashboard"}
     <section class="hl-page">
+      {#if bannerError}<div class="hl-banner hl-banner--error" role="alert"><button class="hl-banner__close" onclick={() => bannerError = ""}>×</button>{bannerError}</div>{/if}
       <header class="hl-page__header">
         <div class="hl-page__intro">
           <div class="hl-page__eyebrow"><ActivityIcon size={13}/><span>{_t('moduleHealthHealthTracker')}</span><Badge variant="outline">{_t('moduleHealthSectionDashboard')}</Badge></div>
@@ -597,6 +648,7 @@
   <!-- ═══════════════════ DAILY LOG ═══════════════════ -->
   {:else if selectedSection === "Daily Log"}
     <section class="hl-page">
+      {#if bannerError}<div class="hl-banner hl-banner--error" role="alert"><button class="hl-banner__close" onclick={() => bannerError = ""}>×</button>{bannerError}</div>{/if}
       <header class="hl-page__header">
         <div class="hl-page__intro">
           <div class="hl-page__eyebrow"><ZapIcon size={13}/><span>{_t('moduleHealthHealthTracker')}</span><Badge variant="outline">{_t('moduleHealthSectionDailyLog')}</Badge></div>
@@ -749,6 +801,7 @@
   <!-- ═══════════════════ VITALS ═══════════════════ -->
   {:else if selectedSection === "Vitals"}
     <section class="hl-page">
+      {#if bannerError}<div class="hl-banner hl-banner--error" role="alert"><button class="hl-banner__close" onclick={() => bannerError = ""}>×</button>{bannerError}</div>{/if}
       <header class="hl-page__header">
         <div class="hl-page__intro">
           <div class="hl-page__eyebrow"><HeartPulseIcon size={13}/><span>{_t('moduleHealthHealthTracker')}</span><Badge variant="outline">{_t('moduleHealthSectionVitals')}</Badge></div>
@@ -885,18 +938,19 @@
           <Card class="hl-panel hl-panel--full-row">
             <CardHeader><CardTitle>{_t('moduleHealthVitalsHistory')}</CardTitle><CardDescription>{_t('moduleHealthVitalsHistoryDesc').replace('{count}', String(vitalHistory.length))}</CardDescription></CardHeader>
             <CardContent class="hl-vitals-table">
-              <div class="hl-table-head">
+              <div class="hl-table-head" style="grid-template-columns:90px repeat(5,minmax(0,1fr)) 50px">
                 <span>{_t('moduleHealthDate')}</span><span>{_t('moduleHealthBloodPressure')}</span><span>{_t('moduleHealthHeartRate')}</span>
-                <span>{_t('moduleHealthWeight')}</span><span>{_t('moduleHealthTemperature')}</span><span>SpO₂</span>
+                <span>{_t('moduleHealthWeight')}</span><span>{_t('moduleHealthTemperature')}</span><span>SpO₂</span><span></span>
               </div>
               {#each vitalHistory.slice(0,10) as row}
-                <div class="hl-table-row">
+                <div class="hl-table-row" style="grid-template-columns:90px repeat(5,minmax(0,1fr)) 50px">
                   <span>{row.dateKey}</span>
                   <span>{row.bp ?? "—"}</span>
                   <span>{row.hr ?? "—"}</span>
                   <span>{row.weight ?? "—"}</span>
                   <span>{row.temp ?? "—"}</span>
                   <span>{row.spo2 ?? "—"}</span>
+                  <button class="hl-med__delete" type="button" onclick={() => deleteVital(row.id)} aria-label="Delete reading">×</button>
                 </div>
               {/each}
               {#if vitalHistory.length === 0}
@@ -912,6 +966,8 @@
   <!-- ═══════════════════ INSIGHTS ═══════════════════ -->
   {:else if selectedSection === "Insights"}
     <section class="hl-page">
+      {#if exportFeedback}<div class="hl-banner hl-banner--success" role="status"><button class="hl-banner__close" onclick={() => exportFeedback = ""}>×</button>{exportFeedback}</div>{/if}
+      {#if bannerError}<div class="hl-banner hl-banner--error" role="alert"><button class="hl-banner__close" onclick={() => bannerError = ""}>×</button>{bannerError}</div>{/if}
       <header class="hl-page__header">
         <div class="hl-page__intro">
           <div class="hl-page__eyebrow"><TrendingUpIcon size={13}/><span>{_t('moduleHealthHealthTracker')}</span><Badge variant="outline">{_t('moduleHealthSectionInsights')}</Badge></div>
@@ -919,6 +975,15 @@
           <p>{_t('moduleHealthInsightsPageDesc')}</p>
         </div>
         <div class="hl-page__actions">
+          <div class="hl-range-toggle" role="radiogroup" aria-label="Analysis range">
+            {#each [7, 30, 90] as days}
+              <button class="hl-range-btn" class:hl-range-btn--active={correlationRange === days}
+                type="button" role="radio" aria-checked={correlationRange === days}
+                onclick={async () => { correlationRange = days; await loadDeepLogs(); }}>
+                {days}d
+              </button>
+            {/each}
+          </div>
           <Button variant="outline" onclick={() => exportCsv(_t('moduleHealthExportReport'))} disabled={exportingCsv}>
             <DownloadIcon data-icon="inline-start"/>{exportingCsv ? _t('moduleHealthExporting') : _t('moduleHealthExportReport')}
           </Button>
@@ -1047,9 +1112,9 @@
             <CardHeader><CardTitle>{_t('moduleHealthExportData')}</CardTitle><CardDescription>{_t('moduleHealthExportDataDesc')}</CardDescription></CardHeader>
             <CardContent class="hl-export-list">
               {#each [
-                {label:_t('moduleHealthDoctorPDF'),   detail:_t('moduleHealthDoctorPDFDetail'), fn: exportDoctorPdf,    busy: exportingPdf},
-                {label:_t('moduleHealthCSVTimeline'), detail:_t('moduleHealthCSVTimelineDetail'), fn: () => exportCsv(_t('moduleHealthCSVTimeline')), busy: exportingCsv},
-                {label:_t('moduleHealthMonthlyRecap'),detail:_t('moduleHealthMonthlyRecapDetail'), fn: exportMonthlyRecap, busy: exportingRecap},
+                {label:_t('moduleHealthDoctorReport'), detail:_t('moduleHealthDoctorReportDetail'), fn: exportDoctorReport, busy: exportingDoctorReport},
+                {label:_t('moduleHealthCSVTimeline'),  detail:_t('moduleHealthCSVTimelineDetail'),  fn: () => exportCsv(_t('moduleHealthCSVTimeline')), busy: exportingCsv},
+                {label:_t('moduleHealthWeeklyRecap'), detail:_t('moduleHealthWeeklyRecapDetail'), fn: exportWeeklyRecap, busy: exportingRecap},
               ] as opt}
                 <article class="hl-export__item">
                   <div><strong>{opt.label}</strong><p>{opt.detail}</p></div>
@@ -1068,6 +1133,7 @@
   <!-- ═══════════════════ MEDICATIONS ═══════════════════ -->
   {:else if selectedSection === "Medications"}
     <section class="hl-page">
+      {#if bannerError}<div class="hl-banner hl-banner--error" role="alert"><button class="hl-banner__close" onclick={() => bannerError = ""}>×</button>{bannerError}</div>{/if}
       <header class="hl-page__header">
         <div class="hl-page__intro">
           <div class="hl-page__eyebrow"><PillIcon size={13}/><span>{_t('moduleHealthHealthTracker')}</span><Badge variant="outline">{_t('moduleHealthSectionMedications')}</Badge></div>
@@ -1116,7 +1182,7 @@
             <div class="hl-vital-row">
               <div class="hl-vital-field">
                 <p class="hl-label">{_t('moduleHealthTime')}</p>
-                <Input bind:value={newMedTime} placeholder={_t('moduleHealthPlaceholderMedTime')}/>
+                <Input type="time" bind:value={newMedTime} placeholder={_t('moduleHealthPlaceholderMedTime')}/>
               </div>
               <div class="hl-vital-field">
                 <p class="hl-label">{_t('moduleHealthNotes')}</p>
@@ -1165,38 +1231,45 @@
           <Card class="hl-panel">
             <CardHeader><CardTitle>{_t('moduleHealthAdherenceOverview')}</CardTitle><CardDescription>{_t('moduleHealthAdherenceOverviewDesc')}</CardDescription></CardHeader>
             <CardContent class="hl-adherence">
-              <div class="hl-adherence__today">
-                <div class="hl-adherence__orb hl-adherence__orb--ring">
-                  <PremiumRing
-                    size={148}
-                    thickness={12}
-                    gap={8}
-                    segments={[
-                      { value: takenCount, color: "var(--hl-accent)", label: _t('moduleHealthTaken') },
-                      { value: Math.max(medications.length - takenCount, 0), color: "color-mix(in srgb, var(--hl-border) 82%, transparent)", label: _t('moduleHealthLeft') },
-                    ]}
-                    centerLabel={_t('moduleHealthTodayLabel')}
-                    centerValue={`${adherencePct}%`}
-                    centerNote={_t('moduleHealthDosesConfirmed')}
-                  />
+              {#if medications.length === 0}
+                <div class="hl-wc-empty">
+                  <span>No medications yet</span>
+                  <small>Add your first medication to track adherence</small>
                 </div>
-                <div class="hl-adherence__meta">
-                  <strong>{takenCount} {_t('moduleHealthOf')} {medications.length}</strong>
-                  <span class="hl-muted">{_t('moduleHealthDosesConfirmed')}</span>
-                  <span class="hl-muted">{medications.length - takenCount} {_t('moduleHealthRemaining')}</span>
+              {:else}
+                <div class="hl-adherence__today">
+                  <div class="hl-adherence__orb hl-adherence__orb--ring">
+                    <PremiumRing
+                      size={148}
+                      thickness={12}
+                      gap={8}
+                      segments={[
+                        { value: takenCount, color: "var(--hl-accent)", label: _t('moduleHealthTaken') },
+                        { value: Math.max(medications.length - takenCount, 0), color: "color-mix(in srgb, var(--hl-border) 82%, transparent)", label: _t('moduleHealthLeft') },
+                      ]}
+                      centerLabel={_t('moduleHealthTodayLabel')}
+                      centerValue={`${adherencePct}%`}
+                      centerNote={_t('moduleHealthDosesConfirmed')}
+                    />
+                  </div>
+                  <div class="hl-adherence__meta">
+                    <strong>{takenCount} {_t('moduleHealthOf')} {medications.length}</strong>
+                    <span class="hl-muted">{_t('moduleHealthDosesConfirmed')}</span>
+                    <span class="hl-muted">{medications.length - takenCount} {_t('moduleHealthRemaining')}</span>
+                  </div>
                 </div>
-              </div>
-              <div class="hl-adherence__breakdown">
-                {#each medications as med (med.id)}
-                  <article class="hl-adherence__row">
-                    <span>{med.name}</span>
-                    <div class="hl-meter hl-meter--wide">
-                      <i style="--fill:{med.takenToday ? 100 : 0}%"></i>
-                    </div>
-                    <strong class:hl-taken={med.takenToday}>{med.takenToday ? _t('moduleHealthDone') : _t('moduleHealthPending')}</strong>
-                  </article>
-                {/each}
-              </div>
+                <div class="hl-adherence__breakdown">
+                  {#each medications as med (med.id)}
+                    <article class="hl-adherence__row">
+                      <span>{med.name}</span>
+                      <div class="hl-meter hl-meter--wide">
+                        <i style="--fill:{med.takenToday ? 100 : 0}%"></i>
+                      </div>
+                      <strong class:hl-taken={med.takenToday}>{med.takenToday ? _t('moduleHealthDone') : _t('moduleHealthPending')}</strong>
+                    </article>
+                  {/each}
+                </div>
+              {/if}
             </CardContent>
           </Card>
         </div>
@@ -1634,4 +1707,58 @@
 
   /* #7 History panel */
   :global(.hl-history-panel) { margin-top: 4px; }
+
+  /* Responsive breakpoints */
+  @media (max-width: 860px) {
+    :global(.hl-hero-grid) { grid-template-columns: 1fr; }
+    :global(.hl-grid--2col) { grid-template-columns: 1fr; }
+    :global(.hl-log-row) { grid-template-columns: 1fr; }
+    :global(.hl-vital-row) { grid-template-columns: 1fr; }
+    :global(.hl-page) { padding: 20px 18px; }
+  }
+  @media (max-width: 600px) {
+    :global(.hl-page) { padding: 14px 12px; }
+    :global(.hl-page__header) { flex-direction: column; gap: 12px; }
+    :global(.hl-page__actions) { width: 100%; }
+    :global(.hl-page__actions > *) { flex: 1; }
+    :global(.hl-score-card__content) { grid-template-columns: 1fr; }
+    :global(.hl-score-meta) { grid-template-columns: repeat(2,1fr); }
+    :global(.hl-mood-picker) { grid-template-columns: repeat(3,minmax(0,1fr)); }
+    :global(.hl-symptom-grid) { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    :global(.hl-grid--vitals) { grid-template-columns: 1fr; }
+  }
+
+  /* Range toggle */
+  :global(.hl-range-toggle) {
+    display: flex; gap: 2px; padding: 3px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--hl-surface-strong) 88%, transparent);
+  }
+  :global(.hl-range-btn) {
+    padding: 6px 14px; border: none; border-radius: 9px; font: inherit; font-size: 0.78rem; font-weight: 500;
+    background: transparent; color: var(--hl-muted); cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  :global(.hl-range-btn--active) {
+    background: var(--hl-accent); color: var(--hl-bg);
+  }
+
+  /* Error banner */
+  :global(.hl-banner) {
+    padding: 10px 14px; border-radius: 12px; font-size: 0.84rem; display: flex; align-items: center; gap: 10px;
+  }
+  :global(.hl-banner--error) {
+    background: color-mix(in srgb, oklch(0.6 0.2 30) 16%, var(--hl-surface));
+    border: 1px solid color-mix(in srgb, oklch(0.6 0.2 30) 40%, transparent);
+    color: oklch(0.7 0.15 30);
+  }
+  :global(.hl-banner--success) {
+    background: color-mix(in srgb, oklch(0.5 0.15 150) 14%, var(--hl-surface));
+    border: 1px solid color-mix(in srgb, oklch(0.5 0.15 150) 36%, transparent);
+    color: oklch(0.65 0.12 150);
+  }
+  :global(.hl-banner__close) {
+    margin-left: auto; background: transparent; border: none; color: inherit; font-size: 1.1rem;
+    cursor: pointer; flex-shrink: 0; line-height: 1; padding: 0 4px;
+  }
 </style>

@@ -163,8 +163,6 @@ export interface SoundHandle {
   stop(): void;
 }
 
-let activeContextHandle: { source: AudioBufferSourceNode; gain: GainNode } | null = null;
-
 /** Warm the browser cache for alarm sounds. Call once at startup. */
 export function preloadAlarmAudios(names: SoundName[]) {
   for (const name of names) {
@@ -183,26 +181,31 @@ function prefersReduced(): boolean {
 }
 
 /** Play an alarm/notification sound. Loops by default. Respects prefers-reduced-motion (halves volume).
- *  Falls back to AudioContext-based playback when HTMLAudioElement autoplay is blocked.
+ *  Uses AudioContext (preloaded buffers) as primary path for reliable playback.
+ *  Falls back to HTMLAudioElement when AudioContext is unavailable.
  *  Returns a SoundHandle that can stop playback from either path. */
 export function playAlarmSound(
   name: SoundName,
   options?: { loop?: boolean; volume?: number },
 ): SoundHandle | null {
+  // AudioContext path is preferred: no autoplay restrictions, supports preloaded buffers, reliable looping
+  const ctxHandle = playAlarmSoundViaContext(name, options);
+  if (ctxHandle) return ctxHandle;
+
+  // AudioContext unavailable — fall back to HTMLAudioElement
   try {
     const audio = new Audio(SoundFiles[name]);
     audio.loop = options?.loop ?? true;
     const baseVol = options?.volume ?? 0.6;
     audio.volume = prefersReduced() ? baseVol * 0.4 : baseVol;
-    const playPromise = audio.play();
+    audio.play().catch(() => {});
     return {
       stop() {
         try { audio.pause(); audio.currentTime = 0; } catch { /* ignore */ }
       },
     };
   } catch {
-    // HTMLAudioElement unavailable — use AudioContext fallback
-    return playAlarmSoundViaContext(name, options);
+    return null;
   }
 }
 
@@ -227,15 +230,11 @@ function playAlarmSoundViaContext(
       source.start(0);
     }).catch(() => {});
 
-    const ctx = { source, gain: gainNode };
-    activeContextHandle = ctx;
-
     return {
       stop() {
         try { source.stop(); } catch { /* already stopped */ }
         try { source.disconnect(); } catch { /* ignore */ }
         try { gainNode.disconnect(); } catch { /* ignore */ }
-        if (activeContextHandle === ctx) activeContextHandle = null;
       },
     };
   } catch {

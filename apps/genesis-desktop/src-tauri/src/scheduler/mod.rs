@@ -399,11 +399,13 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
                     // Exponential backoff: double interval up to 8 min max
                     poll_interval_secs = (poll_interval_secs * 2).min(480);
                     println!("[scheduler] backing off — next poll in {poll_interval_secs}s");
+                    tokio::time::sleep(tokio::time::Duration::from_secs(poll_interval_secs)).await;
                     continue;
                 }
             };
 
             if due.is_empty() {
+                tokio::time::sleep(tokio::time::Duration::from_secs(poll_interval_secs)).await;
                 continue;
             }
 

@@ -815,6 +815,14 @@ pub fn run() {
 }
         }
 
+        // ── Health tracker tables (non-fatal) ────────────────────────
+        {
+            let pool = app.state::<BentoAppState>().inner().db();
+            if let Err(e) = tauri::async_runtime::block_on(crate::health::ensure_health_tables(&pool)) {
+                warn!("[health] failed to create health tables: {e}");
+            }
+        }
+
         // ── Encryption service ────────────────────────────────────────
         t0 = Instant::now();
         let crypto = CryptoService::new(data_dir.clone());
@@ -1327,8 +1335,10 @@ pub fn run() {
             crate::health::health_log_save,
             crate::health::health_log_today,
             crate::health::health_logs_week,
+            crate::health::health_logs_range,
             crate::health::health_vitals_save,
             crate::health::health_vitals_list,
+            crate::health::health_vitals_delete,
             crate::health::health_meds_list,
             crate::health::health_med_add,
             crate::health::health_med_toggle,

@@ -311,6 +311,7 @@ export async function POST(request: Request) {
     const { error: profileUpdateError } = await supabase.from('profiles').upsert(
       {
         id: resolvedProfile.id,
+        email,
         billing_country: billingCountry || resolvedProfile.billing_country || detectedCountry,
         shipping_country: shippingCountry || resolvedProfile.shipping_country || null,
         last_checkout_country: detectedCountry,

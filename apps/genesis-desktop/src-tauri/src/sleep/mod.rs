@@ -1304,6 +1304,16 @@ pub async fn sleep_alarm_update(
     let now = crate::util::time::now_ms();
     let window = if wake_window.trim().is_empty() { "20 min".to_string() } else { wake_window.trim().to_string() };
 
+    // Fetch current alarm to preserve `active` status
+    let current_active: bool = sqlx::query_scalar::<_, bool>(
+        "SELECT active FROM sleep_alarms WHERE id = ?",
+    )
+    .bind(&id)
+    .fetch_optional(&state.db())
+    .await
+    .map_err(|e| e.to_string())?
+    .unwrap_or(true);
+
     sqlx::query(
         "UPDATE sleep_alarms SET label = ?, time = ?, sound = ?, wake_window = ?, mode = 'Smart' WHERE id = ?",
     )
@@ -1318,6 +1328,14 @@ pub async fn sleep_alarm_update(
 
     // Also update the scheduler entry
     let wake_minutes = parse_wake_window_minutes(&window);
+    let current_sched_enabled: bool = sqlx::query_scalar::<_, bool>(
+        "SELECT enabled FROM schedules WHERE id = ?",
+    )
+    .bind(&id)
+    .fetch_optional(&state.db())
+    .await
+    .map_err(|e| e.to_string())?
+    .unwrap_or(true);
     {
         let today_start = crate::util::time::start_of_today_ms();
         let parts: Vec<&str> = time.split(':').collect();
@@ -1329,7 +1347,7 @@ pub async fn sleep_alarm_update(
         let next_fire_at = if adjusted_fire <= now { adjusted_fire + 86_400_000 } else { adjusted_fire };
 
         sqlx::query(
-            "UPDATE schedules SET label = ?, start_at = ?, next_fire_at = ?, wake_window_minutes = ?, sound = ?, updated_at = ? WHERE id = ?",
+            "UPDATE schedules SET label = ?, start_at = ?, next_fire_at = ?, wake_window_minutes = ?, sound = ?, updated_at = ?, enabled = ? WHERE id = ?",
         )
         .bind(label.trim())
         .bind(next_fire_at)
@@ -1337,6 +1355,7 @@ pub async fn sleep_alarm_update(
         .bind(wake_minutes)
         .bind(&sound)
         .bind(now)
+        .bind(current_sched_enabled)
         .bind(&id)
         .execute(&state.db())
         .await
@@ -1350,7 +1369,7 @@ pub async fn sleep_alarm_update(
         wake_window: window,
         mode: "Smart".into(),
         sound,
-        active: true,
+        active: current_active,
         created_at: now,
     })
 }

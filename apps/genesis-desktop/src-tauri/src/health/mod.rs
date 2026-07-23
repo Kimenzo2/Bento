@@ -1,10 +1,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Health Tauri Commands — SQLite-backed, no stubs
-// Tables used:
-//   health_logs   (id, type, value, unit, metadata, logged_at)
-//   health_vitals (id, bp, hr, weight_kg, temp_c, spo2, logged_at)
-//   health_meds   (id, name, dose, time_of_day, notes, active, created_at)
-//   health_doses  (id, med_id, taken_at, date_key)
+// Tables:
+//   health_daily_logs (id, mood, energy, water_glasses, sleep_hours, symptoms, note, logged_at, date_key)
+//   health_vitals     (id, bp, hr, weight, temp, spo2, logged_at, date_key)
+//   health_meds       (id, name, dose, time_of_day, notes, active, created_at)
+//   health_doses      (id, med_id, taken_at, date_key)
 // ─────────────────────────────────────────────────────────────────────────────
 
 use serde::{Deserialize, Serialize};
@@ -14,10 +14,27 @@ use uuid::Uuid;
 use crate::db::BentoAppState;
 use crate::util::time;
 
-// ── Shared date helper ────────────────────────────────────────────────────────
+// ── Shared helpers ───────────────────────────────────────────────────────────
 
 fn today_key() -> String {
     time::date_key(time::now_ms())
+}
+
+fn row_to_daily(row: &sqlx::sqlite::SqliteRow, default_date: &str) -> DailyLogRow {
+    use sqlx::Row;
+    let symptoms_raw: String = row.try_get("symptoms").unwrap_or_else(|_| "[]".into());
+    let symptoms: Vec<String> = serde_json::from_str(&symptoms_raw).unwrap_or_default();
+    DailyLogRow {
+        id: row.try_get("id").unwrap_or_default(),
+        mood: row.try_get("mood").unwrap_or_else(|_| "steady".into()),
+        energy: row.try_get::<i64, _>("energy").unwrap_or(7) as u8,
+        water_glasses: row.try_get::<i64, _>("water_glasses").unwrap_or(0) as u8,
+        sleep_hours: row.try_get("sleep_hours").unwrap_or(0.0),
+        symptoms,
+        note: row.try_get("note").unwrap_or(None),
+        logged_at: row.try_get("logged_at").unwrap_or(0),
+        date_key: row.try_get("date_key").unwrap_or_else(|_| default_date.to_string()),
+    }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -60,28 +77,26 @@ pub async fn health_log_save(
 ) -> Result<DailyLogRow, String> {
     crate::auth::require_billing_tier(&auth, "health").await?;
 
-    ensure_health_tables(&state.db()).await?;
 
     let id = Uuid::new_v4().to_string();
     let now = time::now_ms();
     let date = today_key();
     let symptoms_json = serde_json::to_string(&entry.symptoms).map_err(|e| e.to_string())?;
 
-    // Upsert by date_key — only one check-in per day
-    sqlx::query(
-        r#"
-        INSERT INTO health_daily_logs
+    // Upsert by date_key — only one check-in per day. RETURNING gets the real stored ID.
+    let stored: String = sqlx::query_scalar(
+        r#"INSERT INTO health_daily_logs
             (id, mood, energy, water_glasses, sleep_hours, symptoms, note, logged_at, date_key)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(date_key) DO UPDATE SET
-            mood         = excluded.mood,
-            energy       = excluded.energy,
-            water_glasses = excluded.water_glasses,
-            sleep_hours  = excluded.sleep_hours,
-            symptoms     = excluded.symptoms,
-            note         = excluded.note,
-            logged_at    = excluded.logged_at
-        "#,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(date_key) DO UPDATE SET
+             mood         = excluded.mood,
+             energy       = excluded.energy,
+             water_glasses = excluded.water_glasses,
+             sleep_hours  = excluded.sleep_hours,
+             symptoms     = excluded.symptoms,
+             note         = excluded.note,
+             logged_at    = excluded.logged_at
+         RETURNING id"#,
     )
     .bind(&id)
     .bind(&entry.mood)
@@ -92,12 +107,12 @@ pub async fn health_log_save(
     .bind(&entry.note)
     .bind(now)
     .bind(&date)
-    .execute(&state.db())
+    .fetch_one(&state.db())
     .await
     .map_err(|e| e.to_string())?;
 
     Ok(DailyLogRow {
-        id,
+        id: stored,
         mood: entry.mood,
         energy: entry.energy,
         water_glasses: entry.water_glasses,
@@ -117,7 +132,6 @@ pub async fn health_log_today(
 ) -> Result<Option<DailyLogRow>, String> {
     crate::auth::require_billing_tier(&auth, "health").await?;
 
-    ensure_health_tables(&state.db()).await?;
     let date = today_key();
 
     let row = sqlx::query(
@@ -130,22 +144,7 @@ pub async fn health_log_today(
     .map_err(|e| e.to_string())?;
 
     let Some(row) = row else { return Ok(None) };
-
-    use sqlx::Row;
-    let symptoms_raw: String = row.try_get("symptoms").unwrap_or_else(|_| "[]".into());
-    let symptoms: Vec<String> = serde_json::from_str(&symptoms_raw).unwrap_or_default();
-
-    Ok(Some(DailyLogRow {
-        id: row.try_get("id").unwrap_or_default(),
-        mood: row.try_get("mood").unwrap_or_else(|_| "steady".into()),
-        energy: row.try_get::<i64, _>("energy").unwrap_or(7) as u8,
-        water_glasses: row.try_get::<i64, _>("water_glasses").unwrap_or(0) as u8,
-        sleep_hours: row.try_get("sleep_hours").unwrap_or(0.0),
-        symptoms,
-        note: row.try_get("note").unwrap_or(None),
-        logged_at: row.try_get("logged_at").unwrap_or(0),
-        date_key: row.try_get("date_key").unwrap_or(date),
-    }))
+    Ok(Some(row_to_daily(&row, &date)))
 }
 
 /// Last 7 days of check-ins for the weekly chart.
@@ -156,9 +155,7 @@ pub async fn health_logs_week(
 ) -> Result<Vec<DailyLogRow>, String> {
     crate::auth::require_billing_tier(&auth, "health").await?;
 
-    ensure_health_tables(&state.db()).await?;
 
-    use sqlx::Row;
     let rows = sqlx::query(
         "SELECT id, mood, energy, water_glasses, sleep_hours, symptoms, note, logged_at, date_key
          FROM health_daily_logs
@@ -168,24 +165,31 @@ pub async fn health_logs_week(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(rows
-        .into_iter()
-        .map(|row| {
-            let symptoms_raw: String = row.try_get("symptoms").unwrap_or_else(|_| "[]".into());
-            let symptoms: Vec<String> = serde_json::from_str(&symptoms_raw).unwrap_or_default();
-            DailyLogRow {
-                id: row.try_get("id").unwrap_or_default(),
-                mood: row.try_get("mood").unwrap_or_else(|_| "steady".into()),
-                energy: row.try_get::<i64, _>("energy").unwrap_or(7) as u8,
-                water_glasses: row.try_get::<i64, _>("water_glasses").unwrap_or(0) as u8,
-                sleep_hours: row.try_get("sleep_hours").unwrap_or(0.0),
-                symptoms,
-                note: row.try_get("note").unwrap_or(None),
-                logged_at: row.try_get("logged_at").unwrap_or(0),
-                date_key: row.try_get("date_key").unwrap_or_default(),
-            }
-        })
-        .collect())
+    Ok(rows.into_iter().map(|row| row_to_daily(&row, "")).collect())
+}
+
+/// Last N days of check-ins for deeper correlation analysis.
+#[tauri::command]
+pub async fn health_logs_range(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+    days: i64,
+) -> Result<Vec<DailyLogRow>, String> {
+    crate::auth::require_billing_tier(&auth, "health").await?;
+
+
+
+    let rows = sqlx::query(
+        "SELECT id, mood, energy, water_glasses, sleep_hours, symptoms, note, logged_at, date_key
+         FROM health_daily_logs
+         ORDER BY date_key DESC LIMIT ?",
+    )
+    .bind(days)
+    .fetch_all(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(rows.into_iter().map(|row| row_to_daily(&row, "")).collect())
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -223,7 +227,28 @@ pub async fn health_vitals_save(
 ) -> Result<VitalsRow, String> {
     crate::auth::require_billing_tier(&auth, "health").await?;
 
-    ensure_health_tables(&state.db()).await?;
+
+    // Basic input validation
+    if let Some(ref hr) = entry.hr {
+        if let Ok(v) = hr.parse::<u16>() {
+            if v > 350 { return Err("Heart rate seems unrealistic (max 350)".into()); }
+        }
+    }
+    if let Some(ref w) = entry.weight {
+        if let Ok(v) = w.parse::<f64>() {
+            if v <= 0.0 || v > 400.0 { return Err("Weight seems unrealistic (0–400 kg)".into()); }
+        }
+    }
+    if let Some(ref t) = entry.temp {
+        if let Ok(v) = t.parse::<f64>() {
+            if v < 34.0 || v > 43.0 { return Err("Temperature seems unrealistic (34–43 °C)".into()); }
+        }
+    }
+    if let Some(ref s) = entry.spo2 {
+        if let Ok(v) = s.parse::<u8>() {
+            if v > 100 { return Err("SpO2 must be 0–100".into()); }
+        }
+    }
 
     let id = Uuid::new_v4().to_string();
     let now = time::now_ms();
@@ -260,13 +285,29 @@ pub async fn health_vitals_save(
 }
 
 #[tauri::command]
+pub async fn health_vitals_delete(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+    vital_id: String,
+) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "health").await?;
+
+
+    sqlx::query("DELETE FROM health_vitals WHERE id = ?")
+        .bind(&vital_id)
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn health_vitals_list(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<VitalsRow>, String> {
     crate::auth::require_billing_tier(&auth, "health").await?;
 
-    ensure_health_tables(&state.db()).await?;
 
     use sqlx::Row;
     let rows = sqlx::query(
@@ -324,7 +365,6 @@ pub async fn health_meds_list(
 ) -> Result<Vec<MedRow>, String> {
     crate::auth::require_billing_tier(&auth, "health").await?;
 
-    ensure_health_tables(&state.db()).await?;
     let date = today_key();
 
     use sqlx::Row;
@@ -365,7 +405,6 @@ pub async fn health_med_add(
 ) -> Result<MedRow, String> {
     crate::auth::require_billing_tier(&auth, "health").await?;
 
-    ensure_health_tables(&state.db()).await?;
 
     if entry.name.trim().is_empty() {
         return Err("Medication name is required.".into());
@@ -407,7 +446,6 @@ pub async fn health_med_toggle(
 ) -> Result<bool, String> {
     crate::auth::require_billing_tier(&auth, "health").await?;
 
-    ensure_health_tables(&state.db()).await?;
     let date = today_key();
     let now = time::now_ms();
 
@@ -453,7 +491,6 @@ pub async fn health_med_delete(
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "health").await?;
 
-    ensure_health_tables(&state.db()).await?;
 
     sqlx::query("UPDATE health_meds SET active = 0 WHERE id = ?")
         .bind(&med_id)

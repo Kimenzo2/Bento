@@ -27,7 +27,7 @@ async function tryInvoke<T>(cmd: string, args?: Record<string, unknown>): Promis
 
 async function loadTasksWidget() {
   const tasks = await tryInvoke<{ id: string; done: boolean }[]>("list_tasks", { limit: 200 });
-  if (!tasks) return;
+  if (!tasks) { loaded["tasks"] = true; return; }
   const total = tasks.length;
   const done = tasks.filter((t) => t.done).length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
@@ -46,7 +46,7 @@ async function loadHabitsWidget() {
   const stats = await tryInvoke<{ topStreak: number; completedToday: number; totalHabits: number }>(
     "habits_get_stats",
   );
-  if (!stats) return;
+  if (!stats) { loaded["habits"] = true; return; }
   const streak = stats.topStreak;
   liveWidgets["habits"] = {
     layout: "stat",
@@ -60,7 +60,7 @@ async function loadHabitsWidget() {
 
 async function loadFocusWidget() {
   const dash = await tryInvoke<{ todayMinutes: number }>("get_focus_dashboard");
-  if (!dash) return;
+  if (!dash) { loaded["focus"] = true; return; }
   const mins = dash.todayMinutes;
   if (mins > 0) {
     const h = Math.floor(mins / 60);
@@ -84,7 +84,7 @@ async function loadFocusWidget() {
 
 async function loadJournalWidget() {
   const entries = await tryInvoke<{ id: string }[]>("list_journal_entries", { limit: 3 });
-  if (!entries) return;
+  if (!entries) { loaded["journal"] = true; return; }
   if (entries.length > 0) {
     liveWidgets["journal"] = {
       layout: "list",
@@ -107,7 +107,7 @@ async function loadBudgetWidget() {
   const overview = await tryInvoke<{ totalExpenses: number; totalIncome: number }>(
     "budget_monthly_overview",
   );
-  if (!overview) return;
+  if (!overview) { loaded["budget"] = true; return; }
   const remaining = overview.totalIncome - overview.totalExpenses;
   const pct =
     overview.totalIncome > 0
@@ -125,7 +125,10 @@ async function loadBudgetWidget() {
 
 async function loadHealthWidget() {
   const today = await tryInvoke<{ energy: number; mood: string }>("health_log_today");
-  if (!today) return;
+  if (!today) {
+    loaded["health"] = true;
+    return;
+  }
   liveWidgets["health"] = {
     layout: "stat",
     primary: String(today.energy),
@@ -169,7 +172,7 @@ async function loadNutritionWidget() {
   const water = await tryInvoke<{ totalMl: number; goalMl: number; percentage: number }>(
     "nutrition_get_today_water",
   );
-  if (!water) return;
+  if (!water) { loaded["nutrition"] = true; return; }
   const glasses = Math.round(water.totalMl / 250);
   const pct = water.percentage;
   liveWidgets["nutrition"] = {
@@ -185,7 +188,7 @@ async function loadNutritionWidget() {
 
 async function loadMoodWidget() {
   const today = await tryInvoke<{ mood: string; loggedAt: number }[]>("mood_checkins_today");
-  if (!today || today.length === 0) return;
+  if (!today || today.length === 0) { loaded["mood"] = true; return; }
   const latest = today[today.length - 1];
   const minsAgo = Math.floor((Date.now() - latest.loggedAt) / 60000);
   const ago =
@@ -205,7 +208,7 @@ async function loadMoodWidget() {
 
 async function loadGoalsWidget() {
   const goals = await tryInvoke<{ progress: number }[]>("goals_list");
-  if (!goals) return;
+  if (!goals) { loaded["goals"] = true; return; }
   const total = goals.length;
   const met = goals.filter((g) => g.progress >= 100).length;
   const pct = total > 0 ? Math.round((met / total) * 100) : 0;
@@ -222,7 +225,7 @@ async function loadGoalsWidget() {
 
 async function loadPasswordsWidget() {
   const items = await tryInvoke<{ id: string }[]>("passwords_list");
-  if (!items) return;
+  if (!items) { loaded["passwords"] = true; return; }
   liveWidgets["passwords"] = {
     layout: "stat",
     primary: String(items.length),
@@ -235,7 +238,7 @@ async function loadPasswordsWidget() {
 
 async function loadVoiceMemosWidget() {
   const recordings = await tryInvoke<{ id: string }[]>("list_recordings");
-  if (!recordings) return;
+  if (!recordings) { loaded["voice-memos"] = true; return; }
   if (recordings.length > 0) {
     liveWidgets["voice-memos"] = {
       layout: "action",
@@ -256,7 +259,7 @@ async function loadVoiceMemosWidget() {
 
 async function loadClipboardWidget() {
   const count = await tryInvoke<number>("clipboard_count");
-  if (count === null) return;
+  if (count === null) { loaded["clipboard"] = true; return; }
   liveWidgets["clipboard"] = {
     layout: "stat",
     primary: String(count),
@@ -269,7 +272,7 @@ async function loadClipboardWidget() {
 
 async function loadCountdownWidget() {
   const events = await tryInvoke<{ id: string }[]>("countdown_list_events");
-  if (!events) return;
+  if (!events) { loaded["countdown"] = true; return; }
   if (events.length > 0) {
     liveWidgets["countdown"] = {
       layout: "countdown",
@@ -292,7 +295,7 @@ async function loadNotesWidget() {
   const notes = await tryInvoke<{ id: string; title: string; updatedAt: number }[]>("notes_list", {
     limit: 5,
   });
-  if (!notes || notes.length === 0) return;
+  if (!notes || notes.length === 0) { loaded["notes"] = true; return; }
   const titles = notes.map((n) => n.title || "Untitled").filter(Boolean);
   const latest = notes[0];
   const date = latest.updatedAt
