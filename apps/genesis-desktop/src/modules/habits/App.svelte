@@ -2427,7 +2427,7 @@
   padding: 11px 14px;
   border-radius: 10px;
   border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
-  background: color-mix(in srgb, var(--foreground) 3%, var(--background));
+  background: var(--background);
   color: var(--foreground);
   font: inherit;
   font-size: 0.88rem;
@@ -2734,7 +2734,7 @@
   padding-right: 36px;
   border-radius: 10px;
   border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
-  background: color-mix(in srgb, var(--foreground) 3%, var(--background));
+  background: var(--background);
   color: var(--foreground);
   font: inherit;
   font-size: 0.88rem;

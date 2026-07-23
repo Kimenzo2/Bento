@@ -144,6 +144,7 @@ pub struct MonthlyOverview {
     pub year_month: String,
     pub total_income: f64,
     pub total_expenses: f64,
+    pub previous_month_income: f64,
     pub net_savings: f64,
     pub savings_rate: f64,
     pub top_categories: Vec<CategorySpending>,
@@ -487,7 +488,7 @@ pub async fn budget_list_categories(
             let spent: f64 = r.try_get("spent").unwrap_or(0.0);
             let remaining = budget - spent;
             let percent = if budget > 0.0 {
-                (spent / budget * 100.0).min(100.0)
+                spent / budget * 100.0
             } else {
                 if spent > 0.0 {
                     100.0
@@ -528,6 +529,107 @@ pub async fn budget_set_category_budget(
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn budget_create_category(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+    name: String,
+    group_name: Option<String>,
+    icon: Option<String>,
+    color: Option<String>,
+) -> Result<BudgetCategory, String> {
+    crate::auth::require_billing_tier(&auth, "budget").await?;
+
+    ensure_budget_tables(&state.db()).await?;
+
+    let id = Uuid::new_v4().to_string();
+    let now = time::now_ms();
+
+    sqlx::query(
+        "INSERT INTO budget_categories (id, name, group_name, icon, monthly_budget, color, created_at) VALUES (?, ?, ?, ?, 0, ?, ?)",
+    )
+    .bind(&id)
+    .bind(name.trim())
+    .bind(group_name.as_deref().unwrap_or("Other"))
+    .bind(icon.as_deref().unwrap_or("wallet"))
+    .bind(color.as_deref().unwrap_or("#6366f1"))
+    .bind(now)
+    .execute(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(BudgetCategory {
+        id,
+        name,
+        group_name: group_name.unwrap_or_else(|| "Other".into()),
+        icon: icon.unwrap_or_else(|| "wallet".into()),
+        monthly_budget: 0.0,
+        color: color.unwrap_or_else(|| "#6366f1".into()),
+        created_at: now,
+    })
+}
+
+#[tauri::command]
+pub async fn budget_update_category(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+    category_id: String,
+    name: String,
+    group_name: Option<String>,
+    icon: Option<String>,
+    color: Option<String>,
+) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "budget").await?;
+
+    ensure_budget_tables(&state.db()).await?;
+
+    sqlx::query(
+        "UPDATE budget_categories SET name = ?, group_name = ?, icon = ?, color = ? WHERE id = ?",
+    )
+    .bind(name.trim())
+    .bind(group_name.as_deref().unwrap_or("Other"))
+    .bind(icon.as_deref().unwrap_or("wallet"))
+    .bind(color.as_deref().unwrap_or("#6366f1"))
+    .bind(&category_id)
+    .execute(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn budget_delete_category(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+    category_id: String,
+) -> Result<(), String> {
+    crate::auth::require_billing_tier(&auth, "budget").await?;
+
+    ensure_budget_tables(&state.db()).await?;
+
+    // Set FK references to NULL first, then delete
+    sqlx::query("UPDATE budget_transactions SET category_id = NULL WHERE category_id = ?")
+        .bind(&category_id)
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    sqlx::query("UPDATE budget_bills SET category_id = NULL WHERE category_id = ?")
+        .bind(&category_id)
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    sqlx::query("DELETE FROM budget_categories WHERE id = ?")
+        .bind(&category_id)
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
+
     Ok(())
 }
 
@@ -674,9 +776,61 @@ pub async fn budget_update_transaction(
 ) -> Result<Transaction, String> {
     crate::auth::require_billing_tier(&auth, "budget").await?;
 
-    // Delete + re-add = simplest correct approach
-    budget_delete_transaction(auth.clone(), state.clone(), id.clone()).await?;
-    budget_add_transaction(auth, state, tx).await
+    ensure_budget_tables(&state.db()).await?;
+
+    if tx.amount < 0.0 {
+        return Err("Amount cannot be negative.".into());
+    }
+    if tx.tx_type != "income" && tx.tx_type != "expense" {
+        return Err("Transaction type must be 'income' or 'expense'.".into());
+    }
+
+    let date = tx.date_key.unwrap_or_else(today_key);
+
+    sqlx::query(
+        "UPDATE budget_transactions SET category_id = ?, amount = ?, tx_type = ?, note = ?, date_key = ?, project = ?, recurring = ? WHERE id = ?",
+    )
+    .bind(&tx.category_id)
+    .bind(tx.amount)
+    .bind(&tx.tx_type)
+    .bind(&tx.note)
+    .bind(&date)
+    .bind(&tx.project)
+    .bind(tx.recurring as i64)
+    .bind(&id)
+    .execute(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    // Fetch the existing created_at
+    let created_at: i64 = sqlx::query_scalar("SELECT created_at FROM budget_transactions WHERE id = ?")
+        .bind(&id)
+        .fetch_one(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let cat_name: Option<String> = if let Some(ref cid) = tx.category_id {
+        sqlx::query_scalar("SELECT name FROM budget_categories WHERE id = ?")
+            .bind(cid)
+            .fetch_optional(&state.db())
+            .await
+            .map_err(|e| e.to_string())?
+    } else {
+        None
+    };
+
+    Ok(Transaction {
+        id,
+        category_id: tx.category_id,
+        category_name: cat_name,
+        amount: tx.amount,
+        tx_type: tx.tx_type,
+        note: tx.note,
+        date_key: date,
+        project: tx.project,
+        recurring: tx.recurring,
+        created_at,
+    })
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -695,6 +849,9 @@ pub async fn budget_add_bill(
 
     if bill.name.trim().is_empty() {
         return Err("Bill name is required.".into());
+    }
+    if bill.amount < 0.0 {
+        return Err("Amount cannot be negative.".into());
     }
     let due = bill.due_day.clamp(1, 31);
 
@@ -847,6 +1004,11 @@ pub async fn budget_delete_bill(
     crate::auth::require_billing_tier(&auth, "budget").await?;
 
     ensure_budget_tables(&state.db()).await?;
+    sqlx::query("DELETE FROM budget_bill_payments WHERE bill_id = ?")
+        .bind(&id)
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
     sqlx::query("UPDATE budget_bills SET active = 0 WHERE id = ?")
         .bind(&id)
         .execute(&state.db())
@@ -871,6 +1033,9 @@ pub async fn budget_add_ai_cost(
 
     if entry.provider.trim().is_empty() {
         return Err("Provider name is required.".into());
+    }
+    if entry.cost < 0.0 {
+        return Err("Cost cannot be negative.".into());
     }
 
     let id = Uuid::new_v4().to_string();
@@ -1040,10 +1205,21 @@ pub async fn budget_monthly_overview(
 
     let net = total_income - total_expenses;
     let savings_rate = if total_income > 0.0 {
-        (net / total_income * 100.0).max(0.0)
+        net / total_income * 100.0
     } else {
         0.0
     };
+
+    // Previous month income (for trend indicator)
+    let prev_ym = previous_year_month(&ym);
+    let prev_pattern = format!("{}%", prev_ym);
+    let previous_month_income: f64 = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(amount), 0.0) FROM budget_transactions WHERE tx_type = 'income' AND date_key LIKE ?",
+    )
+    .bind(&prev_pattern)
+    .fetch_one(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
 
     // Transaction count
     let tx_count: i64 = sqlx::query_scalar::<_, i64>(
@@ -1077,7 +1253,7 @@ pub async fn budget_monthly_overview(
             let budget: f64 = r.try_get("monthly_budget").unwrap_or(0.0);
             let spent: f64 = r.try_get("spent").unwrap_or(0.0);
             let percent = if budget > 0.0 {
-                (spent / budget * 100.0).min(100.0)
+                spent / budget * 100.0
             } else {
                 0.0
             };
@@ -1097,6 +1273,8 @@ pub async fn budget_monthly_overview(
         year_month: ym,
         total_income,
         total_expenses,
+        previous_month_income,
+
         net_savings: net,
         savings_rate,
         top_categories,
@@ -1140,7 +1318,7 @@ pub async fn budget_financial_health(
     .map_err(|e| e.to_string())?;
 
     let savings_rate_pct = if income_3 > 0.0 {
-        ((income_3 - expense_3) / income_3 * 100.0).max(0.0)
+        (income_3 - expense_3) / income_3 * 100.0
     } else {
         0.0
     };
@@ -1375,7 +1553,7 @@ pub async fn budget_cash_flow_forecast(
             month: ym,
             projected_income: income,
             projected_expenses: expenses,
-            projected_balance: balance.max(0.0),
+            projected_balance: balance,
         });
     }
 
@@ -1407,7 +1585,7 @@ pub async fn budget_forecast_chart_data(
 
     ensure_budget_tables(&state.db()).await?;
 
-    let num_months = months.unwrap_or(6).clamp(3, 24);
+    let num_months = months.unwrap_or(6).clamp(1, 24);
     let today = chrono::Utc::now();
 
     // ── 1. Gather historical monthly data (actual income & expenses by month) ─
@@ -1618,40 +1796,39 @@ pub async fn budget_list_templates(
 
     use sqlx::Row;
     let rows = sqlx::query(
-        "SELECT id, name, total_income, created_at FROM budget_templates ORDER BY created_at DESC",
+        r#"SELECT t.id, t.name, t.total_income, t.created_at,
+                  ti.id AS item_id, ti.category_name, ti.amount
+           FROM budget_templates t
+           LEFT JOIN budget_template_items ti ON ti.template_id = t.id
+           ORDER BY t.created_at DESC, ti.id"#,
     )
     .fetch_all(&state.db())
     .await
     .map_err(|e| e.to_string())?;
 
-    let mut templates = vec![];
+    let mut templates_map: std::collections::BTreeMap<String, BudgetTemplate> =
+        std::collections::BTreeMap::new();
     for r in rows {
         let tid: String = r.try_get("id").unwrap_or_default();
-        let items: Vec<TemplateItem> = sqlx::query(
-            "SELECT id, category_name, amount FROM budget_template_items WHERE template_id = ?",
-        )
-        .bind(&tid)
-        .fetch_all(&state.db())
-        .await
-        .map_err(|e| e.to_string())?
-        .into_iter()
-        .map(|ir| TemplateItem {
-            id: ir.try_get("id").unwrap_or_default(),
-            category_name: ir.try_get("category_name").unwrap_or_default(),
-            amount: ir.try_get("amount").unwrap_or(0.0),
-        })
-        .collect();
-
-        templates.push(BudgetTemplate {
+        let entry = templates_map.entry(tid.clone()).or_insert_with(|| BudgetTemplate {
             id: tid,
             name: r.try_get("name").unwrap_or_default(),
             total_income: r.try_get("total_income").unwrap_or(0.0),
             created_at: r.try_get("created_at").unwrap_or(0),
-            items,
+            items: vec![],
         });
+        if let Ok(item_id) = r.try_get::<String, _>("item_id") {
+            if !item_id.is_empty() {
+                entry.items.push(TemplateItem {
+                    id: item_id,
+                    category_name: r.try_get("category_name").unwrap_or_default(),
+                    amount: r.try_get("amount").unwrap_or(0.0),
+                });
+            }
+        }
     }
 
-    Ok(templates)
+    Ok(templates_map.into_values().collect())
 }
 
 #[tauri::command]
@@ -1690,15 +1867,15 @@ pub async fn budget_export_pdf(
 
     let ym = month.unwrap_or_else(current_year_month);
 
-    // Gather all data in parallel
+    let pool = &state.db();
     let (overview, categories, health, bills, ai_entries, ai_summary, cash_flow) = tokio::join!(
-        budget_monthly_overview_inner(&state, &ym),
-        budget_list_categories_inner(&state),
-        budget_financial_health_inner(&state),
-        budget_list_bills_inner(&state),
-        budget_list_ai_costs_inner(&state, &ym),
-        budget_ai_cost_summary_inner(&state),
-        budget_cash_flow_forecast_inner(&state, 6),
+        budget_monthly_overview_inner(pool, &ym),
+        budget_list_categories_inner(pool),
+        budget_financial_health_inner(pool),
+        budget_list_bills_inner(pool),
+        budget_list_ai_costs_inner(pool, &ym),
+        budget_ai_cost_summary_inner(pool),
+        budget_cash_flow_forecast_inner(pool, 6),
     );
 
     let overview = overview?;
@@ -1724,10 +1901,9 @@ pub async fn budget_export_pdf(
 // ── Inner helpers that don't register as commands (used by PDF export) ─
 
 async fn budget_monthly_overview_inner(
-    state: &State<'_, BentoAppState>,
+    pool: &sqlx::SqlitePool,
     month: &str,
 ) -> Result<MonthlyOverview, String> {
-    let pool = &state.db();
     let pattern = format!("{}%", month);
 
     let total_income: f64 = sqlx::query_scalar(
@@ -1748,10 +1924,21 @@ async fn budget_monthly_overview_inner(
 
     let net = total_income - total_expenses;
     let savings_rate = if total_income > 0.0 {
-        (net / total_income * 100.0).max(0.0)
+        net / total_income * 100.0
     } else {
         0.0
     };
+
+    // Previous month income (for trend indicator)
+    let prev_ym = previous_year_month(month);
+    let prev_pattern = format!("{}%", prev_ym);
+    let previous_month_income: f64 = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(amount), 0.0) FROM budget_transactions WHERE tx_type = 'income' AND date_key LIKE ?",
+    )
+    .bind(&prev_pattern)
+    .fetch_one(pool)
+    .await
+    .map_err(|e| e.to_string())?;
 
     let tx_count: i64 = sqlx::query_scalar::<_, i64>(
         "SELECT COUNT(*) FROM budget_transactions WHERE date_key LIKE ?",
@@ -1761,21 +1948,61 @@ async fn budget_monthly_overview_inner(
     .await
     .map_err(|e| e.to_string())?;
 
+    // Top spending categories
+    use sqlx::Row;
+    let cat_rows = sqlx::query(
+        r#"SELECT c.id, c.name, c.icon, c.color,
+                  COALESCE(SUM(t.amount), 0.0) AS spent, c.monthly_budget
+           FROM budget_categories c
+           LEFT JOIN budget_transactions t ON t.category_id = c.id AND t.tx_type = 'expense' AND t.date_key LIKE ?
+           GROUP BY c.id
+           HAVING spent > 0
+           ORDER BY spent DESC
+           LIMIT 10"#,
+    )
+    .bind(&pattern)
+    .fetch_all(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let top_categories: Vec<CategorySpending> = cat_rows
+        .into_iter()
+        .map(|r| {
+            let budget: f64 = r.try_get("monthly_budget").unwrap_or(0.0);
+            let spent: f64 = r.try_get("spent").unwrap_or(0.0);
+            let percent = if budget > 0.0 {
+                spent / budget * 100.0
+            } else {
+                0.0
+            };
+            CategorySpending {
+                category_id: r.try_get("id").unwrap_or_default(),
+                category_name: r.try_get("name").unwrap_or_default(),
+                icon: r.try_get("icon").unwrap_or_default(),
+                color: r.try_get("color").unwrap_or_default(),
+                spent,
+                budget,
+                percent_used: percent,
+            }
+        })
+        .collect();
+
     Ok(MonthlyOverview {
         year_month: month.to_string(),
         total_income,
         total_expenses,
+        previous_month_income,
+
         net_savings: net,
         savings_rate,
-        top_categories: vec![],
+        top_categories,
         transaction_count: tx_count as u64,
     })
 }
 
 async fn budget_list_categories_inner(
-    state: &State<'_, BentoAppState>,
+    pool: &sqlx::SqlitePool,
 ) -> Result<Vec<BudgetCategoryWithSpending>, String> {
-    let pool = &state.db();
     let month_prefix = format!("{}%", current_year_month());
 
     use sqlx::Row;
@@ -1808,7 +2035,7 @@ async fn budget_list_categories_inner(
                 spent,
                 remaining: budget - spent,
                 percent_used: if budget > 0.0 {
-                    (spent / budget * 100.0).min(100.0)
+                    spent / budget * 100.0
                 } else {
                     0.0
                 },
@@ -1818,10 +2045,9 @@ async fn budget_list_categories_inner(
 }
 
 async fn budget_financial_health_inner(
-    state: &State<'_, BentoAppState>,
+    pool: &sqlx::SqlitePool,
 ) -> Result<FinancialHealthScore, String> {
     // Simplified version — just return a basic score
-    let pool = &state.db();
     let current_ym = current_year_month();
     let pattern = format!("{}%", current_ym);
 
@@ -1834,7 +2060,7 @@ async fn budget_financial_health_inner(
     ).bind(&pattern).fetch_one(pool).await.map_err(|e| e.to_string())?;
 
     let savings_rate = if income > 0.0 {
-        ((income - expenses) / income * 100.0).max(0.0)
+        (income - expenses) / income * 100.0
     } else {
         0.0
     };
@@ -1873,8 +2099,7 @@ async fn budget_financial_health_inner(
     })
 }
 
-async fn budget_list_bills_inner(state: &State<'_, BentoAppState>) -> Result<Vec<Bill>, String> {
-    let pool = &state.db();
+async fn budget_list_bills_inner(pool: &sqlx::SqlitePool) -> Result<Vec<Bill>, String> {
     let month_prefix = format!("{}%", current_year_month());
 
     use sqlx::Row;
@@ -1911,10 +2136,9 @@ async fn budget_list_bills_inner(state: &State<'_, BentoAppState>) -> Result<Vec
 }
 
 async fn budget_list_ai_costs_inner(
-    state: &State<'_, BentoAppState>,
+    pool: &sqlx::SqlitePool,
     month: &str,
 ) -> Result<Vec<AiCostEntry>, String> {
-    let pool = &state.db();
     let pattern = format!("{}%", month);
 
     use sqlx::Row;
@@ -1945,9 +2169,8 @@ async fn budget_list_ai_costs_inner(
 }
 
 async fn budget_ai_cost_summary_inner(
-    state: &State<'_, BentoAppState>,
+    pool: &sqlx::SqlitePool,
 ) -> Result<Vec<AiCostSummary>, String> {
-    let pool = &state.db();
     use sqlx::Row;
     let rows = sqlx::query(
         r#"SELECT provider,
@@ -1976,10 +2199,9 @@ async fn budget_ai_cost_summary_inner(
 }
 
 async fn budget_cash_flow_forecast_inner(
-    state: &State<'_, BentoAppState>,
+    pool: &sqlx::SqlitePool,
     months: i64,
 ) -> Result<Vec<CashFlowProjection>, String> {
-    let pool = &state.db();
     let three_months_ago = {
         let now = chrono::Utc::now();
         let past = now - chrono::Months::new(3);
@@ -2029,7 +2251,7 @@ async fn budget_cash_flow_forecast_inner(
             month: proj_month.format("%Y-%m").to_string(),
             projected_income: income,
             projected_expenses: expenses,
-            projected_balance: balance.max(0.0),
+            projected_balance: balance,
         });
     }
 
@@ -2055,8 +2277,8 @@ pub async fn budget_export_csv(
 
     use sqlx::Row;
     let rows = sqlx::query(
-        r#"SELECT t.date_key, t.tx_type, t.amount, COALESCE(c.name, 'Uncategorized') AS category,
-                  t.note, t.project
+        r#"SELECT t.id, t.date_key, t.tx_type, t.amount, COALESCE(c.name, 'Uncategorized') AS category,
+                  t.note, t.project, t.recurring
            FROM budget_transactions t
            LEFT JOIN budget_categories c ON c.id = t.category_id
            WHERE t.date_key LIKE ?
@@ -2067,27 +2289,40 @@ pub async fn budget_export_csv(
     .await
     .map_err(|e| e.to_string())?;
 
-    let mut csv = String::from("Date,Type,Amount,Category,Note,Project\n");
+    let mut csv = String::from("ID,Date,Type,Amount,Category,Note,Project,Recurring\n");
     for r in rows {
+        let id: String = r.try_get("id").unwrap_or_default();
         let date: String = r.try_get("date_key").unwrap_or_default();
         let tx_type: String = r.try_get("tx_type").unwrap_or_default();
         let amount: f64 = r.try_get("amount").unwrap_or(0.0);
         let category: String = r.try_get("category").unwrap_or_default();
         let note: Option<String> = r.try_get("note").unwrap_or(None);
         let project: Option<String> = r.try_get("project").unwrap_or(None);
+        let recurring: i64 = r.try_get("recurring").unwrap_or(0);
 
         csv.push_str(&format!(
-            "{},{},{:.2},{},{},{}\n",
+            "{},{},{},{:.2},{},{},{},{}\n",
+            csv_escape(&id),
             date,
             tx_type,
             amount,
             csv_escape(&category),
             csv_escape(&note.unwrap_or_default()),
             csv_escape(&project.unwrap_or_default()),
+            if recurring != 0 { "Yes" } else { "No" },
         ));
     }
 
     Ok(csv)
+}
+
+fn previous_year_month(ym: &str) -> String {
+    chrono::NaiveDate::parse_from_str(&format!("{}-01", ym), "%Y-%m-%d")
+        .map(|d| (d - chrono::Months::new(1)).format("%Y-%m").to_string())
+        .unwrap_or_else(|_| {
+            let now = chrono::Utc::now();
+            (now - chrono::Months::new(1)).format("%Y-%m").to_string()
+        })
 }
 
 fn csv_escape(s: &str) -> String {

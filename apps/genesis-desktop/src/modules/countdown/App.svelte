@@ -1118,7 +1118,7 @@
     padding: 0.55rem 0.75rem;
     border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
     border-radius: 0.6rem;
-    background: color-mix(in srgb, var(--surface) 70%, transparent);
+    background: var(--background);
     color: var(--foreground);
     font-size: 0.875rem;
     outline: none;

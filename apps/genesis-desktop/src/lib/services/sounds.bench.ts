@@ -159,17 +159,12 @@ async function benchAlarmPlay() {
   const times: number[] = [];
   for (let i = 0; i < 5; i++) {
     const t0 = performance.now();
-    const audio = playAlarmSound("alarm", { loop: false, volume: 0.1 });
-    if (audio) {
-      // Measure when playback actually starts
-      const onPlay = () => {
-        const t1 = performance.now();
-        times.push(t1 - t0);
-        console.log(`  Run ${i + 1}:  ${(t1 - t0).toFixed(2)} ms`);
-        audio.removeEventListener("play", onPlay);
-        setTimeout(() => stopAlarmSound(audio), 100);
-      };
-      audio.addEventListener("play", onPlay);
+    const handle = playAlarmSound("alarm", { loop: false, volume: 0.1 });
+    if (handle) {
+      const t1 = performance.now();
+      times.push(t1 - t0);
+      console.log(`  Run ${i + 1}:  ${(t1 - t0).toFixed(2)} ms`);
+      setTimeout(() => stopAlarmSound(handle), 100);
     }
     // Wait before next
     await new Promise((r) => setTimeout(r, 200));

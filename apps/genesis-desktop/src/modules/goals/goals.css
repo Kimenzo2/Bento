@@ -5,7 +5,29 @@
    - Cards use subtle background contrast instead of borders
    - Rounded corners (20px cards, 14-16px inner items)
    - Two-column grids with 16px gaps where appropriate
-   - All tokens from global CSS variables only */
+   - All tokens from global CSS variables only
+
+   FONT SCALE (matched to Sleep/Health):
+   0.7rem   — badges, axis labels, memory sub
+   0.75rem  — select inputs, memory label
+   0.78rem  — panel labels, small text, tooltips
+   0.82rem  — section headers, buttons, inputs
+   0.88rem  — secondary body text, descriptions
+   0.97rem  — primary body text, content, notes
+   1.2rem   — card titles, stat values, names
+   2rem     — hero stats, achievement icons
+   clamp(1.7rem, 2.5vw, 2.6rem) — page titles */
+
+/* ═════════════════════════════════════════════════════════════════════
+   CARD COMPONENT OVERRIDE — gradient treatment matching Sleep
+   ═════════════════════════════════════════════════════════════════════ */
+.goals-workspace [data-slot="card"] {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface) 96%, var(--background)) 98%,
+    color-mix(in srgb, var(--surface) 91%, var(--background)) 86%
+  );
+}
 
 /* ═════════════════════════════════════════════════════════════════════
    WORKSPACE SHELL
@@ -43,7 +65,7 @@
 }
 
 .goals-zone-label {
-  font-size: 0.65rem;
+  font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -53,7 +75,7 @@
 
 .goals-zone-desc {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 0.97rem;
   color: color-mix(in srgb, var(--muted) 70%, transparent);
   font-family: inherit;
   margin-bottom: 0.25rem;
@@ -61,7 +83,7 @@
 
 .goals-empty-text {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 0.97rem;
   font-weight: 450;
   color: color-mix(in srgb, var(--muted) 70%, transparent);
   font-family: inherit;
@@ -85,7 +107,7 @@
 
 .goals-ambient-text {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.97rem;
   line-height: 1.55;
   color: var(--muted);
   font-family: inherit;
@@ -159,7 +181,7 @@
 }
 
 .goals-row__title {
-  font-size: 1rem;
+  font-size: 1.2rem;
   font-weight: 500;
   color: var(--foreground);
   font-family: inherit;
@@ -170,7 +192,7 @@
 
 .goals-row__state {
   flex-shrink: 0;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -192,12 +214,12 @@
 }
 
 .goals-row--month .goals-row__title {
-  font-size: clamp(0.95rem, 1.1vw, 1.05rem);
+  font-size: clamp(1rem, 1.1vw, 1.2rem);
   font-weight: 500;
 }
 
 .goals-row--year .goals-row__title {
-  font-size: clamp(0.9rem, 1vw, 1rem);
+  font-size: clamp(0.97rem, 1vw, 1.1rem);
   font-weight: 400;
   font-style: italic;
   opacity: 0.85;
@@ -310,7 +332,7 @@
 }
 
 .goals-row__subtask-label {
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   font-weight: 450;
   color: color-mix(in srgb, var(--foreground) 78%, transparent);
   line-height: 1.4;
@@ -323,7 +345,7 @@
 
 .goals-zone-empty__text {
   margin: 0;
-  font-size: 0.88rem;
+  font-size: 0.97rem;
   font-weight: 450;
   color: color-mix(in srgb, var(--muted) 70%, transparent);
   font-family: inherit;
@@ -492,7 +514,7 @@
 
 .goals-panel__progress-value {
   margin-left: auto;
-  font-size: 0.9rem;
+  font-size: 1.2rem;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
   color: var(--foreground);
@@ -513,7 +535,7 @@
 }
 
 .goals-panel__label {
-  font-size: 0.65rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -522,7 +544,7 @@
 }
 
 .goals-panel__value {
-  font-size: 0.9rem;
+  font-size: 1.2rem;
   font-weight: 500;
   color: var(--foreground);
   font-family: inherit;
@@ -530,7 +552,7 @@
 
 .goals-panel__text {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.97rem;
   line-height: 1.5;
   color: color-mix(in srgb, var(--foreground) 82%, transparent);
   font-family: inherit;
@@ -553,10 +575,10 @@
   min-height: 5rem;
   border: none;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--card) 80%, var(--surface));
+  background: var(--background);
   color: var(--foreground);
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 0.97rem;
   line-height: 1.5;
   padding: 0.65rem 0.75rem;
   resize: vertical;
@@ -566,7 +588,7 @@
 }
 
 .goals-panel__notes:focus {
-  background: color-mix(in srgb, var(--card) 70%, var(--surface));
+  background: var(--background);
 }
 .goals-panel__notes::placeholder {
   color: var(--muted);
@@ -578,7 +600,7 @@
   gap: 0.35rem;
   margin-top: 0.25rem;
   margin-bottom: 1rem;
-  padding: 0.85rem 1rem;
+  padding: 0.82rem 1rem;
   border-radius: 14px;
   background: color-mix(in srgb, var(--color-primary-start) 8%, var(--card));
 }
@@ -621,7 +643,7 @@
   border-radius: 10px;
   background: var(--color-primary-start);
   color: var(--background);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -661,7 +683,7 @@
 
 .goals-dialog__title {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: clamp(1.7rem, 2.5vw, 2.6rem);
   font-weight: 650;
   font-family: var(--font-display);
   color: var(--foreground);
@@ -675,7 +697,7 @@
 }
 
 .goals-dialog__label {
-  font-size: 0.7rem;
+  font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -688,9 +710,9 @@
   padding: 0.6rem 0.75rem;
   border: none;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--card) 80%, var(--surface));
+  background: var(--background);
   color: var(--foreground);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-family: inherit;
   outline: none;
   box-sizing: border-box;
@@ -698,7 +720,7 @@
 }
 
 .goals-dialog__input:focus {
-  background: color-mix(in srgb, var(--card) 70%, var(--surface));
+  background: var(--background);
 }
 .goals-dialog__input::placeholder {
   color: var(--muted);
@@ -721,7 +743,7 @@
   border-radius: 10px;
   background: color-mix(in srgb, var(--border) 12%, transparent);
   color: color-mix(in srgb, var(--foreground) 72%, transparent);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
@@ -751,7 +773,7 @@
 .goals-dialog__btn {
   padding: 0.55rem 1.2rem;
   border-radius: 10px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -808,7 +830,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--card) 90%, var(--surface));
   color: var(--foreground);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
@@ -862,7 +884,7 @@
   align-items: center;
   padding: 0.25rem 0.65rem;
   border-radius: 999px;
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -890,7 +912,7 @@
 }
 
 .goals-detail-page__streak-label {
-  font-size: 0.62rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -899,7 +921,7 @@
 }
 
 .goals-detail-page__streak-value {
-  font-size: 1.8rem;
+  font-size: 2rem;
   font-weight: 650;
   font-family: var(--font-display);
   color: var(--foreground);
@@ -914,7 +936,7 @@
 }
 
 .goals-detail-page__focus-label {
-  font-size: 0.62rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -923,7 +945,7 @@
 }
 
 .goals-detail-page__focus-value {
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   font-weight: 500;
   color: var(--foreground);
   font-family: inherit;
@@ -957,7 +979,7 @@
   border-left: 2px solid var(--color-primary-start);
   background: color-mix(in srgb, var(--color-primary-start) 6%, transparent);
   border-radius: 0 10px 10px 0;
-  font-size: 0.9rem;
+  font-size: 0.97rem;
   line-height: 1.55;
   color: color-mix(in srgb, var(--foreground) 82%, transparent);
   font-family: inherit;
@@ -1006,7 +1028,7 @@
 }
 
 .goals-detail-page__slider-value {
-  font-size: 0.9rem;
+  font-size: 1.2rem;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
   color: var(--foreground);
@@ -1021,7 +1043,7 @@
 }
 
 .goals-detail-page__section-title {
-  font-size: 0.68rem;
+  font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1031,7 +1053,7 @@
 }
 
 .goals-detail-page__empty-hint {
-  font-size: 0.82rem;
+  font-size: 0.97rem;
   color: var(--muted);
   font-family: inherit;
   font-style: italic;
@@ -1052,7 +1074,7 @@
   background: color-mix(in srgb, var(--card) 80%, var(--surface));
   color: var(--foreground);
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 0.97rem;
   line-height: 1.5;
   padding: 0.65rem 0.75rem;
   resize: vertical;
@@ -1075,7 +1097,7 @@
   border-radius: 8px;
   background: var(--color-primary-start);
   color: var(--background);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -1100,7 +1122,7 @@
   padding: 0.6rem 0.75rem;
   border-radius: 10px;
   background: color-mix(in srgb, var(--card) 80%, var(--surface));
-  font-size: 0.84rem;
+  font-size: 0.97rem;
   line-height: 1.5;
   color: color-mix(in srgb, var(--foreground) 82%, transparent);
   font-family: inherit;
@@ -1109,7 +1131,7 @@
 .goals-detail-page__review-date {
   display: block;
   margin-top: 4px;
-  font-size: 0.7rem;
+  font-size: 0.78rem;
   color: var(--muted);
 }
 
@@ -1132,7 +1154,7 @@
   background: color-mix(in srgb, var(--card) 80%, var(--surface));
   color: var(--foreground);
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 0.97rem;
   line-height: 1.5;
   padding: 0.65rem 0.75rem;
   resize: vertical;
@@ -1155,7 +1177,7 @@
   border-radius: 10px;
   background: transparent;
   color: color-mix(in srgb, var(--muted) 70%, transparent);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
@@ -1237,14 +1259,14 @@
 }
 
 .goals-focus-band__name {
-  font-size: 0.9rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--foreground);
   font-family: inherit;
 }
 
 .goals-focus-band__count {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   color: var(--muted);
   font-family: inherit;
 }
@@ -1263,7 +1285,7 @@
   padding: 3px 10px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--foreground) 6%, transparent);
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-family: inherit;
 }
 
@@ -1276,14 +1298,14 @@
 }
 
 .goals-focus-band__empty {
-  font-size: 0.8rem;
+  font-size: 0.97rem;
   color: var(--muted);
   font-style: italic;
   font-family: inherit;
 }
 
 .goals-focus-band__agg {
-  font-size: 0.9rem;
+  font-size: 1.2rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--foreground);
@@ -1338,7 +1360,7 @@
 }
 
 .goals-timeline__month-label {
-  font-size: 0.68rem;
+  font-size: 0.82rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -1371,7 +1393,7 @@
 }
 
 .goals-timeline__group-label {
-  font-size: 0.62rem;
+  font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1415,7 +1437,7 @@
   left: 6px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 11px;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--foreground);
   font-family: inherit;
@@ -1461,7 +1483,7 @@
 }
 
 .goals-heatmap__month-header {
-  font-size: 11px;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -1481,7 +1503,7 @@
 }
 
 .goals-heatmap__day-label {
-  font-size: 11px;
+  font-size: 0.7rem;
   color: var(--muted);
   font-family: inherit;
   line-height: 12px;
@@ -1490,7 +1512,7 @@
 
 .goals-heatmap__insight {
   margin: 12px 0 0;
-  font-size: 0.82rem;
+  font-size: 0.97rem;
   color: var(--muted);
   font-family: inherit;
   font-style: italic;
@@ -1547,7 +1569,7 @@
   background: transparent;
   color: var(--foreground);
   font-family: inherit;
-  font-size: 1rem;
+  font-size: 0.82rem;
   padding: 0.35rem 0;
   outline: none;
   box-sizing: border-box;
@@ -1562,7 +1584,7 @@
 }
 
 .goals-create-field__input--hero {
-  font-size: clamp(1.3rem, 2.5vw, 1.7rem);
+  font-size: clamp(1.7rem, 2.5vw, 2.6rem);
   font-weight: 650;
   font-family: var(--font-display);
   letter-spacing: -0.02em;
@@ -1577,7 +1599,7 @@
 }
 .goals-create-field__hint {
   margin: 0;
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: var(--muted);
   font-family: inherit;
   font-style: italic;
@@ -1616,12 +1638,12 @@
 }
 
 .goals-create-horizon-btn__title {
-  font-size: 0.9rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--foreground);
 }
 .goals-create-horizon-btn__desc {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   color: var(--muted);
   line-height: 1.4;
 }
@@ -1654,7 +1676,7 @@
   border-radius: 999px;
   background: transparent;
   color: color-mix(in srgb, var(--foreground) 72%, transparent);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
@@ -1688,11 +1710,11 @@
 .goals-create-review__line {
   display: flex;
   gap: 10px;
-  font-size: 0.88rem;
+  font-size: 0.97rem;
   font-family: inherit;
 }
 .goals-create-review__tag {
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1707,7 +1729,7 @@
   border-radius: 12px;
   background: var(--color-primary-start);
   color: var(--background);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -1723,7 +1745,7 @@
 }
 .goals-create-error {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   color: #ef4444;
   font-family: inherit;
 }
@@ -1757,12 +1779,12 @@
 }
 
 .goals-template-btn__title {
-  font-size: 0.88rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--foreground);
 }
 .goals-template-btn__desc {
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   color: var(--muted);
   line-height: 1.4;
 }
@@ -1774,7 +1796,7 @@
   padding: 60px 24px;
 }
 .goals-loading__text {
-  font-size: 0.9rem;
+  font-size: 0.97rem;
   color: var(--muted);
   font-family: inherit;
 }
@@ -1812,7 +1834,7 @@
   flex-shrink: 0;
   background: color-mix(in srgb, var(--color-primary-start) 14%, transparent);
   color: var(--color-primary-start);
-  font-size: 1.3rem;
+  font-size: 2rem;
 }
 
 .goals-achievement__info {
@@ -1820,14 +1842,14 @@
   min-width: 0;
 }
 .goals-achievement__title {
-  font-size: 0.9rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--foreground);
   font-family: inherit;
   margin: 0;
 }
 .goals-achievement__desc {
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   color: var(--muted);
   font-family: inherit;
   margin: 2px 0 0;
@@ -1892,7 +1914,7 @@
   border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
   border-radius: 8px;
   color: var(--foreground);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   padding: 6px 28px 6px 12px;
   cursor: pointer;
@@ -1938,14 +1960,14 @@
 }
 
 .gp1-empty-head {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
   margin: 0;
   color: var(--foreground);
 }
 
 .gp1-empty-sub {
-  font-size: 13px;
+  font-size: 0.97rem;
   color: color-mix(in srgb, var(--foreground) 50%, transparent);
   margin: 0 0 12px;
   max-width: 320px;
@@ -1998,7 +2020,7 @@
 }
 
 .gp1-card-title {
-  font-size: 14px;
+  font-size: 1.2rem;
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.25;
@@ -2016,7 +2038,7 @@
 }
 
 .gp1-horizon-badge {
-  font-size: 11px;
+  font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   padding: 2px 7px;
@@ -2049,7 +2071,7 @@
   border: none;
   background: transparent;
   color: color-mix(in srgb, var(--foreground) 45%, transparent);
-  font-size: 11px;
+  font-size: 0.7rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -2175,7 +2197,7 @@
 }
 
 .gp1-med-copy strong {
-  font-size: 0.88rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--foreground);
   font-family: inherit;
@@ -2223,7 +2245,7 @@
 }
 
 .gp1-progress-pct {
-  font-size: 13px;
+  font-size: 0.82rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: color-mix(in srgb, var(--foreground) 55%, transparent);
@@ -2281,12 +2303,12 @@
 }
 
 .gp1-memory-empty-label {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.01em;
 }
 .gp1-memory-empty-sub {
-  font-size: 11px;
+  font-size: 0.7rem;
   opacity: 0.65;
 }
 
@@ -2340,17 +2362,17 @@
   background: color-mix(in srgb, var(--color-primary-start) 4%, transparent);
 }
 .goals-template-card__title {
-  font-size: 0.88rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--foreground);
 }
 .goals-template-card__desc {
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   color: var(--muted);
   line-height: 1.4;
 }
 .goals-template-card__meta {
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -2365,7 +2387,7 @@
   margin-top: 16px;
 }
 .goals-templates__sub {
-  font-size: 0.82rem;
+  font-size: 0.97rem;
   color: color-mix(in srgb, var(--muted) 80%, transparent);
   margin: 0 0 4px;
   font-family: inherit;
@@ -2426,7 +2448,7 @@
 }
 .goals-timeline__month-marker {
   position: absolute;
-  font-size: 0.68rem;
+  font-size: 0.82rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -2446,7 +2468,7 @@
   gap: 6px;
 }
 .goals-timeline__group-label {
-  font-size: 0.62rem;
+  font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -2481,7 +2503,8 @@
 .goals-timeline__bar:hover {
   opacity: 0.8;
 }
-.goals-timeline__bar:hover .goals-timeline__tooltip {
+.goals-timeline__bar:hover .goals-timeline__tooltip,
+.goals-timeline__bar-row:focus-within .goals-timeline__tooltip {
   display: flex;
 }
 .goals-timeline__bar-fill {
@@ -2528,7 +2551,7 @@
   text-overflow: ellipsis;
 }
 .goals-timeline__tooltip-state {
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -2548,7 +2571,7 @@
 }
 .goals-timeline__tooltip-progress,
 .goals-timeline__tooltip-days {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   color: var(--muted);
   font-family: inherit;
 }
@@ -2566,7 +2589,7 @@
   height: 16px;
 }
 .goals-heatmap__month-label {
-  font-size: 11px;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -2587,7 +2610,7 @@
   align-items: center;
   gap: 4px;
   margin-top: 8px;
-  font-size: 11px;
+  font-size: 0.7rem;
   color: var(--muted);
   font-family: inherit;
 }
@@ -2606,10 +2629,10 @@
   min-height: 6rem;
   border: none;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--card) 80%, var(--surface));
+  background: var(--background);
   color: var(--foreground);
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 0.97rem;
   line-height: 1.5;
   padding: 0.65rem 0.75rem;
   resize: vertical;
@@ -2618,7 +2641,7 @@
   box-sizing: border-box;
 }
 .goals-detail-page__notes:focus {
-  background: color-mix(in srgb, var(--card) 70%, var(--surface));
+  background: var(--background);
 }
 .goals-detail-page__notes::placeholder {
   color: var(--muted);
@@ -2639,10 +2662,10 @@
   min-height: 4rem;
   border: none;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--card) 80%, var(--surface));
+  background: var(--background);
   color: var(--foreground);
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 0.97rem;
   line-height: 1.5;
   padding: 0.65rem 0.75rem;
   resize: vertical;
@@ -2651,7 +2674,7 @@
   box-sizing: border-box;
 }
 .goals-detail-page__review-textarea:focus {
-  background: color-mix(in srgb, var(--card) 70%, var(--surface));
+  background: var(--background);
 }
 .goals-detail-page__review-textarea::placeholder {
   color: var(--muted);
@@ -2664,7 +2687,7 @@
   border-radius: 8px;
   background: var(--color-primary-start);
   color: var(--background);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -2689,7 +2712,7 @@
   overflow: hidden;
 }
 .goals-detail-page__review-date {
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--muted);
   font-family: inherit;
@@ -2705,7 +2728,7 @@
 }
 .goals-detail-page__review-content {
   margin: 0;
-  font-size: 0.84rem;
+  font-size: 0.97rem;
   line-height: 1.5;
   color: color-mix(in srgb, var(--foreground) 82%, transparent);
   font-family: inherit;
@@ -2722,14 +2745,14 @@
   background: color-mix(in srgb, var(--color-primary-start) 7%, transparent);
 }
 .goals-detail-page__insight-icon {
-  font-size: 0.8rem;
+  font-size: 0.97rem;
   color: var(--color-primary-start);
   flex-shrink: 0;
   margin-top: 1px;
 }
 .goals-detail-page__insight-text {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 0.97rem;
   line-height: 1.5;
   color: color-mix(in srgb, var(--foreground) 82%, transparent);
   font-family: inherit;
@@ -2746,9 +2769,143 @@
 }
 .goals-create-error {
   margin: 0 0 8px;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   color: #ef4444;
   font-family: inherit;
+}
+
+/* ── Horizon section header ────────────────────────────────────────── */
+.gp1-horizon-section-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 2px;
+}
+.gp1-horizon-section-label[data-horizon="weekly"] {
+  color: #3b82f6;
+}
+.gp1-horizon-section-label[data-horizon="monthly"] {
+  color: #8b5cf6;
+}
+.gp1-horizon-section-label[data-horizon="yearly"] {
+  color: #f59e0b;
+}
+.gp1-horizon-count {
+  font-weight: 500;
+  opacity: 0.6;
+  font-size: 0.78rem;
+}
+
+/* ── Error toast ──────────────────────────────────────────────────── */
+.goals-error-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: #ef4444;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 0.97rem;
+  font-weight: 600;
+  font-family: inherit;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  animation: goals-toast-in 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes goals-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Big 3 button ────────────────────────────────────────────────── */
+.goals-big3-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+.goals-big3-btn:hover {
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+.goals-big3-btn--active {
+  border-color: #f59e0b;
+  background: color-mix(in srgb, #f59e0b 10%, transparent);
+  color: #f59e0b;
+}
+
+/* ── Big 3 panel button ──────────────────────────────────────────── */
+.goals-panel__big3-btn {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: color-mix(in srgb, var(--muted) 80%, transparent);
+  font-size: 0.82rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 150ms ease;
+}
+.goals-panel__big3-btn:hover {
+  background: color-mix(in srgb, #f59e0b 10%, transparent);
+  color: #f59e0b;
+}
+.goals-panel__big3-btn--active {
+  background: color-mix(in srgb, #f59e0b 10%, transparent);
+  color: #f59e0b;
+}
+
+/* ── Title edit input ────────────────────────────────────────────── */
+.goals-detail-page__title-edit {
+  margin-bottom: 0;
+}
+.goals-detail-page__title-input {
+  width: 100%;
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--foreground);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--color-primary-start);
+  outline: none;
+  padding: 0 0 4px;
+  letter-spacing: -0.03em;
+}
+
+/* ── Add subtask inline ──────────────────────────────────────────── */
+.goals-add-subtask {
+  width: 100%;
+}
+
+/* ── Empty med list message ──────────────────────────────────────── */
+.gp1-med-empty {
+  font-size: 0.97rem;
+  color: var(--muted);
+  font-style: italic;
+  margin: 4px 0;
 }
 
 /* ── Screen reader only ─────────────────────────────────────────────── */
@@ -2762,4 +2919,19 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .goals-detail-panel,
+  .goals-create-field,
+  .goals-row__subtasks,
+  .goals-panel__progress-fill,
+  .goals-detail-page__progress-fill,
+  .gp1-progress-fill,
+  .goals-panel-slide-in,
+  .gp1-med-item {
+    animation: none !important;
+    transition: none !important;
+  }
 }

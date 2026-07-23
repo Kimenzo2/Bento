@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import "./goals.css";
   import XIcon from "@lucide/svelte/icons/x";
@@ -22,6 +21,13 @@
   const sectionLabels = ['Goals', 'Focus Areas', 'Timeline', 'New Goal'] as const;
   $effect(() => { ensureModuleSection(moduleId, sectionLabels); });
   let selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
+
+  $effect(() => {
+    if (selectedSection && selectedSection !== 'Goals') {
+      selectedGoalId = null;
+      notesByGoalId = {};
+    }
+  });
 
   // ── Backend type mirrors ──────────────────────────────────────────────
   interface GoalRow {
@@ -93,6 +99,14 @@
   let allGoals = $state<GoalRow[]>([]);
   let allSubtasks = $state<Record<string, GoalSubtaskRow[]>>({});
   let focusAreas = $state<FocusAreaRow[]>([]);
+  let errorMessage = $state<string | null>(null);
+
+  let errorTimer: ReturnType<typeof setTimeout> | undefined = $state();
+  function showError(msg: string) {
+    errorMessage = msg;
+    clearTimeout(errorTimer);
+    errorTimer = setTimeout(() => errorMessage = null, 4000);
+  }
 
   let weeklyGoals = $derived(
     allGoals.filter((g) => g.horizon === "weekly").map(toGoal),
@@ -144,13 +158,13 @@
 
   let expandedMap = $state<Record<string, boolean>>({});
   let selectedGoalId = $state<string | null>(null);
-  let panelNotes = $state("");
+  let notesByGoalId = $state<Record<string, string>>({});
 
   let selectedGoal = $derived(goals.find((g) => g.id === selectedGoalId) ?? null);
 
   $effect(() => {
-    if (selectedGoal) {
-      panelNotes = selectedGoal.notes ?? "";
+    if (selectedGoal && !(selectedGoal.id in notesByGoalId)) {
+      notesByGoalId[selectedGoal.id] = selectedGoal.notes ?? "";
     }
   });
 
@@ -158,13 +172,18 @@
   let sliderProgress = $state(0);
   let reviewText = $state("");
   let reviews = $state<GoalReviewRow[]>([]);
-  let detailPageNotes = $state("");
+  let detailPageTitle = $state("");
   let savingReview = $state(false);
+  let editingTitle = $state(false);
 
   $effect(() => {
     if (detailGoal) {
       sliderProgress = detailGoal.progress;
-      detailPageNotes = detailGoal.notes ?? "";
+      if (!(detailGoal.id in notesByGoalId)) {
+        notesByGoalId[detailGoal.id] = detailGoal.notes ?? "";
+      }
+      detailPageTitle = detailGoal.title;
+      editingTitle = false;
     }
   });
 
@@ -236,7 +255,7 @@
       }
       allSubtasks = subMap;
     } catch (e) {
-      console.error("Failed to load goals:", e);
+      showError("Failed to load goals");
     } finally {
       loading = false;
     }
@@ -246,7 +265,7 @@
     try {
       focusAreas = await invoke<FocusAreaRow[]>("focus_areas_list");
     } catch (e) {
-      console.error("Failed to load focus areas:", e);
+      showError("Failed to load focus areas");
     }
   }
 
@@ -255,7 +274,7 @@
       const subs = await invoke<GoalSubtaskRow[]>("goal_subtasks_list", { goalId });
       allSubtasks = { ...allSubtasks, [goalId]: subs };
     } catch (e) {
-      console.error("Failed to load subtasks:", e);
+      showError("Failed to load subtasks");
     }
   }
 
@@ -263,7 +282,7 @@
     try {
       reviews = await invoke<GoalReviewRow[]>("goal_reviews_list", { goalId });
     } catch (e) {
-      console.error("Failed to load reviews:", e);
+      showError("Failed to load reviews");
     }
   }
 
@@ -297,7 +316,7 @@
       await invoke<GoalRow>("goals_save", { payload: params });
       await loadGoals();
     } catch (e) {
-      console.error("Failed to save goal:", e);
+      showError("Failed to save goal");
     }
   }
 
@@ -308,18 +327,19 @@
       });
       await loadGoals();
     } catch (e) {
-      console.error("Failed to update progress:", e);
+      showError("Failed to update progress");
     }
   }
 
   async function deleteGoal(id: string) {
+    if (!confirm("Are you sure you want to delete this goal and all its subtasks and reviews?")) return;
     try {
       await invoke<void>("goals_delete", { id });
       if (selectedGoalId === id) closePanel();
       if (detailGoalId === id) goBackToList();
       await loadGoals();
     } catch (e) {
-      console.error("Failed to delete goal:", e);
+      showError("Failed to delete goal");
     }
   }
 
@@ -330,37 +350,60 @@
     }
   }
 
+  // Sync sliderProgress when goals reload after panel button update
+  $effect(() => {
+    if (detailGoal && detailGoal.progress !== sliderProgress) {
+      sliderProgress = detailGoal.progress;
+    }
+  });
+
   // ── Subtask mutations ─────────────────────────────────────────────────
   async function toggleSubtask(subtaskId: string, goalId: string) {
     try {
       await invoke<GoalSubtaskRow>("goal_subtask_toggle", { id: subtaskId });
       await loadSubtasksForGoal(goalId);
     } catch (e) {
-      console.error("Failed to toggle subtask:", e);
+      showError("Failed to toggle subtask");
     }
   }
 
   // ── Notes save on blur ────────────────────────────────────────────────
   async function saveNotes(id: string, value: string) {
-    const goal = allGoals.find((g) => g.id === id);
-    if (!goal) return;
     try {
-      await invoke<GoalRow>("goals_save", {
-        payload: {
-          id: goal.id,
-          title: goal.title,
-          description: goal.description,
-          horizon: goal.horizon,
-          progress: goal.progress,
-          targetDate: goal.targetDate,
-          successCriteria: goal.successCriteria,
-          notes: value,
-          imageData: goal.imageData,
-        },
-      });
+      await invoke<GoalRow>("goals_update_notes", { id, notes: value });
       await loadGoals();
     } catch (e) {
-      console.error("Failed to save notes:", e);
+      showError("Failed to save notes");
+    }
+  }
+
+  // ── Big 3 toggle ──────────────────────────────────────────────────────
+  async function toggleBig3(id: string, isBig3: boolean) {
+    try {
+      await invoke<GoalRow>("goals_toggle_big_3", { id, isBig3: !isBig3 });
+      await loadGoals();
+    } catch (e) {
+      showError("Failed to toggle Big 3 status");
+    }
+  }
+
+  // ── Debounced save ────────────────────────────────────────────────────
+  let saveTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+
+  function debouncedSaveNotes(id: string, value: string) {
+    clearTimeout(saveTimers[id]);
+    saveTimers[id] = setTimeout(() => saveNotes(id, value), 600);
+  }
+
+  // ── Title edit ─────────────────────────────────────────────────────────
+  async function saveTitle() {
+    if (!detailGoalId || !detailPageTitle.trim()) return;
+    try {
+      await invoke<GoalRow>("goals_update_title", { id: detailGoalId, title: detailPageTitle.trim() });
+      await loadGoals();
+      editingTitle = false;
+    } catch (e) {
+      console.error("Failed to update title:", e);
     }
   }
 
@@ -376,7 +419,7 @@
       await loadReviews(detailGoalId);
       await loadGoals();
     } catch (e) {
-      console.error("Failed to save review:", e);
+      showError("Failed to save review");
     } finally {
       savingReview = false;
     }
@@ -387,31 +430,18 @@
   let uploadTargetId = $state<string | null>(null);
 
   async function handleImageUpload(goalId: string) {
-    const goal = allGoals.find((g) => g.id === goalId);
-    if (!goal || !fileInput?.files?.[0]) return;
-
+    if (!fileInput?.files?.[0]) return;
     const file = fileInput.files[0];
+    const capturedId = goalId;
     const reader = new FileReader();
 
     reader.onload = async () => {
       const base64 = reader.result as string;
       try {
-        await invoke<GoalRow>("goals_save", {
-          payload: {
-            id: goal.id,
-            title: goal.title,
-            description: goal.description,
-            horizon: goal.horizon,
-            progress: goal.progress,
-            targetDate: goal.targetDate,
-            successCriteria: goal.successCriteria,
-            notes: goal.notes,
-            imageData: base64,
-          },
-        });
+        await invoke<GoalRow>("goals_update_image", { id: capturedId, imageData: base64 });
         await loadGoals();
       } catch (e) {
-        console.error("Failed to save image:", e);
+        showError("Failed to save image");
       }
     };
 
@@ -493,8 +523,14 @@
     return "What did this journey teach you?";
   }
 
+  // ── Deterministic index from a seed value ─────────────────────────────
+  function pickByHash(index: number, length: number): number {
+    return (index * 691 + 227) % length;
+  }
+
   // ── Ambient sentence ──────────────────────────────────────────────────
   let ambientSentence = $derived.by(() => {
+    const hash = goals.reduce((acc, g) => acc + g.createdAtMs, 0);
     if (goals.length === 0) {
       const prompts = [
         "No commitments yet. What are you moving toward?",
@@ -502,7 +538,7 @@
         "A blank field. What are you building toward?",
         "No goals yet. What deserves your attention?",
       ];
-      return prompts[Math.floor(Math.random() * prompts.length)];
+      return prompts[0];
     }
 
     const now = Date.now();
@@ -517,7 +553,7 @@
         `It's been quiet on \u201c${stale.title}.\u201d This one has been waiting.`,
         `This one has been waiting: \u201c${stale.title}.\u201d Pick it back up.`,
       ];
-      return pulses[Math.floor(Math.random() * pulses.length)];
+      return pulses[pickByHash(hash, pulses.length)];
     }
 
     const active = goals.filter((g) => g.status === "active");
@@ -527,7 +563,7 @@
         "Everything here is settled. Time to set a new intention.",
         "No active goals. The page is blank \u2014 what will you write?",
       ];
-      return done[Math.floor(Math.random() * done.length)];
+      return done[pickByHash(hash, done.length)];
     }
     if (active.length === 1) {
       const singles = [
@@ -535,7 +571,7 @@
         `You're tracking \u201c${active[0].title}.\u201d Progress is a quiet accumulation.`,
         `\u201c${active[0].title}\u201d is yours to move forward. One day at a time.`,
       ];
-      return singles[Math.floor(Math.random() * singles.length)];
+      return singles[pickByHash(hash, singles.length)];
     }
 
     const pairs = [
@@ -544,35 +580,27 @@
       `${active.length} active commitments. Each one is a thread in the weave.`,
       `You're moving on ${active.length} fronts. Consistency compounds.`,
     ];
-    return pairs[Math.floor(Math.random() * pairs.length)];
+    return pairs[pickByHash(hash, pairs.length)];
   });
 
-  // ── Add goal dialog ───────────────────────────────────────────────────
-  let showAddDialog = $state(false);
-  let newGoalTitle = $state("");
-  let newGoalHorizon = $state("weekly");
-  let newGoalDescription = $state("");
-  let newGoalSaving = $state(false);
+  // ── Subtask creation ─────────────────────────────────────────────────
+  let newSubtaskTitle = $state("");
+  let newSubtaskGoalId = $state<string | null>(null);
+  let savingSubtask = $state(false);
 
-  async function addGoal() {
-    if (!newGoalTitle.trim()) return;
-    newGoalSaving = true;
+  async function addSubtask() {
+    if (!newSubtaskGoalId || !newSubtaskTitle.trim()) return;
+    savingSubtask = true;
     try {
-      await invoke<GoalRow>("goals_save", {
-        payload: {
-          title: newGoalTitle.trim(),
-          description: newGoalDescription.trim(),
-          horizon: newGoalHorizon,
-        },
+      await invoke<GoalSubtaskRow>("goal_subtask_save", {
+        payload: { goalId: newSubtaskGoalId, title: newSubtaskTitle.trim() },
       });
-      newGoalTitle = "";
-      newGoalDescription = "";
-      showAddDialog = false;
-      await loadGoals();
+      newSubtaskTitle = "";
+      await loadSubtasksForGoal(newSubtaskGoalId);
     } catch (e) {
-      console.error("Failed to add goal:", e);
+      showError("Failed to add subtask");
     } finally {
-      newGoalSaving = false;
+      savingSubtask = false;
     }
   }
 
@@ -592,7 +620,7 @@
       showFocusAreaDialog = false;
       await loadFocusAreas();
     } catch (e) {
-      console.error("Failed to add focus area:", e);
+      showError("Failed to add focus area");
     } finally {
       savingFocusArea = false;
     }
@@ -600,6 +628,9 @@
 
   // ── Timeline / Heatmap state ────────────────────────────────────────
   let timelineView = $state<'timeline' | 'heatmap'>('timeline');
+
+  let tlData = $derived(computeTimelineData());
+  let hmData = $derived(computeHeatmapData());
 
   interface TimelineGoal {
     id: string;
@@ -609,7 +640,6 @@
     pctStart: number;
     pctWidth: number;
     daysRemaining: number | null;
-    milestones: { pct: number }[];
   }
 
   interface TimelineData {
@@ -629,8 +659,8 @@
         const ts: number[] = [];
         if (g.lastLoggedAt > 0) ts.push(g.lastLoggedAt);
         if (g.targetDate) {
-          const d = new Date(g.targetDate).getTime();
-          if (!isNaN(d)) ts.push(d);
+          const d = parseDateOrNull(g.targetDate);
+          if (d !== null) ts.push(d);
         }
         return ts;
       });
@@ -641,8 +671,8 @@
     for (const g of goals) {
       if (g.lastLoggedAt > 0 && g.lastLoggedAt < minTime) minTime = g.lastLoggedAt;
       if (g.targetDate) {
-        const d = new Date(g.targetDate).getTime();
-        if (!isNaN(d) && d > maxTime) maxTime = d;
+        const d = parseDateOrNull(g.targetDate);
+        if (d !== null && d > maxTime) maxTime = d;
       }
     }
     if (minTime === Infinity) minTime = now - 30 * 86400000;
@@ -666,25 +696,31 @@
       return ((t - minTime) / range) * 100;
     }
 
+    function parseDateOrNull(dateStr: string): number | null {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return null;
+      return d.getTime();
+    }
+
     function daysRemaining(goal: Goal): number | null {
       if (!goal.targetDate) return null;
-      const d = new Date(goal.targetDate).getTime();
-      if (isNaN(d)) return null;
+      const d = parseDateOrNull(goal.targetDate);
+      if (d === null) return null;
       return Math.max(0, Math.ceil((d - now) / 86400000));
     }
 
     const horizonGroups = [
       {
         label: 'WEEKLY',
-        goals: weeklyGoals.map(toTimelineGoal).filter((g) => g.pctWidth > 0.5),
+        goals: weeklyGoals.map(toTimelineGoal),
       },
       {
         label: 'MONTHLY',
-        goals: monthlyGoals.map(toTimelineGoal).filter((g) => g.pctWidth > 0.5),
+        goals: monthlyGoals.map(toTimelineGoal),
       },
       {
         label: 'YEARLY',
-        goals: yearlyGoals.map(toTimelineGoal).filter((g) => g.pctWidth > 0.5),
+        goals: yearlyGoals.map(toTimelineGoal),
       },
     ];
 
@@ -701,7 +737,6 @@
         pctStart,
         pctWidth: pctEnd - pctStart,
         daysRemaining: daysRemaining(g),
-        milestones: [],
       };
     }
 
@@ -771,7 +806,9 @@
 
       let opacity = 0.05;
       if (count === 1) opacity = 0.3;
-      else if (count >= 3) opacity = 1;
+      else if (count === 2) opacity = 0.55;
+      else if (count === 3) opacity = 0.8;
+      else if (count >= 4) opacity = 1;
 
       days.push({
         dateStr: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
@@ -859,6 +896,12 @@
     }
   }
 
+  function prevCreationStep() {
+    if (creationStep > 0) {
+      creationStep--;
+    }
+  }
+
   function skipField() {
     advanceCreationStep();
   }
@@ -894,9 +937,13 @@
   }
 
   // ── Init ──────────────────────────────────────────────────────────────
-  onMount(() => {
-    loadGoals();
-    loadFocusAreas();
+  let initialized = $state(false);
+  $effect(() => {
+    if (!initialized) {
+      initialized = true;
+      loadGoals();
+      loadFocusAreas();
+    }
   });
 </script>
 
@@ -919,17 +966,19 @@
         <CardDescription>Group your goals into categories like Health, Career, or Learning.</CardDescription>
       </CardHeader>
       <CardContent>
-      <div class="goals-focus-areas__header" style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;margin-bottom:0.5rem;">
-        <span></span>
-        <button class="goals-focus-areas__add" onclick={() => showFocusAreaDialog = true} aria-label="Add focus area">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-            Add area
-          </button>
-        </div>
+      {#if loading}
+        <div class="goals-loading"><span class="goals-loading__text">Loading...</span></div>
+      {:else if focusAreas.length === 0}
+          <p style="color:color-mix(in srgb, var(--muted) 70%, transparent);font-style:italic;font-size:0.97rem;">No focus areas yet. Group your goals into categories like Health, Career, or Learning.</p>
+      {:else}
+        <div class="goals-focus-areas__header" style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;margin-bottom:0.5rem;">
+          <span></span>
+          <button class="goals-focus-areas__add" onclick={() => showFocusAreaDialog = true} aria-label="Add focus area">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+              Add area
+            </button>
+          </div>
 
-        {#if focusAreas.length === 0}
-          <p style="color:color-mix(in srgb, var(--muted) 70%, transparent);font-style:italic;font-size:0.85rem;">No focus areas yet. Group your goals into categories like Health, Career, or Learning.</p>
-        {:else}
           {#each focusAreas as area, i (area.id)}
             {const areaGoals = goals.filter((g) => g.focusAreaId === area.id)}
             {const aggPct = focusAreaAggregate(area.id)}
@@ -1007,7 +1056,6 @@
         {:else if goals.length === 0}
           <div class="goals-zone-empty"><p class="goals-zone-empty__text">No goals to visualize yet. Start tracking to see your timeline.</p></div>
         {:else}
-          {const tlData = computeTimelineData()}
           <div class="goals-timeline">
             <!-- Time axis header -->
             <div class="goals-timeline__header" style="--tl-left: {tlData.monthLabelLeft}px; --tl-width: {tlData.totalDays}">
@@ -1019,21 +1067,17 @@
             </div>
 
             <!-- Timeline body -->
-            <div class="goals-timeline__body" role="img" aria-label="Goal timeline: {tlData.horizonGroups.flatMap(g => g.goals).map(g => `${g.title} ${g.progress}%`).join(', ')}">
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="goals-timeline__body" role="img" aria-label="Goal timeline showing {goals.length} goals across weekly, monthly, and yearly horizons">
               {#each tlData.horizonGroups as group}
                 <div class="goals-timeline__group">
                   <span class="goals-timeline__group-label">{group.label}</span>
                   <div class="goals-timeline__group-bars">
                     {#each group.goals as g}
-                      <div class="goals-timeline__bar-row" data-tooltip="{g.title}">
+                      <div class="goals-timeline__bar-row" tabindex="0" data-tooltip="{g.title}">
                         <div class="goals-timeline__bar"
                           style="left: {g.pctStart}%; width: {g.pctWidth}%">
                           <div class="goals-timeline__bar-fill" style="width: {g.progress}%"></div>
-                          {#if g.milestones.length > 0}
-                            {#each g.milestones as ms}
-                              <span class="goals-timeline__milestone" style="left: {ms.pct}%"></span>
-                            {/each}
-                          {/if}
                         </div>
                         <!-- Tooltip -->
                         <div class="goals-timeline__tooltip">
@@ -1060,7 +1104,6 @@
         {:else if goals.length === 0}
           <div class="goals-zone-empty"><p class="goals-zone-empty__text">No activity data yet. Consistency builds over time.</p></div>
         {:else}
-          {const hmData = computeHeatmapData()}
           <div class="goals-heatmap">
             <div class="goals-heatmap__grid" role="img" aria-label="Year activity heatmap: {hmData.days.filter(d => d.count > 0).length} days with activity">
               <!-- Month labels -->
@@ -1139,7 +1182,10 @@
                 </button>
               {/each}
             </div>
-            <button class="goals-create-skip" onclick={skipField}>Skip →</button>
+            <div class="goals-create-nav">
+              <button class="goals-create-skip" onclick={prevCreationStep}>← Back</button>
+              <button class="goals-create-skip" onclick={skipField}>Skip →</button>
+            </div>
           </div>
         {/if}
 
@@ -1155,7 +1201,10 @@
               placeholder="e.g. Dec 31, 2026 or Q3"
               onkeydown={(e) => { if (e.key === 'Enter') advanceCreationStep(); }}
             />
-            <button class="goals-create-skip" onclick={skipField}>Skip →</button>
+            <div class="goals-create-nav">
+              <button class="goals-create-skip" onclick={prevCreationStep}>← Back</button>
+              <button class="goals-create-skip" onclick={skipField}>Skip →</button>
+            </div>
           </div>
         {/if}
 
@@ -1170,7 +1219,10 @@
               placeholder="Describe what success means for this goal…"
               onkeydown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); advanceCreationStep(); }}}
             ></textarea>
-            <button class="goals-create-skip" onclick={skipField}>Skip →</button>
+            <div class="goals-create-nav">
+              <button class="goals-create-skip" onclick={prevCreationStep}>← Back</button>
+              <button class="goals-create-skip" onclick={skipField}>Skip →</button>
+            </div>
           </div>
         {/if}
 
@@ -1192,7 +1244,10 @@
                 >{fa.name}</button>
               {/each}
             </div>
-            <button class="goals-create-skip" onclick={skipField}>Skip →</button>
+            <div class="goals-create-nav">
+              <button class="goals-create-skip" onclick={prevCreationStep}>← Back</button>
+              <button class="goals-create-skip" onclick={skipField}>Skip →</button>
+            </div>
           </div>
         {/if}
 
@@ -1270,10 +1325,22 @@
               <span class="goals-detail-page__focus-label">Focus area</span>
               <span class="goals-detail-page__focus-value">{focusAreas.find(fa => fa.id === detailGoal.focusAreaId)?.name ?? detailGoal.horizon}</span>
             </div>
+            <div class="goals-detail-page__big3">
+              <button class="goals-big3-btn" class:goals-big3-btn--active={detailGoal.isBig3} onclick={() => toggleBig3(detailGoal.id, detailGoal.isBig3)} aria-label={detailGoal.isBig3 ? "Remove from Big 3" : "Add to Big 3"}>
+                <svg viewBox="0 0 24 24" fill={detailGoal.isBig3 ? "currentColor" : "none"} stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                {detailGoal.isBig3 ? "Big 3" : "Mark as Big 3"}
+              </button>
+            </div>
           </aside>
 
           <main class="goals-detail-page__center">
-            <h1 class="goals-detail-page__title">{detailGoal.title}</h1>
+            {#if editingTitle}
+              <div class="goals-detail-page__title-edit">
+                <input type="text" class="goals-detail-page__title-input" bind:value={detailPageTitle} onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveTitle(); } if (e.key === 'Escape') { editingTitle = false; detailPageTitle = detailGoal.title; } }} onblur={saveTitle} />
+              </div>
+            {:else}
+              <h1 class="goals-detail-page__title" onclick={() => editingTitle = true} role="button" tabindex="0" onkeydown={(e) => { if (e.key === 'Enter') editingTitle = true; }}>{detailGoal.title}</h1>
+            {/if}
             {#if detailGoal.successCriteria}
               <blockquote class="goals-detail-page__criteria">{detailGoal.successCriteria}</blockquote>
             {/if}
@@ -1307,8 +1374,13 @@
               </section>
             {/if}
             <section class="goals-detail-page__section">
+              <div class="goals-add-subtask">
+                <input type="text" class="goals-detail-page__notes" placeholder="Add a step…" bind:value={newSubtaskTitle} onkeydown={(e) => { if (e.key === 'Enter' && newSubtaskTitle.trim()) { newSubtaskGoalId = detailGoal.id; addSubtask(); }}} />
+              </div>
+            </section>
+            <section class="goals-detail-page__section">
               <h3 class="goals-detail-page__section-title">Notes</h3>
-              <textarea class="goals-detail-page__notes" placeholder="Reflections, updates, anything that comes to mind…" bind:value={detailPageNotes} onblur={() => { if (detailGoalId) saveNotes(detailGoalId, detailPageNotes); }}></textarea>
+              <textarea class="goals-detail-page__notes" placeholder="Reflections, updates, anything that comes to mind…" value={notesByGoalId[detailGoal.id] ?? ''} oninput={(e) => notesByGoalId[detailGoal.id] = e.currentTarget.value} onblur={() => { if (detailGoalId) debouncedSaveNotes(detailGoalId, notesByGoalId[detailGoal.id] ?? ''); }}></textarea>
             </section>
           </main>
 
@@ -1371,7 +1443,7 @@
             </svg>
           </div>
 
-          <button class="goals-btn-add" onclick={() => showAddDialog = true} aria-label="New goal">
+          <button class="goals-btn-add" onclick={() => selectedSection = 'New Goal'} aria-label="New goal">
             <svg viewBox="0 0 14 14" fill="none" width="13" height="13" aria-hidden="true">
               <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
             </svg>
@@ -1380,10 +1452,17 @@
         </div>
       </div>
 
+      <!-- Horizons section header -->
+      <div class="gp1-horizon-section-label" data-horizon={horizonFilter}>
+        {horizonFilter === 'weekly' ? 'This Week' : horizonFilter === 'monthly' ? 'This Month' : 'This Year'}
+        <span class="gp1-horizon-count">{filteredGoals.length} goal{filteredGoals.length !== 1 ? 's' : ''}</span>
+      </div>
+
       <!-- Goal list -->
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="gp1-list"
+        role="region" aria-live="polite" aria-label="Goals list"
         onclick={(e) => {
           if (
             selectedGoalId &&
@@ -1410,7 +1489,7 @@
               <p class="gp1-empty-head">No yearly goals.</p>
               <p class="gp1-empty-sub">What's the long arc you're committing to this year?</p>
             {/if}
-            <button class="goals-btn-add" onclick={() => showAddDialog = true}>
+            <button class="goals-btn-add" onclick={() => selectedSection = 'New Goal'}>
               <svg viewBox="0 0 14 14" fill="none" width="13" height="13" aria-hidden="true">
                 <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
               </svg>
@@ -1490,14 +1569,7 @@
                       </div>
                     {/each}
                   {:else}
-                    <!-- Ghost rows when no subtasks -->
-                    {#each [1, 2, 3] as _}
-                      <div class="gp1-med-item gp1-med-item--ghost">
-                        <span class="gp1-med-check"></span>
-                        <div class="gp1-med-copy"><strong></strong><p></p></div>
-                        <div class="gp1-med-right"></div>
-                      </div>
-                    {/each}
+                    <p class="gp1-med-empty">No steps yet. Add steps in the full view.</p>
                   {/if}
                 </div>
 
@@ -1539,7 +1611,7 @@
       </div><!-- end gp1-list -->
 
       <!-- Hidden file input -->
-      <input type="file" accept="image/*" bind:this={fileInput} onchange={() => { if (uploadTargetId) { handleImageUpload(uploadTargetId); uploadTargetId = null; fileInput!.value = ''; }}} style="display:none" aria-hidden="true" />
+      <input type="file" accept="image/*" bind:this={fileInput} onchange={() => { if (uploadTargetId) { handleImageUpload(uploadTargetId); uploadTargetId = null; }}} style="display:none" aria-hidden="true" />
 
       <!-- Detail Panel (slide-in) -->
       {#if selectedGoal}
@@ -1558,6 +1630,10 @@
                 <button class="goals-panel__progress-btn" onclick={() => updateProgress(selectedGoal.id, Math.min(selectedGoal.progress + 25, 100))} disabled={selectedGoal.progress >= 100}>+25%</button>
                 <span class="goals-panel__progress-value">{selectedGoal.progress}%</span>
               </div>
+              <button class="goals-panel__big3-btn" class:goals-panel__big3-btn--active={selectedGoal.isBig3} onclick={() => toggleBig3(selectedGoal.id, selectedGoal.isBig3)}>
+                <svg viewBox="0 0 24 24" fill={selectedGoal.isBig3 ? "currentColor" : "none"} stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                {selectedGoal.isBig3 ? "Big 3 Goal" : "Make Big 3"}
+              </button>
               <button class="goals-open-full-view" onclick={() => { openFullView(selectedGoal.id); closePanel(); }}>Open full view</button>
               <div class="goals-panel__meta">
                 {#if selectedGoal.targetDate}<div class="goals-panel__field"><span class="goals-panel__label">Target date</span><span class="goals-panel__value">{selectedGoal.targetDate}</span></div>{/if}
@@ -1578,11 +1654,15 @@
               {/if}
               <div class="goals-panel__section">
                 <span class="goals-panel__label">Notes</span>
-                <textarea class="goals-panel__notes" placeholder="Reflections, updates…" bind:value={panelNotes} onblur={() => saveNotes(selectedGoal.id, panelNotes)}></textarea>
+                <textarea class="goals-panel__notes" placeholder="Reflections, updates…" value={notesByGoalId[selectedGoal.id] ?? ''} oninput={(e) => notesByGoalId[selectedGoal.id] = e.currentTarget.value} onblur={() => debouncedSaveNotes(selectedGoal.id, notesByGoalId[selectedGoal.id] ?? '')}></textarea>
               </div>
               <div class="goals-panel__reflection">
                 <span class="goals-panel__label">Reflection</span>
                 <p class="goals-panel__prompt">{reflectionPrompt(selectedGoal.progress)}</p>
+              </div>
+              <div class="goals-panel__section">
+                <span class="goals-panel__label">Add step</span>
+                <input type="text" class="goals-panel__notes" placeholder="New subtask…" bind:value={newSubtaskTitle} onkeydown={(e) => { if (e.key === 'Enter' && newSubtaskTitle.trim()) { newSubtaskGoalId = selectedGoal.id; addSubtask(); }}} style="min-height: auto; padding: 0.4rem 0.65rem;" />
               </div>
               <button class="goals-panel__delete" onclick={() => deleteGoal(selectedGoal.id)}>Delete goal</button>
             </div>
@@ -1590,34 +1670,11 @@
         </aside>
       {/if}
 
-      <!-- Add Goal Dialog -->
-      {#if showAddDialog}
-        <div class="goals-dialog-overlay" onclick={() => showAddDialog = false}>
-          <div class="goals-dialog" onclick={(e) => e.stopPropagation()}>
-            <h3 class="goals-dialog__title">New goal</h3>
-            <div class="goals-dialog__field">
-              <label for="goal-title" class="goals-dialog__label">Title</label>
-              <input id="goal-title" type="text" class="goals-dialog__input" bind:value={newGoalTitle} placeholder="What are you moving toward?" onkeydown={(e) => { if (e.key === 'Enter' && newGoalTitle.trim()) addGoal(); }} />
-            </div>
-            <div class="goals-dialog__field">
-              <label for="goal-desc" class="goals-dialog__label">Description (optional)</label>
-              <textarea id="goal-desc" class="goals-dialog__input goals-dialog__textarea" bind:value={newGoalDescription} placeholder="A short description..."></textarea>
-            </div>
-            <div class="goals-dialog__field">
-              <span class="goals-dialog__label">Horizon</span>
-              <div class="goals-dialog__horizons">
-                {#each ["weekly", "monthly", "yearly"] as h}
-                  <button class="goals-dialog__horizon-btn" class:goals-dialog__horizon-btn--active={newGoalHorizon === h} onclick={() => newGoalHorizon = h}>{h === "weekly" ? "This Week" : h === "monthly" ? "This Month" : "This Year"}</button>
-                {/each}
-              </div>
-            </div>
-            <div class="goals-dialog__actions">
-              <button class="goals-dialog__btn goals-dialog__btn--secondary" onclick={() => showAddDialog = false}>Cancel</button>
-              <button class="goals-dialog__btn goals-dialog__btn--primary" onclick={addGoal} disabled={newGoalSaving || !newGoalTitle.trim()}>{newGoalSaving ? "Saving..." : "Create goal"}</button>
-            </div>
-          </div>
-        </div>
-      {/if}
+      
     {/if}
+  {/if}
+
+  {#if errorMessage}
+    <div class="goals-error-toast" role="alert" aria-live="assertive">{errorMessage}</div>
   {/if}
 </div>

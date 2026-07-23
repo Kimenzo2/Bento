@@ -107,17 +107,27 @@ async function loadBudgetWidget() {
   const overview = await tryInvoke<{ totalExpenses: number; totalIncome: number }>(
     "budget_monthly_overview",
   );
-  if (!overview) { loaded["budget"] = true; return; }
+  if (!overview) {
+    liveWidgets["budget"] = {
+      layout: "progress",
+      primary: "—",
+      secondary: "Could not load",
+      progress: 0,
+      width: "md",
+    };
+    loaded["budget"] = true;
+    return;
+  }
   const remaining = overview.totalIncome - overview.totalExpenses;
   const pct =
     overview.totalIncome > 0
-      ? Math.round((overview.totalExpenses / overview.totalIncome) * 100)
+      ? Math.round(((overview.totalIncome - overview.totalExpenses) / overview.totalIncome) * 100)
       : 0;
   liveWidgets["budget"] = {
     layout: "progress",
-    primary: `$${remaining.toFixed(0)}`,
+    primary: `€${remaining.toFixed(0)}`,
     secondary: "remaining",
-    progress: Math.min(pct, 100),
+    progress: Math.max(Math.min(pct, 100), 0),
     width: "md",
   };
   loaded["budget"] = true;
@@ -207,17 +217,17 @@ async function loadMoodWidget() {
 }
 
 async function loadGoalsWidget() {
-  const goals = await tryInvoke<{ progress: number }[]>("goals_list");
+  const goals = await tryInvoke<{ progress: number }[]>("goals_list_light");
   if (!goals) { loaded["goals"] = true; return; }
   const total = goals.length;
+  const avgPct = total > 0 ? Math.round(goals.reduce((s, g) => s + g.progress, 0) / total) : 0;
   const met = goals.filter((g) => g.progress >= 100).length;
-  const pct = total > 0 ? Math.round((met / total) * 100) : 0;
   liveWidgets["goals"] = {
     layout: "progress",
-    primary: String(met),
-    secondary: `of ${total} goals met`,
+    primary: `${avgPct}%`,
+    secondary: `avg progress · ${met} of ${total} done`,
     unit: `/${total}`,
-    progress: pct,
+    progress: avgPct,
     width: "md",
   };
   loaded["goals"] = true;

@@ -2,6 +2,8 @@
   import * as d3Scale from 'd3-scale';
   import { line, curveCatmullRom, area } from 'd3-shape';
 
+  const CURRENCY = '€';
+
   // ── Types ────────────────────────────────────────────────────────────────
   interface ChartDataPoint {
     month: string;
@@ -41,11 +43,16 @@
     if (parsed.length === 0) {
       return { projectedBalance: 0, avgIncome: 0, avgExpenses: 0, dataMonths: 0, totalMonths: 0 };
     }
-    const last = parsed[parsed.length - 1];
-    // Last forecast point's projection
-    const projectedBalance = last.incomeForecast - last.expensesForecast;
-    // Average actuals (over historical months)
+    const forecastMonths = parsed.filter((d) => d.isForecast);
     const historical = parsed.filter((d) => !d.isForecast);
+    // Cumulative projected balance: start with last historical month's actuals, add forecast months
+    const lastHistorical = historical.length > 0 ? historical[historical.length - 1] : null;
+    let cumulative = lastHistorical ? lastHistorical.incomeActual - lastHistorical.expensesActual : 0;
+    for (const f of forecastMonths) {
+      cumulative += f.incomeForecast - f.expensesForecast;
+    }
+    const projectedBalance = cumulative;
+    // Average actuals (over historical months)
     const avgIncome =
       historical.length > 0
         ? historical.reduce((s, d) => s + d.incomeActual, 0) / historical.length
@@ -136,9 +143,9 @@
   });
 
   function formatY(val: number): string {
-    if (val >= 1000000) return `€${(val / 1000000).toFixed(1)}M`;
-    if (val >= 1000) return `€${(val / 1000).toFixed(val % 1000 === 0 ? 0 : 1)}k`;
-    return `€${Math.round(val)}`;
+    if (val >= 1000000) return `${CURRENCY}${(val / 1000000).toFixed(1)}M`;
+    if (val >= 1000) return `${CURRENCY}${(val / 1000).toFixed(val % 1000 === 0 ? 0 : 1)}k`;
+    return `${CURRENCY}${Math.round(val)}`;
   }
 
   function formatMonth(date: Date, index: number): string {
@@ -173,8 +180,8 @@
     }
     if (closest) {
       hoveredPoint = closest;
-      tooltipX = relX + MARGIN.left;
-      // Determine tooltip Y position (middle of chart)
+      const estimatedTooltipWidth = 180;
+      tooltipX = Math.max(estimatedTooltipWidth / 2, Math.min(relX + MARGIN.left, MARGIN.left + innerWidth - estimatedTooltipWidth / 2));
       tooltipY = Math.max(20, innerHeight / 2);
       showTooltip = true;
     }
@@ -200,16 +207,16 @@
     <div class="summary-metric accent">
       <span class="metric-label">Projected Balance</span>
       <span class="metric-value" class:negative={summary.projectedBalance < 0}>
-        {summary.projectedBalance >= 0 ? '+' : ''}€{summary.projectedBalance.toFixed(0)}
+        {summary.projectedBalance >= 0 ? '+' : ''}{CURRENCY}{summary.projectedBalance.toFixed(0)}
       </span>
     </div>
     <div class="summary-metric">
       <span class="metric-label">Avg Monthly Income</span>
-      <span class="metric-value income">€{summary.avgIncome.toFixed(0)}</span>
+      <span class="metric-value income">{CURRENCY}{summary.avgIncome.toFixed(0)}</span>
     </div>
     <div class="summary-metric">
       <span class="metric-label">Avg Monthly Expenses</span>
-      <span class="metric-value expense">€{summary.avgExpenses.toFixed(0)}</span>
+      <span class="metric-value expense">{CURRENCY}{summary.avgExpenses.toFixed(0)}</span>
     </div>
     <div class="summary-metric">
       <span class="metric-label">Data Span</span>
@@ -378,9 +385,9 @@
           {#each parsed as d}
             <tr>
               <td>{d.month}</td>
-              <td>€{(d.isForecast ? d.incomeForecast : d.incomeActual).toFixed(0)}</td>
-              <td>€{(d.isForecast ? d.expensesForecast : d.expensesActual).toFixed(0)}</td>
-              <td>€{((d.isForecast ? d.incomeForecast : d.incomeActual) - (d.isForecast ? d.expensesForecast : d.expensesActual)).toFixed(0)}</td>
+              <td>{CURRENCY}{(d.isForecast ? d.incomeForecast : d.incomeActual).toFixed(0)}</td>
+              <td>{CURRENCY}{(d.isForecast ? d.expensesForecast : d.expensesActual).toFixed(0)}</td>
+              <td>{CURRENCY}{((d.isForecast ? d.incomeForecast : d.incomeActual) - (d.isForecast ? d.expensesForecast : d.expensesActual)).toFixed(0)}</td>
               <td>{d.isForecast ? 'Forecast' : 'Actual'}</td>
             </tr>
           {/each}
@@ -402,18 +409,18 @@
           <div class="tt-row income">
             <span class="tt-dot" style="background: {COLORS.incomeActual}"></span>
             <span>Income</span>
-            <span class="tt-val">€{(hoveredPoint.isForecast ? hoveredPoint.incomeForecast : hoveredPoint.incomeActual).toFixed(0)}</span>
+            <span class="tt-val">{CURRENCY}{(hoveredPoint.isForecast ? hoveredPoint.incomeForecast : hoveredPoint.incomeActual).toFixed(0)}</span>
           </div>
           <div class="tt-row expense">
             <span class="tt-dot" style="background: {COLORS.expensesActual}"></span>
             <span>Expenses</span>
-            <span class="tt-val">€{(hoveredPoint.isForecast ? hoveredPoint.expensesForecast : hoveredPoint.expensesActual).toFixed(0)}</span>
+            <span class="tt-val">{CURRENCY}{(hoveredPoint.isForecast ? hoveredPoint.expensesForecast : hoveredPoint.expensesActual).toFixed(0)}</span>
           </div>
           <div class="tt-divider"></div>
           <div class="tt-row total">
             <span>Balance</span>
             <span class="tt-val" class:negative={((hoveredPoint.isForecast ? hoveredPoint.incomeForecast : hoveredPoint.incomeActual) - (hoveredPoint.isForecast ? hoveredPoint.expensesForecast : hoveredPoint.expensesActual)) < 0}>
-              €{((hoveredPoint.isForecast ? hoveredPoint.incomeForecast : hoveredPoint.incomeActual) - (hoveredPoint.isForecast ? hoveredPoint.expensesForecast : hoveredPoint.expensesActual)).toFixed(0)}
+              {CURRENCY}{((hoveredPoint.isForecast ? hoveredPoint.incomeForecast : hoveredPoint.incomeActual) - (hoveredPoint.isForecast ? hoveredPoint.expensesForecast : hoveredPoint.expensesActual)).toFixed(0)}
             </span>
           </div>
         </div>

@@ -812,6 +812,13 @@
 {/if}
 
 <style>
+  /* ── Tokens ──────────────────────────────────────────────────────────────── */
+  .global-settings {
+    --gs-surface: color-mix(in srgb, var(--surface) 96%, var(--background));
+    --gs-surface-strong: color-mix(in srgb, var(--surface) 88%, var(--background));
+    --gs-border: color-mix(in srgb, var(--border) 86%, transparent);
+  }
+
   /* ── Layout ──────────────────────────────────────────────────────────────── */
   .global-settings--page { position:relative; inset:auto; display:block; width:100%; background:transparent; }
   .global-settings--page .global-settings__scrim,
@@ -850,7 +857,7 @@
   .gs-enc-card { border:1px solid var(--border); border-radius:14px; padding:1rem; display:flex; flex-direction:column; gap:0.6rem; background:color-mix(in srgb,var(--foreground) 3%,var(--background)); }
   .gs-enc-status { display:flex; align-items:center; gap:0.5rem; font-weight:600; }
   .gs-enc-badge { font-size:0.72rem; font-weight:800; border-radius:999px; padding:0.15rem 0.5rem; background:color-mix(in srgb,#10b981 15%,var(--background)); color:#10b981; letter-spacing:0.06em; }
-  .gs-enc-input { width:100%; border:1px solid var(--border); border-radius:10px; background:color-mix(in srgb,var(--foreground) 5%,var(--background)); padding:0.6rem 0.85rem; color:var(--foreground); outline:none; box-sizing:border-box; }
+  .gs-enc-input { width:100%; border:1px solid var(--border); border-radius:10px; background:var(--background); padding:0.6rem 0.85rem; color:var(--foreground); outline:none; box-sizing:border-box; }
   .gs-enc-input:focus { border-color:var(--primary); }
   .gs-enc-btn { border:none; border-radius:10px; background:var(--primary); color:var(--primary-foreground); padding:0.6rem 1rem; font-size:0.88rem; font-weight:700; cursor:pointer; white-space:nowrap; }
   .gs-enc-btn:disabled { opacity:0.45; cursor:not-allowed; }
@@ -869,7 +876,7 @@
 
   /* ── Language picker ─────────────────────────────────────────────────────── */
   .global-settings__lang-search { margin-bottom:0.5rem; }
-  .global-settings__lang-input { width:100%; border:1px solid var(--border); border-radius:10px; background:color-mix(in srgb,var(--foreground) 4%,var(--background)); padding:0.55rem 0.85rem; color:var(--foreground); outline:none; box-sizing:border-box; }
+  .global-settings__lang-input { width:100%; border:1px solid var(--border); border-radius:10px; background:var(--background); padding:0.55rem 0.85rem; color:var(--foreground); outline:none; box-sizing:border-box; }
   .global-settings__lang-input:focus { border-color:var(--primary); }
   .global-settings__lang-list { display:flex; flex-direction:column; gap:0.15rem; max-height:14rem; overflow-y:auto; border:1px solid var(--border); border-radius:12px; padding:0.35rem; }
   .global-settings__lang-item { display:flex; align-items:center; gap:0.55rem; border:none; border-radius:8px; background:transparent; padding:0.5rem 0.65rem; color:var(--foreground); text-align:left; cursor:pointer; transition:background 80ms ease; }
@@ -905,4 +912,32 @@
   .global-settings__app-card strong { color:var(--foreground); }
   .global-settings__app-card small { font-size:0.85rem; color:var(--muted-foreground); }
   .global-settings__app-card em { font-style:normal; font-size:0.85rem; font-weight:700; color:var(--primary); }
+
+  /* ── Cards (matching Sleep gradient treatment) ───────────────────────────── */
+  .global-settings__section { display:flex; flex-direction:column; gap:1rem; }
+  .global-settings__section-heading { margin-bottom:0.25rem; }
+  .global-settings__section-heading h3 { margin:0; font-weight:700; color:var(--foreground); }
+  .global-settings__section-heading p { margin:0.25rem 0 0; color:var(--muted-foreground); }
+
+  .global-settings__info-card,
+  .gs-enc-card,
+  .global-settings__preview-card,
+  .global-settings__about-card,
+  .cloud-backup-item {
+    border:1px solid var(--gs-border);
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--gs-surface) 98%, var(--background)),
+        color-mix(in srgb, var(--gs-surface) 86%, var(--background))
+      );
+  }
+
+  .global-settings__info-card {
+    display:flex; align-items:center; justify-content:space-between; gap:1rem;
+    padding:0.85rem 1rem; border-radius:14px;
+  }
+
+  .global-settings__muted { color:var(--muted-foreground); margin:0; }
+  .global-settings__label { font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted-foreground); margin-bottom:0.35rem; }
 </style>

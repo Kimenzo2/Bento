@@ -274,12 +274,22 @@
     flex-direction: column;
     gap: 12px;
     max-width: 32rem;
+    padding: 1.25rem;
+    border-radius: 1.15rem;
+    border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface) 96%, var(--background)) 98%,
+        color-mix(in srgb, var(--surface) 96%, var(--background)) 86%
+      );
   }
 
   .chatgpt-auth__header {
     display: flex;
     align-items: center;
     gap: 8px;
+    padding-bottom: 4px;
   }
 
   .chatgpt-auth__header h3 {
@@ -290,13 +300,13 @@
 
   .chatgpt-auth__desc {
     margin: 0;
-    color: var(--muted);
+    color: var(--muted-foreground);
     line-height: 1.5;
   }
 
   .chatgpt-auth__desc-small {
     margin: 0;
-    color: var(--muted);
+    color: var(--muted-foreground);
     line-height: 1.4;
   }
 
@@ -314,8 +324,14 @@
     flex-direction: column;
     gap: 12px;
     padding: 12px;
-    border: 1px solid color-mix(in srgb, var(--foreground) 15%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
     border-radius: 10px;
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface) 96%, var(--background)) 98%,
+        color-mix(in srgb, var(--surface) 96%, var(--background)) 86%
+      );
   }
 
   .chatgpt-auth__status-badge {
@@ -400,9 +416,15 @@
     align-items: center;
     gap: 12px;
     padding: 20px 16px;
-    border: 1px solid color-mix(in srgb, var(--foreground) 15%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
     border-radius: 10px;
     text-align: center;
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface) 96%, var(--background)) 98%,
+        color-mix(in srgb, var(--surface) 96%, var(--background)) 86%
+      );
   }
 
   .chatgpt-auth__device-header {
@@ -488,34 +510,36 @@
   .chatgpt-auth__signin-form {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 14px;
+    padding-top: 4px;
   }
 
   .chatgpt-auth__field {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
   }
 
   .chatgpt-auth__field-label {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     font-weight: 500;
     color: var(--muted);
   }
 
   .chatgpt-auth__field-row {
     display: flex;
-    gap: 6px;
+    gap: 8px;
+    align-items: stretch;
   }
 
   .chatgpt-auth__input {
     flex: 1;
-    padding: 8px 10px;
-    border: 1px solid color-mix(in srgb, var(--foreground) 18%, transparent);
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--foreground) 3%, var(--background));
+    padding: 10px 12px;
+    border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+    border-radius: 10px;
+    background: var(--background);
     color: var(--foreground);
     font-family: inherit;
     outline: none;
@@ -523,7 +547,7 @@
   }
 
   .chatgpt-auth__input:focus {
-    border-color: color-mix(in srgb, var(--foreground) 40%, transparent);
+    border-color: var(--primary);
   }
   .chatgpt-auth__input--error {
     border-color: #ef4444;
@@ -558,10 +582,10 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 8px 14px;
+    padding: 10px 16px;
     border: none;
-    border-radius: 8px;
-    font-weight: 500;
+    border-radius: 10px;
+    font-weight: 600;
     font-family: inherit;
     cursor: pointer;
     transition: background 0.15s ease, opacity 0.15s ease;

@@ -206,17 +206,9 @@ async fn append_update_history(pool: &sqlx::SqlitePool, goal_id: &str, now: &str
             .flatten();
 
     let updated = if let Some((history,)) = current {
-        if history == "[]" || history.is_empty() {
-            format!(r#"["{}"]"#, now)
-        } else {
-            let trimmed = history.trim_end();
-            if trimmed.ends_with(']') {
-                let base = trimmed[..trimmed.len() - 1].trim_end().to_string();
-                format!(r#"{},{}"]"#, base, now)
-            } else {
-                format!(r#"["{}"]"#, now)
-            }
-        }
+        let mut arr: Vec<String> = serde_json::from_str(&history).unwrap_or_default();
+        arr.push(now.to_string());
+        serde_json::to_string(&arr).unwrap_or_else(|_| format!(r#"["{}"]"#, now))
     } else {
         format!(r#"["{}"]"#, now)
     };
@@ -321,6 +313,19 @@ pub async fn goals_save(
     let title = payload.title.trim().to_string();
     if title.is_empty() {
         return Err("Goal title is required.".to_string());
+    }
+
+    // Check for duplicate title (same non-empty title on a different goal)
+    if payload.id.is_none() {
+        let dup: Option<(String,)> =
+            sqlx::query_as("SELECT id FROM goals WHERE title = ? AND title != ''")
+                .bind(&title)
+                .fetch_optional(&db)
+                .await
+                .map_err(|e| e.to_string())?;
+        if dup.is_some() {
+            return Err("A goal with this title already exists.".to_string());
+        }
     }
 
     let now = time::now_ms().to_string();
@@ -436,6 +441,37 @@ pub async fn goals_save(
     }
 }
 
+// ═══ GOALS_LIST_LIGHT ═══════════════════════════════════════════════════════
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GoalLightRow {
+    pub id: String,
+    pub title: String,
+    pub horizon: String,
+    pub progress: i32,
+}
+
+#[tauri::command]
+pub async fn goals_list_light(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+) -> Result<Vec<GoalLightRow>, String> {
+    crate::auth::require_billing_tier(&auth, "goals").await?;
+    let db = state.db();
+    ensure_goals_tables(&db).await?;
+    let rows = sqlx::query("SELECT id, title, horizon, progress FROM goals ORDER BY created_at DESC")
+        .fetch_all(&db)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(rows.into_iter().map(|r| GoalLightRow {
+        id: r.try_get("id").unwrap_or_default(),
+        title: r.try_get("title").unwrap_or_default(),
+        horizon: r.try_get("horizon").unwrap_or_default(),
+        progress: r.try_get("progress").unwrap_or(0),
+    }).collect())
+}
+
 // ═══ GOALS_DELETE ═════════════════════════════════════════════════════════════
 
 #[tauri::command]
@@ -456,6 +492,88 @@ pub async fn goals_delete(
         .map_err(|e| e.to_string())?;
 
     Ok(())
+}
+
+// ═══ GOALS_UPDATE_NOTES ═══════════════════════════════════════════════════
+
+#[tauri::command]
+pub async fn goals_update_notes(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+    id: String,
+    notes: String,
+) -> Result<GoalRow, String> {
+    crate::auth::require_billing_tier(&auth, "goals").await?;
+    let db = state.db();
+    ensure_goals_tables(&db).await?;
+    let now = time::now_ms().to_string();
+    let affected = sqlx::query("UPDATE goals SET notes = ?, updated_at = ? WHERE id = ?")
+        .bind(&notes)
+        .bind(&now)
+        .bind(&id)
+        .execute(&db)
+        .await
+        .map_err(|e| e.to_string())?;
+    if affected.rows_affected() == 0 {
+        return Err(format!("Goal not found: {id}"));
+    }
+    fetch_goal(&db, &id).await
+}
+
+// ═══ GOALS_UPDATE_IMAGE ══════════════════════════════════════════════════
+
+#[tauri::command]
+pub async fn goals_update_image(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+    id: String,
+    image_data: Option<String>,
+) -> Result<GoalRow, String> {
+    crate::auth::require_billing_tier(&auth, "goals").await?;
+    let db = state.db();
+    ensure_goals_tables(&db).await?;
+    let now = time::now_ms().to_string();
+    let affected = sqlx::query("UPDATE goals SET image_data = ?, updated_at = ? WHERE id = ?")
+        .bind(&image_data)
+        .bind(&now)
+        .bind(&id)
+        .execute(&db)
+        .await
+        .map_err(|e| e.to_string())?;
+    if affected.rows_affected() == 0 {
+        return Err(format!("Goal not found: {id}"));
+    }
+    fetch_goal(&db, &id).await
+}
+
+// ═══ GOALS_UPDATE_TITLE ═════════════════════════════════════════════════
+
+#[tauri::command]
+pub async fn goals_update_title(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+    id: String,
+    title: String,
+) -> Result<GoalRow, String> {
+    crate::auth::require_billing_tier(&auth, "goals").await?;
+    let db = state.db();
+    ensure_goals_tables(&db).await?;
+    let title = title.trim().to_string();
+    if title.is_empty() {
+        return Err("Goal title is required.".to_string());
+    }
+    let now = time::now_ms().to_string();
+    let affected = sqlx::query("UPDATE goals SET title = ?, updated_at = ? WHERE id = ?")
+        .bind(&title)
+        .bind(&now)
+        .bind(&id)
+        .execute(&db)
+        .await
+        .map_err(|e| e.to_string())?;
+    if affected.rows_affected() == 0 {
+        return Err(format!("Goal not found: {id}"));
+    }
+    fetch_goal(&db, &id).await
 }
 
 // ═══ GOALS_PROGRESS_UPDATE ═══════════════════════════════════════════════════

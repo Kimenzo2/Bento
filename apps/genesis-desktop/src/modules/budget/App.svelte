@@ -1,7 +1,7 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
   import {
-    Wallet, TrendingUp, TrendingDown, PiggyBank, Home, ShoppingCart, Car, Zap,
+    Wallet, TrendingUp, TrendingDown, Minus, PiggyBank, Home, ShoppingCart, Car, Zap,
     UtensilsCrossed, Tv, ShoppingBag, Activity, BookOpen, Bot, Ellipsis,
     Plus, Trash2, CheckCircle2, Download, AlertCircle,
     Calendar, DollarSign, BarChart3, Target, Receipt, CreditCard, LineChart,
@@ -48,6 +48,7 @@
   }
   interface MonthlyOverview {
     yearMonth: string; totalIncome: number; totalExpenses: number;
+    previousMonthIncome: number;
     netSavings: number; savingsRate: number;
     topCategories: Array<{ categoryId: string; categoryName: string; icon: string; color: string; spent: number; budget: number; percentUsed: number }>;
     transactionCount: number;
@@ -59,7 +60,7 @@
     month: string; incomeActual: number; expensesActual: number;
     incomeForecast: number; expensesForecast: number; isForecast: boolean;  }
   // ── Sidebar section state ─────────────────────────────────────────
-  const sectionLabels = ['Overview', 'Transactions', 'Budgets', 'Bills', 'AI Costs', 'Forecast', 'Export'] as const;
+  const sectionLabels = ['Overview', 'Transactions', 'Budgets', 'Bills', 'AI Costs', 'Forecast', 'Templates', 'Export'] as const;
   let selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
 
   $effect(() => {
@@ -69,19 +70,25 @@
   // ── Data state ────────────────────────────────────────────────────
   let loading = $state(true);
   let error = $state<string | null>(null);
+  let loadingSection = $state<string | null>(null);
 
   // Overview
   let overview = $state<MonthlyOverview | null>(null);
 
   // Transactions
-  let transactions = $state<Transaction[]>([]);
+  let transactions = $state.raw<Transaction[]>([]);
   let txMonth = $state(new Date().toISOString().slice(0, 7));
+  let txPage = $state(0);
+  let txPageSize = 50;
+  let txTotalPages = $derived(Math.max(1, Math.ceil(transactions.length / txPageSize)));
+  let paginatedTransactions = $derived(transactions.slice(txPage * txPageSize, (txPage + 1) * txPageSize));
+  let selectedTxIds = $state<Set<string>>(new Set());
 
   // Budgets
-  let categories = $state<BudgetCategory[]>([]);
+  let categories = $state.raw<BudgetCategory[]>([]);
 
   // Bills
-  let bills = $state<Bill[]>([]);
+  let bills = $state.raw<Bill[]>([]);
   let selectedBill = $state<Bill | null>(null);
 
   // ── Brand colors + popular services (Subscription Day) ────────────
@@ -112,14 +119,14 @@
     { name: 'Duolingo',        color: '#58CC02' },
   ];
 
-  // ── Calendar constants (computed once, never change) ─────────────
-  const calNow       = new Date();
-  const calYear      = calNow.getFullYear();
-  const calMonth     = calNow.getMonth();
-  const calMonthLabel= calNow.toLocaleString('default', { month: 'long', year: 'numeric' });
-  const calDays      = new Date(calYear, calMonth + 1, 0).getDate();
-  const calFirstDow  = new Date(calYear, calMonth, 1).getDay();
-  const calToday     = calNow.getDate();
+  // ── Calendar (refreshed when Bills tab is entered) ─────────────
+  let calNow = $state(new Date());
+  let calYear = $derived(calNow.getFullYear());
+  let calMonth = $derived(calNow.getMonth());
+  let calMonthLabel = $derived(calNow.toLocaleString('default', { month: 'long', year: 'numeric' }));
+  let calDays = $derived(new Date(calYear, calMonth + 1, 0).getDate());
+  let calFirstDow = $derived(new Date(calYear, calMonth, 1).getDay());
+  let calToday = $derived(calNow.getDate());
 
   // ── Calendar derived ──────────────────────────────────────────────
   let calMonthlyTotal = $derived(bills.filter(b => b.active).reduce((s, b) => s + b.amount, 0));
@@ -128,14 +135,56 @@
   let calYearlyTotal  = $derived(calMonthlyTotal * 12);
 
   // AI Costs
-  let aiEntries = $state<AiCostEntry[]>([]);
-  let aiSummary = $state<AiCostSummary[]>([]);
+  let aiEntries = $state.raw<AiCostEntry[]>([]);
+  let aiSummary = $state.raw<AiCostSummary[]>([]);
 
   // Forecast
-  let cashFlow = $state<CashFlowProjection[]>([]);
-  let chartData = $state<ForecastChartMonth[]>([]);
+  let cashFlow = $state.raw<CashFlowProjection[]>([]);
+  let chartData = $state.raw<ForecastChartMonth[]>([]);
   let forecastMonths = $state(6);
 
+
+  // ── Templates ────────────────────────────────────────────────────
+  let templates = $state.raw<{ id: string; name: string; totalIncome: number; createdAt: number; items: { id: string; categoryName: string; amount: number }[] }[]>([]);
+  let showTemplateModal = $state(false);
+  let templateName = $state('');
+
+  async function loadTemplates() {
+    try { templates = await invoke('budget_list_templates'); }
+    catch (e) { error = String(e); }
+  }
+
+  async function saveTemplate() {
+    try {
+      if (!templateName.trim()) throw new Error("Template name is required.");
+      const items = categories.filter(c => c.monthlyBudget > 0).map(c => ({
+        id: '', categoryName: c.name, amount: c.monthlyBudget,
+      }));
+      await invoke('budget_save_template', { name: templateName, totalIncome: overview?.totalIncome ?? 0, items });
+      showTemplateModal = false;
+      templateName = '';
+      await loadTemplates();
+    } catch (e) { error = String(e); }
+  }
+
+  async function applyTemplate(t: typeof templates[0]) {
+    if (!confirm(`Apply template "${t.name}" to all category budgets?`)) return;
+    try {
+      for (const item of t.items) {
+        const cat = categories.find(c => c.name === item.categoryName);
+        if (cat) {
+          await invoke('budget_set_category_budget', { categoryId: cat.id, monthlyBudget: item.amount });
+        }
+      }
+      await loadCategories();
+    } catch (e) { error = String(e); }
+  }
+
+  async function deleteTemplate(id: string) {
+    if (!confirm("Delete this template?")) return;
+    try { await invoke('budget_delete_template', { id }); await loadTemplates(); }
+    catch (e) { error = String(e); }
+  }
 
   // ── Form state ─────────────────────────────────────────────────────
   let showAddTx = $state(false);
@@ -157,6 +206,18 @@
 
   // ── Derived ───────────────────────────────────────────────────────
   let thisMonth = $derived(new Date().toISOString().slice(0, 7));
+
+  let incomeTrend = $derived.by(() => {
+    if (!overview) return 'neutral';
+    const prev = overview.previousMonthIncome ?? 0;
+    if (overview.totalIncome > prev) return 'up';
+    if (overview.totalIncome < prev) return 'down';
+    return 'neutral';
+  });
+  let incomeChangePct = $derived.by(() => {
+    if (!overview || overview.previousMonthIncome === 0) return null;
+    return ((overview.totalIncome - overview.previousMonthIncome) / overview.previousMonthIncome * 100);
+  });
 
   let categoryGroups = $derived.by(() => {
     const groups = [...new Set(categories.map(c => c.groupName))];
@@ -195,7 +256,7 @@
     categories = await invoke<BudgetCategory[]>('budget_list_categories', {});
   }
   async function loadTransactions() {
-    transactions = await invoke<Transaction[]>('budget_list_transactions', { month: txMonth, limit: 200, offset: 0 });
+    transactions = await invoke<Transaction[]>('budget_list_transactions', { month: txMonth, limit: 1000, offset: 0 });
   }
   async function loadBills() {
     bills = await invoke<Bill[]>('budget_list_bills', {});
@@ -237,9 +298,21 @@
     } catch (e) { error = String(e); }
   }
 
+  async function deleteSelectedTransactions() {
+    if (selectedTxIds.size === 0) return;
+    if (!confirm(`Delete ${selectedTxIds.size} transaction${selectedTxIds.size > 1 ? 's' : ''}?`)) return;
+    const ids = [...selectedTxIds];
+    try {
+      await Promise.all(ids.map(id => invoke('budget_delete_transaction', { id })));
+      selectedTxIds = new Set();
+      await Promise.all([loadTransactions(), loadOverview(), loadCategories()]);
+    } catch (e) { error = String(e); }
+  }
+
   async function addBill() {
     submittingBill = true;
     try {
+      if (newBill.amount < 0) throw new Error("Amount cannot be negative.");
       await invoke('budget_add_bill', {
         bill: { name: newBill.name, amount: newBill.amount, dueDay: newBill.dueDay, categoryId: newBill.categoryId || null, autoPay: newBill.autoPay }
       });
@@ -251,8 +324,11 @@
   }
 
   async function toggleBillPaid(id: string) {
-    try { await invoke('budget_toggle_bill_paid', { billId: id }); await loadBills(); }
-    catch (e) { error = String(e); }
+    try {
+      await invoke('budget_toggle_bill_paid', { billId: id });
+      await loadBills();
+      selectedBill = bills.find(b => b.id === id) ?? null;
+    } catch (e) { error = String(e); }
   }
 
   async function deleteBill(id: string) {
@@ -263,6 +339,8 @@
   async function addAiCost() {
     submittingAi = true;
     try {
+      if (newAi.cost < 0) throw new Error("Cost cannot be negative.");
+      if (!newAi.provider.trim()) throw new Error("Provider is required.");
       await invoke('budget_add_ai_cost', {
         entry: {
           provider: newAi.provider, model: newAi.model, cost: newAi.cost,
@@ -283,30 +361,72 @@
   }
 
   async function setCategoryBudget(id: string, amount: number) {
+    const cat = categories.find(c => c.id === id);
+    if (cat) {
+      if (!confirm(`Set budget for "${cat.name}" to ${CURRENCY}${amount.toFixed(0)}?`)) return;
+    }
     try { await invoke('budget_set_category_budget', { categoryId: id, monthlyBudget: amount }); await loadCategories(); }
+    catch (e) { error = String(e); }
+  }
+
+  // ── Category CRUD ─────────────────────────────────────────────
+  let showCategoryModal = $state(false);
+  let editingCategory = $state<BudgetCategory | null>(null);
+  let catFormName = $state('');
+  let catFormGroup = $state('Other');
+  let catFormIcon = $state('wallet');
+  let catFormColor = $state('#6366f1');
+
+  function resetCatForm(cat?: BudgetCategory) {
+    catFormName = cat?.name ?? '';
+    catFormGroup = cat?.groupName ?? 'Other';
+    catFormIcon = cat?.icon ?? 'wallet';
+    catFormColor = cat?.color ?? '#6366f1';
+  }
+
+  async function saveCategory() {
+    try {
+      if (!catFormName.trim()) throw new Error("Category name is required.");
+      if (editingCategory) {
+        await invoke('budget_update_category', {
+          categoryId: editingCategory.id, name: catFormName, groupName: catFormGroup,
+          icon: catFormIcon, color: catFormColor,
+        });
+      } else {
+        await invoke('budget_create_category', {
+          name: catFormName, groupName: catFormGroup, icon: catFormIcon, color: catFormColor,
+        });
+      }
+      showCategoryModal = false;
+      editingCategory = null;
+      await loadCategories();
+    } catch (e) { error = String(e); }
+  }
+
+  async function deleteCategory(id: string) {
+    const cat = categories.find(c => c.id === id);
+    if (!cat) return;
+    if (!confirm(`Delete category "${cat.name}"? Transactions will become uncategorized.`)) return;
+    try { await invoke('budget_delete_category', { categoryId: id }); await loadCategories(); }
     catch (e) { error = String(e); }
   }
 
   async function exportCsv() {
     try {
       const csv = await invoke<string>('budget_export_csv', { month: thisMonth });
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `budget-${thisMonth}.csv`;
-      a.click(); URL.revokeObjectURL(url);
+      const { save } = await import('@tauri-apps/plugin-dialog');
+      const filePath = await save({
+        defaultPath: `budget-${thisMonth}.csv`,
+        filters: [{ name: 'CSV Document', extensions: ['csv'] }]
+      });
+      if (!filePath) return;
+      const { writeTextFile } = await import('@tauri-apps/plugin-fs');
+      await writeTextFile(filePath, csv);
     } catch (e) { error = String(e); }
   }
 
   async function exportPdf() {
     try {
-      const result = await (window as any).showSaveFilePicker?.({
-        suggestedName: `budget-report-${thisMonth}.pdf`,
-        types: [{ description: 'PDF Document', accept: { 'application/pdf': ['.pdf'] } }]
-      });
-      if (!result) return;
-      const path = result.name; // In Tauri, we use the dialog API instead
-      // Use Tauri dialog save
       const { save } = await import('@tauri-apps/plugin-dialog');
       const filePath = await save({
         defaultPath: `budget-report-${thisMonth}.pdf`,
@@ -341,6 +461,9 @@
   };
   function resolveIcon(name: string): typeof Wallet { return iconMap[name] || Wallet; }
 
+  // ── Currency symbol (change to your locale) ──────────────────────
+  const CURRENCY = '€';
+
   // ── Per-section header copy ───────────────────────────────────────
   const sectionHeaders: Record<string, { eyebrow: string; title: string; subtitle: string }> = {
     'Overview':     { eyebrow: "This month",           title: "Your money, in full view.",                    subtitle: "Income, spending, savings — everything that happened this month, right here." },
@@ -349,6 +472,7 @@
     'Bills':        { eyebrow: "Recurring commitments",title: "What's due, what's paid, what's next.",       subtitle: "Your fixed obligations, tracked so nothing catches you off guard." },
     'AI Costs':     { eyebrow: "Tool spending",        title: "What your AI tools are actually costing.",    subtitle: "Claude, Cursor, GPT — log every subscription and API charge. Know the number." },
     'Forecast':     { eyebrow: "Looking ahead",        title: "Where your finances are heading.",            subtitle: "Projected income, projected expenses, projected balance — based on how you actually spend." },
+    'Templates':    { eyebrow: "Budget blueprints",    title: "Save and apply budget templates.",             subtitle: "Save your category allocations as a template, then apply it to future months." },
     'Export':       { eyebrow: "Take your data",       title: "Download everything, keep it forever.",       subtitle: "CSV for your spreadsheet. PDF for your accountant. It's your data — take it." },
   };
   let currentHeader = $derived(sectionHeaders[selectedSection as string] ?? sectionHeaders['Overview']);
@@ -449,11 +573,19 @@
   }
 
   // ── Init ──────────────────────────────────────────────────────────
-  $effect(() => { loadAll(); });
-  $effect(() => { if (selectedSection === 'Transactions') loadTransactions(); });
-  $effect(() => { if (selectedSection === 'Forecast') { loadCashFlow(); loadChartData(); } });
-  $effect(() => { if (selectedSection === 'AI Costs') loadAiCosts(); });
-  $effect(() => { if (selectedSection === 'Bills') loadBills(); });
+  // Only load data for the currently visible section
+  $effect(() => {
+    if (selectedSection === 'Overview') {
+      loading = true; loadingSection = null;
+      Promise.all([loadOverview(), loadCategories()]).finally(() => { loading = false; });
+    }
+  });
+  $effect(() => { if (selectedSection === 'Transactions') { loadingSection = 'Transactions'; Promise.all([loadTransactions(), loadCategories()]).finally(() => { if (loadingSection === 'Transactions') loadingSection = null; }); } });
+  $effect(() => { if (selectedSection === 'Forecast') { loadingSection = 'Forecast'; Promise.all([loadCashFlow(), loadChartData()]).finally(() => { if (loadingSection === 'Forecast') loadingSection = null; }); } });
+  $effect(() => { if (selectedSection === 'AI Costs') { loadingSection = 'AI Costs'; loadAiCosts().finally(() => { if (loadingSection === 'AI Costs') loadingSection = null; }); } });
+  $effect(() => { if (selectedSection === 'Bills') { calNow = new Date(); loadingSection = 'Bills'; loadBills().finally(() => { if (loadingSection === 'Bills') loadingSection = null; }); } });
+  $effect(() => { if (selectedSection === 'Budgets') { loadingSection = 'Budgets'; loadCategories().finally(() => { if (loadingSection === 'Budgets') loadingSection = null; }); } });
+  $effect(() => { if (selectedSection === 'Templates') { loadingSection = 'Templates'; loadTemplates().finally(() => { if (loadingSection === 'Templates') loadingSection = null; }); } });
 </script>
 
 <main class="bg-workspace module-root" data-module="budget">
@@ -467,12 +599,25 @@
   {/if}
 
   {#if loading}
-    <section class="bg-page bg-loading">
-      <div class="bg-loading__orb"></div>
-      <span>Loading your financial data…</span>
+    <section class="bg-page">
+      <header class="bg-page__header">
+        <div class="bg-page__intro">
+          <div class="bg-skel bg-skel--eyebrow"></div>
+          <div class="bg-skel bg-skel--title"></div>
+          <div class="bg-skel bg-skel--subtitle"></div>
+        </div>
+      </header>
+      <div class="bg-skel-grid">
+        <div class="bg-skel bg-skel--card"></div>
+        <div class="bg-skel bg-skel--card"></div>
+      </div>
+      <div class="bg-skel bg-skel--table"></div>
     </section>
 
   {:else}
+    {#if loadingSection}
+      <div class="bg-section-loading" aria-live="polite">Loading…</div>
+    {/if}
     <!-- ══════════════════════════════════════════════════════════════════
          TAB: OVERVIEW
          ══════════════════════════════════════════════════════════════════ -->
@@ -492,11 +637,25 @@
           <Card class="bg-score-card">
             <CardHeader><CardTitle>Income</CardTitle><CardDescription>This month's earnings</CardDescription></CardHeader>
             <CardContent class="bg-score-card__content">
-              <div class="bg-score-orb bg-orb--income">
-                <TrendingDown size={24} />
+              <div class="bg-score-orb bg-orb--{incomeTrend}" role="img" aria-label="Income {incomeTrend === 'up' ? 'up ' : incomeTrend === 'down' ? 'down ' : ''}{incomeChangePct !== null ? Math.abs(incomeChangePct).toFixed(1) + '%' : 'stable'}">
+                {#if incomeTrend === 'up'}
+                  <TrendingUp size={24} />
+                {:else if incomeTrend === 'down'}
+                  <TrendingDown size={24} />
+                {:else}
+                  <Minus size={24} />
+                {/if}
               </div>
               <div class="bg-score-meta">
-                <div><strong>€{overview?.totalIncome.toFixed(2) ?? '0.00'}</strong><span>Total income</span></div>
+                <div><strong>{CURRENCY}{overview?.totalIncome.toFixed(2) ?? '0.00'}</strong>
+                  <span>Total income
+                    {#if incomeChangePct !== null}
+                      <span class="bg-change-pct" class:bg-change-up={incomeChangePct > 0} class:bg-change-down={incomeChangePct < 0}>
+                        {incomeChangePct > 0 ? '+' : ''}{incomeChangePct.toFixed(1)}%
+                      </span>
+                    {/if}
+                  </span>
+                </div>
                 <div><span>{overview?.transactionCount ?? 0}</span><span>Transactions</span></div>
               </div>
             </CardContent>
@@ -508,16 +667,16 @@
               <article>
                 <span>Expenses</span>
                 <div class="bg-hero-bar"><i style="--fill:{overview ? Math.min((overview.totalExpenses/(overview.totalIncome||1))*100, 100) : 0}%"></i></div>
-                <strong class="bg-expense">€{overview?.totalExpenses.toFixed(2) ?? '0.00'}</strong>
+                <strong class="bg-expense">{CURRENCY}{overview?.totalExpenses.toFixed(2) ?? '0.00'}</strong>
               </article>
               <article>
                 <span>Net Savings</span>
-                <div class="bg-hero-bar"><i style="--fill:{overview ? Math.min((overview.netSavings/(overview.totalIncome||1))*100, 100) : 0}%"></i></div>
-                <strong class="bg-savings">€{overview?.netSavings.toFixed(2) ?? '0.00'}</strong>
+                <div class="bg-hero-bar"><i style="--fill:{(overview?.netSavings ?? 0) > 0 ? Math.min(((overview?.netSavings ?? 0) / (overview?.totalIncome || 1)) * 100, 100) : 0}%" class:bg-bar-negative={(overview?.netSavings ?? 0) <= 0}></i></div>
+                <strong class="bg-savings">{CURRENCY}{overview?.netSavings.toFixed(2) ?? '0.00'}</strong>
               </article>
               <article>
                 <span>Savings Rate</span>
-                <div class="bg-hero-bar"><i style="--fill:{overview?.savingsRate ?? 0}%"></i></div>
+                <div class="bg-hero-bar"><i style="--fill:{(overview?.savingsRate ?? 0) > 0 ? Math.min(overview?.savingsRate ?? 0, 100) : 0}%" class:bg-bar-negative={(overview?.savingsRate ?? 0) <= 0}></i></div>
                 <strong>{overview?.savingsRate.toFixed(1) ?? '0.0'}%</strong>
               </article>
             </CardContent>
@@ -544,7 +703,7 @@
                         <div class="bg-cat-bar-track">
                           <div class="bg-cat-bar-fill" style="width: {Math.min(cat.percentUsed, 100)}%; background: {cat.color}"></div>
                         </div>
-                        <span class="bg-cat-amount">€{cat.spent.toFixed(0)}</span>
+                        <span class="bg-cat-amount">{CURRENCY}{cat.spent.toFixed(0)}</span>
                       </div>
                     </div>
                   {/each}
@@ -567,7 +726,7 @@
             <p>{currentHeader.subtitle}</p>
           </div>
           <div class="bg-page__actions">
-            <input type="month" bind:value={txMonth} onchange={() => loadTransactions()} class="bg-month-input" />
+            <input type="month" bind:value={txMonth} onchange={() => { txPage = 0; selectedTxIds = new Set(); loadTransactions(); }} class="bg-month-input" />
             <Button onclick={() => { resetNewTx(); showAddTx = true; }}>
               <Plus size={16} /> Add Transaction
             </Button>
@@ -584,16 +743,44 @@
                   <Table.Caption>Transactions for {txMonth}</Table.Caption>
                   <Table.Header>
                     <Table.Row>
+                      <Table.Head class="w-8">
+                        <input type="checkbox"
+                          checked={selectedTxIds.size === paginatedTransactions.length && paginatedTransactions.length > 0}
+                          onchange={() => {
+                            if (selectedTxIds.size === paginatedTransactions.length) {
+                              selectedTxIds = new Set();
+                            } else {
+                              selectedTxIds = new Set(paginatedTransactions.map(t => t.id));
+                            }
+                          }} />
+                      </Table.Head>
                       <Table.Head>Category</Table.Head>
                       <Table.Head>Note</Table.Head>
                       <Table.Head>Date</Table.Head>
                       <Table.Head class="text-end">Amount</Table.Head>
-                      <Table.Head><span class="sr-only">Action</span></Table.Head>
+                      <Table.Head>
+                        {#if selectedTxIds.size > 0}
+                          <button class="bg-icon-btn bg-icon-btn--danger" onclick={deleteSelectedTransactions} use:tooltip={{ text: `Delete ${selectedTxIds.size} selected` }}>
+                            <Trash2 size={14} />
+                          </button>
+                        {:else}
+                          <span class="sr-only">Action</span>
+                        {/if}
+                      </Table.Head>
                     </Table.Row>
                   </Table.Header>
                   <Table.Body>
-                    {#each transactions as tx}
+                    {#each paginatedTransactions as tx}
                       <Table.Row class={tx.txType === 'income' ? 'bg-tx-income-row' : ''}>
+                        <Table.Cell>
+                          <input type="checkbox"
+                            checked={selectedTxIds.has(tx.id)}
+                            onchange={() => {
+                              const next = new Set(selectedTxIds);
+                              if (next.has(tx.id)) { next.delete(tx.id); } else { next.add(tx.id); }
+                              selectedTxIds = next;
+                            }} />
+                        </Table.Cell>
                         <Table.Cell>
                           {#if tx.categoryName}
                             <span class="bg-tx-dot" style="background: {categories.find(c => c.id === tx.categoryId)?.color ?? '#6b7280'}"></span>
@@ -603,7 +790,7 @@
                         <Table.Cell class="text-[var(--bg-muted)] max-w-[200px] truncate">{tx.note ?? ''}</Table.Cell>
                         <Table.Cell class="text-[var(--bg-muted)]">{tx.dateKey.slice(5)}</Table.Cell>
                         <Table.Cell class="text-end font-semibold {tx.txType === 'expense' ? 'bg-tx-expense' : 'bg-tx-income'}">
-                          {tx.txType === 'expense' ? '-' : '+'}€{tx.amount.toFixed(2)}
+                          {tx.txType === 'expense' ? '-' : '+'}{CURRENCY}{tx.amount.toFixed(2)}
                         </Table.Cell>
                         <Table.Cell>
                           <button class="bg-icon-btn bg-icon-btn--danger" onclick={() => deleteTransaction(tx.id)} use:tooltip={{ text: "Delete transaction" }}>
@@ -613,6 +800,15 @@
                       </Table.Row>
                     {/each}
                   </Table.Body>
+                  {#if txTotalPages > 1}
+                    <caption style="padding: 8px 16px; border-top: 1px solid var(--bg-border);">
+                      <div class="bg-pagination">
+                        <button class="bg-pg-btn" disabled={txPage === 0} onclick={() => txPage--}>‹ Prev</button>
+                        <span class="bg-pg-info">Page {txPage + 1} of {txTotalPages} ({transactions.length} total)</span>
+                        <button class="bg-pg-btn" disabled={txPage >= txTotalPages - 1} onclick={() => txPage++}>Next ›</button>
+                      </div>
+                    </caption>
+                  {/if}
                 {/if}
               </Table.Root>
             </CardContent>
@@ -636,7 +832,7 @@
                 </button>
               </div>
               <div class="bg-form-field">
-                <label for="tx-amount">Amount (€)</label>
+                <label for="tx-amount">Amount ({CURRENCY})</label>
                 <input id="tx-amount" type="number" step="0.01" min="0" bind:value={newTx.amount} placeholder="0.00" />
               </div>
               <div class="bg-form-field">
@@ -689,6 +885,9 @@
             <p>{currentHeader.subtitle}</p>
           </div>
           <div class="bg-page__actions">
+            <Button onclick={() => { editingCategory = null; resetCatForm(); showCategoryModal = true; }}>
+              <Plus size={16} /> Add Category
+            </Button>
           </div>
         </header>
 
@@ -696,7 +895,7 @@
           {#if categories.length === 0}
             <div class="bg-empty-state">
               <Target size={40} />
-              <p>No budget categories yet. Start by adding a transaction — categories are created as you go.</p>
+              <p>No categories yet. Create one to start budgeting.</p>
             </div>
           {:else}
             {#each categoryGroups as group}
@@ -712,8 +911,14 @@
                           <div class="bg-budget-card-header">
                             <Icon size={18} />
                             <span class="bg-budget-cat-name">{cat.name}</span>
+                            <button class="bg-mini-icon-btn" onclick={() => { editingCategory = cat; resetCatForm(cat); showCategoryModal = true; }} title="Edit category">
+                              <span style="font-size: 12px;">✎</span>
+                            </button>
+                            <button class="bg-mini-icon-btn" onclick={() => deleteCategory(cat.id)} title="Delete category">
+                              <Trash2 size={12} />
+                            </button>
                             <button class="bg-edit-budget-btn" onclick={() => showEditBudget = showEditBudget === cat.id ? null : cat.id}>
-                              <span class="bg-budget-cat-amount">{cat.monthlyBudget > 0 ? '€' + cat.monthlyBudget.toFixed(0) : '–'}</span>
+                              <span class="bg-budget-cat-amount">{cat.monthlyBudget > 0 ? CURRENCY + cat.monthlyBudget.toFixed(0) : '–'}</span>
                             </button>
                           </div>
                           <div class="bg-budget-bar-track">
@@ -721,9 +926,9 @@
                               class:bg-budget-bar--over={cat.percentUsed >= 100}></div>
                           </div>
                           <div class="bg-budget-card-footer">
-                            <span>€{cat.spent.toFixed(2)} spent</span>
+                            <span>{CURRENCY}{cat.spent.toFixed(2)} spent</span>
                             <span class:bg-remaining-pos={cat.remaining >= 0} class:bg-remaining-neg={cat.remaining < 0}>
-                              {cat.monthlyBudget > 0 ? '€' + cat.remaining.toFixed(2) + ' left' : ''}
+                              {cat.monthlyBudget > 0 ? CURRENCY + cat.remaining.toFixed(2) + ' left' : ''}
                             </span>
                           </div>
                           {#if showEditBudget === cat.id}
@@ -747,6 +952,66 @@
           {/if}
         </section>
       </section>
+
+      <!-- Category Modal -->
+      {#if showCategoryModal}
+        <div class="bg-modal-overlay" use:modalLock in:fade={{ duration: 200 }} out:fade={{ duration: 150 }} onclick={() => showCategoryModal = false} onkeydown={(e) => { if (e.key === 'Escape') showCategoryModal = false; }}>
+          <div class="bg-modal-sheet" in:fly={{ y: 20, duration: 300, opacity: 0, easing: cubicOut }} out:fly={{ y: 20, duration: 200, opacity: 0 }} onclick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="bg-modal-title-cat" tabindex="-1">
+            <div class="bg-modal-handle"></div>
+            <h3 id="bg-modal-title-cat">{editingCategory ? 'Edit Category' : 'New Category'}</h3>
+            <div class="bg-modal-form">
+              <div class="bg-form-field">
+                <label for="cat-name">Name</label>
+                <input id="cat-name" type="text" bind:value={catFormName} placeholder="e.g. Groceries, Rent" />
+              </div>
+              <div class="bg-form-field">
+                <label for="cat-group">Group</label>
+                <select id="cat-group" bind:value={catFormGroup}>
+                  <option value="Essentials">Essentials</option>
+                  <option value="Housing">Housing</option>
+                  <option value="Lifestyle">Lifestyle</option>
+                  <option value="Wellness">Wellness</option>
+                  <option value="Savings">Savings</option>
+                  <option value="Personal">Personal</option>
+                  <option value="Income">Income</option>
+                  <option value="AI Costs">AI Costs</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="bg-form-field">
+                <label for="cat-color">Color</label>
+                <input id="cat-color" type="color" bind:value={catFormColor} />
+              </div>
+              <div class="bg-form-row">
+                <div class="bg-form-field bg-form-field--half">
+                  <label for="cat-icon">Icon</label>
+                  <select id="cat-icon" bind:value={catFormIcon}>
+                    <option value="wallet">Wallet</option>
+                    <option value="home">Home</option>
+                    <option value="shopping-cart">Cart</option>
+                    <option value="car">Car</option>
+                    <option value="zap">Zap</option>
+                    <option value="utensils-crossed">Food</option>
+                    <option value="tv">TV</option>
+                    <option value="shopping-bag">Bag</option>
+                    <option value="activity">Activity</option>
+                    <option value="book-open">Book</option>
+                    <option value="bot">Bot</option>
+                    <option value="piggy-bank">Savings</option>
+                    <option value="trending-up">Growth</option>
+                    <option value="ellipsis">Other</option>
+                  </select>
+                </div>
+              </div>
+              <button class="bg-submit-btn" onclick={saveCategory}>
+                <CheckCircle2 size={16} />
+                {editingCategory ? 'Update Category' : 'Create Category'}
+              </button>
+            </div>
+          </div>
+        </div>
+      {/if}
+
     <!-- ══════════════════════════════════════════════════════════════
          TAB: BILLS — Subscription Day calendar
     ════════════════════════════════════════════════════════════════ -->
@@ -779,7 +1044,7 @@
                   {/if}
                 </div>
                 <div class="subs-month-total">
-                  <span class="subs-total-amt">€{calMonthlyTotal.toFixed(2)}</span>
+                  <span class="subs-total-amt">{CURRENCY}{calMonthlyTotal.toFixed(2)}</span>
                   <span class="subs-total-label">/ month</span>
                 </div>
               </div>
@@ -818,7 +1083,7 @@
                             class:subs-sqircle--paid={bill.paidThisMonth}
                             style="background:{SUB_COLORS[bill.name] ?? '#6b7280'}"
                             onclick={() => selectedBill = selectedBill?.id === bill.id ? null : bill}
-                            title="{bill.name} — €{bill.amount.toFixed(2)}"
+                            title="{bill.name} — {CURRENCY}{bill.amount.toFixed(2)}"
                           >
                             <BrandIcon name={bill.name} size={11} class="bg-brand-mono" />
                           </button>
@@ -858,8 +1123,8 @@
                   </div>
 
                   <div class="subs-detail-rows">
-                    <div class="subs-dr"><span>Amount</span><strong>€{sb.amount.toFixed(2)}</strong></div>
-                    <div class="subs-dr"><span>Yearly cost</span><strong>€{(sb.amount * 12).toFixed(2)}</strong></div>
+                    <div class="subs-dr"><span>Amount</span><strong>{CURRENCY}{sb.amount.toFixed(2)}</strong></div>
+                    <div class="subs-dr"><span>Yearly cost</span><strong>{CURRENCY}{(sb.amount * 12).toFixed(2)}</strong></div>
                     <div class="subs-dr">
                       <span>Status</span>
                       <span class="subs-status" class:subs-status--paid={sb.paidThisMonth}>
@@ -874,7 +1139,7 @@
                     <button
                       class="subs-pay-btn"
                       class:subs-pay-btn--paid={sb.paidThisMonth}
-                      onclick={() => { toggleBillPaid(sb.id); selectedBill = { ...sb, paidThisMonth: !sb.paidThisMonth }; }}
+                      onclick={() => toggleBillPaid(sb.id)}
                     >
                       <CheckCircle2 size={15} />
                       {sb.paidThisMonth ? 'Mark Unpaid' : 'Mark as Paid'}
@@ -894,11 +1159,11 @@
                 <div class="subs-stats">
                   <div class="subs-stat">
                     <span class="subs-stat-lbl">Yearly forecast</span>
-                    <span class="subs-stat-val">€{calYearlyTotal.toFixed(0)}</span>
+                    <span class="subs-stat-val">{CURRENCY}{calYearlyTotal.toFixed(0)}</span>
                   </div>
                   <div class="subs-stat">
                     <span class="subs-stat-lbl">Average monthly</span>
-                    <span class="subs-stat-val">€{calMonthlyTotal.toFixed(0)}</span>
+                    <span class="subs-stat-val">{CURRENCY}{calMonthlyTotal.toFixed(0)}</span>
                   </div>
                   <div class="subs-stat subs-stat--full">
                     <span class="subs-stat-lbl">Paid this month</span>
@@ -923,7 +1188,7 @@
                         <span class="subs-row-due">Day {bill.dueDay}</span>
                       </div>
                       <div class="subs-row-right">
-                        <span class="subs-row-amt">€{bill.amount.toFixed(2)}</span>
+                        <span class="subs-row-amt">{CURRENCY}{bill.amount.toFixed(2)}</span>
                         {#if bill.paidThisMonth}
                           <CheckCircle2 size={12} color="#22c55e" />
                         {/if}
@@ -971,7 +1236,7 @@
                 <input id="bill-name" type="text" bind:value={newBill.name} placeholder="e.g. Netflix, Spotify" />
               </div>
               <div class="bg-form-field">
-                <label for="bill-amount">Amount (€)</label>
+                <label for="bill-amount">Amount ({CURRENCY})</label>
                 <input id="bill-amount" type="number" step="0.01" min="0" bind:value={newBill.amount} placeholder="0.00" />
               </div>
               <div class="bg-form-field">
@@ -1032,7 +1297,7 @@
                       <Bot size={18} />
                       <span class="bg-ai-name">{summary.provider}</span>
                     </div>
-                    <span class="bg-ai-total">€{summary.totalCost.toFixed(2)}</span>
+                    <span class="bg-ai-total">{CURRENCY}{summary.totalCost.toFixed(2)}</span>
                     <div class="bg-ai-tokens">
                       <span>Tokens: {(summary.totalTokensIn + summary.totalTokensOut).toLocaleString()}</span>
                       <span class="bg-ai-months">{summary.monthCount} {summary.monthCount === 1 ? 'month' : 'months'}</span>
@@ -1071,7 +1336,7 @@
                             {#if entry.note}<span class="text-xs text-[var(--bg-muted)]">— {entry.note}</span>{/if}
                           </div>
                         </Table.Cell>
-                        <Table.Cell class="text-right font-mono">€{entry.cost.toFixed(4)}</Table.Cell>
+                        <Table.Cell class="text-right font-mono">{CURRENCY}{entry.cost.toFixed(4)}</Table.Cell>
                         <Table.Cell class="text-right text-[var(--bg-muted)]">{(entry.tokensIn + entry.tokensOut).toLocaleString()}</Table.Cell>
                         <Table.Cell>
                           <button class="bg-icon-btn bg-icon-btn--danger" onclick={() => deleteAiCost(entry.id)} use:tooltip={{ text: "Delete cost entry" }}>
@@ -1113,7 +1378,7 @@
                 <input id="ai-model" type="text" bind:value={newAi.model} placeholder="e.g. claude-3.5-sonnet, gpt-4o" />
               </div>
               <div class="bg-form-field">
-                <label for="ai-cost">Cost (€)</label>
+                <label for="ai-cost">Cost ({CURRENCY})</label>
                 <input id="ai-cost" type="number" step="0.0001" min="0" bind:value={newAi.cost} placeholder="0.00" />
               </div>
               <div class="bg-form-row">
@@ -1194,10 +1459,10 @@
                     {#each cashFlow as proj}
                       <Table.Row>
                         <Table.Cell class="font-medium">{proj.month}</Table.Cell>
-                        <Table.Cell class="bg-tx-income">€{proj.projectedIncome.toFixed(0)}</Table.Cell>
-                        <Table.Cell class="bg-tx-expense">€{proj.projectedExpenses.toFixed(0)}</Table.Cell>
+                        <Table.Cell class="bg-tx-income">{CURRENCY}{proj.projectedIncome.toFixed(0)}</Table.Cell>
+                        <Table.Cell class="bg-tx-expense">{CURRENCY}{proj.projectedExpenses.toFixed(0)}</Table.Cell>
                         <Table.Cell class="text-end font-semibold {proj.projectedBalance >= 0 ? 'bg-tx-income' : ''}">
-                          €{proj.projectedBalance.toFixed(0)}
+                          {CURRENCY}{proj.projectedBalance.toFixed(0)}
                         </Table.Cell>
                       </Table.Row>
                   {/each}
@@ -1208,7 +1473,7 @@
                       <Table.Row>
                         <Table.Cell colspan={3}>Projected End Balance</Table.Cell>
                         <Table.Cell class="text-end font-bold {last.projectedBalance >= 0 ? 'bg-tx-income' : ''}">
-                          €{last.projectedBalance.toFixed(0)}
+                          {CURRENCY}{last.projectedBalance.toFixed(0)}
                         </Table.Cell>
                       </Table.Row>
                     </Table.Footer>
@@ -1219,6 +1484,84 @@
           {/if}
         </section>
       </section>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         TAB: TEMPLATES
+         ══════════════════════════════════════════════════════════════════ -->
+    {:else if selectedSection === 'Templates'}
+      <section class="bg-page">
+        <header class="bg-page__header">
+          <div class="bg-page__intro">
+            <div class="bg-page__eyebrow"><Target size={13}/><span>{currentHeader.eyebrow}</span><Badge variant="outline">{templates.length} {templates.length === 1 ? 'template' : 'templates'}</Badge></div>
+            <h1>{currentHeader.title}</h1>
+            <p>{currentHeader.subtitle}</p>
+          </div>
+          <div class="bg-page__actions">
+            <Button onclick={() => { templateName = ''; showTemplateModal = true; }} disabled={categories.filter(c => c.monthlyBudget > 0).length === 0}>
+              <Plus size={16} /> Save Current as Template
+            </Button>
+          </div>
+        </header>
+
+        <section class="bg-body">
+          {#if templates.length === 0}
+            <div class="bg-empty-state">
+              <Target size={40} />
+              <p>No templates yet. Set your category budgets, then save them as a template.</p>
+            </div>
+          {:else}
+            <div class="bg-templates-grid">
+              {#each templates as t}
+                <Card class="bg-template-card">
+                  <CardContent style="display: flex; flex-direction: column; gap: 10px;">
+                    <div class="bg-template-header">
+                      <span class="bg-template-name">{t.name}</span>
+                      <span class="bg-template-income">{CURRENCY}{t.totalIncome.toFixed(0)} income</span>
+                    </div>
+                    <div class="bg-template-items">
+                      {#each t.items as item}
+                        <div class="bg-template-item">
+                          <span>{item.categoryName}</span>
+                          <span>{CURRENCY}{item.amount.toFixed(0)}</span>
+                        </div>
+                      {/each}
+                    </div>
+                    <div class="bg-template-actions">
+                      <button class="bg-submit-btn" style="flex: 1;" onclick={() => applyTemplate(t)}>
+                        <CheckCircle2 size={14} /> Apply
+                      </button>
+                      <button class="bg-icon-btn bg-icon-btn--danger" onclick={() => deleteTemplate(t.id)} use:tooltip={{ text: "Delete template" }}>
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
+              {/each}
+            </div>
+          {/if}
+        </section>
+      </section>
+
+      {#if showTemplateModal}
+        <div class="bg-modal-overlay" use:modalLock in:fade={{ duration: 200 }} out:fade={{ duration: 150 }} onclick={() => showTemplateModal = false} onkeydown={(e) => { if (e.key === 'Escape') showTemplateModal = false; }}>
+          <div class="bg-modal-sheet" in:fly={{ y: 20, duration: 300, opacity: 0, easing: cubicOut }} out:fly={{ y: 20, duration: 200, opacity: 0 }} onclick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="bg-modal-title-tpl" tabindex="-1">
+            <div class="bg-modal-handle"></div>
+            <h3 id="bg-modal-title-tpl">Save Template</h3>
+            <p style="text-align: center; font-size: 13px; color: var(--bg-muted); margin: -10px 0 16px;">
+              Saves current category budgets as a reusable template.
+            </p>
+            <div class="bg-modal-form">
+              <div class="bg-form-field">
+                <label for="tpl-name">Template Name</label>
+                <input id="tpl-name" type="text" bind:value={templateName} placeholder="e.g. Monthly Budget" />
+              </div>
+              <button class="bg-submit-btn" onclick={saveTemplate}>
+                <CheckCircle2 size={16} /> Save Template
+              </button>
+            </div>
+          </div>
+        </div>
+      {/if}
 
     <!-- ══════════════════════════════════════════════════════════════════
          TAB: EXPORT
@@ -1335,11 +1678,24 @@
 
   :global(.bg-score-card),
   :global(.bg-hero-card),
-  :global(.bg-panel) {
-    border-color: var(--bg-border);
+  :global(.bg-panel),
+  :global(.bg-budget-card),
+  :global(.bg-ai-card),
+  :global(.bg-export-card) {
+    border-color: var(--bg-border) !important;
     background: linear-gradient(180deg,
       color-mix(in srgb, var(--bg-surface) 98%, var(--bg-bg)),
-      color-mix(in srgb, var(--bg-surface) 86%, var(--bg-bg)));
+      color-mix(in srgb, var(--bg-surface) 86%, var(--bg-bg))) !important;
+  }
+
+  :global(.bg-panel [data-slot="table-footer"]) {
+    background: transparent !important;
+    border-top: 1px solid color-mix(in srgb, var(--bg-border) 60%, transparent);
+  }
+
+  :global(.bg-panel [data-slot="table-row"]),
+  :global(.bg-panel [data-slot="table-head"]) {
+    background: transparent !important;
   }
 
   :global(.bg-score-card__content) {
@@ -1351,10 +1707,20 @@
     border-radius: 999px; flex-shrink: 0;
     background: color-mix(in srgb, var(--bg-accent) 14%, var(--bg-surface));
     color: var(--bg-accent);
+    transition: background 0.4s ease, color 0.4s ease;
   }
-  :global(.bg-orb--income) {
+  :global(.bg-orb--up) {
     background: color-mix(in srgb, var(--bg-green) 14%, var(--bg-surface));
     color: var(--bg-green);
+  }
+  :global(.bg-orb--down) {
+    background: color-mix(in srgb, var(--bg-amber) 14%, var(--bg-surface));
+    color: var(--bg-amber);
+  }
+  :global(.bg-orb--neutral) {
+    background: color-mix(in srgb, var(--bg-muted) 14%, var(--bg-surface));
+    color: var(--bg-muted);
+    border: 1px solid color-mix(in srgb, var(--bg-muted) 30%, transparent);
   }
 
   :global(.bg-score-meta) { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
@@ -1365,6 +1731,9 @@
   }
   :global(.bg-score-meta) strong { font-size: 0.93rem; font-weight: 600; font-variant-numeric: tabular-nums; }
   :global(.bg-score-meta) span   { color: var(--bg-muted); font-size: 0.72rem; }
+  :global(.bg-change-pct) { font-size: 10px; font-weight: 600; margin-left: 4px; white-space: nowrap; }
+  :global(.bg-change-up) { color: var(--bg-green); }
+  :global(.bg-change-down) { color: var(--bg-red); }
 
   :global(.bg-hero-list) { display: grid; gap: 7px; }
   :global(.bg-hero-list) article {
@@ -1381,6 +1750,11 @@
   :global(.bg-hero-bar) i {
     display: block; width: var(--fill); height: 100%; border-radius: inherit;
     background: linear-gradient(90deg, var(--bg-accent), color-mix(in srgb, var(--accent) 40%, var(--bg-accent)));
+    transition: width 0.4s ease, background 0.4s ease;
+  }
+  :global(.bg-hero-bar) i.bg-bar-negative {
+    width: 4px !important;
+    background: var(--bg-red);
   }
 
   /* ── Body ────────────────────────────────────────────────────────── */
@@ -1414,7 +1788,7 @@
 
   /* ── Month Input ─────────────────────────────────────────────────── */
   :global(.bg-month-input) {
-    background: var(--bg-surface);
+    background: var(--bg-bg);
     border: 1px solid var(--bg-border);
     padding: 8px 12px; border-radius: 10px;
     color: var(--bg-ink); font-size: 13px; font-weight: 500;
@@ -1457,6 +1831,16 @@
     display: flex; align-items: center; gap: 8px;
   }
   :global(.bg-budget-cat-name) { flex: 1; font-size: 14px; font-weight: 600; }
+  :global(.bg-mini-icon-btn) {
+    background: none; border: none; color: var(--bg-muted); cursor: pointer;
+    width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+    border-radius: 6px; flex-shrink: 0;
+    transition: color 160ms var(--ease-out), background 160ms var(--ease-out);
+    -webkit-tap-highlight-color: transparent;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.bg-mini-icon-btn:hover) { color: var(--bg-ink); background: color-mix(in srgb, var(--bg-ink) 8%, transparent); }
+  }
   :global(.bg-budget-cat-amount) { font-size: 13px; font-weight: 700; }
   :global(.bg-edit-budget-btn) {
     background: none; border: none; color: var(--bg-muted); cursor: pointer;
@@ -1499,6 +1883,18 @@
   :global(.bg-save-mini:active) {
     transform: scale(0.96);
   }
+
+  /* ── Section loading ──────────────────────────────────────────────── */
+  :global(.bg-section-loading) {
+    position: fixed; top: 12px; right: 30px; z-index: 50;
+    font-size: 11px; font-weight: 600; color: var(--bg-muted);
+    padding: 6px 14px; border-radius: 100px;
+    background: color-mix(in srgb, var(--bg-surface) 96%, var(--background));
+    border: 1px solid var(--bg-border);
+    animation: bg-sk-fade 0.2s ease-out;
+    pointer-events: none;
+  }
+  @keyframes bg-sk-fade { from { opacity: 0; } to { opacity: 1; } }
 
   /* ── Loading & Empty ────────────────────────────────────────────── */
   :global(.bg-loading) {
@@ -1546,6 +1942,29 @@
   :global(.bg-ai-total) { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
   :global(.bg-ai-tokens) { font-size: 12px; color: var(--bg-muted); display: flex; flex-direction: column; gap: 2px; }
   :global(.bg-ai-months) { font-size: 11px; }
+
+  /* ── Templates ────────────────────────────────────────────────── */
+  :global(.bg-templates-grid) {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;
+  }
+  :global(.bg-template-card) {
+    border-color: color-mix(in srgb, var(--bg-border) 88%, transparent);
+  }
+  :global(.bg-template-header) {
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  :global(.bg-template-name) { font-size: 15px; font-weight: 700; }
+  :global(.bg-template-income) { font-size: 12px; color: var(--bg-muted); }
+  :global(.bg-template-items) {
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 8px 0; border-top: 1px solid var(--bg-border); border-bottom: 1px solid var(--bg-border);
+  }
+  :global(.bg-template-item) {
+    display: flex; justify-content: space-between; font-size: 13px;
+  }
+  :global(.bg-template-actions) {
+    display: flex; gap: 8px; align-items: center;
+  }
 
   /* ── Export Cards ──────────────────────────────────────────────── */
   :global(.bg-export-card) {
@@ -1873,6 +2292,42 @@
     filter: brightness(0) invert(1);
   }
   :global(.bg-popular-name) { font-weight: 500; }
+
+  /* ── Skeleton Loading ──────────────────────────────────────────── */
+  :global(.bg-skel) {
+    background: color-mix(in srgb, var(--bg-border) 60%, transparent);
+    border-radius: 10px;
+    animation: bg-skel-pulse 1.5s ease-in-out infinite;
+  }
+  :global(.bg-skel--eyebrow) { width: 120px; height: 16px; margin-bottom: 12px; }
+  :global(.bg-skel--title) { width: 260px; height: 32px; margin-bottom: 10px; }
+  :global(.bg-skel--subtitle) { width: 340px; height: 16px; }
+  :global(.bg-skel-grid) { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 16px; margin-top: 18px; }
+  :global(.bg-skel--card) { height: 140px; border-radius: 16px; }
+  :global(.bg-skel--table) { height: 240px; border-radius: 16px; margin-top: 16px; }
+  @keyframes bg-skel-pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+  }
+
+  /* ── Pagination ────────────────────────────────────────────────── */
+  :global(.bg-pagination) {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    padding: 4px 0;
+  }
+  :global(.bg-pg-btn) {
+    background: transparent; border: 1px solid var(--bg-border);
+    color: var(--bg-ink); font-size: 13px; font-weight: 500;
+    padding: 6px 14px; border-radius: 8px; cursor: pointer;
+    transition: transform 160ms var(--ease-out), border-color 160ms var(--ease-out);
+    -webkit-tap-highlight-color: transparent;
+  }
+  :global(.bg-pg-btn:disabled) { opacity: 0.4; cursor: default; }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.bg-pg-btn:hover:not(:disabled)) { border-color: var(--bg-accent); }
+  }
+  :global(.bg-pg-btn:active:not(:disabled)) { transform: scale(0.96); }
+  :global(.bg-pg-info) { font-size: 12px; color: var(--bg-muted); }
 
   /* ── Reduced Motion ────────────────────────────────────────────── */
   @media (prefers-reduced-motion: reduce) {

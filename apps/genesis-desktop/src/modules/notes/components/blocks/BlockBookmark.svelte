@@ -71,7 +71,6 @@
           bind:value={editUrl}
           placeholder="https://example.com"
           onkeydown={handleKeyDown}
-          autofocus
         />
         <button class="bookmark-editor-save" onclick={saveEdit}>Save</button>
       </div>

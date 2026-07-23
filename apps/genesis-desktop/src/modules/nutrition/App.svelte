@@ -1198,7 +1198,7 @@
     padding: 10px 14px;
     border: 1px solid color-mix(in srgb, var(--nutrition-border) 92%, transparent);
     border-radius: 999px;
-    background: color-mix(in srgb, var(--nutrition-surface-strong) 92%, transparent);
+    background: var(--nutrition-bg);
     color: var(--nutrition-ink);
     font: inherit;
     font-size: 0.85rem;
@@ -1401,7 +1401,7 @@
     padding: 10px 14px;
     border: 1px solid color-mix(in srgb, var(--nutrition-border) 92%, transparent);
     border-radius: 999px;
-    background: color-mix(in srgb, var(--nutrition-surface-strong) 92%, transparent);
+    background: var(--nutrition-bg);
     color: var(--nutrition-ink);
     font: inherit;
     font-size: 0.85rem;
@@ -1426,7 +1426,7 @@
     padding: 10px 12px;
     border: 1px solid color-mix(in srgb, var(--nutrition-border) 92%, transparent);
     border-radius: 999px;
-    background: color-mix(in srgb, var(--nutrition-surface-strong) 92%, transparent);
+    background: var(--nutrition-bg);
     color: var(--nutrition-ink);
     font: inherit;
     font-size: 0.82rem;
@@ -1491,7 +1491,7 @@
     padding: 10px 12px;
     border: 1px solid color-mix(in srgb, var(--nutrition-border) 92%, transparent);
     border-radius: 12px;
-    background: color-mix(in srgb, var(--nutrition-surface-strong) 92%, transparent);
+    background: var(--nutrition-bg);
     color: var(--nutrition-ink);
     font: inherit;
     font-size: 1rem;

@@ -136,7 +136,7 @@
   padding: 0 32px 0 38px;
   border: none;
   border-radius: 12px;
-  background: color-mix(in srgb, var(--cb-ink) 6%, var(--cb-bg));
+  background: var(--cb-bg);
   color: var(--cb-ink);
   font: inherit;
   font-size: 0.85rem;
@@ -149,8 +149,7 @@
 }
 
 :global(.cb-shell__search) input:focus {
-  background: color-mix(in srgb, var(--cb-ink) 8%, var(--cb-bg));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cb-accent) 30%, transparent);
+  background: var(--cb-bg);
 }
 
 :global(.cb-shell__search-clear) {
@@ -1122,7 +1121,7 @@
   padding: 0 16px 0 40px;
   border: none;
   border-radius: 14px;
-  background: color-mix(in srgb, var(--cb-ink) 6%, var(--cb-bg));
+  background: var(--cb-bg);
   color: var(--cb-ink);
   font: inherit;
   font-size: 0.9rem;
@@ -1138,8 +1137,7 @@
 }
 
 :global(.cb-bookmark-input__field) input:focus {
-  background: color-mix(in srgb, var(--cb-ink) 8%, var(--cb-bg));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cb-accent) 30%, transparent);
+  background: var(--cb-bg);
 }
 
 /* Link icon */

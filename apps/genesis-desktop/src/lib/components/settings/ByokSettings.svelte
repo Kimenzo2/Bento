@@ -795,9 +795,14 @@
     gap: 1rem;
     padding: 0.85rem 1rem;
     border-radius: 14px;
-    border: none;
+    border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
     box-shadow: none;
-    background: color-mix(in srgb, var(--foreground) 3%, var(--background));
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface) 96%, var(--background)) 98%,
+        color-mix(in srgb, var(--surface) 96%, var(--background)) 86%
+      );
   }
   .byok-toggle-row__info {
     display: grid;
@@ -886,7 +891,7 @@
     padding: 0.7rem 1rem;
     border: none;
     border-radius: 12px;
-    background: color-mix(in srgb, var(--foreground) 4%, var(--background));
+    background: var(--background);
     color: var(--foreground);
     font-family: inherit;
     text-align: left;
@@ -1149,7 +1154,7 @@
     padding: 0.55rem 0.85rem;
     border: none;
     border-radius: 10px;
-    background: color-mix(in srgb, var(--foreground) 5%, var(--background));
+    background: var(--background);
     color: var(--foreground);
     font-family: var(--font-mono, monospace);
     outline: none;

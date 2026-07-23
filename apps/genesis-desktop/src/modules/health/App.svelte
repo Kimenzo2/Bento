@@ -1502,6 +1502,14 @@
   /* Daily Log */
   :global(.hl-log-form)  { display: grid; gap: 16px; overflow: auto; }
   :global(.hl-log-block) { display: grid; }
+  :global(.hl-log-block input) {
+    background: var(--hl-bg);
+    border-color: var(--hl-border);
+    border-radius: 10px;
+  }
+  :global(.hl-log-block input:focus) {
+    border-color: var(--hl-accent);
+  }
   :global(.hl-log-row) { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
   :global(.hl-mood-picker) { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 8px; }
@@ -1574,6 +1582,14 @@
   :global(.hl-vitals-form) { display: grid; gap: 14px; }
   :global(.hl-vital-row)   { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   :global(.hl-vital-field) { display: grid; gap: 5px; }
+  :global(.hl-vital-field input) {
+    background: var(--hl-bg);
+    border-color: var(--hl-border);
+    border-radius: 10px;
+  }
+  :global(.hl-vital-field input:focus) {
+    border-color: var(--hl-accent);
+  }
 
   :global(.hl-bp-chart) {
     display: flex; flex-direction: column; gap: 6px; overflow: hidden;

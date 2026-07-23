@@ -453,11 +453,16 @@
 
   /* ── Cards ────────────────────────────────────────────────────────────────── */
   .ai-card {
-    border: none;
+    border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
     box-shadow: none;
     border-radius: 1.15rem;
     padding: 1.25rem;
-    background: var(--surface);
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--surface) 96%, var(--background)) 98%,
+        color-mix(in srgb, var(--surface) 96%, var(--background)) 86%
+      );
     display: grid;
     gap: 1rem;
   }
@@ -588,7 +593,7 @@
     padding: 0.85rem 1rem;
     border: none;
     border-radius: 10px;
-    background: color-mix(in srgb, var(--foreground) 4%, var(--background));
+    background: var(--background);
     color: var(--foreground);
     font-family: inherit;
     line-height: 1.6;
