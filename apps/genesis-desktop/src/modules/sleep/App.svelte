@@ -141,15 +141,31 @@
     { value: "ocean-waves", label: "Ocean Waves" },
     { value: "river-flow", label: "River Flow" },
     { value: "guitar-loop", label: "Guitar Loop" },
+    { value: "guitar-loop-alt", label: "Guitar Loop Alt" },
+    { value: "fire-crackling", label: "Fire Crackling" },
+    { value: "forest-wind", label: "Forest Wind" },
+    { value: "riser-wildfire", label: "Riser Wildfire" },
+    { value: "cinematic-whoosh", label: "Cinematic Whoosh" },
+    { value: "cinematic-whoosh-alt", label: "Cinematic Whoosh Alt" },
+    { value: "correct", label: "Correct" },
   ];
   const soundLabelMap = new Map(alarmSoundOptions.map(o => [o.value, o.label]));
   let alarmLabel = $state("");
   let alarmTime = $state("07:00");
   let alarmSound = $state("alarm");
+  let alarmWakeWindow = $state("20 min");
   let alarmSaving = $state(false);
   let alarmError = $state("");
   let alarmSuccess = $state("");
   let alarmTestAudio: { stop: () => void } | null = $state(null);
+
+  // Error state for user-facing notifications
+  let lastError = $state("");
+
+  function showError(msg: string) {
+    lastError = msg;
+    setTimeout(() => { lastError = ""; }, 5000);
+  }
 
   // NEW: Session state
   let sleepSessions = $state<SleepSession[]>([]);
@@ -159,7 +175,7 @@
   let sessionDeleteLoading = $state<string | null>(null);
 
   // Manual session form
-  let manualDate = $state(todayKey());
+  let manualDate = $state(yesterdayKey());
   let manualBedtime = $state("23:00");
   let manualWake = $state("07:00");
   let manualNotes = $state("");
@@ -178,6 +194,12 @@
 
   function todayKey(): string {
     const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function yesterdayKey(): string {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
 
@@ -310,18 +332,31 @@
       : _t("moduleSleepLastNightDesc")
   );
 
-  // Tonight focus — from last session + defaults
+  // Tonight focus — driven by goal + last session
+  const plannedWindDown = $derived.by(() => {
+    const parts = sleepGoal.targetBedtime.split(":");
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const totalMin = h * 60 + m - 45;
+    const wh = ((totalMin % 1440) + 1440) % 1440;
+    const whh = Math.floor(wh / 60);
+    const wmm = wh % 60;
+    return `${String(whh).padStart(2, "0")}:${String(wmm).padStart(2, "0")}`;
+  });
+
   const tonightFocus = $derived([
-    { label: "Wind-down", value: "22:15", note: "Reading lamp and no inbox after 10pm." },
+    { label: "Wind-down", value: plannedWindDown, note: `45 min before target bedtime (${sleepGoal.targetBedtime}).` },
     {
       label: "Target sleep",
-      value: lastNight ? `${formatDuration(lastNight.durationMin)}` : "7h 50m",
-      note: "Enough recovery for tomorrow's training block.",
+      value: formatDuration(sleepGoal.targetDurationMin),
+      note: `${sleepGoal.targetBedtime} → ${sleepGoal.targetWaketime}`,
     },
-    { label: "Bedroom", value: "19°C", note: "Cooling mode starts 30 minutes before bed." },
+    { label: "Bedroom", value: "Cool & dark", note: "Keep devices away 30 min before wind-down." },
   ]);
 
   // Routine items with status merged
+  let routineDate = $state(todayKey());
+
   const routineWithStatus = $derived(
     routines.map((r) => {
       const track = routineTracked.find((t) => t.routineId === r.id);
@@ -330,7 +365,7 @@
         id: r.id,
         title: r.title,
         status,
-        note: status === "Done" ? "Completed tonight." : "Ready for tonight.",
+        note: status === "Done" ? `Completed for ${routineDate}.` : `Ready for ${routineDate}.`,
         tracked: track !== undefined,
       };
     })
@@ -353,7 +388,7 @@
         invoke<RoutineTracking[]>("sleep_routine_status").then(r => routineTracked = r),
       ]);
     } catch (e) {
-      console.error("Failed to add routine:", e);
+      showError(String(e));
     } finally {
       routineSaving = false;
     }
@@ -366,11 +401,12 @@
     alarmSuccess = "";
     try {
       await invoke<SleepAlarm>("sleep_alarm_save", {
-        alarm: { label: alarmLabel.trim(), time: alarmTime.trim(), sound: alarmSound },
+        alarm: { label: alarmLabel.trim(), time: alarmTime.trim(), sound: alarmSound, wakeWindow: alarmWakeWindow },
       });
       alarmLabel = "";
       alarmTime = "07:00";
       alarmSound = "alarm";
+      alarmWakeWindow = "20 min";
       alarmList = await invoke<SleepAlarm[]>("sleep_alarm_list");
       alarmSuccess = "Alarm added";
       setTimeout(() => { alarmSuccess = ""; }, 3000);
@@ -384,7 +420,6 @@
 
   function previewAlarmSound(e: Event) {
     const value = (e.target as HTMLSelectElement).value;
-    alarmSound = value;
     if (alarmTestAudio) { alarmTestAudio.stop(); alarmTestAudio = null; }
     const audio = playAlarmSound(value as SoundName, { volume: 0.4 });
     if (audio) {
@@ -421,10 +456,10 @@
 
   async function toggleRoutine(routineId: string) {
     try {
-      await invoke<boolean>("sleep_routine_toggle", { routineId });
-      routineTracked = await invoke<RoutineTracking[]>("sleep_routine_status");
+      await invoke<boolean>("sleep_routine_toggle", { routineId, dateKey: routineDate });
+      routineTracked = await invoke<RoutineTracking[]>("sleep_routine_status", { dateKey: routineDate });
     } catch (e) {
-      console.error("Failed to toggle routine:", e);
+      showError(String(e));
     }
   }
 
@@ -433,7 +468,7 @@
       await invoke<void>("sleep_routine_delete", { ids: [id] });
       routines = await invoke<SleepRoutine[]>("sleep_routine_list");
     } catch (e) {
-      console.error("Failed to delete routine:", e);
+      showError(String(e));
     }
   }
 
@@ -453,7 +488,7 @@
       manualNotes = "";
       await loadSessionData();
     } catch (e) {
-      console.error("Failed to add session:", e);
+      showError(String(e));
     } finally {
       sessionSaving = false;
     }
@@ -465,7 +500,7 @@
       await invoke<boolean>("delete_sleep_session", { id });
       await loadSessionData();
     } catch (e) {
-      console.error("Failed to delete session:", e);
+      showError(String(e));
     } finally {
       sessionDeleteLoading = null;
     }
@@ -485,7 +520,7 @@
       goalWaketime = goal.targetWaketime;
       goalDuration = goal.targetDurationMin;
     } catch (e) {
-      console.error("Failed to load session data:", e);
+      showError(String(e));
     }
   }
 
@@ -505,7 +540,7 @@
       goalSaved = true;
       setTimeout(() => { goalSaved = false; }, 2000);
     } catch (e) {
-      console.error("Failed to save goal:", e);
+      showError(String(e));
     } finally {
       goalSaving = false;
     }
@@ -515,60 +550,86 @@
   // EXPORT
   // ═══════════════════════════════════════════════════════
 
+  function csvField(val: string | null | undefined): string {
+    if (val == null) return "";
+    const s = String(val);
+    if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+      return `"${s.replace(/"/g, '""')}"`;
+    }
+    return s;
+  }
+
+  function toCSVRow(s: SleepSession): string {
+    const bedtime = s.sleepOnsetTs ? tsToHHMM(s.sleepOnsetTs) : "";
+    const waketime = s.wakeTs ? tsToHHMM(s.wakeTs) : "";
+    return [s.date, bedtime, waketime, s.durationMin, s.qualityScore ?? "", s.source, csvField(s.notes)].join(",");
+  }
+
   async function exportSessionsCSV() {
     if (sleepSessions.length === 0) return;
     const header = "Date,Bedtime,Wake Time,Duration (min),Quality Score,Source,Notes";
-    const rows = sleepSessions.map((s) => {
-      const bedtime = s.sleepOnsetTs ? tsToHHMM(s.sleepOnsetTs) : "";
-      const waketime = s.wakeTs ? tsToHHMM(s.wakeTs) : "";
-      return `${s.date},${bedtime},${waketime},${s.durationMin},${s.qualityScore ?? ""},${s.source},${s.notes ?? ""}`;
-    });
+    const rows = sleepSessions.map(toCSVRow);
     const csv = [header, ...rows].join("\n");
     const saved = await exportContentToFile(csv, "sleep-sessions.csv", "csv", "CSV files");
     if (saved) console.log("[sleep] sessions CSV exported to:", saved);
   }
 
   async function exportSummaryCSV() {
-    if (sleepSessions.length === 0) return;
-    const header = "Date,Bedtime,Wake Time,Duration (min),Quality Score,Source,Notes";
-    const rows = sleepSessions.map((s) => {
-      const bedtime = s.sleepOnsetTs ? tsToHHMM(s.sleepOnsetTs) : "";
-      const waketime = s.wakeTs ? tsToHHMM(s.wakeTs) : "";
-      return `${s.date},${bedtime},${waketime},${s.durationMin},${s.qualityScore ?? ""},${s.source},${s.notes ?? ""}`;
-    });
+    if (!sleepStats) return;
+    const header = "Metric,Value";
+    const rows = [
+      ["Average Duration (min)", String(Math.round(sleepStats.avgDurationMin))],
+      ["Average Bedtime", sleepStats.avgBedtime],
+      ["Average Wake Time", sleepStats.avgWaketime],
+      ["Consistency Score", String(Math.round(sleepStats.consistencyScore))],
+      ["Sleep Debt (min)", String(sleepStats.sleepDebtMin)],
+      ["Total Sessions", String(sleepStats.totalSessions)],
+      ["Longest Streak (days)", String(sleepStats.longestStreakDays)],
+      ["Current Streak (days)", String(sleepStats.currentStreakDays)],
+      ["Weekday Avg (min)", String(Math.round(sleepStats.weekdayAvgMin))],
+      ["Weekend Avg (min)", String(Math.round(sleepStats.weekendAvgMin))],
+      ["Social Jet Lag (min)", String(Math.round(sleepStats.socialJetLagMin))],
+    ].map(r => r.map(csvField).join(","));
     const csv = [header, ...rows].join("\n");
     const saved = await exportContentToFile(csv, "sleep-summary-30-days.csv", "csv", "CSV files");
     if (saved) console.log("[sleep] summary CSV exported to:", saved);
   }
 
-  async function exportPDF() {
+  async function exportReport() {
     if (sleepSessions.length === 0) return;
-    // Generate a textual summary (simple markdown-like format pending true PDF support)
     const lines: string[] = [];
-    lines.push("=== Sleep Report (Last 30 Nights) ===");
+    lines.push("# Sleep Report (Last 30 Nights)");
     lines.push(`Generated: ${new Date().toLocaleDateString()}`);
     lines.push("");
     if (sleepStats) {
-      lines.push(`Average Duration: ${formatDuration(Math.round(sleepStats.avgDurationMin))}`);
-      lines.push(`Average Bedtime: ${sleepStats.avgBedtime}`);
-      lines.push(`Average Wake Time: ${sleepStats.avgWaketime}`);
-      lines.push(`Consistency Score: ${Math.round(sleepStats.consistencyScore)}/100`);
-      lines.push(`Sleep Debt: ${sleepStats.sleepDebtMin > 0 ? formatDuration(sleepStats.sleepDebtMin) : "On track"}`);
-      lines.push(`Total Sessions: ${sleepStats.totalSessions}`);
+      lines.push("## Summary");
+      lines.push(`- **Average Duration:** ${formatDuration(Math.round(sleepStats.avgDurationMin))}`);
+      lines.push(`- **Average Bedtime:** ${sleepStats.avgBedtime}`);
+      lines.push(`- **Average Wake Time:** ${sleepStats.avgWaketime}`);
+      lines.push(`- **Consistency Score:** ${Math.round(sleepStats.consistencyScore)}/100`);
+      lines.push(`- **Sleep Debt:** ${sleepStats.sleepDebtMin > 0 ? formatDuration(sleepStats.sleepDebtMin) : "On track"}`);
+      lines.push(`- **Total Sessions:** ${sleepStats.totalSessions}`);
       lines.push("");
     }
     if (sleepGoal) {
-      lines.push(`Goal Bedtime: ${sleepGoal.targetBedtime}`);
-      lines.push(`Goal Wake Time: ${sleepGoal.targetWaketime}`);
-      lines.push(`Goal Duration: ${formatDuration(sleepGoal.targetDurationMin)}`);
+      lines.push("## Goal");
+      lines.push(`- **Target Bedtime:** ${sleepGoal.targetBedtime}`);
+      lines.push(`- **Target Wake Time:** ${sleepGoal.targetWaketime}`);
+      lines.push(`- **Target Duration:** ${formatDuration(sleepGoal.targetDurationMin)}`);
       lines.push("");
     }
-    lines.push("--- Nightly Log ---");
+    lines.push("## Nightly Log");
+    lines.push("");
+    lines.push("| Date | Duration | Score | Source | Notes |");
+    lines.push("|------|----------|-------|--------|-------|");
     for (const s of sleepSessions) {
-      lines.push(`${s.date} | ${s.durationMin}min | Score: ${s.qualityScore ?? "N/A"} | ${s.source}`);
+      const dur = formatDuration(s.durationMin);
+      const score = s.qualityScore != null ? String(Math.round(s.qualityScore)) : "N/A";
+      const notes = s.notes ? s.notes.replace(/\|/g, "\\|") : "";
+      lines.push(`| ${s.date} | ${dur} | ${score} | ${s.source} | ${notes} |`);
     }
     const text = lines.join("\n");
-    const saved = await exportContentToFile(text, "sleep-report.txt", "text", "Text files");
+    const saved = await exportContentToFile(text, "sleep-report.md", "markdown", "Markdown files");
     if (saved) console.log("[sleep] report exported to:", saved);
   }
 
@@ -580,14 +641,14 @@
       // Load routine + alarm data
       const [rList, rStatus, alarms] = await Promise.all([
         invoke<SleepRoutine[]>("sleep_routine_list"),
-        invoke<RoutineTracking[]>("sleep_routine_status"),
+        invoke<RoutineTracking[]>("sleep_routine_status", { dateKey: routineDate }),
         invoke<SleepAlarm[]>("sleep_alarm_list"),
       ]);
       routines = rList;
       routineTracked = rStatus;
       alarmList = alarms;
     } catch (e) {
-      console.error("Failed to load sleep data:", e);
+      showError(String(e));
     } finally {
       loading = false;
     }
@@ -616,8 +677,19 @@
       </div>
     </header>
 
+    {#if lastError}
+      <div class="sleep-error-banner" role="alert">{lastError}</div>
+    {/if}
+
     {#if loading}
-      <div class="sleep-loading"></div>
+      <div class="sleep-loading" aria-busy="true">
+        <div class="sleep-skeleton-grid">
+          <div class="sleep-skeleton sleep-skeleton--orb"><div class="sleep-skeleton-circle"></div></div>
+          <div class="sleep-skeleton sleep-skeleton--card"><div class="sleep-skeleton-line" style="width:60%"></div><div class="sleep-skeleton-line" style="width:40%"></div><div class="sleep-skeleton-line" style="width:80%"></div></div>
+          <div class="sleep-skeleton sleep-skeleton--card"><div class="sleep-skeleton-line" style="width:55%"></div><div class="sleep-skeleton-line" style="width:35%"></div></div>
+          <div class="sleep-skeleton sleep-skeleton--card"><div class="sleep-skeleton-line" style="width:50%"></div><div class="sleep-skeleton-line" style="width:45%"></div></div>
+        </div>
+      </div>
     {:else if selectedSection === "Tonight"}
     <section class="sleep-hero-grid">
       <Card class="sleep-orb-card">
@@ -642,7 +714,7 @@
             </div>
           </div>
           <div class="sleep-meta">
-            <div><strong>{lastNight && sleepStats ? lastNight.durationMin >= sleepStats.avgDurationMin ? `+${Math.round((lastNight.durationMin / sleepStats.avgDurationMin - 1) * 100)}%` : `${Math.round((lastNight.durationMin / sleepStats.avgDurationMin - 1) * 100)}%` : '--'}</strong><span>{_t('moduleSleepBetterThanAvg')}</span></div>
+            <div><strong>{lastNight && sleepStats && sleepStats.avgDurationMin > 0 ? lastNight.durationMin >= sleepStats.avgDurationMin ? `+${Math.round((lastNight.durationMin / sleepStats.avgDurationMin - 1) * 100)}%` : `${Math.round((lastNight.durationMin / sleepStats.avgDurationMin - 1) * 100)}%` : '--'}</strong><span>{_t('moduleSleepBetterThanAvg')}</span></div>
             <div><strong>{lastNight ? tsToHHMM(lastNight.wakeTs) : '--:--'}</strong><span>{_t('moduleSleepSmartWake')}</span></div>
           </div>
         </CardContent>
@@ -751,10 +823,18 @@
         </div>
       {:else if selectedSection === "Routine"}
         <Card class="sleep-panel sleep-panel--full">
-          <CardHeader>
-            <CardTitle>{_t('moduleSleepBedtimeRoutine')}</CardTitle>
-            <CardDescription>{_t('moduleSleepBedtimeRoutineDesc')}</CardDescription>
-          </CardHeader>
+        <CardHeader>
+          <div class="sr-header-row">
+            <div>
+              <CardTitle>{_t('moduleSleepBedtimeRoutine')}</CardTitle>
+              <CardDescription>{_t('moduleSleepBedtimeRoutineDesc')}</CardDescription>
+            </div>
+            <label class="sr-date-label">
+              <span>Date</span>
+              <input type="date" bind:value={routineDate} class="sr-date-input" onchange={() => loadData()} />
+            </label>
+          </div>
+        </CardHeader>
           <CardContent class="sleep-routine-board">                <!-- Add routine form -->
             <div class="sr-add-form">
               <input type="text" bind:value={routineInput} placeholder="New routine step..." class="sr-input" onkeydown={(e) => e.key === 'Enter' && addRoutine()} />
@@ -877,20 +957,29 @@
                 <input type="time" bind:value={alarmTime} class="sa-time" />
                 <span class="sa-time-hint">{formatTime24to12(alarmTime)}</span>
               </div>
-              <select class="sa-sound" onchange={(e) => previewAlarmSound(e)}>
+              <select class="sa-sound" bind:value={alarmSound} onchange={(e) => previewAlarmSound(e)}>
                 {#each alarmSoundOptions as opt}
                   <option value={opt.value}>{opt.label}</option>
                 {/each}
+              </select>
+              <select class="sa-wake" bind:value={alarmWakeWindow}>
+                <option value="5 min">5 min</option>
+                <option value="10 min">10 min</option>
+                <option value="15 min">15 min</option>
+                <option value="20 min" selected>20 min</option>
+                <option value="30 min">30 min</option>
+                <option value="45 min">45 min</option>
+                <option value="60 min">60 min</option>
               </select>
               <button class="sa-add-btn" onclick={addAlarm} disabled={alarmSaving || !alarmLabel.trim() || !alarmTime.trim()}>
                 {alarmSaving ? 'Adding...' : 'Add'}
               </button>
             </div>
             {#if alarmError}
-              <p style="color:var(--destructive);font-size:0.85rem;margin:8px 0;">{alarmError}</p>
+              <p class="sa-feedback sa-feedback--error">{alarmError}</p>
             {/if}
             {#if alarmSuccess}
-              <p style="color:var(--success);font-size:0.85rem;margin:8px 0;">{alarmSuccess}</p>
+              <p class="sa-feedback sa-feedback--success">{alarmSuccess}</p>
             {/if}
             {#each alarmList as alarm}
               <article>
@@ -912,7 +1001,7 @@
               </article>
             {/each}
             {#if alarmList.length === 0}
-              <p style="text-align:center;color:var(--muted);padding:20px;">No alarms configured yet.</p>
+              <p class="sa-empty">No alarms configured yet.</p>
             {/if}
           </CardContent>
         </Card>
@@ -951,7 +1040,7 @@
                   <span class="ss-stat-label">Sessions</span>
                 </div>
               {:else}
-                <p style="color:var(--muted);text-align:center;grid-column:1/-1;padding:20px;">No session data yet.</p>
+                <p class="sa-empty">No session data yet.</p>
               {/if}
             </CardContent>
           </Card>
@@ -1031,7 +1120,7 @@
                   </article>
                 {/each}
                 {#if sleepSessions.length === 0}
-                  <p style="text-align:center;color:var(--muted);padding:20px;">No sessions yet. OS detection will auto-record when your laptop sleeps.</p>
+                  <p class="sa-empty">No sessions yet. OS detection will auto-record when your laptop sleeps.</p>
                 {/if}
               </div>
             </CardContent>
@@ -1078,20 +1167,20 @@
           <CardContent class="sleep-list">
             <article>
               <div><strong>Sleep report</strong><p>Last 30 nights with score, debt, and routine adherence.</p></div>
-              <Button variant="outline" onclick={exportPDF} disabled={sleepSessions.length === 0}>
-                <DownloadIcon data-icon="inline-start" /> {_t('moduleSleepExportBtn')}
+              <Button variant="outline" onclick={exportReport} disabled={sleepSessions.length === 0}>
+                <DownloadIcon data-icon="inline-start" /> Report (.md)
               </Button>
             </article>
             <article>
               <div><strong>CSV sessions</strong><p>Nightly duration, quality, and source for external analysis.</p></div>
               <Button variant="outline" onclick={exportSessionsCSV} disabled={sleepSessions.length === 0}>
-                <DownloadIcon data-icon="inline-start" /> {_t('moduleSleepExportBtn')}
+                <DownloadIcon data-icon="inline-start" /> Sessions (.csv)
               </Button>
             </article>
             <article>
               <div><strong>Shareable recap</strong><p>A one-page summary for coach or clinician review.</p></div>
-              <Button variant="outline" onclick={exportSummaryCSV} disabled={sleepSessions.length === 0}>
-                <DownloadIcon data-icon="inline-start" /> {_t('moduleSleepExportBtn')}
+              <Button variant="outline" onclick={exportSummaryCSV} disabled={!sleepStats}>
+                <DownloadIcon data-icon="inline-start" /> Summary (.csv)
               </Button>
             </article>
           </CardContent>
@@ -1117,7 +1206,7 @@
     padding: 28px 30px;
     background: var(--sleep-bg);
     color: var(--sleep-ink);
-    overflow: hidden;
+    overflow-y: auto;
     font-family: var(--font-body);
     font-synthesis: none;
     -webkit-font-smoothing: antialiased;
@@ -1194,6 +1283,7 @@
     display: grid;
     grid-template-columns: 1.1fr 1fr;
     gap: 16px;
+    animation: sleep-fade-in 0.4s ease-out;
   }
 
   :global(.sleep-orb-card),
@@ -1236,6 +1326,13 @@
     align-items: center;
     justify-content: center;
     gap: 2px;
+  }
+
+  :global(.sleep-orb) {
+    animation: sleep-orb-appear 0.5s ease-out;
+  }
+  @keyframes sleep-orb-appear {
+    from { opacity: 0; transform: scale(0.9); }
   }
 
   :global(.sleep-orb-center) strong {
@@ -1318,6 +1415,17 @@
 
   :global(.sleep-shell__body) {
     min-height: 0;
+  }
+
+  :global(.sleep-shell__body > .sleep-grid),
+  :global(.sleep-shell__body > .sleep-grid-sessions),
+  :global(.sleep-shell__body > .sleep-panel) {
+    animation: sleep-fade-in 0.3s ease-out;
+  }
+
+  @keyframes sleep-fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   :global(.sleep-grid) {
@@ -1498,6 +1606,45 @@
     text-align: right;
   }
 
+  /* ── Routine header row ── */
+  :global(.sr-header-row) {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    width: 100%;
+  }
+
+  :global(.sr-date-label) {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+
+  :global(.sr-date-label) span {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--sleep-muted);
+  }
+
+  :global(.sr-date-input) {
+    padding: 6px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--sleep-border);
+    background: var(--sleep-bg);
+    color: var(--sleep-ink);
+    font-size: 0.82rem;
+    font-family: inherit;
+  }
+
+  :global(.sr-date-input:focus) {
+    outline: none;
+    border-color: var(--sleep-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--sleep-accent) 20%, transparent);
+  }
+
   /* ── Routine add form ── */
   :global(.sr-add-form) {
     display: flex;
@@ -1614,10 +1761,23 @@
     max-width: 140px;
   }
 
-  :global(.sa-sound:focus) {
+  :global(.sa-sound:focus),
+  :global(.sa-wake:focus) {
     outline: none;
     border-color: var(--sleep-accent);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--sleep-accent) 20%, transparent);
+  }
+
+  :global(.sa-wake) {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--sleep-border);
+    background: var(--sleep-bg);
+    color: var(--sleep-ink);
+    font-size: 0.82rem;
+    font-family: inherit;
+    cursor: pointer;
+    max-width: 100px;
   }
 
   :global(.sa-add-btn) {
@@ -1635,6 +1795,10 @@
   }
 
   :global(.sa-add-btn:disabled) { opacity: 0.5; cursor: not-allowed; }
+  :global(.sa-feedback) { font-size: 0.85rem; margin: 8px 0; }
+  :global(.sa-feedback--error) { color: oklch(0.637 0.208 25.331); }
+  :global(.sa-feedback--success) { color: oklch(0.723 0.192 149.579); }
+  :global(.sa-empty) { text-align: center; color: var(--sleep-muted); padding: 20px; }
   @media (hover: hover) and (pointer: fine) {
     :global(.sa-add-btn:hover:not(:disabled)) { background: color-mix(in srgb, var(--sleep-accent) 85%, #0a0a0a); }
   }
@@ -1671,12 +1835,19 @@
     color: var(--sleep-accent);
     transition: transform 160ms var(--ease-spring), background 160ms ease;
     -webkit-tap-highlight-color: transparent;
+    position: relative;
+  }
+  :global(.sa-toggle::after) {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: inherit;
   }
 
   @media (hover: hover) and (pointer: fine) {
     :global(.sa-toggle:hover) { background: color-mix(in srgb, var(--sleep-accent) 14%, transparent); }
   }
-  :global(.sa-toggle:active) { transform: scale(0.92); }
+  :global(.sa-toggle:active) { transform: scale(0.96); }
 
   :global(.sr-del) {
     background: none;
@@ -1687,20 +1858,79 @@
     color: var(--sleep-muted);
     transition: transform 160ms var(--ease-spring), background 160ms ease, color 160ms ease;
     -webkit-tap-highlight-color: transparent;
+    position: relative;
+  }
+  :global(.sr-del::after) {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: inherit;
   }
 
   @media (hover: hover) and (pointer: fine) {
     :global(.sr-del:hover) { background: color-mix(in srgb, oklch(0.637 0.208 25.331) 14%, transparent); color: oklch(0.637 0.208 25.331); }
   }
-  :global(.sr-del:active) { transform: scale(0.92); }
+  :global(.sr-del:active) { transform: scale(0.96); }
 
   :global(.sleep-loading) {
-    height: 200px;
+    min-height: 300px;
+  }
+
+  :global(.sleep-skeleton-grid) {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 16px;
+  }
+
+  :global(.sleep-skeleton) {
+    border-radius: 20px;
+    border: 1px solid var(--sleep-border);
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--sleep-surface) 98%, var(--background)),
+        color-mix(in srgb, var(--sleep-surface) 86%, var(--background))
+      );
+    padding: 20px;
     display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 140px;
+  }
+
+  :global(.sleep-skeleton--orb) {
     align-items: center;
     justify-content: center;
-    color: var(--sleep-muted);
-    animation: sleep-pulse 1.5s ease-in-out infinite;
+  }
+
+  :global(.sleep-skeleton-circle) {
+    width: 120px;
+    height: 120px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--sleep-border) 70%, transparent);
+    animation: sleep-shimmer 1.8s ease-in-out infinite;
+  }
+
+  :global(.sleep-skeleton-line) {
+    height: 14px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--sleep-border) 70%, transparent);
+    animation: sleep-shimmer 1.8s ease-in-out infinite;
+  }
+
+  @keyframes sleep-shimmer {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.7; }
+  }
+
+  :global(.sleep-error-banner) {
+    padding: 10px 16px;
+    border-radius: 12px;
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 14%, transparent);
+    border: 1px solid color-mix(in srgb, oklch(0.637 0.208 25.331) 30%, transparent);
+    color: oklch(0.637 0.208 25.331);
+    font-size: 0.85rem;
+    font-weight: 500;
   }
 
   :global(.sleep-loading)::after {
@@ -1843,12 +2073,19 @@
     transition: transform 160ms var(--ease-spring), background 160ms ease, color 160ms ease;
     flex-shrink: 0;
     -webkit-tap-highlight-color: transparent;
+    position: relative;
+  }
+  :global(.ss-row-delete::after) {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: inherit;
   }
 
   @media (hover: hover) and (pointer: fine) {
     :global(.ss-row-delete:hover) { background: color-mix(in srgb, oklch(0.637 0.208 25.331) 14%, transparent); color: oklch(0.637 0.208 25.331); }
   }
-  :global(.ss-row-delete:active) { transform: scale(0.92); }
+  :global(.ss-row-delete:active) { transform: scale(0.96); }
 
   :global(.ss-manual-form) {
     display: flex;
@@ -1985,6 +2222,30 @@
 
   @media (max-width: 860px) {
     :global(.sleep-grid-sessions) { grid-template-columns: 1fr; }
+    :global(.sleep-hero-grid) { grid-template-columns: 1fr; }
+    :global(.sleep-grid--tonight),
+    :global(.sleep-grid--score),
+    :global(.sleep-grid--trends) { grid-template-columns: 1fr; }
+    :global(.sleep-orb) { width: 140px; height: 140px; }
+    :global(.sleep-orb-center) strong { font-size: 2.4rem; }
+    :global(.sleep-orb-card__content) { grid-template-columns: 1fr; justify-items: center; }
+    :global(.sleep-meta) { width: 100%; }
+    :global(.sa-add-form) { flex-wrap: wrap; }
+    :global(.ss-stat) { padding: 10px 8px; }
+    :global(.ss-stat-value) { font-size: 1.1rem; }
+    :global(.sg-input) { width: 100%; }
+    :global(.sleep-workspace) { padding: 20px 16px; }
+    :global(.sleep-breakdown) { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 600px) {
+    :global(.sleep-orb) { width: 120px; height: 120px; }
+    :global(.sleep-orb-center) strong { font-size: 2rem; }
+    :global(.sleep-arc-svg) { max-width: 160px; }
+    :global(.sleep-shell__intro) h1 { font-size: 1.4rem; }
+    :global(.ss-row-main) { flex-wrap: wrap; gap: 4px; }
+    :global(.ss-row-date) { width: auto; }
+    :global(.ss-row-time) { width: auto; }
   }
 
   /* ── Reduced Motion ─────────────────────────────────────────── */
@@ -2005,7 +2266,16 @@
     :global(.ss-row:hover) {
       transform: none !important;
     }
-    :global(.sleep-loading) {
+    :global(.sleep-loading),
+    :global(.sleep-skeleton-circle),
+    :global(.sleep-skeleton-line),
+    :global(.sleep-orb) {
+      animation: none;
+    }
+    :global(.sleep-hero-grid),
+    :global(.sleep-shell__body > .sleep-grid),
+    :global(.sleep-shell__body > .sleep-grid-sessions),
+    :global(.sleep-shell__body > .sleep-panel) {
       animation: none;
     }
   }
@@ -2034,7 +2304,7 @@
     background: transparent;
     color: var(--sleep-muted);
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
     flex-shrink: 0;
   }
   :global(.sl-routine-toggle:hover) {

@@ -1,37 +1,25 @@
 <script lang="ts">
-  // ════════════════════════════════════════════════════════════════════
-  // BlockEmbed.svelte — 1:1 port of anytype-ts/block/embed.tsx
-  // Supports: Latex (KaTeX), Mermaid, iframe-based embeds, Excalidraw
-  // ════════════════════════════════════════════════════════════════════
-  import { onMount, onDestroy } from 'svelte';
   import type { Block } from '$lib/local-store/block';
   import { EmbedProcessor } from '$lib/local-store/block';
+  import { editorStore } from '$lib/local-store/store';
 
-  // eslint-disable-next-line no-unassigned-vars
-  export let block: Block;
-  export let readonly: boolean = false;
+  let { block, readonly = false }: { block: Block; readonly?: boolean } = $props();
 
-  let content = block.content as any;
-  let processor: EmbedProcessor = content?.processor ?? EmbedProcessor.Latex;
-  let text: string = content?.text ?? '';
+  let isEditing = $state(false);
+  let editText = $state('');
 
-  let isEditing = false;
-  let isShowing = false;
-  let valueEl: HTMLDivElement;      // eslint-disable-line no-unassigned-vars
-  let editableEl: HTMLTextAreaElement; // eslint-disable-line no-unassigned-vars
-  let nodeEl: HTMLDivElement;
+  let processor = $derived((block.content as any)?.processor ?? EmbedProcessor.Latex);
+  let displayText = $derived((block.content as any)?.text ?? '');
 
   // ── Lazy-load KaTeX — CDN fallback, no npm install required ────────
   let katex: any = null;
   async function loadKatex() {
     if (katex) return katex;
     try {
-      // Try the CDN build that Vite can resolve at runtime without bundling
       const cdnUrl = 'https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.mjs';
       const m = await import(/* @vite-ignore */ cdnUrl);
       katex = m.default || m;
     } catch {
-      // Silently fail — renderLatex will show an error state
     }
     return katex;
   }
@@ -61,7 +49,6 @@
     EmbedProcessor.Spotify,
   ]);
 
-  // Embed URL builders (matches anytype-ts/util/embed.ts getParsedUrl)
   function getEmbedUrl(text: string, processor: EmbedProcessor): string | null {
     switch (processor) {
       case EmbedProcessor.Youtube: {
@@ -78,9 +65,8 @@
         const m = text.match(/open\.spotify\.com\/(track|album|playlist|episode)\/([A-Za-z0-9]+)/);
         return m ? `https://open.spotify.com/embed/${m[1]}/${m[2]}` : null;
       }
-      case EmbedProcessor.Figma: {
+      case EmbedProcessor.Figma:
         return `https://www.figma.com/embed?embed_host=bento&url=${encodeURIComponent(text)}`;
-      }
       case EmbedProcessor.Miro: {
         const m = text.match(/miro\.com\/app\/board\/([^/?]+)/);
         return m ? `https://miro.com/app/live-embed/${m[1]}/` : null;
@@ -92,13 +78,14 @@
     }
   }
 
-  // ── LaTeX rendering ─────────────────────────────────────────────────
+  let valueEl = $state<HTMLDivElement>()!;
+
   async function renderLatex() {
     if (!valueEl || processor !== EmbedProcessor.Latex) return;
     const k = await loadKatex();
     if (!k) return;
     try {
-      valueEl.innerHTML = k.renderToString(text, {
+      valueEl.innerHTML = k.renderToString(displayText, {
         displayMode: true, strict: false, throwOnError: true,
         output: 'html', fleqn: true,
       });
@@ -107,20 +94,15 @@
     }
   }
 
-  // ── Mermaid rendering — loaded from CDN (no npm install required) ──
   let mermaidInstance: any = null;
-  let mermaidLoaded = false;
   async function loadMermaid() {
     if (mermaidInstance) return mermaidInstance;
     try {
       const cdnUrl = 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js';
       const m = await import(/* @vite-ignore */ cdnUrl);
       mermaidInstance = m.default || m;
-      if (mermaidInstance) {
-        mermaidInstance.initialize({ startOnLoad: false, theme: 'dark' });
-      }
+      if (mermaidInstance) mermaidInstance.initialize({ startOnLoad: false, theme: 'dark' });
     } catch {
-      // Silently fail — renderMermaid will show an error state
     }
     return mermaidInstance;
   }
@@ -132,20 +114,18 @@
       valueEl.innerHTML = `<div class="embed-error">Mermaid library failed to load from CDN</div>`;
       return;
     }
-    mermaidLoaded = true;
     try {
       const id = `mermaid-${block.id}`;
-      const { svg } = await mermaid.render(id, text);
+      const { svg } = await mermaid.render(id, displayText);
       valueEl.innerHTML = svg;
     } catch (e) {
       valueEl.innerHTML = `<div class="embed-error">Mermaid Error: ${String(e)}</div>`;
     }
   }
 
-  // ── Iframe rendering ─────────────────────────────────────────────────
   function renderIframe() {
     if (!valueEl) return;
-    const src = getEmbedUrl(text, processor);
+    const src = getEmbedUrl(displayText, processor);
     if (!src) {
       valueEl.innerHTML = `<div class="embed-empty"><span>${PROCESSOR_NAMES[processor] || 'Embed'}</span><p>Paste a URL to embed</p></div>`;
       return;
@@ -163,9 +143,8 @@
     iframe.src = src;
   }
 
-  // ── Render dispatch ──────────────────────────────────────────────────
   async function render() {
-    if (!text && processor !== EmbedProcessor.Excalidraw) {
+    if (!displayText && processor !== EmbedProcessor.Excalidraw) {
       if (valueEl) valueEl.innerHTML = '';
       return;
     }
@@ -178,49 +157,50 @@
     }
   }
 
-  // ── Edit mode ───────────────────────────────────────────────────────
+  let nodeEl: HTMLDivElement;
+
+  $effect(() => {
+    if (displayText && !isEditing && valueEl) {
+      render();
+    }
+  });
+
   function startEdit(e: MouseEvent) {
     if (readonly) return;
     e.preventDefault();
     e.stopPropagation();
+    editText = displayText;
     isEditing = true;
   }
 
   async function saveEdit() {
-    text = editableEl?.value ?? text;
+    await editorStore.setBlockContent(block.id as string, { ...(block.content as any || {}), text: editText });
     isEditing = false;
-    await render();
   }
 
   function handleEditKey(e: KeyboardEvent) {
-    if (e.key === 'Escape') saveEdit();
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) saveEdit();
+    if (e.key === 'Escape') { e.preventDefault(); saveEdit(); }
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveEdit(); }
   }
 
-  const processorName = PROCESSOR_NAMES[processor] ?? 'Embed';
-  const placeholder = processor === EmbedProcessor.Latex
+  const processorName = $derived(PROCESSOR_NAMES[processor] ?? 'Embed');
+  const placeholder = $derived(processor === EmbedProcessor.Latex
     ? 'Enter LaTeX…'
     : processor === EmbedProcessor.Mermaid
       ? 'Enter Mermaid diagram…'
-      : `Paste ${processorName} URL…`;
-
-  onMount(async () => {
-    if (text) await render();
-  });
+      : `Paste ${processorName} URL…`);
 </script>
 
-<div class="block-embed" bind:this={nodeEl} class:is-editing={isEditing} class:is-empty={!text}>
+<div class="block-embed" bind:this={nodeEl} class:is-editing={isEditing} class:is-empty={!displayText}>
   {#if isEditing}
-    <!-- ── Source editor ── -->
     <div class="embed-editor">
       <div class="embed-editor-header">
         <span class="embed-editor-label">{processorName}</span>
         <button class="embed-editor-save" onclick={saveEdit}>Done</button>
       </div>
       <textarea
-        bind:this={editableEl}
         class="embed-editor-input"
-        value={text}
+        bind:value={editText}
         placeholder={placeholder}
         onkeydown={handleEditKey}
         rows={6}
@@ -228,8 +208,7 @@
       ></textarea>
     </div>
   {:else}
-    {#if !text}
-      <!-- ── Empty state ── -->
+    {#if !displayText}
       <div class="embed-empty" role="button" tabindex="0" onclick={startEdit} onkeydown={(e) => e.key === 'Enter' && startEdit(e as any)}>
         <div class="embed-empty-icon">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -240,7 +219,6 @@
         <p class="embed-empty-text">{placeholder}</p>
       </div>
     {:else}
-      <!-- ── Rendered content ── -->
       <div class="embed-value" bind:this={valueEl}></div>
 
       {#if !readonly}
@@ -258,6 +236,7 @@
   .block-embed {
     position: relative;
     width: 100%;
+    max-width: 100%;
     border-radius: 10px;
     overflow: hidden;
   }
@@ -266,14 +245,22 @@
     min-height: 40px;
     padding: 8px 0;
     overflow-x: auto;
+    max-width: 100%;
   }
 
   .embed-value :global(iframe) {
     width: 100%;
+    max-width: 100%;
     height: 360px;
     border: none;
     border-radius: 8px;
     display: block;
+  }
+
+  @media (max-width: 600px) {
+    .embed-value :global(iframe) {
+      height: 240px;
+    }
   }
 
   .embed-value :global(.embed-error) {
@@ -361,6 +348,7 @@
 
   .embed-editor-input {
     width: 100%;
+    max-width: 100%;
     padding: 14px;
     border: none;
     background: transparent;

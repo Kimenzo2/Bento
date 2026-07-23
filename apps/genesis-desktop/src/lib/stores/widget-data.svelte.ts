@@ -140,12 +140,25 @@ async function loadSleepWidget() {
   const last = await tryInvoke<{ qualityScore: number | null; durationMin: number }>(
     "get_last_night",
   );
-  if (!last) return;
+  if (!last) {
+    liveWidgets["sleep"] = {
+      layout: "score",
+      primary: "—",
+      secondary: "No data yet",
+      unit: "score",
+      width: "sm",
+    };
+    loaded["sleep"] = true;
+    return;
+  }
   const score = last.qualityScore ?? Math.round((last.durationMin / 480) * 100);
+  const h = Math.floor(last.durationMin / 60);
+  const m = last.durationMin % 60;
+  const durStr = m > 0 ? `${h}h ${m}m` : `${h}h`;
   liveWidgets["sleep"] = {
     layout: "score",
     primary: String(Math.min(score, 100)),
-    secondary: "last night",
+    secondary: `${durStr} — last night`,
     unit: "score",
     width: "sm",
   };

@@ -987,7 +987,7 @@ pub fn run() {
 
         // spawn_cloud_backup_worker(app.handle().clone());
 
-        crate::sleep::spawn_last_active_tracker();
+        crate::sleep::spawn_last_active_tracker(app.handle());
         crate::sleep::spawn_sleep_monitor(app.handle().clone());
 
         // Clipboard tables + monitor
@@ -1169,6 +1169,7 @@ pub fn run() {
             crate::notes::commands::notes_turn_into,
             crate::notes::commands::notes_set_layout,
             crate::notes::commands::notes_set_block_fields,
+            crate::notes::commands::notes_set_block_content,
             crate::notes::commands::notes_undo,
             crate::notes::commands::notes_redo,
             crate::notes::commands::notes_set_icon,
@@ -1376,6 +1377,7 @@ pub fn run() {
             crate::sleep::sleep_alarm_save,
             crate::sleep::sleep_alarm_delete,
             crate::sleep::sleep_alarm_toggle,
+            crate::sleep::sleep_alarm_update,
             // Countdown — events, milestones, birthdays
             crate::commands::countdown::countdown_list_events,
             crate::commands::countdown::countdown_save_event,

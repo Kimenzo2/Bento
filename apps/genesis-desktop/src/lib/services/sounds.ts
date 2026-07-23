@@ -155,9 +155,15 @@ export function stopAmbientImmediate() {
   }
 }
 
-// ─── One-shot alarm sound ────────────────────────────────────────────────
-// Used by RuntimeBridge for notification alarms (no AudioContext dependency).
-// Fresh Audio() calls are cheap and the browser caches the URL after first fetch.
+// ─── Unified alarm sound handle ─────────────────────────────────────────
+// Supports both HTMLAudioElement and AudioContext-based playback.
+// The consumer calls handle.stop() regardless of which path was used.
+
+export interface SoundHandle {
+  stop(): void;
+}
+
+let activeContextHandle: { source: AudioBufferSourceNode; gain: GainNode } | null = null;
 
 /** Warm the browser cache for alarm sounds. Call once at startup. */
 export function preloadAlarmAudios(names: SoundName[]) {
@@ -177,50 +183,68 @@ function prefersReduced(): boolean {
 }
 
 /** Play an alarm/notification sound. Loops by default. Respects prefers-reduced-motion (halves volume).
- *  Falls back to AudioContext-based playback when HTMLAudioElement autoplay is blocked. */
+ *  Falls back to AudioContext-based playback when HTMLAudioElement autoplay is blocked.
+ *  Returns a SoundHandle that can stop playback from either path. */
 export function playAlarmSound(
   name: SoundName,
   options?: { loop?: boolean; volume?: number },
-): HTMLAudioElement | null {
+): SoundHandle | null {
   try {
     const audio = new Audio(SoundFiles[name]);
     audio.loop = options?.loop ?? true;
     const baseVol = options?.volume ?? 0.6;
     audio.volume = prefersReduced() ? baseVol * 0.4 : baseVol;
-    audio.play().catch(() => {
-      playAlarmSoundViaContext(name, options).catch(() => {});
-    });
-    return audio;
+    const playPromise = audio.play();
+    return {
+      stop() {
+        try { audio.pause(); audio.currentTime = 0; } catch { /* ignore */ }
+      },
+    };
+  } catch {
+    // HTMLAudioElement unavailable — use AudioContext fallback
+    return playAlarmSoundViaContext(name, options);
+  }
+}
+
+/** Fallback: play via AudioContext when the browser blocks HTMLAudioElement autoplay or Audio() is unavailable. */
+function playAlarmSoundViaContext(
+  name: SoundName,
+  options?: { loop?: boolean; volume?: number },
+): SoundHandle | null {
+  try {
+    const ac = getContext();
+    const gainNode = ac.createGain();
+    const baseVol = options?.volume ?? 0.6;
+    gainNode.gain.value = prefersReduced() ? baseVol * 0.4 : baseVol;
+    gainNode.connect(ac.destination);
+    const source = ac.createBufferSource();
+    source.loop = options?.loop ?? true;
+    source.connect(gainNode);
+
+    // Load buffer asynchronously but start immediately
+    preloadSound(name).then((buffer) => {
+      source.buffer = buffer;
+      source.start(0);
+    }).catch(() => {});
+
+    const ctx = { source, gain: gainNode };
+    activeContextHandle = ctx;
+
+    return {
+      stop() {
+        try { source.stop(); } catch { /* already stopped */ }
+        try { source.disconnect(); } catch { /* ignore */ }
+        try { gainNode.disconnect(); } catch { /* ignore */ }
+        if (activeContextHandle === ctx) activeContextHandle = null;
+      },
+    };
   } catch {
     return null;
   }
 }
 
-/** Fallback: play via AudioContext when the browser blocks HTMLAudioElement autoplay. */
-async function playAlarmSoundViaContext(
-  name: SoundName,
-  options?: { loop?: boolean; volume?: number },
-): Promise<void> {
-  const buffer = await preloadSound(name);
-  const ac = getContext();
-  const gainNode = ac.createGain();
-  const baseVol = options?.volume ?? 0.6;
-  gainNode.gain.value = prefersReduced() ? baseVol * 0.4 : baseVol;
-  gainNode.connect(ac.destination);
-  const source = ac.createBufferSource();
-  source.buffer = buffer;
-  source.loop = options?.loop ?? true;
-  source.connect(gainNode);
-  source.start(0);
-}
-
-/** Stop a playing alarm sound. */
-export function stopAlarmSound(audio: HTMLAudioElement | null) {
-  if (!audio) return;
-  try {
-    audio.pause();
-    audio.currentTime = 0;
-  } catch {
-    /* ignore */
-  }
+/** Stop a playing alarm sound (accepts unified handle). */
+export function stopAlarmSound(handle: SoundHandle | null) {
+  if (!handle) return;
+  handle.stop();
 }

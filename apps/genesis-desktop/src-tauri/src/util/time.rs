@@ -10,7 +10,7 @@
 //!   let today = time::date_key(time::now_ms());
 //!   let rfc = time::format_rfc3339(now);
 
-use chrono::{DateTime, Datelike, NaiveDate, NaiveDateTime, Utc};
+use chrono::{DateTime, Datelike, NaiveDate, NaiveDateTime, TimeZone, Utc};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 // ── Core ──────────────────────────────────────────────────────────────────────
@@ -121,13 +121,29 @@ pub fn parse_rfc3339(s: &str) -> Option<i64> {
         .map(|dt| dt.timestamp_millis())
 }
 
-/// Parse a NaiveDateTime ("YYYY-MM-DD HH:MM:SS") to milliseconds.
+/// Parse a NaiveDateTime ("YYYY-MM-DD HH:MM:SS") to milliseconds (UTC).
 /// Returns `None` if the string cannot be parsed.
 #[must_use]
 pub fn parse_naive_datetime(s: &str) -> Option<i64> {
     NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S")
         .ok()
         .map(|ndt| ndt.and_utc().timestamp_millis())
+}
+
+/// Parse a NaiveDateTime ("YYYY-MM-DD HH:MM:SS") as LOCAL time to UTC milliseconds.
+/// Interprets the string in the system's local timezone, properly handling DST.
+/// Returns `None` if the string cannot be parsed.
+#[must_use]
+pub fn parse_local_datetime(s: &str) -> Option<i64> {
+    NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S")
+        .ok()
+        .and_then(|ndt| {
+            chrono::Local
+                .from_local_datetime(&ndt)
+                .earliest()
+                .or_else(|| chrono::Local.from_local_datetime(&ndt).latest())
+        })
+        .map(|dt| dt.timestamp_millis())
 }
 
 /// Parse a date string ("YYYY-MM-DD") to milliseconds (start of day).

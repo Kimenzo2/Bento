@@ -12,10 +12,11 @@
 
 use serde::{Deserialize, Serialize};
 use sqlx::Row;
-use std::sync::atomic::{AtomicU64, Ordering};
-use tauri::{AppHandle, Manager, State};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use tauri::{AppHandle, Listener, Manager, State};
 use uuid::Uuid;
 
+use chrono::{TimeZone, Timelike};
 use crate::db::BentoAppState;
 use crate::util::time;
 
@@ -278,12 +279,12 @@ pub async fn add_manual_sleep_session(
     // Sleep: the given date at sleep_time. If it wraps past midnight, we detect
     // that by checking whether wake_time < sleep_time (relative to same date).
     let sleep_dt = format!("{} {}:00", input.date, input.sleep_time);
-    let sleep_ms = time::parse_naive_datetime(&sleep_dt).unwrap_or(now);
+    let sleep_ms = time::parse_local_datetime(&sleep_dt).unwrap_or(now);
 
     // Wake: same date first, then advance by a day if wake comes before sleep
     // (i.e. user went to bed at 23:00 and woke at 07:00).
     let wake_raw = format!("{} {}:00", input.date, input.wake_time);
-    let wake_ms = time::parse_naive_datetime(&wake_raw)
+    let wake_ms = time::parse_local_datetime(&wake_raw)
         .map(|w| {
             if w <= sleep_ms {
                 // Wake time is on the next day
@@ -442,28 +443,46 @@ pub async fn get_sleep_stats(
     let stddev = variance.sqrt();
     let consistency = (100.0 - (stddev * 2.0)).clamp(0.0, 100.0);
 
-    // Sleep debt: cumulative deficit vs goal
+    // Sleep debt: cumulative deficit vs goal (capped per night at 120min)
     let debt: i64 = sessions
         .iter()
-        .map(|s| (target - s.duration_min as f64).max(0.0) as i64)
+        .map(|s| ((target - s.duration_min as f64).max(0.0).min(120.0)) as i64)
         .sum();
 
-    // Streak: consecutive days meeting >= 90% of goal duration
-    let mut sorted: Vec<&SleepSession> = sessions.iter().collect();
-    sorted.sort_by(|a, b| a.date.cmp(&b.date));
+    // Streak: consecutive calendar days meeting >= 90% of goal duration
+    let session_by_date: std::collections::HashMap<&str, &SleepSession> =
+        sessions.iter().map(|s| (s.date.as_str(), s)).collect();
+
+    let mut dates: Vec<String> = session_by_date.keys().map(|k| (*k).to_string()).collect();
+    dates.sort();
 
     let mut longest = 0i32;
     let mut run = 0i32;
     let min_ok = (target * 0.9) as i32;
 
-    for s in &sorted {
-        if s.duration_min >= min_ok {
-            run += 1;
-            if run > longest {
-                longest = run;
+    if let Some(first) = dates.first() {
+        if let Some(last) = dates.last() {
+            if let Ok(start) = chrono::NaiveDate::parse_from_str(first, "%Y-%m-%d") {
+                if let Ok(end) = chrono::NaiveDate::parse_from_str(last, "%Y-%m-%d") {
+                    let mut cur = start;
+                    while cur <= end {
+                        let key = cur.format("%Y-%m-%d").to_string();
+                        if let Some(s) = session_by_date.get(key.as_str()) {
+                            if s.duration_min >= min_ok {
+                                run += 1;
+                                if run > longest {
+                                    longest = run;
+                                }
+                            } else {
+                                run = 0;
+                            }
+                        } else {
+                            run = 0;
+                        }
+                        cur += chrono::Duration::days(1);
+                    }
+                }
             }
-        } else {
-            run = 0;
         }
     }
 
@@ -493,7 +512,7 @@ pub async fn get_sleep_stats(
     } else {
         0.0
     };
-    let jetlag = (wday_avg - wend_avg).abs();
+    let jetlag = wend_avg - wday_avg; // positive = weekend oversleep
 
     Ok(SleepStats {
         avg_duration_min: (avg_dur * 10.0).round() / 10.0,
@@ -519,15 +538,24 @@ pub async fn get_sleep_stats(
 /// to estimate how long before sleep the user was last active.
 pub static LAST_ACTIVE_TS: AtomicU64 = AtomicU64::new(0);
 
-/// Spawn a background thread that writes the current timestamp to
-/// `LAST_ACTIVE_TS` every 60 seconds. The sleep monitor reads this
-/// value when recording an auto-detected session to populate the
-/// `last_active_ts` field.
-pub fn spawn_last_active_tracker() {
+/// Register a Tauri event listener for frontend user-activity pings.
+/// Updates `LAST_ACTIVE_TS` whenever the user interacts (mouse, keyboard, touch).
+/// Falls back to a 60s periodic tick when the frontend is unreachable.
+pub fn spawn_last_active_tracker(app: &AppHandle) {
+    let handle = app.clone();
+    let _ = tauri::async_runtime::spawn(async move {
+        let _ = handle.listen("bento:user-active", |_| {
+            let now_ms = crate::util::time::now_ms();
+            if now_ms > 0 {
+                LAST_ACTIVE_TS.store(now_ms as u64, Ordering::Relaxed);
+            }
+        });
+    });
+
+    // Fallback: periodic tick in case frontend events stop
     std::thread::spawn(move || {
         loop {
-            std::thread::sleep(std::time::Duration::from_secs(60));
-            // Use a coarse timestamp (unix seconds * 1000) to stay in u64 range
+            std::thread::sleep(std::time::Duration::from_secs(120));
             let now_ms = crate::util::time::now_ms();
             if now_ms > 0 {
                 LAST_ACTIVE_TS.store(now_ms as u64, Ordering::Relaxed);
@@ -540,7 +568,7 @@ pub fn spawn_last_active_tracker() {
 // OS SLEEP DETECTION (background thread)
 // ═════════════════════════════════════════════════════════════════════════════
 
-/// Spawn a background thread that polls system uptime every 30s.
+/// Spawn a background thread that polls system uptime every 15s.
 /// When uptime jumps by >120s, the system was asleep — we estimate
 /// the sleep onset time and record an auto-detected session.
 pub fn spawn_sleep_monitor(app: AppHandle) {
@@ -549,7 +577,7 @@ pub fn spawn_sleep_monitor(app: AppHandle) {
         let mut last_uptime: u64 = 0;
 
         loop {
-            std::thread::sleep(std::time::Duration::from_secs(30));
+            std::thread::sleep(std::time::Duration::from_secs(15));
 
             system.refresh_cpu_all();
             let uptime = sysinfo::System::uptime();
@@ -633,12 +661,7 @@ async fn compute_quality_for_session(
     let base = ratio * 60.0;
 
     // Bedtime consistency penalty: 5 pts per hour deviation from goal
-    let goal_hour = goal
-        .target_bedtime
-        .split(':')
-        .next()
-        .and_then(|h| h.parse::<f64>().ok())
-        .unwrap_or(23.0);
+    let goal_hour = parse_hhmm_as_hours(&goal.target_bedtime).unwrap_or(23.0);
     let actual_hour = ts_to_local_hour(sleep_onset_ms);
     let hour_diff = (actual_hour - goal_hour).abs().min(12.0); // wrap-around safe
     let penalty = hour_diff * 5.0;
@@ -646,13 +669,28 @@ async fn compute_quality_for_session(
     (base + 40.0 - penalty).clamp(0.0, 100.0)
 }
 
+fn parse_hhmm_as_hours(s: &str) -> Option<f64> {
+    let parts: Vec<&str> = s.split(':').collect();
+    let h = parts.first()?.parse::<f64>().ok()?;
+    let m = parts.get(1).and_then(|s| s.parse::<f64>().ok()).unwrap_or(0.0);
+    Some(h + m / 60.0)
+}
+
 fn ts_to_local_hour(ts_ms: i64) -> f64 {
     let secs = ts_ms / 1000;
-    let local = chrono::Local::now();
-    let offset = local.offset().local_minus_utc();
-    let local_secs = secs + offset as i64;
-    let total_min = (local_secs % 86400) / 60;
-    total_min as f64 / 60.0
+    let nanos = ((ts_ms % 1000) * 1_000_000) as u32;
+    match chrono::Local.timestamp_opt(secs, nanos) {
+        chrono::LocalResult::Single(dt) | chrono::LocalResult::Ambiguous(dt, _) => {
+            let total_min = (dt.hour() * 60 + dt.minute()) as f64;
+            total_min / 60.0
+        }
+        _ => {
+            let local = chrono::Local::now();
+            let offset = local.offset().local_minus_utc();
+            let local_secs = secs + offset as i64;
+            (local_secs as f64 / 3600.0) % 24.0
+        }
+    }
 }
 
 /// The legacy sleep_logs quality score (duration-based only).
@@ -687,7 +725,7 @@ fn session_from_row(row: sqlx::sqlite::SqliteRow) -> SleepSession {
         sleep_onset_ts: row.get("sleep_onset_ts"),
         wake_ts: row.get("wake_ts"),
         last_active_ts: row.get("last_active_ts"),
-        duration_min: row.get::<i64, _>("duration_min") as i32,
+        duration_min: i32::try_from(row.get::<i64, _>("duration_min")).unwrap_or(0),
         quality_score: row.get("quality_score"),
         notes: row.get("notes"),
         source: row.get("source"),
@@ -731,7 +769,10 @@ async fn get_sleep_goal_inner(pool: &sqlx::SqlitePool) -> SleepGoal {
     }
 }
 
-fn average_time(sessions: &[SleepSession], extract: fn(&SleepSession) -> i64) -> String {
+fn average_time<F>(sessions: &[SleepSession], extract: F) -> String
+where
+    F: Fn(&SleepSession) -> i64,
+{
     if sessions.is_empty() {
         return "--:--".into();
     }
@@ -747,11 +788,18 @@ fn average_time(sessions: &[SleepSession], extract: fn(&SleepSession) -> i64) ->
 
 fn ts_to_local_minutes(ts_ms: i64) -> f64 {
     let secs = ts_ms / 1000;
-    let local = chrono::Local::now();
-    let offset = local.offset().local_minus_utc();
-    let local_secs = secs + offset as i64;
-    let total_min = (local_secs % 86400) / 60;
-    total_min as f64
+    let nanos = ((ts_ms % 1000) * 1_000_000) as u32;
+    match chrono::Local.timestamp_opt(secs, nanos) {
+        chrono::LocalResult::Single(dt) | chrono::LocalResult::Ambiguous(dt, _) => {
+            (dt.hour() * 60 + dt.minute()) as f64
+        }
+        _ => {
+            let local = chrono::Local::now();
+            let offset = local.offset().local_minus_utc();
+            let local_secs = secs + offset as i64;
+            (local_secs % 86400) as f64 / 60.0
+        }
+    }
 }
 
 fn is_weekend(date: &str) -> bool {
@@ -1136,7 +1184,7 @@ pub async fn sleep_alarm_save(
     let fire_at = today_start + hours * 3_600_000 + minutes * 60_000;
     let wake_window_minutes = parse_wake_window_minutes(&window);
     // Apply wake window offset: fire earlier by the window amount
-    let offset = wake_window_minutes.map(|w| w * 60_000).unwrap_or(0);
+    let offset = wake_window_minutes * 60_000;
     let adjusted_fire = if offset > 0 && fire_at - offset > 0 {
         fire_at - offset
     } else {
@@ -1152,7 +1200,7 @@ pub async fn sleep_alarm_save(
         "INSERT OR REPLACE INTO schedules (id, module_id, label, schedule_type, interval_seconds, start_at, end_at, last_fired_at, next_fire_at, wake_window_minutes, sound, enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)"
     )
     .bind(&id).bind("sleep").bind(alarm.label.trim()).bind("daily").bind(86_400i64)
-    .bind(fire_at).bind(None::<i64>).bind(None::<i64>).bind(next_fire_at)
+    .bind(next_fire_at).bind(None::<i64>).bind(0i64).bind(next_fire_at)
     .bind(wake_window_minutes).bind(&sound).bind(now).bind(now)
     .execute(&state.db()).await.map_err(|e| e.to_string())?;
 
@@ -1220,6 +1268,93 @@ pub async fn sleep_alarm_toggle(
     Ok(new == 1)
 }
 
+/// Update an existing alarm (label, time, sound, wake_window).
+#[tauri::command]
+pub async fn sleep_alarm_update(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+    id: String,
+    label: String,
+    time: String,
+    sound: String,
+    wake_window: String,
+) -> Result<SleepAlarm, String> {
+    crate::auth::require_billing_tier(&auth, "sleep").await?;
+
+    ensure_sleep_tables(&state.db()).await?;
+
+    if label.trim().is_empty() {
+        return Err("Alarm label is required.".into());
+    }
+    if time.trim().is_empty() {
+        return Err("Alarm time is required.".into());
+    }
+
+    // Validate time format
+    let parts: Vec<&str> = time.split(':').collect();
+    let _hours: i64 = parts
+        .first()
+        .and_then(|s| s.parse().ok())
+        .ok_or_else(|| format!("Invalid alarm time '{time}': expected HH:MM format"))?;
+    let _minutes: i64 = parts
+        .get(1)
+        .and_then(|s| s.parse().ok())
+        .ok_or_else(|| format!("Invalid alarm time '{time}': expected HH:MM format"))?;
+
+    let now = crate::util::time::now_ms();
+    let window = if wake_window.trim().is_empty() { "20 min".to_string() } else { wake_window.trim().to_string() };
+
+    sqlx::query(
+        "UPDATE sleep_alarms SET label = ?, time = ?, sound = ?, wake_window = ?, mode = 'Smart' WHERE id = ?",
+    )
+    .bind(label.trim())
+    .bind(time.trim())
+    .bind(&sound)
+    .bind(&window)
+    .bind(&id)
+    .execute(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    // Also update the scheduler entry
+    let wake_minutes = parse_wake_window_minutes(&window);
+    {
+        let today_start = crate::util::time::start_of_today_ms();
+        let parts: Vec<&str> = time.split(':').collect();
+        let h: i64 = parts[0].parse().unwrap_or(7);
+        let m: i64 = parts[1].parse().unwrap_or(0);
+        let fire_at = today_start + h * 3_600_000 + m * 60_000;
+        let offset = wake_minutes * 60_000;
+        let adjusted_fire = if fire_at > offset { fire_at - offset } else { fire_at };
+        let next_fire_at = if adjusted_fire <= now { adjusted_fire + 86_400_000 } else { adjusted_fire };
+
+        sqlx::query(
+            "UPDATE schedules SET label = ?, start_at = ?, next_fire_at = ?, wake_window_minutes = ?, sound = ?, updated_at = ? WHERE id = ?",
+        )
+        .bind(label.trim())
+        .bind(next_fire_at)
+        .bind(next_fire_at)
+        .bind(wake_minutes)
+        .bind(&sound)
+        .bind(now)
+        .bind(&id)
+        .execute(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
+    }
+
+    Ok(SleepAlarm {
+        id,
+        label,
+        time,
+        wake_window: window,
+        mode: "Smart".into(),
+        sound,
+        active: true,
+        created_at: now,
+    })
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // LEGACY INTERNAL HELPERS
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1262,19 +1397,26 @@ fn legacy_map_row(row: sqlx::sqlite::SqliteRow) -> SleepLogRow {
 }
 
 /// Parse a wake_window string like "20 min" or "10 minutes" into minutes.
-fn parse_wake_window_minutes(s: &str) -> Option<i64> {
+/// Returns 0 for unparseable input (safe default — no wake offset).
+fn parse_wake_window_minutes(s: &str) -> i64 {
     let trimmed = s.trim().to_lowercase();
     let cleaned = trimmed.trim_end_matches('s'); // "mins" → "min"
     let parts: Vec<&str> = cleaned.splitn(2, |c: char| !c.is_ascii_digit()).collect();
-    let num: i64 = parts.first().and_then(|p| p.parse().ok())?;
-    Some(num.max(0).min(120)) // cap at 2 hours
+    let num: i64 = parts.first().and_then(|p| p.parse().ok()).unwrap_or(0);
+    num.max(0).min(120) // cap at 2 hours
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TABLE BOOTSTRAP (all tables + default goal row)
 // ═════════════════════════════════════════════════════════════════════════════
 
+/// Cached: once tables are confirmed to exist, skip DDL on subsequent calls.
+static SLEEP_TABLES_ENSURED: AtomicBool = AtomicBool::new(false);
+
 pub async fn ensure_sleep_tables(pool: &sqlx::SqlitePool) -> Result<(), String> {
+    if SLEEP_TABLES_ENSURED.load(Ordering::Relaxed) {
+        return Ok(());
+    }
     let migrations = [
         // Legacy
         r#"CREATE TABLE IF NOT EXISTS sleep_logs (
@@ -1329,5 +1471,6 @@ pub async fn ensure_sleep_tables(pool: &sqlx::SqlitePool) -> Result<(), String> 
         .execute(pool)
         .await;
 
+    SLEEP_TABLES_ENSURED.store(true, Ordering::Relaxed);
     Ok(())
 }

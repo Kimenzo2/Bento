@@ -896,6 +896,22 @@ export async function setBlockBgColor(blockId: string, bgColor: string) {
   }
 }
 
+export async function setBlockContent(blockId: string, content: any) {
+  const b = blocks.get(blockId);
+  if (b) {
+    blocks.set(blockId, { ...b, content });
+  }
+  try {
+    await invoke("notes_set_block_content", {
+      noteId: getCurrentObjectId(),
+      blockId,
+      content,
+    });
+  } catch (e) {
+    console.error("[editor-state] setBlockContent", e);
+  }
+}
+
 export async function setBlockFields(blockId: string, fields: Record<string, any>) {
   const b = blocks.get(blockId);
   if (b) {
@@ -1024,6 +1040,7 @@ export const editorStore = {
   addChildBlock,
   setBlockColor,
   setBlockBgColor,
+  setBlockContent,
   setBlockAlign,
   setBlockFields,
   clearBlockStyle,

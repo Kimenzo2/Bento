@@ -2145,3 +2145,32 @@ pub async fn set_block_fields(
     });
     Ok(row)
 }
+
+pub async fn set_block_content(
+    db: &SqlitePool,
+    history: &HistoryRegistry,
+    note_id: &str,
+    block_id: &str,
+    content: Value,
+) -> OpResult<BlockRow> {
+    let existing = get_block_by_id(db, block_id).await?
+        .ok_or_else(|| OperationError::not_found("Block", block_id))?;
+    let before = snapshot_from_row(&existing);
+    let row = block_update(db, BlockUpdateParams {
+        id: block_id.to_string(),
+        fields: None,
+        content: Some(content),
+        align: None,
+        bg_color: None,
+    }).await?;
+    let after = snapshot_from_row(&row);
+    history.push(note_id, Change {
+        id: Uuid::new_v4().to_string(),
+        object_id: note_id.to_string(),
+        description: "Set block content".to_string(),
+        before: vec![before],
+        after: vec![after],
+        created_at: crate::util::time::now_ms(),
+    });
+    Ok(row)
+}

@@ -415,11 +415,28 @@
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("focus", onFocus);
 
+    // Emit user activity for sleep tracking (debounced to every 60s)
+    let activityTimer: ReturnType<typeof setTimeout>;
+    async function onUserActive() {
+      clearTimeout(activityTimer);
+      activityTimer = setTimeout(async () => {
+        const { emit } = await import("@tauri-apps/api/event");
+        emit("bento:user-active", {});
+      }, 60_000);
+    }
+    document.addEventListener("mousedown", onUserActive);
+    document.addEventListener("keydown", onUserActive);
+    document.addEventListener("touchstart", onUserActive);
+
     return () => {
       window.removeEventListener("keydown", handleGlobalShortcut);
       clearTimeout(enableWakeCheckTimer);
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("focus", onFocus);
+      document.removeEventListener("mousedown", onUserActive);
+      document.removeEventListener("keydown", onUserActive);
+      document.removeEventListener("touchstart", onUserActive);
+      clearTimeout(activityTimer);
       if (checkAuthTimer) clearTimeout(checkAuthTimer);
       // Clean up OAuth polling if still running
       if (pollTimer !== null) clearTimeout(pollTimer);

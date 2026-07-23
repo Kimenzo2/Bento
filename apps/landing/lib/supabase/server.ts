@@ -21,28 +21,36 @@ function isValidHttpUrl(value: string): boolean {
   return /^https?:\/\//.test(value);
 }
 
-function resolveSupabaseEnv(...values: Array<string | undefined>): string {
+function requireFirstNonEmpty(...values: Array<string | undefined>): string {
+  const resolved = values.find((value): value is string =>
+    Boolean(value && value.trim().length > 0)
+  );
+  if (!resolved) {
+    throw new Error('Missing required environment variable');
+  }
+  return resolved.trim();
+}
+
+function resolveSupabaseUrl(...values: Array<string | undefined>): string {
   const resolved = values.find((value): value is string =>
     Boolean(value && value.trim().length > 0 && isValidHttpUrl(value.trim()))
   );
-
   if (!resolved) {
     throw new Error(
-      'Missing Supabase env: set NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY or the legacy GENESIS_PUBLIC_* values.'
+      'Missing Supabase URL: set NEXT_PUBLIC_SUPABASE_URL or the legacy VITE_SUPABASE_URL value.'
     );
   }
-
   return resolved.trim();
 }
 
 export async function createClient() {
   const cookieStore = await cookies();
-  const supabaseUrl = resolveSupabaseEnv(
+  const supabaseUrl = resolveSupabaseUrl(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.VITE_SUPABASE_URL,
     FALLBACK_SUPABASE_URL
   );
-  const supabaseAnonKey = resolveSupabaseEnv(
+  const supabaseAnonKey = requireFirstNonEmpty(
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     process.env.VITE_SUPABASE_ANON_KEY,
     FALLBACK_SUPABASE_ANON_KEY
@@ -69,12 +77,12 @@ export async function createClient() {
 }
 
 export function createAdminClient() {
-  const supabaseUrl = resolveSupabaseEnv(
+  const supabaseUrl = resolveSupabaseUrl(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.VITE_SUPABASE_URL,
     FALLBACK_SUPABASE_URL
   );
-  const supabaseServiceRole = resolveSupabaseEnv(process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const supabaseServiceRole = requireFirstNonEmpty(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
   return createSupabaseAdminClient(supabaseUrl, supabaseServiceRole, {
     auth: {

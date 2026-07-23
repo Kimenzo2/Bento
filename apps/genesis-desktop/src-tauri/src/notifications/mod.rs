@@ -187,7 +187,7 @@ pub fn dispatch_notification(app: &AppHandle, title: &str, body: &str) -> Result
     Ok(())
 }
 
-pub fn dispatch_sound_notification(app: &AppHandle, title: &str, body: &str) -> Result<(), String> {
+pub fn dispatch_sound_notification(app: &AppHandle, title: &str, body: &str, sound_name: Option<&str>) -> Result<(), String> {
     if !ensure_permission(app) {
         return Err("Notification permission not granted".to_string());
     }
@@ -206,10 +206,21 @@ pub fn dispatch_sound_notification(app: &AppHandle, title: &str, body: &str) -> 
     }
     #[cfg(target_os = "windows")]
     {
-        if let Ok(resource_dir) = app.path().resource_dir() {
-            let wav_path = resource_dir.join("assets").join("alarm.wav");
-            if wav_path.exists() {
-                builder = builder.sound(wav_path.to_string_lossy());
+        if let Some(name) = sound_name {
+            // Try to load the user's selected sound from the app resources directory
+            if let Ok(resource_dir) = app.path().resource_dir() {
+                let wav_path = resource_dir.join("assets").join(format!("{name}.wav"));
+                if wav_path.exists() {
+                    builder = builder.sound(wav_path.to_string_lossy());
+                }
+            }
+        } else {
+            // Fallback to bundled alarm.wav
+            if let Ok(resource_dir) = app.path().resource_dir() {
+                let wav_path = resource_dir.join("assets").join("alarm.wav");
+                if wav_path.exists() {
+                    builder = builder.sound(wav_path.to_string_lossy());
+                }
             }
         }
     }
@@ -227,7 +238,20 @@ pub fn dispatch_notification_with_sound(
     play_sound: bool,
 ) -> Result<(), String> {
     if play_sound {
-        dispatch_sound_notification(app, title, body)
+        dispatch_sound_notification(app, title, body, None)
+    } else {
+        dispatch_notification(app, title, body)
+    }
+}
+
+pub fn dispatch_notification_with_custom_sound(
+    app: &AppHandle,
+    title: &str,
+    body: &str,
+    sound_name: Option<&str>,
+) -> Result<(), String> {
+    if sound_name.is_some() {
+        dispatch_sound_notification(app, title, body, sound_name)
     } else {
         dispatch_notification(app, title, body)
     }

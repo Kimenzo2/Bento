@@ -123,30 +123,21 @@ impl Schedule {
                 self.next_fire_at = None;
             }
             Ok(ScheduleType::Daily) => {
-                // Use the wake-adjusted anchor as the reference point so daily
-                // recurrence doesn't drift backward and cause an infinite loop.
-                // Without wake window: anchor = start_at.
-                // With wake window:  anchor = start_at - wake_window (the actual fire time).
-                if let Some(start) = self.start_at {
-                    let wake_offset = self.wake_window_minutes.unwrap_or(0) * 60_000;
-                    let anchor = start - wake_offset;
-                    let elapsed = time::now_ms() - anchor;
-                    let days = elapsed / 86_400_000;
-                    self.next_fire_at = Some(anchor + (days + 1) * 86_400_000);
-                } else if let Some(last) = self.last_fired_at {
-                    self.next_fire_at = Some(last + 86_400_000);
-                }
+                // Advance by full 24h periods from the last fire time (next_fire_at).
+                // Using next_fire_at instead of start_at avoids anchor drift bugs
+                // when the wake window offset crosses midnight boundaries.
+                let now = time::now_ms();
+                let next = self.next_fire_at.unwrap_or(now);
+                let elapsed = now - next;
+                let days = (elapsed / 86_400_000).max(1);
+                self.next_fire_at = Some(next + days * 86_400_000);
             }
             Ok(ScheduleType::Weekly) => {
-                if let Some(start) = self.start_at {
-                    let wake_offset = self.wake_window_minutes.unwrap_or(0) * 60_000;
-                    let anchor = start - wake_offset;
-                    let elapsed = time::now_ms() - anchor;
-                    let weeks = elapsed / 604_800_000;
-                    self.next_fire_at = Some(anchor + (weeks + 1) * 604_800_000);
-                } else if let Some(last) = self.last_fired_at {
-                    self.next_fire_at = Some(last + 604_800_000);
-                }
+                let now = time::now_ms();
+                let next = self.next_fire_at.unwrap_or(now);
+                let elapsed = now - next;
+                let weeks = (elapsed / 604_800_000).max(1);
+                self.next_fire_at = Some(next + weeks * 604_800_000);
             }
             Ok(ScheduleType::Custom) => {
                 if let Some(interval) = self.interval_seconds {
@@ -317,7 +308,7 @@ impl ScheduleStore {
             last_fired_at: row.try_get("last_fired_at").ok().flatten(),
             next_fire_at: row.try_get("next_fire_at").ok().flatten(),
             wake_window_minutes: row.try_get("wake_window_minutes").ok().flatten(),
-            sound: row.try_get("sound").ok(),
+            sound: row.try_get::<Option<String>, _>("sound").ok().flatten().or_else(|| Some("alarm".into())),
             enabled: row.try_get::<i64, _>("enabled").unwrap_or(0) == 1,
             created_at: row.try_get("created_at").unwrap_or_default(),
             updated_at: row.try_get("updated_at").unwrap_or_default(),
@@ -388,11 +379,9 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
             println!("[scheduler] Failed to bootstrap notification tables: {e}");
         }
 
-        println!("[scheduler] Background worker started, initial poll in {poll_interval_secs}s");
+        println!("[scheduler] Background worker started, first poll immediately");
 
     loop {
-            tokio::time::sleep(tokio::time::Duration::from_secs(poll_interval_secs)).await;
-
             let store = ScheduleStore::new(db.clone());
 
             // Check for due schedules
@@ -471,8 +460,8 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
                     println!("[scheduler] Dispatching notification for '{}': background_alerts={}, sound_enabled={}, permission_granted={}", sched.label, sched_notif_settings.background_alerts, sched_notif_settings.sound_enabled, permission);
                     if sched_notif_settings.background_alerts {
                         if let Err(e) =
-                            crate::notifications::dispatch_notification_with_sound(
-                                &app, title, body, sched_notif_settings.sound_enabled,
+                            crate::notifications::dispatch_notification_with_custom_sound(
+                                &app, title, body, sched.sound.as_deref(),
                             )
                         {
                             println!("[scheduler] Notification dispatch failed: {e}");
@@ -507,8 +496,8 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
                     if let Ok(pending) = notif_store.get_pending_snoozed().await {
                         for n in pending {
                             if let Some(_nid) = n.id {
-                                if let Err(e) = crate::notifications::dispatch_notification_with_sound(
-                                    &app, &n.title, &n.body, sched_notif_settings.sound_enabled,
+                                if let Err(e) = crate::notifications::dispatch_notification_with_custom_sound(
+                                    &app, &n.title, &n.body, sched.sound.as_deref(),
                                 ) {
                                     println!("[scheduler] Snoozed dispatch failed: {e}");
                                 }
@@ -517,6 +506,9 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
                     }
                 });
             }
+
+            // Sleep before next poll (do this at end so first iteration fires immediately)
+            tokio::time::sleep(tokio::time::Duration::from_secs(poll_interval_secs)).await;
         }
     });
 }

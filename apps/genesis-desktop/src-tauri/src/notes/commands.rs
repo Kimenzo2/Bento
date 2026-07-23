@@ -19,7 +19,7 @@ use super::service::{
     block_create, clear_text_content, clear_text_style, create_note_object, delete_note_object,
     duplicate_blocks, get_note_full_cached, get_note_object, list_note_objects, merge_block,
     move_blocks, object_duplicate, redo, replace_block, set_align, set_background_color,
-    set_block_fields, set_layout, set_text_checked, set_text_color, set_text_content, set_text_mark,
+    set_block_content, set_block_fields, set_layout, set_text_checked, set_text_color, set_text_content, set_text_mark,
     set_text_style, split_block, turn_into, undo, unlink_block, update_note_object,
     BlockCreateParams, CreateNoteParams, DuplicateBlocksParams, HistoryInfo, MoveBlocksParams,
     NoteObject, NoteSummary, NoteWithBlocks, SetMarkParams, UpdateNoteParams,
@@ -1105,6 +1105,19 @@ pub async fn notes_set_block_fields(
     fields: serde_json::Value,
 ) -> Result<crate::local_store::block::BlockRow, String> {
     set_block_fields(&db(&state), &history, &note_id, &block_id, fields)
+        .await
+        .map_err(|e| e.message)
+}
+
+#[tauri::command]
+pub async fn notes_set_block_content(
+    state: State<'_, BentoAppState>,
+    history: State<'_, Arc<HistoryRegistry>>,
+    note_id: String,
+    block_id: String,
+    content: serde_json::Value,
+) -> Result<crate::local_store::block::BlockRow, String> {
+    set_block_content(&db(&state), &history, &note_id, &block_id, content)
         .await
         .map_err(|e| e.message)
 }
