@@ -206,21 +206,21 @@
   <div class="summary-row">
     <div class="summary-metric accent">
       <span class="metric-label">Projected Balance</span>
-      <span class="metric-value" class:negative={summary.projectedBalance < 0}>
+      <span class="number number-hero metric-value" class:negative={summary.projectedBalance < 0}>
         {summary.projectedBalance >= 0 ? '+' : ''}{CURRENCY}{summary.projectedBalance.toFixed(0)}
       </span>
     </div>
     <div class="summary-metric">
       <span class="metric-label">Avg Monthly Income</span>
-      <span class="metric-value income">{CURRENCY}{summary.avgIncome.toFixed(0)}</span>
+      <span class="number number-metric metric-value income">{CURRENCY}{summary.avgIncome.toFixed(0)}</span>
     </div>
     <div class="summary-metric">
       <span class="metric-label">Avg Monthly Expenses</span>
-      <span class="metric-value expense">{CURRENCY}{summary.avgExpenses.toFixed(0)}</span>
+      <span class="number number-metric metric-value expense">{CURRENCY}{summary.avgExpenses.toFixed(0)}</span>
     </div>
     <div class="summary-metric">
       <span class="metric-label">Data Span</span>
-      <span class="metric-value">{summary.totalMonths} months</span>
+      <span class="number number-stat metric-value">{summary.totalMonths} months</span>
     </div>
   </div>
 
@@ -409,17 +409,17 @@
           <div class="tt-row income">
             <span class="tt-dot" style="background: {COLORS.incomeActual}"></span>
             <span>Income</span>
-            <span class="tt-val">{CURRENCY}{(hoveredPoint.isForecast ? hoveredPoint.incomeForecast : hoveredPoint.incomeActual).toFixed(0)}</span>
+            <span class="number number-stat tt-val">{CURRENCY}{(hoveredPoint.isForecast ? hoveredPoint.incomeForecast : hoveredPoint.incomeActual).toFixed(0)}</span>
           </div>
           <div class="tt-row expense">
             <span class="tt-dot" style="background: {COLORS.expensesActual}"></span>
             <span>Expenses</span>
-            <span class="tt-val">{CURRENCY}{(hoveredPoint.isForecast ? hoveredPoint.expensesForecast : hoveredPoint.expensesActual).toFixed(0)}</span>
+            <span class="number number-stat tt-val">{CURRENCY}{(hoveredPoint.isForecast ? hoveredPoint.expensesForecast : hoveredPoint.expensesActual).toFixed(0)}</span>
           </div>
           <div class="tt-divider"></div>
           <div class="tt-row total">
             <span>Balance</span>
-            <span class="tt-val" class:negative={((hoveredPoint.isForecast ? hoveredPoint.incomeForecast : hoveredPoint.incomeActual) - (hoveredPoint.isForecast ? hoveredPoint.expensesForecast : hoveredPoint.expensesActual)) < 0}>
+            <span class="number number-stat tt-val" class:negative={((hoveredPoint.isForecast ? hoveredPoint.incomeForecast : hoveredPoint.incomeActual) - (hoveredPoint.isForecast ? hoveredPoint.expensesForecast : hoveredPoint.expensesActual)) < 0}>
               {CURRENCY}{((hoveredPoint.isForecast ? hoveredPoint.incomeForecast : hoveredPoint.incomeActual) - (hoveredPoint.isForecast ? hoveredPoint.expensesForecast : hoveredPoint.expensesActual)).toFixed(0)}
             </span>
           </div>

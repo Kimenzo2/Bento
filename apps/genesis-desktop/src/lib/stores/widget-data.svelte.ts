@@ -247,23 +247,54 @@ async function loadPasswordsWidget() {
 }
 
 async function loadVoiceMemosWidget() {
-  const recordings = await tryInvoke<{ id: string }[]>("list_recordings");
-  if (!recordings) { loaded["voice-memos"] = true; return; }
-  if (recordings.length > 0) {
-    liveWidgets["voice-memos"] = {
-      layout: "action",
-      primary: "Tap to Record",
-      secondary: `${recordings.length} saved`,
-      width: "md",
-    };
-  } else {
-    liveWidgets["voice-memos"] = {
-      layout: "action",
-      primary: "Tap to Record",
-      secondary: "No recordings yet",
-      width: "md",
-    };
+  let count = 0;
+  const rustRecordings = await tryInvoke<{ id: string }[]>("list_recordings");
+  if (rustRecordings) {
+    count += rustRecordings.length;
   }
+  if (typeof indexedDB !== "undefined") {
+    try {
+      const db = await new Promise<IDBDatabase | null>((resolve) => {
+        const req = indexedDB.open("BentoVoiceMemos");
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(null);
+      });
+      if (db) {
+        const tx = db.transaction("memos", "readonly");
+        const store = tx.objectStore("memos");
+        const allCount = await new Promise<number>((resolve, reject) => {
+          const req = store.count();
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+        if (rustRecordings) {
+          const index = store.index("source");
+          const dictationCount = await new Promise<number>((resolve, reject) => {
+            const dictRange = IDBKeyRange.only("dictation");
+            const req = index.count(dictRange);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+          });
+          const agentCount = await new Promise<number>((resolve, reject) => {
+            const range = IDBKeyRange.only("agent_conversation");
+            const req = index.count(range);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+          });
+          count += dictationCount + agentCount;
+        } else {
+          count += allCount;
+        }
+        db.close();
+      }
+    } catch { /* IndexedDB unavailable */ }
+  }
+  liveWidgets["voice-memos"] = {
+    layout: "action",
+    primary: "Tap to Record",
+    secondary: count > 0 ? `${count} saved` : "No recordings yet",
+    width: "md",
+  };
   loaded["voice-memos"] = true;
 }
 
@@ -281,13 +312,24 @@ async function loadClipboardWidget() {
 }
 
 async function loadCountdownWidget() {
-  const events = await tryInvoke<{ id: string }[]>("countdown_list_events");
+  const events = await tryInvoke<{ id: string; name: string; targetMs: number }[]>("countdown_list_events");
   if (!events) { loaded["countdown"] = true; return; }
-  if (events.length > 0) {
+  const now = Date.now();
+  const upcoming = events.filter(e => e.targetMs > now).sort((a, b) => a.targetMs - b.targetMs);
+  if (upcoming.length > 0) {
+    const next = upcoming[0];
+    const days = Math.ceil((next.targetMs - now) / 864e5);
+    liveWidgets["countdown"] = {
+      layout: "countdown",
+      primary: days <= 1 ? "Tomorrow" : `${days} days`,
+      secondary: next.name.length > 24 ? next.name.slice(0, 24) + "…" : next.name,
+      width: "sm",
+    };
+  } else if (events.length > 0) {
     liveWidgets["countdown"] = {
       layout: "countdown",
       primary: `${events.length} event${events.length === 1 ? "" : "s"}`,
-      secondary: "upcoming",
+      secondary: "in the past",
       width: "sm",
     };
   } else {

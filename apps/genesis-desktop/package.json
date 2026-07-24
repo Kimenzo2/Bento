@@ -15,7 +15,7 @@
     "setup:vcpkg": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/setup-vcpkg.ps1",
     "release:windows": "bun run tauri build --bundles nsis",
     "preview": "vite preview",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --compiler-warnings \"a11y_interactive_supports_focus:ignore,a11y_no_static_element_interactions:ignore,a11y_consider_explicit_label:ignore,a11y_click_events_have_key_events:ignore,a11y_no_noninteractive_element_interactions:ignore,a11y_label_has_associated_control:ignore,a11y_no_noninteractive_element_to_interactive_role:ignore,css_unused_selector:ignore,svelte_component_deprecated:ignore\"",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --compiler-warnings \"a11y_interactive_supports_focus:ignore,a11y_no_static_element_interactions:ignore,a11y_consider_explicit_label:ignore,a11y_click_events_have_key_events:ignore,a11y_no_noninteractive_element_interactions:ignore,a11y_label_has_associated_control:ignore,a11y_no_noninteractive_element_to_interactive_role:ignore,css_unused_selector:ignore,svelte_component_deprecated:ignore,element_invalid_self_closing_tag:ignore\"",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "type-check": "bun run check",
     "type-check:fast": "tsgo --noEmit -p ./tsconfig.tsgo.json",

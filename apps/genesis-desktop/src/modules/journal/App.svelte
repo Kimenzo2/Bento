@@ -414,7 +414,7 @@
             </div>
             <div class="entry-row-meta">
               {#if entry.wordCount > 0}
-                <span class="entry-row-words">{entry.wordCount}w</span>
+                <span class="entry-row-words number number-tabular">{entry.wordCount}w</span>
               {/if}
               <button
                 class="entry-row-delete"
@@ -431,7 +431,7 @@
     </div>
     <!-- â”€â”€ Font preference button at bottom of sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
     <div class="sidebar-footer">
-      <button class="sidebar-font-btn" onclick={() => showFontPref = true} aria-label="Change editor font" title="Editor font">
+      <button class="sidebar-font-btn" onclick={() => showFontPref = true} aria-label="Change editor font" use:tooltip={{ text: "Editor font" }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
         <span>Font</span>
       </button>

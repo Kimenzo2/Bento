@@ -12,6 +12,7 @@
   import type { Block, ContentText, Mark, TextRange } from '$lib/local-store/block';
   import { TextStyle as TS, MarkType } from '$lib/local-store/block';
   import { editorStore } from '$lib/local-store/store';
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   // ── Props ──────────────────────────────────────────────────────────
   let { block, rootId }: { block: Block; rootId: string } = $props();
@@ -271,7 +272,7 @@
   bind:this={triggerEl}
   class="drag-handle"
   aria-label="Block actions"
-  title="Click for actions · drag to reorder"
+  use:tooltip={{ text: "Click for actions · drag to reorder" }}
   onclick={openMenu}
 >
   <svg width="10" height="16" viewBox="0 0 10 16" fill="none" xmlns="http://www.w3.org/2000/svg">

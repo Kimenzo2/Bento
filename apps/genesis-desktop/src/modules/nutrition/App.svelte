@@ -406,8 +406,8 @@
           />
           <div class="nutrition-hydration-controls">
             <div class="nutrition-hydration-stats">
-              <span class="nutrition-hydration-total">{hydrationTotal} ml</span>
-              <span class="nutrition-hydration-goal">/ {hydrationGoalMl} ml</span>
+              <span class="nutrition-hydration-total number number-metric number-semibold">{hydrationTotal} ml</span>
+              <span class="nutrition-hydration-goal number number-metric">/ {hydrationGoalMl} ml</span>
             </div>
             <div class="nutrition-hydration-buttons">
               <button
@@ -449,8 +449,8 @@
           <CardDescription>{_t('moduleNutritionTodaysTargetDesc')}</CardDescription>
         </CardHeader>
         <CardContent class="nutrition-hero-list">
-          <article><span>{_t('moduleNutritionCalories')}</span><strong>{todaySummary.macros.caloriesKcal.toLocaleString()} / {todaySummary.goals.calorieGoal.toLocaleString()}</strong></article>
-          <article><span>{_t('moduleNutritionMealsLogged')}</span><strong>{todaySummary.mealsLogged} so far</strong></article>
+          <article><span>{_t('moduleNutritionCalories')}</span><strong class="number number-stat">{todaySummary.macros.caloriesKcal.toLocaleString()} / {todaySummary.goals.calorieGoal.toLocaleString()}</strong></article>
+          <article><span>{_t('moduleNutritionMealsLogged')}</span><strong class="number number-stat">{todaySummary.mealsLogged} so far</strong></article>
           <article><span>{_t('moduleNutritionNextCue')}</span><strong>{todaySummary.nextCue ?? _t('moduleNutritionWaterReminder')}</strong></article>
         </CardContent>
       </Card>
@@ -469,8 +469,8 @@
               {#each [...drinks.map((drink) => ({ type: "Water", title: drink.amount, detail: drink.time })), ...meals.map((meal, index) => ({ type: `Meal ${index + 1}`, title: meal.name, detail: `${meal.totalKcal} kcal` }))] as entry}
                 <article>
                   <span>{entry.type}</span>
-                  <strong>{entry.title}</strong>
-                  <p>{entry.detail}</p>
+                  <strong class={entry.type === 'Water' ? 'number number-tabular' : ''}>{entry.title}</strong>
+                  <p class="number number-tabular">{entry.detail}</p>
                 </article>
               {/each}
             </CardContent>
@@ -540,15 +540,15 @@
               <div class="nutrition-hydration-chart nutrition-hydration-chart--large">
                 <HydrationPieChart percentage={hydrationPercentage} height={260} segments={80} ariaLabel="Hydration progress: {hydrationCurrent}L of {hydrationGoal}L ({hydrationPercentage}%)" />
                 <div class="nutrition-hydration-overlay nutrition-hydration-overlay--large">
-                  <strong>{hydrationCurrent}L</strong>
-                  <small>of {hydrationGoal}L ({hydrationPercentage}%)</small>
+                  <strong class="number number-hero number-semibold">{hydrationCurrent}L</strong>
+                  <small class="number number-metric">of {hydrationGoal}L ({hydrationPercentage}%)</small>
                 </div>
               </div>
               <div class="nutrition-water-log-list">
                 {#each drinks as drink}
                   <article>
                     <span>{drink.time}</span>
-                    <strong>{drink.amount}</strong>
+                    <strong class="number number-tabular">{drink.amount}</strong>
                   </article>
                 {/each}
               </div>
@@ -561,9 +561,9 @@
               <CardDescription>{_t('moduleNutritionHydrationStatsDesc')}</CardDescription>
             </CardHeader>
             <CardContent class="nutrition-stat-list">
-              <article><span>{_t('moduleNutritionStreak')}</span><strong>{hydrationStats.streakDays} days</strong></article>
-              <article><span>{_t('moduleNutritionWeeklyAvg')}</span><strong>{(hydrationStats.weeklyAvgMl / 1000).toFixed(1)}L</strong></article>
-              <article><span>{_t('moduleNutritionBestDay')}</span><strong>{(hydrationStats.bestDayMl / 1000).toFixed(1)}L</strong></article>
+              <article><span>{_t('moduleNutritionStreak')}</span><strong class="number number-stat">{hydrationStats.streakDays} days</strong></article>
+              <article><span>{_t('moduleNutritionWeeklyAvg')}</span><strong class="number number-stat">{(hydrationStats.weeklyAvgMl / 1000).toFixed(1)}L</strong></article>
+              <article><span>{_t('moduleNutritionBestDay')}</span><strong class="number number-stat">{(hydrationStats.bestDayMl / 1000).toFixed(1)}L</strong></article>
             </CardContent>
           </Card>
         </div>
@@ -582,7 +582,7 @@
                   <strong>{meal.name}</strong>
                   <p>{meal.notes}</p>
                 </div>
-                <span>{meal.totalKcal} kcal</span>
+                <span class="number number-tabular">{meal.totalKcal} kcal</span>
               </article>
             {/each}
           </CardContent>
@@ -599,7 +599,7 @@
                 <article>
                   <div class="nutrition-macro-list__copy">
                     <strong>{macro.label}</strong>
-                    <span>{macro.value}</span>
+                    <span class="number number-metric">{macro.value}</span>
                   </div>
                   <div class="nutrition-meter" role="meter" aria-label="{macro.label} intake" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(macro.fill)}><i style={`--fill:${macro.fill}%`}></i></div>
                 </article>
@@ -1713,7 +1713,6 @@
     display: flex;
     align-items: baseline;
     gap: 4px;
-    font-variant-numeric: tabular-nums;
   }
 
   :global(.nutrition-hydration-total) {

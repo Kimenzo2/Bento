@@ -3,7 +3,6 @@
 // Tables:
 //   mood_checkins       (id, mood, intensity, note, activities, logged_at, date_key)
 //   mood_activities     (id, name, created_at)
-//   mood_private_notes  (id, content, created_at)
 // ─────────────────────────────────────────────────────────────────────────────
 
 use serde::{Deserialize, Serialize};
@@ -67,14 +66,6 @@ pub struct MoodPattern {
     pub value: u8,
     pub note: String,
     pub positive: bool,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PrivateNoteRow {
-    pub id: String,
-    pub content: String,
-    pub created_at: i64,
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -158,7 +149,16 @@ pub async fn mood_checkins_month(
 
     ensure_mood_tables(&state.db()).await?;
 
-    let prefix = format!("{}%", month.trim());
+    let trimmed = month.trim();
+    // Validate YYYY-MM format
+    if trimmed.len() != 7 || !trimmed.chars().take(4).all(|c| c.is_ascii_digit())
+        || trimmed.chars().nth(4) != Some('-')
+        || !trimmed.chars().skip(5).all(|c| c.is_ascii_digit())
+    {
+        return Err("Invalid month format. Expected YYYY-MM.".into());
+    }
+
+    let prefix = format!("{}%", trimmed);
     let rows = sqlx::query(
         "SELECT id, mood, intensity, note, activities, logged_at, date_key
          FROM mood_checkins WHERE date_key LIKE ? ORDER BY logged_at ASC",
@@ -181,7 +181,7 @@ pub async fn mood_checkins_recent(
 
     ensure_mood_tables(&state.db()).await?;
 
-    let n = limit.unwrap_or(30).clamp(1, 365);
+    let n = limit.unwrap_or(90).clamp(1, 365);
     let rows = sqlx::query(
         "SELECT id, mood, intensity, note, activities, logged_at, date_key
          FROM mood_checkins ORDER BY logged_at DESC LIMIT ?",
@@ -203,11 +203,14 @@ pub async fn mood_checkin_delete(
     crate::auth::require_billing_tier(&auth, "mood").await?;
 
     ensure_mood_tables(&state.db()).await?;
-    sqlx::query("DELETE FROM mood_checkins WHERE id = ?")
+    let result = sqlx::query("DELETE FROM mood_checkins WHERE id = ?")
         .bind(&id)
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    if result.rows_affected() == 0 {
+        return Err(format!("Check-in {} not found.", id));
+    }
     Ok(())
 }
 
@@ -262,10 +265,9 @@ fn compute_streak(desc_dates: &[String]) -> u32 {
     if desc_dates.is_empty() {
         return 0;
     }
-    let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
-    let yesterday = (chrono::Utc::now() - chrono::Duration::days(1))
-        .format("%Y-%m-%d")
-        .to_string();
+    let today = today_key();
+    let yesterday_t = time::now_ms() - 86_400_000;
+    let yesterday = time::date_key(yesterday_t);
     let first = &desc_dates[0];
     if first != &today && first != &yesterday {
         return 0;
@@ -334,16 +336,15 @@ pub async fn mood_activity_add(
             .map_err(|e| e.to_string())?;
 
     if let Some(id) = existing {
-        let created_at: i64 =
-            sqlx::query_scalar("SELECT created_at FROM mood_activities WHERE id = ?")
-                .bind(&id)
-                .fetch_one(&state.db())
-                .await
-                .map_err(|e| e.to_string())?;
+        let row = sqlx::query("SELECT id, name, created_at FROM mood_activities WHERE id = ?")
+            .bind(&id)
+            .fetch_one(&state.db())
+            .await
+            .map_err(|e| e.to_string())?;
         return Ok(ActivityRow {
-            id,
-            name: trimmed,
-            created_at,
+            id: row.try_get("id").unwrap_or_default(),
+            name: row.try_get("name").unwrap_or_default(),
+            created_at: row.try_get("created_at").unwrap_or(0),
         });
     }
 
@@ -373,11 +374,37 @@ pub async fn mood_activity_delete(
     crate::auth::require_billing_tier(&auth, "mood").await?;
 
     ensure_mood_tables(&state.db()).await?;
-    sqlx::query("DELETE FROM mood_activities WHERE id = ?")
+
+    // Get activity name first to check check-in references
+    let name: Option<String> = sqlx::query_scalar("SELECT name FROM mood_activities WHERE id = ?")
+        .bind(&id)
+        .fetch_optional(&state.db())
+        .await
+        .map_err(|e| e.to_string())?;
+    let name = match name {
+        Some(n) => n,
+        None => return Err(format!("Activity {} not found.", id)),
+    };
+
+    let ref_count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM mood_checkins, json_each(activities) WHERE json_each.value = ?"
+    )
+    .bind(&name)
+    .fetch_one(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
+    if ref_count > 0 {
+        return Err(format!("Activity \"{}\" is used in {} check-in(s). Remove those first.", name, ref_count));
+    }
+
+    let result = sqlx::query("DELETE FROM mood_activities WHERE id = ?")
         .bind(&id)
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    if result.rows_affected() == 0 {
+        return Err(format!("Activity {} not found.", id));
+    }
     Ok(())
 }
 
@@ -543,83 +570,6 @@ pub async fn mood_patterns(
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// PRIVATE NOTES
-// ═════════════════════════════════════════════════════════════════════════════
-
-#[tauri::command]
-pub async fn mood_private_note_save(
-    auth: State<'_, crate::auth::AuthManager>,
-    state: State<'_, BentoAppState>,
-    content: String,
-) -> Result<PrivateNoteRow, String> {
-    crate::auth::require_billing_tier(&auth, "mood").await?;
-
-    ensure_mood_tables(&state.db()).await?;
-    let trimmed = content.trim().to_string();
-    if trimmed.is_empty() {
-        return Err("Note content is required.".into());
-    }
-
-    let id = Uuid::new_v4().to_string();
-    let now = time::now_ms();
-    sqlx::query("INSERT INTO mood_private_notes (id, content, created_at) VALUES (?, ?, ?)")
-        .bind(&id)
-        .bind(&trimmed)
-        .bind(now)
-        .execute(&state.db())
-        .await
-        .map_err(|e| e.to_string())?;
-
-    Ok(PrivateNoteRow {
-        id,
-        content: trimmed,
-        created_at: now,
-    })
-}
-
-#[tauri::command]
-pub async fn mood_private_notes_list(
-    auth: State<'_, crate::auth::AuthManager>,
-    state: State<'_, BentoAppState>,
-) -> Result<Vec<PrivateNoteRow>, String> {
-    crate::auth::require_billing_tier(&auth, "mood").await?;
-
-    ensure_mood_tables(&state.db()).await?;
-    let rows = sqlx::query(
-        "SELECT id, content, created_at FROM mood_private_notes ORDER BY created_at DESC",
-    )
-    .fetch_all(&state.db())
-    .await
-    .map_err(|e| e.to_string())?;
-
-    Ok(rows
-        .into_iter()
-        .map(|r| PrivateNoteRow {
-            id: r.try_get("id").unwrap_or_default(),
-            content: r.try_get("content").unwrap_or_default(),
-            created_at: r.try_get("created_at").unwrap_or(0),
-        })
-        .collect())
-}
-
-#[tauri::command]
-pub async fn mood_private_note_delete(
-    auth: State<'_, crate::auth::AuthManager>,
-    state: State<'_, BentoAppState>,
-    id: String,
-) -> Result<(), String> {
-    crate::auth::require_billing_tier(&auth, "mood").await?;
-
-    ensure_mood_tables(&state.db()).await?;
-    sqlx::query("DELETE FROM mood_private_notes WHERE id = ?")
-        .bind(&id)
-        .execute(&state.db())
-        .await
-        .map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
 // TABLE BOOTSTRAP + SEEDS
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -639,11 +589,6 @@ pub async fn ensure_mood_tables(pool: &sqlx::SqlitePool) -> Result<(), String> {
         r#"CREATE TABLE IF NOT EXISTS mood_activities (
             id         TEXT PRIMARY KEY,
             name       TEXT NOT NULL UNIQUE,
-            created_at INTEGER NOT NULL
-        )"#,
-        r#"CREATE TABLE IF NOT EXISTS mood_private_notes (
-            id         TEXT PRIMARY KEY,
-            content    TEXT NOT NULL,
             created_at INTEGER NOT NULL
         )"#,
     ] {

@@ -74,7 +74,7 @@ pub fn classify_action(name: &str) -> ActionSeverity {
         | "delete_schedule" => ActionSeverity::Consequential,
 
         // Forbidden — no access under any circumstances
-        "passwords_list" | "passwords_get" | "passwords_search" | "passwords_save"
+        "passwords_list" | "passwords_search" | "passwords_save"
         | "passwords_delete" => ActionSeverity::Forbidden,
 
         // Default: treat unknown tools as read-only

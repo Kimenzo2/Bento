@@ -7,6 +7,8 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { memoEntryFromTranscript, saveVoiceMemoEntry, generateTitle } from "$lib/services/voice-memos-storage";
+import type { VoiceMemoEntry } from "$lib/services/voice-memos-storage";
 
 // Note: The Dynamic Island runs in a separate Tauri webview window with its
 // own islandStore singleton. Voice state is NOT communicated to the island.
@@ -71,7 +73,7 @@ export interface VoiceSession {
   error: string | null;
 }
 
-export type VoiceIntent = "dictation" | "voice_note" | "meeting" | "agent_query";
+
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
@@ -241,6 +243,34 @@ class VoiceEngineStore {
   }
 
   // ── Dictation Post-Processing ──────────────────────────────────
+
+  /**
+   * Save the completed session transcript to Voice Memos storage (fire-and-forget).
+   */
+  async #saveMemoToStorage(transcript: string, mode: VoiceMode, durationSecs: number): Promise<void> {
+    try {
+      const filePath = this.session?.filePath ?? undefined;
+      const title = generateTitle(transcript);
+      let canonicalId: string | undefined;
+      try {
+        const result = await invoke<{ success: boolean; id: string }>("voice_save_memo", {
+          recordingId: this.session?.recordingId ?? null,
+          title,
+          transcript,
+          durationSecs,
+          source: mode,
+          filePath: filePath ?? null,
+        });
+        canonicalId = result.id;
+      } catch {
+        /* not in Tauri mode — IndexedDB save is sufficient */
+      }
+      const entry = memoEntryFromTranscript(transcript, mode as VoiceMemoEntry["source"], durationSecs * 1000, filePath, canonicalId);
+      await saveVoiceMemoEntry(entry);
+    } catch (err) {
+      console.warn("[voice-engine] Failed to save voice memo:", err);
+    }
+  }
 
   /**
    * Post-process raw dictation text through the Rust pipeline:
@@ -508,15 +538,15 @@ class VoiceEngineStore {
       this.session = { ...this.session, finalText: transcript };
     }
 
+    const durationSecs = (this.session?.elapsedMs ?? 0) / 1000;
+
     // Check if agent trigger was detected in post-processing
     if (processed.agentTrigger.detected) {
       this.mode = "agent_conversation";
+      this.#saveMemoToStorage(transcript, "agent_conversation", durationSecs);
       this.complete(transcript);
-      // The Dock will pick up the mode change and submit to AI
       return;
     }
-
-    const durationSecs = (this.session?.elapsedMs ?? 0) / 1000;
     const trimmed = transcript.toLowerCase();
     let classifiedMode: VoiceMode;
 
@@ -536,6 +566,8 @@ class VoiceEngineStore {
     }
 
     this.mode = classifiedMode;
+
+    this.#saveMemoToStorage(transcript, classifiedMode, durationSecs);
 
     if (classifiedMode === "dictation") {
       await this.#handleDictation(transcript);

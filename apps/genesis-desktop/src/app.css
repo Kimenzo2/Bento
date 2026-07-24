@@ -82,6 +82,23 @@
   font-style: normal;
   font-display: swap;
 }
+
+/* Satoshi — number/metric font, self-hosted from Fontshare
+   Variable font covers all weights (300–800) — no static fallbacks needed. */
+@font-face {
+  font-family: "Satoshi";
+  src: url("/fonts/satoshi/Satoshi-Variable.woff2") format("woff2-variations");
+  font-weight: 300 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Satoshi";
+  src: url("/fonts/satoshi/Satoshi-VariableItalic.woff2") format("woff2-variations");
+  font-weight: 300 800;
+  font-style: italic;
+  font-display: swap;
+}
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
@@ -116,6 +133,7 @@
   --radius-md: calc(var(--radius) - 0.25rem);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 0.5rem);
+  --font-number: var(--font-number);
 }
 
 :root {
@@ -123,6 +141,7 @@
   --font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque", system-ui, sans-serif;
   --font-body: "General Sans", system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, "JetBrains Mono", monospace;
+  --font-number: "Satoshi", system-ui, sans-serif;
   /* Editor font — overridden by font preference setting (FontPreferencePanel) */
   --editor-font-family: "Instrument Serif", serif;
   --editor-font-family-heading: "Bricolage Grotesque Variable", system-ui, sans-serif;
@@ -282,7 +301,6 @@ a {
 
 .font-display,
 .greeting,
-.stat-number,
 .module-title {
   font-family: var(--font-display);
 }
@@ -295,12 +313,49 @@ a {
 }
 
 .stat-number {
+  font-family: var(--font-number);
   font-size: var(--font-size-3xl);
-  font-weight: var(--font-weight-extrabold);
+  font-weight: var(--font-weight-regular);
   letter-spacing: var(--letter-spacing-tight);
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
+
+/* ── Number font — Satoshi for all meaningful metrics ─────────────
+   Hero / aha metrics (large insight numbers, scores, totals)
+   Supporting metrics (breakdowns, subtotals, comparisons)
+   Tabular / list numbers (history logs, daily entries)
+   font-synthesis: none ensures no faux-bold/italic is applied
+─────────────────────────────────────────────────────────────────────── */
+.number {
+  font-family: var(--font-number);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-synthesis: none;
+}
+.number-hero {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--letter-spacing-tight);
+  line-height: 1;
+}
+.number-metric {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--letter-spacing-tight);
+  line-height: 1.1;
+}
+.number-stat {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.15;
+}
+.number-tabular {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-normal);
+}
+.number-medium { font-weight: var(--font-weight-medium); }
+.number-semibold { font-weight: var(--font-weight-semibold); }
 
 /* ── Mono font — JetBrains Mono Variable ────────────────────────────
    Keyboard badges, timestamps, code blocks, file paths, timers.

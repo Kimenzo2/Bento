@@ -681,23 +681,23 @@
       </div>
 
       <div class="sidebar-footer">
-        <button class="sidebar-footer-btn" onclick={() => showFontPref = true} aria-label="Change editor font" title="Editor font">
+        <button class="sidebar-footer-btn" onclick={() => showFontPref = true} aria-label="Change editor font" use:tooltip={{ text: "Editor font" }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
           <span>Font</span>
         </button>
-        <button class="sidebar-footer-btn" onclick={openArchiveView} aria-label="Archive" title="View archive">
+        <button class="sidebar-footer-btn" onclick={openArchiveView} aria-label="Archive" use:tooltip={{ text: "View archive" }}>
           <Archive size={14} /><span>Archive</span>
         </button>
-        <button class="sidebar-footer-btn" onclick={() => showActivity = true} aria-label="Activity" title="Activity timeline">
+        <button class="sidebar-footer-btn" onclick={() => showActivity = true} aria-label="Activity" use:tooltip={{ text: "Activity timeline" }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           <span>Activity</span>
         </button>
-        <button class="sidebar-footer-btn" onclick={() => showAllDocs = true} aria-label="All notes" title="All notes">
+        <button class="sidebar-footer-btn" onclick={() => showAllDocs = true} aria-label="All notes" use:tooltip={{ text: "All notes" }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
           <span>All Notes</span>
         </button>
 
-        <button class="sidebar-footer-btn" onclick={openCommandPalette} aria-label="Commands" title="Commands (Ctrl+K)">
+        <button class="sidebar-footer-btn" onclick={openCommandPalette} aria-label="Commands" use:tooltip={{ text: "Commands (Ctrl+K)" }}>
           <Command size={14} /><span>Commands</span>
         </button>
       </div>

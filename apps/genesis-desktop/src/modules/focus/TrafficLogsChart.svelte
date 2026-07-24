@@ -27,14 +27,10 @@
     slots: number[];
   }
 
-  // Generate random weekly traffic data once on mount
+  // All zero until real backend data is wired
   const data: TrafficRow[] = days.map((day) => ({
     day,
-    slots: timeSlots.map((_, i) => {
-      const isWorkHours = i >= 3 && i <= 5;
-      const base = isWorkHours ? Math.random() * 80 + 20 : Math.random() * 20;
-      return Math.floor(base);
-    }),
+    slots: timeSlots.map(() => 0),
   }));
 
   function getColorClass(value: number) {

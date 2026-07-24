@@ -997,8 +997,8 @@
   .dashboard__stat-value { display: flex; align-items: baseline; gap: 0.4rem; }
 
   .dashboard__stat-number {
-    font-family: var(--font-display);
-    font-weight: 800;
+    font-family: var(--font-number);
+    font-weight: var(--font-weight-medium);
     letter-spacing: var(--letter-spacing-tight);
     line-height: 1;
     color: var(--foreground);
@@ -1011,7 +1011,6 @@
 
   .dashboard__stat-block--metric .dashboard__stat-number {
     font-size: clamp(24px, 4vh, 36px);
-    font-weight: 700;
   }
 
   .dashboard__stat-unit { font-size: 11px; font-weight: 700; color: var(--muted); }

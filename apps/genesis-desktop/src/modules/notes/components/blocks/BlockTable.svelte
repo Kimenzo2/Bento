@@ -7,6 +7,7 @@
   import { invoke } from '@tauri-apps/api/core';
   import type { Block } from '$lib/local-store/block';
   import { time } from '$lib/utils/time';
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   interface TableRow { id: string; cells: Record<string, { text: string }>; isHeader?: boolean }
   interface TableColumn { id: string; width: number }
@@ -340,7 +341,7 @@
               <button
                 class="col-menu-btn"
                 onclick={(e) => { e.stopPropagation(); openColMenu(e, col.id); }}
-                title="Column options"
+                use:tooltip={{ text: "Column options" }}
               >⋯</button>
             {/if}
             <!-- Resize handle -->
@@ -369,7 +370,7 @@
               <button
                 class="row-menu-btn"
                 onclick={(e) => { e.stopPropagation(); openRowMenu(e, row.id); }}
-                title="Row options"
+                use:tooltip={{ text: "Row options" }}
               >⋮</button>
             {/if}
           </div>
@@ -426,7 +427,7 @@
     </div>
 
     {#if !readonly}
-      <button class="table-add-col-btn" onclick={() => addColumn()} title="Add column">
+      <button class="table-add-col-btn" onclick={() => addColumn()} use:tooltip={{ text: "Add column" }}>
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
           <path d="M6 2v8M2 6h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>

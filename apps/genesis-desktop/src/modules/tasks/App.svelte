@@ -1869,7 +1869,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
           <item.icon class="tasks-sidebar-item-icon" size={16} />
           <span>{item.label}</span>
           {#if item.count !== null && item.count > 0}
-            <span class="tasks-sidebar-badge">{item.count}</span>
+            <span class="tasks-sidebar-badge number number-tabular">{item.count}</span>
           {/if}
         </button>
       {/each}
@@ -1892,19 +1892,19 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
 
     <!-- Settings Footer -->
     <div class="tasks-sidebar-footer">
-      <button class="tasks-sidebar-settings-btn" onclick={cycleDensity} title="Cycle density">
+      <button class="tasks-sidebar-settings-btn" onclick={cycleDensity} use:tooltip={{ text: "Cycle density" }}>
         <Layers size={14} />
         <span>{density === 'comfortable' ? 'Comfortable' : density === 'compact' ? 'Compact' : 'Spacious'}</span>
       </button>
-      <button class="tasks-sidebar-settings-btn" onclick={() => { showExport = true; exportResult = null; }} title="Export tasks">
+      <button class="tasks-sidebar-settings-btn" onclick={() => { showExport = true; exportResult = null; }} use:tooltip={{ text: "Export tasks" }}>
         <Download size={14} />
         <span>Export</span>
       </button>
-      <button class="tasks-sidebar-settings-btn" onclick={() => { showImport = true; importPreview = null; importResult = null; }} title="Import tasks">
+      <button class="tasks-sidebar-settings-btn" onclick={() => { showImport = true; importPreview = null; importResult = null; }} use:tooltip={{ text: "Import tasks" }}>
         <FileText size={14} />
         <span>Import</span>
       </button>
-      <button class="tasks-sidebar-settings-btn" onclick={openShare} title="Share tasks">
+      <button class="tasks-sidebar-settings-btn" onclick={openShare} use:tooltip={{ text: "Share tasks" }}>
         <Share2 size={14} />
         <span>Share</span>
       </button>
@@ -1923,10 +1923,10 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
           <button class="tasks-view-switcher-btn" class:active={viewMode === 'board'} onclick={() => viewMode = 'board'}>Board</button>
           <button class="tasks-view-switcher-btn" class:active={viewMode === 'table'} onclick={() => viewMode = 'table'}>Table</button>
           <button class="tasks-view-switcher-btn" class:active={viewMode === 'timeline'} onclick={() => viewMode = 'timeline'}>Timeline</button>
-          <button class="tasks-view-switcher-btn" class:active={viewMode === 'focus'} onclick={() => viewMode = 'focus'} title="Minimal view — only the next action (Ctrl+Shift+F)">Focus</button>
+          <button class="tasks-view-switcher-btn" class:active={viewMode === 'focus'} onclick={() => viewMode = 'focus'} use:tooltip={{ text: "Minimal view — only the next action (Ctrl+Shift+F)" }}>Focus</button>
           <button class="tasks-view-switcher-btn" class:active={viewMode === 'mind'} onclick={() => viewMode = 'mind'}>Map</button>
         </div>
-        <span class="tasks-list-panel-count">{visibleTasks.length}</span>
+        <span class="tasks-list-panel-count number number-tabular">{visibleTasks.length}</span>
       </div>
     </div>
 
@@ -1934,7 +1934,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
     {#if viewFilter === 'today' && overdueCount > 0}
       <div class="tasks-overdue-banner">
         <AlertCircle size={13} style="color: var(--destructive); flex-shrink: 0;" />
-        <span><strong>{overdueCount}</strong> {overdueCount === 1 ? 'task is' : 'tasks are'} overdue</span>
+        <span><strong class="number number-tabular number-semibold">{overdueCount}</strong> {overdueCount === 1 ? 'task is' : 'tasks are'} overdue</span>
         <button class="tasks-overdue-banner-btn" onclick={() => viewFilter = 'overdue'}>Review</button>
         <button class="tasks-overdue-banner-btn" onclick={() => { openReschedule(); }}>Reschedule</button>
       </div>
@@ -1943,7 +1943,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
     <!-- Stats -->
     {#if overdueCount > 0 && viewFilter !== 'today' && viewFilter !== 'overdue' && viewFilter !== 'logbook'}
       <div class="tasks-stats">
-        <span class="tasks-stat"><strong style="color: var(--destructive)">{overdueCount}</strong> overdue</span>
+        <span class="tasks-stat"><strong class="number number-tabular number-semibold" style="color: var(--destructive)">{overdueCount}</strong> overdue</span>
       </div>
     {/if}
 
@@ -2055,14 +2055,14 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
                 <button
                   class="tasks-card-action-btn tasks-card-action-btn--archive"
                   onclick={(e) => { e.stopPropagation(); archiveTaskAction(task.id); }}
-                  title="Archive task"
+                  use:tooltip={{ text: "Archive task" }}
                 >
                   <ArchiveIcon size={12} />
                 </button>
                 <button
                   class="tasks-card-action-btn tasks-card-action-btn--delete"
                   onclick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
-                  title="Delete task"
+                  use:tooltip={{ text: "Delete task" }}
                 >
                   <Trash2 size={12} />
                 </button>
@@ -2199,7 +2199,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
                     class="tasks-cal-day-plus"
                     aria-label="Add task"
                     onclick={(e) => { e.stopPropagation(); calQuickAdd(cell.d, cell.m, cell.y); }}
-                    title="Add task"
+                    use:tooltip={{ text: "Add task" }}
                   >+</button>
                   <div class="tasks-cal-day-num">
                     <span>{cell.d}</span>
@@ -2320,8 +2320,8 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
                 <Table.Cell>{priorityLabel(task.priority)}</Table.Cell>
                 <Table.Cell>{projects.find(p => p.id === task.project)?.name ?? task.project}</Table.Cell>
                 <Table.Cell>{formatDueDate(task.dueAt) ?? '-'}</Table.Cell>
-                <Table.Cell>{task.estimatedMinutes ?? '-'}</Table.Cell>
-                <Table.Cell>{task.trackedMinutes}</Table.Cell>
+                <Table.Cell class="number number-tabular">{task.estimatedMinutes ?? '-'}</Table.Cell>
+                <Table.Cell class="number number-tabular">{task.trackedMinutes}</Table.Cell>
               </Table.Row>
             {/each}
           </Table.Body>
@@ -2393,7 +2393,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
     <!-- Bulk Action Bar -->
     {#if bulkMode}
       <div class="tasks-bulk-bar">
-        <span class="tasks-bulk-count">{selectedIds.size} selected</span>
+        <span class="tasks-bulk-count"><span class="number number-tabular">{selectedIds.size}</span> selected</span>
         <button class="tasks-bulk-btn" onclick={() => { selectedIds = new Set(); bulkMode = false; }}>Deselect</button>
         <button class="tasks-bulk-btn" onclick={bulkComplete}>Complete</button>
         <button class="tasks-bulk-btn" onclick={() => bulkMoveTo('inbox')}>To Inbox</button>
@@ -2426,7 +2426,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
             type="button"
             onclick={() => selectedTaskId = null}
             aria-label="Close task detail"
-            title="Close (Esc)"
+            use:tooltip={{ text: "Close (Esc)" }}
           ><X size={14} /></button>
           <input
             class="tasks-detail-title-input"
@@ -2467,7 +2467,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
                   class="tasks-detail-date-btn clear"
                   style="display: inline; padding: 0 4px; margin-left: 2px;"
                   onclick={() => setDueDate(null)}
-                  title="Clear due date"
+                  use:tooltip={{ text: "Clear due date" }}
                 ><X size={10} /></button>
               </span>
             {/if}
@@ -2628,7 +2628,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
                 <span>Start</span>
               {/if}
             </button>
-            <span class="tasks-timer-display">{formatElapsed(timerElapsed)}</span>
+            <span class="tasks-timer-display number number-metric">{formatElapsed(timerElapsed)}</span>
             <span class="tasks-detail-field-label" style="margin-left: 4px;">
               tracked today
             </span>
@@ -2675,7 +2675,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
         <div class="tasks-detail-section">
           <div class="tasks-detail-section-label">Subtasks</div>
           {#if subtaskProgress}
-            <div class="tasks-subtask-progress">{subtaskProgress} subtasks</div>
+            <div class="tasks-subtask-progress"><span class="number number-tabular">{subtaskProgress}</span> subtasks</div>
           {/if}
           {#each editSubtasks as subtask}
             <div class="tasks-subtask-item">
@@ -2920,7 +2920,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
         <div class="tasks-import-preview">
           <div class="tasks-import-preview-header">
             <span class="tasks-import-preview-badge">{importPreview.format}</span>
-            <span style="font-size: 12px; color: color-mix(in srgb, var(--foreground) 50%, transparent);">{importPreview.entries.length} tasks found</span>
+            <span style="font-size: 12px; color: color-mix(in srgb, var(--foreground) 50%, transparent);"><span class="number number-tabular">{importPreview.entries.length}</span> tasks found</span>
           </div>
 
           {#if importPreview.conflicts.length > 0}

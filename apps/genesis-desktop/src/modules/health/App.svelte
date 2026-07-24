@@ -518,23 +518,23 @@
             <CardHeader><CardTitle>{_t('moduleHealthToday')}</CardTitle><CardDescription>{today}</CardDescription></CardHeader>
             <CardContent class="hl-score-card__content">
               <div class="hl-score-orb">
-                <strong>{todayLog ? Math.round((todayLog.energy/10*40)+(Math.min(todayLog.sleepHours,9)/9*30)+(Math.min(todayLog.waterGlasses,10)/10*30)) : "--"}</strong>
+                <strong class="number number-hero number-semibold">{todayLog ? Math.round((todayLog.energy/10*40)+(Math.min(todayLog.sleepHours,9)/9*30)+(Math.min(todayLog.waterGlasses,10)/10*30)) : "--"}</strong>
                 <small>{_t('moduleHealthWellness')}</small>
               </div>
               <div class="hl-score-meta">
-                <div><FlameIcon size={12}/><strong>{weekLogs.length}</strong><span>{_t('moduleHealthDaysLogged')}</span></div>
-                <div><DropletIcon size={12}/><strong>{todayLog ? (todayLog.waterGlasses*0.25).toFixed(1)+"L" : "--"}</strong><span>{_t('moduleHealthWaterToday')}</span></div>
-                <div><MoonIcon size={12}/><strong>{todayLog ? todayLog?.sleepHours+"h" : "--"}</strong><span>{_t('moduleHealthLastNight')}</span></div>
-                <div><ZapIcon size={12}/><strong>{todayLog ? todayLog?.energy+"/10" : "--"}</strong><span>{_t('moduleHealthEnergy')}</span></div>
+                <div><FlameIcon size={12}/><strong class="number number-metric">{weekLogs.length}</strong><span>{_t('moduleHealthDaysLogged')}</span></div>
+                <div><DropletIcon size={12}/><strong class="number number-metric">{todayLog ? (todayLog.waterGlasses*0.25).toFixed(1)+"L" : "--"}</strong><span>{_t('moduleHealthWaterToday')}</span></div>
+                <div><MoonIcon size={12}/><strong class="number number-metric">{todayLog ? todayLog?.sleepHours+"h" : "--"}</strong><span>{_t('moduleHealthLastNight')}</span></div>
+                <div><ZapIcon size={12}/><strong class="number number-metric">{todayLog ? todayLog?.energy+"/10" : "--"}</strong><span>{_t('moduleHealthEnergy')}</span></div>
               </div>
             </CardContent>
           </Card>          <Card class="hl-hero-card">
             <CardHeader><CardTitle>{_t('moduleHealthDailySnapshot')}</CardTitle><CardDescription>{_t('moduleHealthDailySnapshotDesc')}</CardDescription></CardHeader>
             <CardContent class="hl-hero-list">
               {#if todayLog}
-                <article><span>{_t('moduleHealthEnergy')}</span><div class="hl-hero-bar"><i style="--fill:{todayLog?.energy*10}%"></i></div><strong>{todayLog?.energy} / 10</strong></article>
-                <article><span>{_t('moduleHealthWater')}</span><div class="hl-hero-bar"><i style="--fill:{Math.min(todayLog?.waterGlasses/10,1)*100}%"></i></div><strong>{(todayLog.waterGlasses*0.25).toFixed(1)} L</strong></article>
-                <article><span>{_t('moduleHealthSleep')}</span><div class="hl-hero-bar"><i style="--fill:{Math.min(todayLog?.sleepHours/9,1)*100}%"></i></div><strong>{todayLog?.sleepHours}h</strong></article>
+                <article><span>{_t('moduleHealthEnergy')}</span><div class="hl-hero-bar"><i style="--fill:{todayLog?.energy*10}%"></i></div><strong class="number number-metric">{todayLog?.energy} / 10</strong></article>
+                <article><span>{_t('moduleHealthWater')}</span><div class="hl-hero-bar"><i style="--fill:{Math.min(todayLog?.waterGlasses/10,1)*100}%"></i></div><strong class="number number-metric">{(todayLog.waterGlasses*0.25).toFixed(1)} L</strong></article>
+                <article><span>{_t('moduleHealthSleep')}</span><div class="hl-hero-bar"><i style="--fill:{Math.min(todayLog?.sleepHours/9,1)*100}%"></i></div><strong class="number number-metric">{todayLog?.sleepHours}h</strong></article>
                 <article><span>{_t('moduleHealthMood')}</span><div class="hl-hero-bar"><i style="--fill:{["low","okay","steady","good","great"].indexOf(todayLog?.mood)/4*100}%"></i></div><strong>{_t('moduleHealthMood' + (todayLog?.mood ? todayLog.mood.charAt(0).toUpperCase() + todayLog.mood.slice(1) : ''))}</strong></article>
               {:else}
                 <p class="hl-muted hl-muted--center">{_t('moduleHealthNoCheckinYet')}</p>
@@ -593,7 +593,7 @@
                 {@const srRows = weeklyChartData.map(d => `${d.day}: ${d.wellness}`).join(', ')}
                 <div class="hl-wc" role="img" aria-label="Weekly wellness bar chart. {srRows}">
                   <div class="hl-wc-y" aria-hidden="true">
-                    <span>100</span><span>75</span><span>50</span><span>25</span><span>0</span>
+                    <span class="number number-tabular">100</span><span class="number number-tabular">75</span><span class="number number-tabular">50</span><span class="number number-tabular">25</span><span class="number number-tabular">0</span>
                     <span class="hl-wc-ytitle">Score</span>
                   </div>
                   <div class="hl-wc-body">
@@ -606,7 +606,7 @@
                       {#each weeklyChartData as d}
                         <div class="hl-wc-col">
                           {#if d.wellness > 0}
-                            <span class="hl-wc-val">{d.wellness}</span>
+                            <span class="hl-wc-val number number-tabular">{d.wellness}</span>
                           {/if}
                           <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
                           <div class="hl-wc-bar"
@@ -633,7 +633,7 @@
                 <thead><tr><th>Day</th><th>Score</th></tr></thead>
                 <tbody>
                   {#each weeklyChartData as d}
-                    <tr><td>{d.day}</td><td>{d.wellness}</td></tr>
+                    <tr><td>{d.day}</td><td class="number number-tabular">{d.wellness}</td></tr>
                   {/each}
                 </tbody>
               </table>
@@ -670,13 +670,13 @@
           <CardHeader><CardTitle>{_t('moduleHealthTodaySoFar')}</CardTitle><CardDescription>{today}</CardDescription></CardHeader>
           <CardContent class="hl-score-card__content">
             <div class="hl-score-orb hl-score-orb--ring">
-              <strong>{selectedEnergy}</strong><small>{_t('moduleHealthEnergy')}</small>
+              <strong class="number number-hero number-semibold">{selectedEnergy}</strong><small>{_t('moduleHealthEnergy')}</small>
             </div>
             <div class="hl-score-meta">
               <div><span>{_t('moduleHealthMood')}</span><strong>{moodOptions.find(m=>m.id===selectedMood)?.emoji} {_t('moduleHealthMood' + (selectedMood ? selectedMood.charAt(0).toUpperCase() + selectedMood.slice(1) : ''))}</strong></div>
-              <div><DropletIcon size={12}/><strong>{waterGlasses} {_t('moduleHealthWater')}</strong><span>{(waterGlasses*0.25).toFixed(2)} L</span></div>
-              <div><MoonIcon size={12}/><strong>{sleepHours}h {_t('moduleHealthSleep')}</strong><span>{_t('moduleHealthLastNight')}</span></div>
-              <div><span>{_t('moduleHealthSymptoms')}</span><strong>{selectedSymptoms.length} {_t('moduleHealthDaysLogged')}</strong></div>
+              <div><DropletIcon size={12}/><strong class="number number-metric">{waterGlasses} {_t('moduleHealthWater')}</strong><span class="number number-metric">{(waterGlasses*0.25).toFixed(2)} L</span></div>
+              <div><MoonIcon size={12}/><strong class="number number-metric">{sleepHours}h {_t('moduleHealthSleep')}</strong><span>{_t('moduleHealthLastNight')}</span></div>
+              <div><span>{_t('moduleHealthSymptoms')}</span><strong class="number number-metric">{selectedSymptoms.length} {_t('moduleHealthDaysLogged')}</strong></div>
             </div>
           </CardContent>
         </Card>
@@ -685,9 +685,9 @@
           <CardHeader><CardTitle>{_t('moduleHealthLastSaved')}</CardTitle><CardDescription>{todayLog ? _t('moduleHealthLoadedDb') : _t('moduleHealthNoCheckinToday')}</CardDescription></CardHeader>
           <CardContent class="hl-hero-list">
             {#if todayLog}
-              <article><span>{_t('moduleHealthEnergy')}</span><div class="hl-hero-bar"><i style="--fill:{todayLog?.energy*10}%"></i></div><strong>{todayLog?.energy} / 10</strong></article>
-              <article><span>{_t('moduleHealthWater')}</span><div class="hl-hero-bar"><i style="--fill:{Math.min(todayLog?.waterGlasses/10,1)*100}%"></i></div><strong>{(todayLog.waterGlasses*0.25).toFixed(2)} L</strong></article>
-              <article><span>{_t('moduleHealthSleep')}</span><div class="hl-hero-bar"><i style="--fill:{Math.min(todayLog?.sleepHours/9,1)*100}%"></i></div><strong>{todayLog?.sleepHours}h</strong></article>
+              <article><span>{_t('moduleHealthEnergy')}</span><div class="hl-hero-bar"><i style="--fill:{todayLog?.energy*10}%"></i></div><strong class="number number-metric">{todayLog?.energy} / 10</strong></article>
+              <article><span>{_t('moduleHealthWater')}</span><div class="hl-hero-bar"><i style="--fill:{Math.min(todayLog?.waterGlasses/10,1)*100}%"></i></div><strong class="number number-metric">{(todayLog.waterGlasses*0.25).toFixed(2)} L</strong></article>
+              <article><span>{_t('moduleHealthSleep')}</span><div class="hl-hero-bar"><i style="--fill:{Math.min(todayLog?.sleepHours/9,1)*100}%"></i></div><strong class="number number-metric">{todayLog?.sleepHours}h</strong></article>
               <article><span>{_t('moduleHealthMood')}</span><div class="hl-hero-bar"><i style="--fill:{["low","okay","steady","good","great"].indexOf(todayLog?.mood)/4*100}%"></i></div><strong>{_t('moduleHealthMood' + (todayLog?.mood ? todayLog.mood.charAt(0).toUpperCase() + todayLog.mood.slice(1) : ''))}</strong></article>
             {:else}
               <p class="hl-muted hl-muted--center">{_t('moduleHealthFillForm')}</p>
@@ -716,10 +716,10 @@
               </div>
 
               <div class="hl-log-block">
-                <p class="hl-label">{_t('moduleHealthEnergy')} — {selectedEnergy} / 10</p>
+                <p class="hl-label">{_t('moduleHealthEnergy')} — <span class="number number-tabular">{selectedEnergy}</span> / 10</p>
                 <div class="hl-energy-row">
                   {#each [1,2,3,4,5,6,7,8,9,10] as lvl}
-                    <button class="hl-energy-btn" class:hl-energy-btn--active={selectedEnergy===lvl}
+                    <button class="hl-energy-btn number number-tabular" class:hl-energy-btn--active={selectedEnergy===lvl}
                       type="button" onclick={()=>(selectedEnergy=lvl)}>{lvl}</button>
                   {/each}
                 </div>
@@ -730,7 +730,7 @@
                   <p class="hl-label">{_t('moduleHealthWater')} {_t('moduleHealthWater')}</p>
                   <div class="hl-stepper">
                     <button type="button" onclick={()=>(waterGlasses=Math.max(0,waterGlasses-1))}>−</button>
-                    <strong>{waterGlasses} <small class="hl-muted">({(waterGlasses*0.25).toFixed(2)} L)</small></strong>
+                    <strong class="number number-tabular">{waterGlasses} <small class="hl-muted">({(waterGlasses*0.25).toFixed(2)} L)</small></strong>
                     <button type="button" onclick={()=>(waterGlasses+=1)}>+</button>
                   </div>
                 </div>
@@ -738,7 +738,7 @@
                   <p class="hl-label">{_t('moduleHealthSleepLastNight')}</p>
                   <div class="hl-stepper">
                     <button type="button" onclick={()=>(sleepHours=Math.max(0,sleepHours-1))}>−</button>
-                    <strong>{sleepHours}h <small class="hl-muted">{_t('moduleHealthTarget79')}</small></strong>
+                    <strong class="number number-tabular">{sleepHours}h <small class="hl-muted">{_t('moduleHealthTarget79')}</small></strong>
                     <button type="button" onclick={()=>(sleepHours+=1)}>+</button>
                   </div>
                 </div>
@@ -785,9 +785,9 @@
                 <div class="hl-table-row" style="grid-template-columns:100px 80px 70px 80px 70px 1fr">
                   <span>{l.dateKey}</span>
                   <span>{moodOptions.find(m=>m.id===l.mood)?.emoji} {l.mood}</span>
-                  <span>{l.energy}/10</span>
-                  <span>{(l.waterGlasses*0.25).toFixed(1)}L</span>
-                  <span>{l.sleepHours}h</span>
+                   <span class="number number-tabular">{l.energy}/10</span>
+                   <span class="number number-tabular">{(l.waterGlasses*0.25).toFixed(1)}L</span>
+                   <span class="number number-tabular">{l.sleepHours}h</span>
                   <span>{l.symptoms.length ? l.symptoms.join(", ") : "—"}</span>
                 </div>
               {/each}
@@ -825,14 +825,14 @@
           <CardHeader><CardTitle>{_t('moduleHealthLatestReading')}</CardTitle><CardDescription>{vitalHistory[0] ? vitalHistory[0].dateKey : _t('moduleHealthNoReadingsYet')}</CardDescription></CardHeader>
           <CardContent class="hl-score-card__content">
             <div class="hl-score-orb hl-orb--bp">
-              <strong>{vitalHistory[0]?.bp?.split("/")[0] ?? "--"}</strong>
+              <strong class="number number-hero number-semibold">{vitalHistory[0]?.bp?.split("/")[0] ?? "--"}</strong>
               <small>{vitalHistory[0]?.bp ? "/"+vitalHistory[0].bp.split("/")[1]+" mmHg" : "mmHg"}</small>
             </div>
             <div class="hl-score-meta">
-              <div><HeartPulseIcon size={12}/><strong>{vitalHistory[0]?.hr ?? "--"}</strong><span>{_t('moduleHealthHeartRate')}</span></div>
-              <div><ScaleIcon size={12}/><strong>{vitalHistory[0]?.weight ?? "--"}</strong><span>{_t('moduleHealthWeight')}</span></div>
-              <div><ThermometerIcon size={12}/><strong>{vitalHistory[0]?.temp ?? "--"}</strong><span>{_t('moduleHealthTemperature')}</span></div>
-              <div><ActivityIcon size={12}/><strong>{vitalHistory[0]?.spo2 ?? "--"}</strong><span>SpO₂</span></div>
+              <div><HeartPulseIcon size={12}/><strong class="number number-metric">{vitalHistory[0]?.hr ?? "--"}</strong><span>{_t('moduleHealthHeartRate')}</span></div>
+              <div><ScaleIcon size={12}/><strong class="number number-metric">{vitalHistory[0]?.weight ?? "--"}</strong><span>{_t('moduleHealthWeight')}</span></div>
+              <div><ThermometerIcon size={12}/><strong class="number number-metric">{vitalHistory[0]?.temp ?? "--"}</strong><span>{_t('moduleHealthTemperature')}</span></div>
+              <div><ActivityIcon size={12}/><strong class="number number-metric">{vitalHistory[0]?.spo2 ?? "--"}</strong><span>SpO₂</span></div>
             </div>
           </CardContent>
         </Card>
@@ -885,7 +885,7 @@
                 {@const srRows = bpChartData.map(d => `${d.label}: ${d.sys ?? '—'}/${d.dia ?? '—'}`).join(', ')}
                 <div class="hl-wc" role="img" aria-label="Blood pressure trend chart. {srRows}">
                   <div class="hl-wc-y" aria-hidden="true">
-                    <span>170</span><span>140</span><span>110</span><span>80</span>
+                    <span class="number number-tabular">170</span><span class="number number-tabular">140</span><span class="number number-tabular">110</span><span class="number number-tabular">80</span>
                     <span class="hl-wc-ytitle">mmHg</span>
                   </div>
                   <div class="hl-wc-body">
@@ -898,7 +898,7 @@
                       {#each bpChartData as d}
                         <div class="hl-wc-col">
                           {#if d.sys}
-                            <span class="hl-wc-val">{d.sys}/{d.dia}</span>
+                            <span class="hl-wc-val number number-tabular">{d.sys}/{d.dia}</span>
                           {/if}
                           <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
                           <div class="hl-wc-bar-pair" style="height:{d.sys ? Math.max(4, ((d.sys - 80) / 90) * 100) : 4}%"
@@ -928,7 +928,7 @@
                 <thead><tr><th>Date</th><th>Systolic</th><th>Diastolic</th></tr></thead>
                 <tbody>
                   {#each bpChartData as d}
-                    <tr><td>{d.label}</td><td>{d.sys ?? '—'}</td><td>{d.dia ?? '—'}</td></tr>
+                    <tr><td>{d.label}</td><td class="number number-tabular">{d.sys ?? '—'}</td><td class="number number-tabular">{d.dia ?? '—'}</td></tr>
                   {/each}
                 </tbody>
               </table>
@@ -945,11 +945,11 @@
               {#each vitalHistory.slice(0,10) as row}
                 <div class="hl-table-row" style="grid-template-columns:90px repeat(5,minmax(0,1fr)) 50px">
                   <span>{row.dateKey}</span>
-                  <span>{row.bp ?? "—"}</span>
-                  <span>{row.hr ?? "—"}</span>
-                  <span>{row.weight ?? "—"}</span>
-                  <span>{row.temp ?? "—"}</span>
-                  <span>{row.spo2 ?? "—"}</span>
+                  <span class="number number-tabular">{row.bp ?? "—"}</span>
+                  <span class="number number-tabular">{row.hr ?? "—"}</span>
+                  <span class="number number-tabular">{row.weight ?? "—"}</span>
+                  <span class="number number-tabular">{row.temp ?? "—"}</span>
+                  <span class="number number-tabular">{row.spo2 ?? "—"}</span>
                   <button class="hl-med__delete" type="button" onclick={() => deleteVital(row.id)} aria-label="Delete reading">×</button>
                 </div>
               {/each}
@@ -977,7 +977,7 @@
         <div class="hl-page__actions">
           <div class="hl-range-toggle" role="radiogroup" aria-label="Analysis range">
             {#each [7, 30, 90] as days}
-              <button class="hl-range-btn" class:hl-range-btn--active={correlationRange === days}
+              <button class="hl-range-btn number number-tabular" class:hl-range-btn--active={correlationRange === days}
                 type="button" role="radio" aria-checked={correlationRange === days}
                 onclick={async () => { correlationRange = days; await loadDeepLogs(); }}>
                 {days}d
@@ -996,14 +996,14 @@
           <CardHeader><CardTitle>{_t('moduleHealthThisWeek')}</CardTitle><CardDescription>{_t('moduleHealthOf7Days').replace('{count}', String(weekLogs.length))}</CardDescription></CardHeader>
           <CardContent class="hl-score-card__content">
             <div class="hl-score-orb">
-              <strong>{weeklyChartData.length ? Math.round(weeklyChartData.filter(d=>d.wellness>0).reduce((a,b)=>a+b.wellness,0)/(weeklyChartData.filter(d=>d.wellness>0).length||1)) : "--"}</strong>
+              <strong class="number number-hero number-semibold">{weeklyChartData.length ? Math.round(weeklyChartData.filter(d=>d.wellness>0).reduce((a,b)=>a+b.wellness,0)/(weeklyChartData.filter(d=>d.wellness>0).length||1)) : "--"}</strong>
               <small>{_t('moduleHealthAvgScore')}</small>
             </div>
             <div class="hl-score-meta">
-              <div><strong>{weekLogs.length}</strong><span>{_t('moduleHealthDaysLogged')}</span></div>
-              <div><strong>{weekLogs.length ? (weekLogs.reduce((a,b)=>a+b.energy,0)/weekLogs.length).toFixed(1) : "--"}</strong><span>{_t('moduleHealthAvgEnergy')}</span></div>
-              <div><strong>{weekLogs.length ? (weekLogs.reduce((a,b)=>a+b.sleepHours,0)/weekLogs.length).toFixed(1)+"h" : "--"}</strong><span>{_t('moduleHealthAvgSleep')}</span></div>
-              <div><strong>{correlations.length}</strong><span>{_t('moduleHealthPatternsFound')}</span></div>
+              <div><strong class="number number-metric">{weekLogs.length}</strong><span>{_t('moduleHealthDaysLogged')}</span></div>
+              <div><strong class="number number-metric">{weekLogs.length ? (weekLogs.reduce((a,b)=>a+b.energy,0)/weekLogs.length).toFixed(1) : "--"}</strong><span>{_t('moduleHealthAvgEnergy')}</span></div>
+              <div><strong class="number number-metric">{weekLogs.length ? (weekLogs.reduce((a,b)=>a+b.sleepHours,0)/weekLogs.length).toFixed(1)+"h" : "--"}</strong><span>{_t('moduleHealthAvgSleep')}</span></div>
+              <div><strong class="number number-metric">{correlations.length}</strong><span>{_t('moduleHealthPatternsFound')}</span></div>
             </div>
           </CardContent>
         </Card>
@@ -1016,7 +1016,7 @@
                 <article>
                   <span>{c.label}</span>
                   <div class="hl-hero-bar"><i style="--fill:{c.strength}%"></i></div>
-                  <strong>{c.strength}%</strong>
+                  <strong class="number number-stat">{c.strength}%</strong>
                 </article>
               {/each}
             {:else}
@@ -1061,7 +1061,7 @@
                 {@const srRows = weeklyChartData.map(d => `${d.day}: ${d.wellness}`).join(', ')}
                 <div class="hl-wc" role="img" aria-label="Weekly wellness bar chart. {srRows}">
                   <div class="hl-wc-y" aria-hidden="true">
-                    <span>100</span><span>75</span><span>50</span><span>25</span><span>0</span>
+                    <span class="number number-tabular">100</span><span class="number number-tabular">75</span><span class="number number-tabular">50</span><span class="number number-tabular">25</span><span class="number number-tabular">0</span>
                     <span class="hl-wc-ytitle">Score</span>
                   </div>
                   <div class="hl-wc-body">
@@ -1074,7 +1074,7 @@
                       {#each weeklyChartData as d}
                         <div class="hl-wc-col">
                           {#if d.wellness > 0}
-                            <span class="hl-wc-val">{d.wellness}</span>
+                            <span class="hl-wc-val number number-tabular">{d.wellness}</span>
                           {/if}
                           <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
                           <div class="hl-wc-bar"
@@ -1101,7 +1101,7 @@
                 <thead><tr><th>Day</th><th>Score</th></tr></thead>
                 <tbody>
                   {#each weeklyChartData as d}
-                    <tr><td>{d.day}</td><td>{d.wellness}</td></tr>
+                    <tr><td>{d.day}</td><td class="number number-tabular">{d.wellness}</td></tr>
                   {/each}
                 </tbody>
               </table>
@@ -1157,10 +1157,10 @@
           <CardHeader><CardTitle>{_t('moduleHealthTodaysAdherence')}</CardTitle><CardDescription>{today}</CardDescription></CardHeader>
           <CardContent class="hl-score-card__content hl-score-card__content--wide">
               <div class="hl-score-meta">
-                <div><PillIcon size={12}/><strong>{takenCount} {_t('moduleHealthTaken')}</strong><span>{_t('moduleHealthOf')} {medications.length} {_t('moduleHealthDoses')}</span></div>
-                <div><strong>{medications.length - takenCount} {_t('moduleHealthLeft')}</strong><span>{_t('moduleHealthStillPending')}</span></div>
-                <div><strong>{medications.length}</strong><span>{_t('moduleHealthTotalMeds')}</span></div>
-                <div><strong>{adherencePct}%</strong><span>{_t('moduleHealthTodaysRate')}</span></div>
+                <div><PillIcon size={12}/><strong class="number number-metric">{takenCount} {_t('moduleHealthTaken')}</strong><span>{_t('moduleHealthOf')} <span class="number number-metric">{medications.length}</span> {_t('moduleHealthDoses')}</span></div>
+                <div><strong class="number number-metric">{medications.length - takenCount} {_t('moduleHealthLeft')}</strong><span>{_t('moduleHealthStillPending')}</span></div>
+                <div><strong class="number number-metric">{medications.length}</strong><span>{_t('moduleHealthTotalMeds')}</span></div>
+                <div><strong class="number number-metric">{adherencePct}%</strong><span>{_t('moduleHealthTodaysRate')}</span></div>
               </div>
           </CardContent>
         </Card>
@@ -1253,9 +1253,9 @@
                     />
                   </div>
                   <div class="hl-adherence__meta">
-                    <strong>{takenCount} {_t('moduleHealthOf')} {medications.length}</strong>
+                    <strong class="number number-metric">{takenCount} {_t('moduleHealthOf')} {medications.length}</strong>
                     <span class="hl-muted">{_t('moduleHealthDosesConfirmed')}</span>
-                    <span class="hl-muted">{medications.length - takenCount} {_t('moduleHealthRemaining')}</span>
+                    <span class="hl-muted number number-metric">{medications.length - takenCount} {_t('moduleHealthRemaining')}</span>
                   </div>
                 </div>
                 <div class="hl-adherence__breakdown">
@@ -1364,7 +1364,7 @@
   :global(.hl-orb--bp) {
     background: conic-gradient(var(--hl-accent) 63%, color-mix(in srgb, var(--hl-border) 80%, transparent) 0);
   }
-  :global(.hl-score-orb) strong { font-size: 2.2rem; line-height: 1; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  :global(.hl-score-orb) strong { font-size: 2.2rem; line-height: 1; font-weight: 700; letter-spacing: -0.02em; }
   :global(.hl-score-orb) small  { color: var(--hl-muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
 
   :global(.hl-score-meta) { display: grid; grid-template-columns: repeat(2,1fr); gap: 9px; }
@@ -1374,7 +1374,7 @@
     background: color-mix(in srgb, var(--hl-surface-strong) 88%, transparent);
     justify-content: center;
   }
-  :global(.hl-score-meta) strong { font-size: 0.93rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  :global(.hl-score-meta) strong { font-size: 0.93rem; font-weight: 600; }
   :global(.hl-score-meta) span   { color: var(--hl-muted); font-size: 0.72rem; }
 
   :global(.hl-hero-list) { display: grid; gap: 7px; }
@@ -1383,7 +1383,7 @@
     border-radius: 13px; background: color-mix(in srgb, var(--hl-surface-strong) 88%, transparent); display: grid; gap: 4px;
   }
   :global(.hl-hero-list) span   { color: var(--hl-muted); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.1em; }
-  :global(.hl-hero-list) strong { font-size: 0.93rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  :global(.hl-hero-list) strong { font-size: 0.93rem; font-weight: 600; }
 
   :global(.hl-hero-bar) {
     height: 5px; border-radius: 999px;
@@ -1559,7 +1559,7 @@
   @media (hover: hover) and (pointer: fine) {
     :global(.hl-stepper) button:hover { background: color-mix(in srgb, var(--hl-accent) 12%, var(--hl-surface)); }
   }
-  :global(.hl-stepper) strong { font-size: 1rem; font-variant-numeric: tabular-nums; }
+  :global(.hl-stepper) strong { font-size: 1rem; }
 
   :global(.hl-symptoms-panel) { display: grid; gap: 14px; overflow: auto; }
   :global(.hl-symptom-grid)   { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; }
@@ -1628,7 +1628,7 @@
     border-radius: 16px; background: color-mix(in srgb, var(--hl-surface-strong) 88%, transparent); display: grid; gap: 7px;
   }
   :global(.hl-correlation__top) { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-  :global(.hl-correlation__top) strong { font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+  :global(.hl-correlation__top) strong { font-size: 0.88rem; }
   :global(.hl-correlation) p { margin: 0; font-size: 0.82rem; color: var(--hl-muted); }
 
   :global(.hl-export-list) { display: grid; gap: 10px; overflow: auto; }
@@ -1655,7 +1655,7 @@
     :global(.hl-med__check):hover { border-color: var(--hl-accent); background: color-mix(in srgb, var(--hl-accent) 12%, transparent); }
   }
   :global(.hl-med__check--done) { background: var(--hl-accent); border-color: var(--hl-accent); color: var(--hl-bg); }
-  :global(.hl-med__copy) strong { font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+  :global(.hl-med__copy) strong { font-size: 0.88rem; }
   :global(.hl-med__copy) p      { margin: 2px 0 0; font-size: 0.78rem; color: var(--hl-muted); }
   :global(.hl-med__right) { display: flex; align-items: center; gap: 8px; }
   :global(.hl-med__check) {
@@ -1693,10 +1693,10 @@
     background: transparent;
     overflow: visible;
   }
-  :global(.hl-adherence__orb) strong { font-size: 1.4rem; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; }
+  :global(.hl-adherence__orb) strong { font-size: 1.4rem; line-height: 1; font-weight: 700; }
   :global(.hl-adherence__orb) small  { font-size: 0.68rem; color: var(--hl-muted); text-transform: uppercase; }
   :global(.hl-adherence__meta) { display: flex; flex-direction: column; gap: 4px; }
-  :global(.hl-adherence__meta) strong { font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+  :global(.hl-adherence__meta) strong { font-size: 1.1rem; }
   :global(.hl-adherence__breakdown) { display: grid; gap: 8px; overflow: auto; }
   :global(.hl-adherence__row) {
     display: grid; grid-template-columns: 1fr 100px auto;

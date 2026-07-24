@@ -2,6 +2,7 @@
   import type { Block } from '$lib/local-store/block';
   import { EmbedProcessor } from '$lib/local-store/block';
   import { editorStore } from '$lib/local-store/store';
+  import { tooltip } from "$lib/components/Tooltip.svelte";
 
   let { block, readonly = false }: { block: Block; readonly?: boolean } = $props();
 
@@ -222,7 +223,7 @@
       <div class="embed-value" bind:this={valueEl}></div>
 
       {#if !readonly}
-        <button class="embed-source-btn" onclick={startEdit} title="Edit source">
+        <button class="embed-source-btn" onclick={startEdit} use:tooltip={{ text: "Edit source" }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
           </svg>

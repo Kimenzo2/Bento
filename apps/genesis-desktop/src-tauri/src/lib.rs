@@ -1357,9 +1357,6 @@ pub fn run() {
             crate::mood::mood_activity_add,
             crate::mood::mood_activity_delete,
             crate::mood::mood_patterns,
-            crate::mood::mood_private_note_save,
-            crate::mood::mood_private_notes_list,
-            crate::mood::mood_private_note_delete,
 
             // Sleep — session system (OS + manual)
             crate::sleep::get_sleep_sessions,
@@ -1394,6 +1391,7 @@ pub fn run() {
             // Countdown — events, milestones, birthdays
             crate::commands::countdown::countdown_list_events,
             crate::commands::countdown::countdown_save_event,
+            crate::commands::countdown::countdown_update_event,
             crate::commands::countdown::countdown_delete_event,
             crate::commands::countdown::countdown_list_milestones,
             crate::commands::countdown::countdown_save_milestone,
@@ -1401,6 +1399,7 @@ pub fn run() {
             crate::commands::countdown::countdown_delete_milestone,
             crate::commands::countdown::countdown_list_birthdays,
             crate::commands::countdown::countdown_save_birthday,
+            crate::commands::countdown::countdown_update_birthday,
             crate::commands::countdown::countdown_delete_birthday,
             // Nutrition — hydration, meals, macros, goals, reminders
             crate::commands::nutrition::nutrition_log_water,
@@ -1494,11 +1493,9 @@ pub fn run() {
             export_focus_sessions,
             // Passwords Vault (E2EE SQLCipher)
             crate::commands::passwords::passwords_list,
-            crate::commands::passwords::passwords_get,
             crate::commands::passwords::passwords_search,
             crate::commands::passwords::passwords_save,
             crate::commands::passwords::passwords_delete,
-            crate::commands::passwords::passwords_migrate_from_storage,
             // AI Features Prefs (persisted via settings.json)
             crate::settings::commands::load_ai_features_prefs,
             crate::settings::commands::save_ai_features_prefs,
@@ -1541,6 +1538,7 @@ pub fn run() {
             crate::commands::voice::voice_pause,
             crate::commands::voice::voice_resume,
             crate::commands::voice::voice_cancel,
+            crate::commands::voice::voice_save_memo,
             // Voice Engine — Transcription & Dictation
             crate::commands::transcription::voice_paste_dictation,
             crate::commands::transcription::voice_save_note,

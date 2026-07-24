@@ -647,16 +647,16 @@
                 {/if}
               </div>
               <div class="bg-score-meta">
-                <div><strong>{CURRENCY}{overview?.totalIncome.toFixed(2) ?? '0.00'}</strong>
+                        <div><strong class="number number-hero">{CURRENCY}{overview?.totalIncome.toFixed(2) ?? '0.00'}</strong>
                   <span>Total income
                     {#if incomeChangePct !== null}
-                      <span class="bg-change-pct" class:bg-change-up={incomeChangePct > 0} class:bg-change-down={incomeChangePct < 0}>
+                      <span class="number number-stat bg-change-pct" class:bg-change-up={incomeChangePct > 0} class:bg-change-down={incomeChangePct < 0}>
                         {incomeChangePct > 0 ? '+' : ''}{incomeChangePct.toFixed(1)}%
                       </span>
                     {/if}
                   </span>
                 </div>
-                <div><span>{overview?.transactionCount ?? 0}</span><span>Transactions</span></div>
+                <div><span class="number number-stat">{overview?.transactionCount ?? 0}</span><span>Transactions</span></div>
               </div>
             </CardContent>
           </Card>
@@ -667,17 +667,17 @@
               <article>
                 <span>Expenses</span>
                 <div class="bg-hero-bar"><i style="--fill:{overview ? Math.min((overview.totalExpenses/(overview.totalIncome||1))*100, 100) : 0}%"></i></div>
-                <strong class="bg-expense">{CURRENCY}{overview?.totalExpenses.toFixed(2) ?? '0.00'}</strong>
+                <strong class="number number-metric bg-expense">{CURRENCY}{overview?.totalExpenses.toFixed(2) ?? '0.00'}</strong>
               </article>
               <article>
                 <span>Net Savings</span>
                 <div class="bg-hero-bar"><i style="--fill:{(overview?.netSavings ?? 0) > 0 ? Math.min(((overview?.netSavings ?? 0) / (overview?.totalIncome || 1)) * 100, 100) : 0}%" class:bg-bar-negative={(overview?.netSavings ?? 0) <= 0}></i></div>
-                <strong class="bg-savings">{CURRENCY}{overview?.netSavings.toFixed(2) ?? '0.00'}</strong>
+                <strong class="number number-metric bg-savings">{CURRENCY}{overview?.netSavings.toFixed(2) ?? '0.00'}</strong>
               </article>
               <article>
                 <span>Savings Rate</span>
                 <div class="bg-hero-bar"><i style="--fill:{(overview?.savingsRate ?? 0) > 0 ? Math.min(overview?.savingsRate ?? 0, 100) : 0}%" class:bg-bar-negative={(overview?.savingsRate ?? 0) <= 0}></i></div>
-                <strong>{overview?.savingsRate.toFixed(1) ?? '0.0'}%</strong>
+                <strong class="number number-metric">{overview?.savingsRate.toFixed(1) ?? '0.0'}%</strong>
               </article>
             </CardContent>
           </Card>
@@ -703,7 +703,7 @@
                         <div class="bg-cat-bar-track">
                           <div class="bg-cat-bar-fill" style="width: {Math.min(cat.percentUsed, 100)}%; background: {cat.color}"></div>
                         </div>
-                        <span class="bg-cat-amount">{CURRENCY}{cat.spent.toFixed(0)}</span>
+                        <span class="number number-tabular bg-cat-amount">{CURRENCY}{cat.spent.toFixed(0)}</span>
                       </div>
                     </div>
                   {/each}
@@ -789,7 +789,7 @@
                         </Table.Cell>
                         <Table.Cell class="text-[var(--bg-muted)] max-w-[200px] truncate">{tx.note ?? ''}</Table.Cell>
                         <Table.Cell class="text-[var(--bg-muted)]">{tx.dateKey.slice(5)}</Table.Cell>
-                        <Table.Cell class="text-end font-semibold {tx.txType === 'expense' ? 'bg-tx-expense' : 'bg-tx-income'}">
+                        <Table.Cell class="text-end number number-tabular number-semibold {tx.txType === 'expense' ? 'bg-tx-expense' : 'bg-tx-income'}">
                           {tx.txType === 'expense' ? '-' : '+'}{CURRENCY}{tx.amount.toFixed(2)}
                         </Table.Cell>
                         <Table.Cell>
@@ -911,14 +911,14 @@
                           <div class="bg-budget-card-header">
                             <Icon size={18} />
                             <span class="bg-budget-cat-name">{cat.name}</span>
-                            <button class="bg-mini-icon-btn" onclick={() => { editingCategory = cat; resetCatForm(cat); showCategoryModal = true; }} title="Edit category">
+                            <button class="bg-mini-icon-btn" onclick={() => { editingCategory = cat; resetCatForm(cat); showCategoryModal = true; }} use:tooltip={{ text: "Edit category" }}>
                               <span style="font-size: 12px;">✎</span>
                             </button>
-                            <button class="bg-mini-icon-btn" onclick={() => deleteCategory(cat.id)} title="Delete category">
+                            <button class="bg-mini-icon-btn" onclick={() => deleteCategory(cat.id)} use:tooltip={{ text: "Delete category" }}>
                               <Trash2 size={12} />
                             </button>
                             <button class="bg-edit-budget-btn" onclick={() => showEditBudget = showEditBudget === cat.id ? null : cat.id}>
-                              <span class="bg-budget-cat-amount">{cat.monthlyBudget > 0 ? CURRENCY + cat.monthlyBudget.toFixed(0) : '–'}</span>
+                              <span class="number number-tabular bg-budget-cat-amount">{cat.monthlyBudget > 0 ? CURRENCY + cat.monthlyBudget.toFixed(0) : '–'}</span>
                             </button>
                           </div>
                           <div class="bg-budget-bar-track">
@@ -926,8 +926,8 @@
                               class:bg-budget-bar--over={cat.percentUsed >= 100}></div>
                           </div>
                           <div class="bg-budget-card-footer">
-                            <span>{CURRENCY}{cat.spent.toFixed(2)} spent</span>
-                            <span class:bg-remaining-pos={cat.remaining >= 0} class:bg-remaining-neg={cat.remaining < 0}>
+                            <span class="number number-tabular">{CURRENCY}{cat.spent.toFixed(2)} spent</span>
+                            <span class="number number-tabular" class:bg-remaining-pos={cat.remaining >= 0} class:bg-remaining-neg={cat.remaining < 0}>
                               {cat.monthlyBudget > 0 ? CURRENCY + cat.remaining.toFixed(2) + ' left' : ''}
                             </span>
                           </div>
@@ -1044,7 +1044,7 @@
                   {/if}
                 </div>
                 <div class="subs-month-total">
-                  <span class="subs-total-amt">{CURRENCY}{calMonthlyTotal.toFixed(2)}</span>
+                  <span class="number number-hero subs-total-amt">{CURRENCY}{calMonthlyTotal.toFixed(2)}</span>
                   <span class="subs-total-label">/ month</span>
                 </div>
               </div>
@@ -1083,7 +1083,7 @@
                             class:subs-sqircle--paid={bill.paidThisMonth}
                             style="background:{SUB_COLORS[bill.name] ?? '#6b7280'}"
                             onclick={() => selectedBill = selectedBill?.id === bill.id ? null : bill}
-                            title="{bill.name} — {CURRENCY}{bill.amount.toFixed(2)}"
+                            use:tooltip={{ text: `${bill.name} — ${CURRENCY}${bill.amount.toFixed(2)}` }}
                           >
                             <BrandIcon name={bill.name} size={11} class="bg-brand-mono" />
                           </button>
@@ -1123,8 +1123,8 @@
                   </div>
 
                   <div class="subs-detail-rows">
-                    <div class="subs-dr"><span>Amount</span><strong>{CURRENCY}{sb.amount.toFixed(2)}</strong></div>
-                    <div class="subs-dr"><span>Yearly cost</span><strong>{CURRENCY}{(sb.amount * 12).toFixed(2)}</strong></div>
+                    <div class="subs-dr"><span>Amount</span><strong class="number number-tabular">{CURRENCY}{sb.amount.toFixed(2)}</strong></div>
+                    <div class="subs-dr"><span>Yearly cost</span><strong class="number number-tabular">{CURRENCY}{(sb.amount * 12).toFixed(2)}</strong></div>
                     <div class="subs-dr">
                       <span>Status</span>
                       <span class="subs-status" class:subs-status--paid={sb.paidThisMonth}>
@@ -1159,15 +1159,15 @@
                 <div class="subs-stats">
                   <div class="subs-stat">
                     <span class="subs-stat-lbl">Yearly forecast</span>
-                    <span class="subs-stat-val">{CURRENCY}{calYearlyTotal.toFixed(0)}</span>
+                    <span class="number number-stat subs-stat-val">{CURRENCY}{calYearlyTotal.toFixed(0)}</span>
                   </div>
                   <div class="subs-stat">
                     <span class="subs-stat-lbl">Average monthly</span>
-                    <span class="subs-stat-val">{CURRENCY}{calMonthlyTotal.toFixed(0)}</span>
+                    <span class="number number-stat subs-stat-val">{CURRENCY}{calMonthlyTotal.toFixed(0)}</span>
                   </div>
                   <div class="subs-stat subs-stat--full">
                     <span class="subs-stat-lbl">Paid this month</span>
-                    <span class="subs-stat-val">{calPaidCount}/{bills.length}</span>
+                    <span class="number number-stat subs-stat-val">{calPaidCount}/{bills.length}</span>
                   </div>
                 </div>
 
@@ -1188,7 +1188,7 @@
                         <span class="subs-row-due">Day {bill.dueDay}</span>
                       </div>
                       <div class="subs-row-right">
-                        <span class="subs-row-amt">{CURRENCY}{bill.amount.toFixed(2)}</span>
+                        <span class="number number-tabular subs-row-amt">{CURRENCY}{bill.amount.toFixed(2)}</span>
                         {#if bill.paidThisMonth}
                           <CheckCircle2 size={12} color="#22c55e" />
                         {/if}
@@ -1297,9 +1297,9 @@
                       <Bot size={18} />
                       <span class="bg-ai-name">{summary.provider}</span>
                     </div>
-                    <span class="bg-ai-total">{CURRENCY}{summary.totalCost.toFixed(2)}</span>
+                    <span class="number number-metric bg-ai-total">{CURRENCY}{summary.totalCost.toFixed(2)}</span>
                     <div class="bg-ai-tokens">
-                      <span>Tokens: {(summary.totalTokensIn + summary.totalTokensOut).toLocaleString()}</span>
+                      <span class="number number-tabular">Tokens: {(summary.totalTokensIn + summary.totalTokensOut).toLocaleString()}</span>
                       <span class="bg-ai-months">{summary.monthCount} {summary.monthCount === 1 ? 'month' : 'months'}</span>
                     </div>
                   </CardContent>
@@ -1336,8 +1336,8 @@
                             {#if entry.note}<span class="text-xs text-[var(--bg-muted)]">— {entry.note}</span>{/if}
                           </div>
                         </Table.Cell>
-                        <Table.Cell class="text-right font-mono">{CURRENCY}{entry.cost.toFixed(4)}</Table.Cell>
-                        <Table.Cell class="text-right text-[var(--bg-muted)]">{(entry.tokensIn + entry.tokensOut).toLocaleString()}</Table.Cell>
+                        <Table.Cell class="text-right number number-tabular">{CURRENCY}{entry.cost.toFixed(4)}</Table.Cell>
+                        <Table.Cell class="text-right number number-tabular text-[var(--bg-muted)]">{(entry.tokensIn + entry.tokensOut).toLocaleString()}</Table.Cell>
                         <Table.Cell>
                           <button class="bg-icon-btn bg-icon-btn--danger" onclick={() => deleteAiCost(entry.id)} use:tooltip={{ text: "Delete cost entry" }}>
                             <Trash2 size={12} />
@@ -1459,9 +1459,9 @@
                     {#each cashFlow as proj}
                       <Table.Row>
                         <Table.Cell class="font-medium">{proj.month}</Table.Cell>
-                        <Table.Cell class="bg-tx-income">{CURRENCY}{proj.projectedIncome.toFixed(0)}</Table.Cell>
-                        <Table.Cell class="bg-tx-expense">{CURRENCY}{proj.projectedExpenses.toFixed(0)}</Table.Cell>
-                        <Table.Cell class="text-end font-semibold {proj.projectedBalance >= 0 ? 'bg-tx-income' : ''}">
+                        <Table.Cell class="number number-tabular bg-tx-income">{CURRENCY}{proj.projectedIncome.toFixed(0)}</Table.Cell>
+                        <Table.Cell class="number number-tabular bg-tx-expense">{CURRENCY}{proj.projectedExpenses.toFixed(0)}</Table.Cell>
+                        <Table.Cell class="text-end number number-tabular number-semibold {proj.projectedBalance >= 0 ? 'bg-tx-income' : ''}">
                           {CURRENCY}{proj.projectedBalance.toFixed(0)}
                         </Table.Cell>
                       </Table.Row>
@@ -1472,7 +1472,7 @@
                     <Table.Footer>
                       <Table.Row>
                         <Table.Cell colspan={3}>Projected End Balance</Table.Cell>
-                        <Table.Cell class="text-end font-bold {last.projectedBalance >= 0 ? 'bg-tx-income' : ''}">
+                        <Table.Cell class="text-end number number-tabular number-semibold {last.projectedBalance >= 0 ? 'bg-tx-income' : ''}">
                           {CURRENCY}{last.projectedBalance.toFixed(0)}
                         </Table.Cell>
                       </Table.Row>
@@ -1516,13 +1516,13 @@
                   <CardContent style="display: flex; flex-direction: column; gap: 10px;">
                     <div class="bg-template-header">
                       <span class="bg-template-name">{t.name}</span>
-                      <span class="bg-template-income">{CURRENCY}{t.totalIncome.toFixed(0)} income</span>
+                      <span class="number number-tabular bg-template-income">{CURRENCY}{t.totalIncome.toFixed(0)} income</span>
                     </div>
                     <div class="bg-template-items">
                       {#each t.items as item}
                         <div class="bg-template-item">
                           <span>{item.categoryName}</span>
-                          <span>{CURRENCY}{item.amount.toFixed(0)}</span>
+                          <span class="number number-tabular">{CURRENCY}{item.amount.toFixed(0)}</span>
                         </div>
                       {/each}
                     </div>
@@ -1729,7 +1729,7 @@
     border-radius: 14px; border: 1px solid color-mix(in srgb, var(--bg-border) 80%, transparent);
     background: color-mix(in srgb, var(--bg-surface-strong) 88%, transparent);
   }
-  :global(.bg-score-meta) strong { font-size: 0.93rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  :global(.bg-score-meta) strong { font-size: 0.93rem; font-weight: var(--font-weight-regular); font-variant-numeric: tabular-nums; }
   :global(.bg-score-meta) span   { color: var(--bg-muted); font-size: 0.72rem; }
   :global(.bg-change-pct) { font-size: 10px; font-weight: 600; margin-left: 4px; white-space: nowrap; }
   :global(.bg-change-up) { color: var(--bg-green); }
@@ -1741,7 +1741,7 @@
     border-radius: 13px; background: color-mix(in srgb, var(--bg-surface-strong) 88%, transparent); display: grid; gap: 4px;
   }
   :global(.bg-hero-list) span   { color: var(--bg-muted); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.1em; }
-  :global(.bg-hero-list) strong { font-size: 0.93rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  :global(.bg-hero-list) strong { font-size: 0.93rem; font-weight: var(--font-weight-regular); font-variant-numeric: tabular-nums; }
 
   :global(.bg-hero-bar) {
     height: 5px; border-radius: 999px;
@@ -1939,7 +1939,7 @@
   }
   :global(.bg-ai-provider) { display: flex; align-items: center; gap: 8px; }
   :global(.bg-ai-name) { font-size: 13px; font-weight: 600; }
-  :global(.bg-ai-total) { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  :global(.bg-ai-total) { font-size: 22px; font-weight: var(--font-weight-regular); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
   :global(.bg-ai-tokens) { font-size: 12px; color: var(--bg-muted); display: flex; flex-direction: column; gap: 2px; }
   :global(.bg-ai-months) { font-size: 11px; }
 
@@ -2091,7 +2091,7 @@
   :global(.subs-badge--paid) { background: color-mix(in srgb, var(--bg-green) 15%, transparent); color: var(--bg-green); }
   :global(.subs-badge--unpaid) { background: color-mix(in srgb, var(--bg-amber) 15%, transparent); color: var(--bg-amber); }
   :global(.subs-month-total) { text-align: right; }
-  :global(.subs-total-amt) { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  :global(.subs-total-amt) { font-size: 22px; font-weight: var(--font-weight-regular); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
   :global(.subs-total-label) { font-size: 11px; color: var(--bg-muted); margin-left: 4px; }
   :global(.subs-dow) {
     display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
@@ -2227,7 +2227,7 @@
   }
   :global(.subs-stat--full) { grid-column: 1 / -1; }
   :global(.subs-stat-lbl) { font-size: 12px; color: var(--bg-muted); }
-  :global(.subs-stat-val) { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  :global(.subs-stat-val) { font-size: 14px; font-weight: var(--font-weight-regular); font-variant-numeric: tabular-nums; }
   :global(.subs-list) { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
   :global(.subs-row) {
     display: flex; align-items: center; gap: 10px; width: 100%;
@@ -2254,7 +2254,7 @@
   :global(.subs-row-name) { font-size: 13px; font-weight: 600; display: block; }
   :global(.subs-row-due) { font-size: 11px; color: var(--bg-muted); }
   :global(.subs-row-right) { display: flex; align-items: center; gap: 6px; }
-  :global(.subs-row-amt) { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  :global(.subs-row-amt) { font-size: 14px; font-weight: var(--font-weight-regular); font-variant-numeric: tabular-nums; }
   :global(.subs-empty) {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 8px; padding: 30px 20px; color: var(--bg-muted); text-align: center;

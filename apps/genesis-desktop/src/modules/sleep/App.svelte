@@ -709,13 +709,13 @@
               <circle cx="100" cy="100" r={arcR} fill="none" stroke="var(--sleep-accent)" stroke-width={arcStroke} stroke-linecap="round" stroke-dasharray="{arcFilled} {arcCircumference - arcFilled}" transform="rotate(-90 100 100)" />
             </svg>
             <div class="sleep-orb-center">
-              <strong>{score}</strong>
+              <strong class="number number-hero number-semibold">{score}</strong>
               <small>{_t('moduleSleepScore')}</small>
             </div>
           </div>
           <div class="sleep-meta">
-            <div><strong>{lastNight && sleepStats && sleepStats.avgDurationMin > 0 ? lastNight.durationMin >= sleepStats.avgDurationMin ? `+${Math.round((lastNight.durationMin / sleepStats.avgDurationMin - 1) * 100)}%` : `${Math.round((lastNight.durationMin / sleepStats.avgDurationMin - 1) * 100)}%` : '--'}</strong><span>{_t('moduleSleepBetterThanAvg')}</span></div>
-            <div><strong>{lastNight ? tsToHHMM(lastNight.wakeTs) : '--:--'}</strong><span>{_t('moduleSleepSmartWake')}</span></div>
+            <div><strong class="number number-tabular number-medium">{lastNight && sleepStats && sleepStats.avgDurationMin > 0 ? lastNight.durationMin >= sleepStats.avgDurationMin ? `+${Math.round((lastNight.durationMin / sleepStats.avgDurationMin - 1) * 100)}%` : `${Math.round((lastNight.durationMin / sleepStats.avgDurationMin - 1) * 100)}%` : '--'}</strong><span>{_t('moduleSleepBetterThanAvg')}</span></div>
+            <div><strong class="number number-tabular">{lastNight ? tsToHHMM(lastNight.wakeTs) : '--:--'}</strong><span>{_t('moduleSleepSmartWake')}</span></div>
           </div>
         </CardContent>
       </Card>
@@ -729,7 +729,7 @@
           {#each tonightFocus as item}
             <article>
               <span>{item.label}</span>
-              <strong>{item.value}</strong>
+              <strong class="number number-stat">{item.value}</strong>
               <p>{item.note}</p>
             </article>
           {/each}
@@ -750,7 +750,7 @@
               {#each tonightFocus as item}
                 <article>
                   <span>{item.label}</span>
-                  <strong>{item.value}</strong>
+                  <strong class="number number-stat">{item.value}</strong>
                   <p>{item.note}</p>
                 </article>
               {/each}
@@ -800,7 +800,7 @@
                 <article>
                   <div class="sleep-stage-copy">
                     <strong>{sub.label}</strong>
-                    <span>{sub.value}</span>
+                    <span class="number number-metric">{sub.value}</span>
                     <p>{sub.desc}</p>
                   </div>
                   <div class="sleep-meter" role="meter" aria-label="{sub.label} score" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(sub.fill)}><i style={`--fill:${sub.fill}%`}></i></div>
@@ -816,7 +816,7 @@
             </CardHeader>
             <CardContent class="sleep-breakdown">
               {#each scoreBreakdown as item}
-                <div><span>{item.label}</span><strong>{item.value}</strong></div>
+                <div><span>{item.label}</span><strong class="number number-stat">{item.value}</strong></div>
               {/each}
             </CardContent>
           </Card>
@@ -898,7 +898,7 @@
                     transform="rotate({seg.rotation} {seg.cx} {seg.cy})"
                   />
                 {/each}
-                <text x="120" y="114" text-anchor="middle" dominant-baseline="central" class="sleep-arc-score">
+                <text x="120" y="114" text-anchor="middle" dominant-baseline="central" class="sleep-arc-score number number-hero number-semibold">
                   {weeklyAvgScore}
                 </text>
                 <text x="120" y="134" text-anchor="middle" dominant-baseline="central" class="sleep-arc-label">
@@ -920,7 +920,7 @@
                   <span class="sleep-arc-legend-item">
                     <i style="background:{seg.color}"></i>
                     <span>{seg.day}</span>
-                    <strong>{seg.score}</strong>
+                    <strong class="number number-stat">{seg.score}</strong>
                   </span>
                 {/each}
               </div>
@@ -934,8 +934,8 @@
             </CardHeader>
             <CardContent class="sleep-list">
               {#if bestNight && worstNight}
-                <article><span>Best night</span><strong>{Math.round(bestNight.qualityScore ?? 0)}</strong><p>{shortDate(bestNight.date)} — {formatDuration(bestNight.durationMin)}</p></article>
-                <article><span>Weakest night</span><strong>{Math.round(worstNight.qualityScore ?? 0)}</strong><p>{shortDate(worstNight.date)} — {formatDuration(worstNight.durationMin)}</p></article>
+                <article><span>Best night</span><strong class="number number-stat">{Math.round(bestNight.qualityScore ?? 0)}</strong><p>{shortDate(bestNight.date)} — {formatDuration(bestNight.durationMin)}</p></article>
+                <article><span>Weakest night</span><strong class="number number-stat">{Math.round(worstNight.qualityScore ?? 0)}</strong><p>{shortDate(worstNight.date)} — {formatDuration(worstNight.durationMin)}</p></article>
                 <article><span>Trend</span><strong>{weeklyAvgScore >= 70 ? 'Rising' : 'Building'}</strong><p>{weeklyTrend.filter(d => d.score > 0).length} nights logged this week.</p></article>
               {:else}
                 <article><span>No data yet</span><strong>--</strong><p>Start logging your sleep to see patterns.</p></article>
@@ -955,7 +955,7 @@
               <input type="text" bind:value={alarmLabel} placeholder="Alarm label..." class="sa-input" />
               <div class="sa-time-wrap">
                 <input type="time" bind:value={alarmTime} class="sa-time" />
-                <span class="sa-time-hint">{formatTime24to12(alarmTime)}</span>
+                <span class="sa-time-hint number number-tabular">{formatTime24to12(alarmTime)}</span>
               </div>
               <select class="sa-sound" bind:value={alarmSound} onchange={(e) => previewAlarmSound(e)}>
                 {#each alarmSoundOptions as opt}
@@ -987,7 +987,7 @@
                   <strong>{alarm.label}</strong>
                   <p>{alarm.wakeWindow}{alarm.sound && alarm.sound !== 'alarm' ? ` · ${soundLabelMap.get(alarm.sound) ?? alarm.sound}` : ''}</p>
                 </div>
-                <div class="sleep-alarm-list__time" class:sa-time--inactive={!alarm.active}>{formatTime24to12(alarm.time)}</div>
+                <div class="sleep-alarm-list__time number number-tabular" class:sa-time--inactive={!alarm.active}>{formatTime24to12(alarm.time)}</div>
                 <div class="sa-actions">
                   <button class="sa-toggle" onclick={() => toggleAlarm(alarm.id)} aria-label={alarm.active ? 'Disable alarm' : 'Enable alarm'} use:tooltip={{ text: alarm.active ? 'Disable alarm' : 'Enable alarm' }}>
                     {#if alarm.active}
@@ -1016,27 +1016,27 @@
             <CardContent class="sleep-session-stats">
               {#if sleepStats}
                 <div class="ss-stat">
-                  <span class="ss-stat-value">{formatDuration(sleepStats.avgDurationMin)}</span>
+                  <span class="ss-stat-value number number-stat">{formatDuration(sleepStats.avgDurationMin)}</span>
                   <span class="ss-stat-label">Avg duration</span>
                 </div>
                 <div class="ss-stat">
-                  <span class="ss-stat-value">{sleepStats.avgBedtime}</span>
+                  <span class="ss-stat-value number number-tabular">{sleepStats.avgBedtime}</span>
                   <span class="ss-stat-label">Avg bedtime</span>
                 </div>
                 <div class="ss-stat">
-                  <span class="ss-stat-value">{sleepStats.avgWaketime}</span>
+                  <span class="ss-stat-value number number-tabular">{sleepStats.avgWaketime}</span>
                   <span class="ss-stat-label">Avg wake</span>
                 </div>
                 <div class="ss-stat">
-                  <span class="ss-stat-value" class:ss-stat--good={sleepStats.consistencyScore >= 70} class:ss-stat--warn={sleepStats.consistencyScore >= 40 && sleepStats.consistencyScore < 70} class:ss-stat--bad={sleepStats.consistencyScore < 40}>{Math.round(sleepStats.consistencyScore)}</span>
+                  <span class="ss-stat-value number number-stat" class:ss-stat--good={sleepStats.consistencyScore >= 70} class:ss-stat--warn={sleepStats.consistencyScore >= 40 && sleepStats.consistencyScore < 70} class:ss-stat--bad={sleepStats.consistencyScore < 40}>{Math.round(sleepStats.consistencyScore)}</span>
                   <span class="ss-stat-label">Consistency</span>
                 </div>
                 <div class="ss-stat">
-                  <span class="ss-stat-value" class:ss-stat--bad={sleepStats.sleepDebtMin > 0}>{sleepStats.sleepDebtMin > 0 ? `-${formatDuration(sleepStats.sleepDebtMin)}` : 'On track'}</span>
+                  <span class="ss-stat-value number number-stat" class:ss-stat--bad={sleepStats.sleepDebtMin > 0}>{sleepStats.sleepDebtMin > 0 ? `-${formatDuration(sleepStats.sleepDebtMin)}` : 'On track'}</span>
                   <span class="ss-stat-label">Sleep debt</span>
                 </div>
                 <div class="ss-stat">
-                  <span class="ss-stat-value">{sleepStats.totalSessions}</span>
+                  <span class="ss-stat-value number number-stat">{sleepStats.totalSessions}</span>
                   <span class="ss-stat-label">Sessions</span>
                 </div>
               {:else}
@@ -1107,7 +1107,7 @@
                         >
                         </div>
                       </div>
-                      <span class="ss-row-time">{formatDuration(session.durationMin)}</span>
+                      <span class="ss-row-time number number-tabular">{formatDuration(session.durationMin)}</span>
                       <Badge variant="outline">{session.source === 'auto' ? 'Detected' : 'Manual'}</Badge>
                     </div>
                     {#if sessionDeleteLoading !== session.id}
@@ -1143,7 +1143,7 @@
                 <input type="time" bind:value={goalWaketime} class="sg-input" />
               </label>
               <label class="sg-field sg-field--wide">
-                <span class="sg-label">Target duration: <strong>{formatDuration(goalDuration)}</strong></span>
+                <span class="sg-label">Target duration: <strong class="number number-stat">{formatDuration(goalDuration)}</strong></span>
                 <input type="range" min="360" max="600" step="15" bind:value={goalDuration} class="sg-slider" />
                 <div class="sg-slider-labels">
                   <span>6h</span>
@@ -1336,11 +1336,8 @@
   }
 
   :global(.sleep-orb-center) strong {
-    font-size: 3rem;
     line-height: 1;
-    font-weight: 700;
     letter-spacing: -0.02em;
-    font-variant-numeric: tabular-nums;
     color: var(--sleep-accent);
   }
 
@@ -1365,7 +1362,6 @@
   :global(.sleep-meta) strong {
     display: block;
     font-size: 1.35rem;
-    font-variant-numeric: tabular-nums;
   }
 
   :global(.sleep-summary-list),
@@ -1410,7 +1406,6 @@
     display: block;
     margin-top: 6px;
     font-size: 1.2rem;
-    font-variant-numeric: tabular-nums;
   }
 
   :global(.sleep-shell__body) {
@@ -1514,10 +1509,7 @@
   :global(.sleep-breakdown) strong {
     display: block;
     margin-top: 12px;
-    font-size: 2rem;
-    font-weight: 700;
     letter-spacing: -0.01em;
-    font-variant-numeric: tabular-nums;
   }
 
   :global(.sleep-routine-board) {
@@ -1556,10 +1548,7 @@
   }
 
   :global(.sleep-arc-score) {
-    font-size: 2rem;
-    font-weight: 700;
     fill: var(--sleep-ink);
-    font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
   }
 
@@ -1809,8 +1798,8 @@
   }
 
   :global(.sleep-alarm-list__time) {
-    font: 700 1.4rem "JetBrains Mono", monospace;
-    font-variant-numeric: tabular-nums;
+    font-size: 1.4rem;
+    font-weight: var(--font-weight-semibold);
     letter-spacing: -0.01em;
   }
 
@@ -1971,8 +1960,6 @@
   :global(.ss-stat-value) {
     display: block;
     font-size: 1.3rem;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
   }
 
   :global(.ss-stat-label) {
@@ -2056,11 +2043,8 @@
   }
 
   :global(.ss-row-time) {
-    font-size: 0.78rem;
-    font-weight: 600;
     width: 52px;
     text-align: right;
-    font-variant-numeric: tabular-nums;
   }
 
   :global(.ss-row-delete) {

@@ -102,7 +102,7 @@
       <span class="water-icon">💧</span>
       <div>
         <h1 class="water-title">{_t("moduleWaterTitle", "Hydration")}</h1>
-        <p class="water-subtitle">{_t("moduleWaterGoal", "Goal")}: {dailyGoal} {_t("moduleWaterCupsDay", "cups/day")}</p>
+        <p class="water-subtitle">{_t("moduleWaterGoal", "Goal")}: <span class="number number-metric">{dailyGoal}</span> {_t("moduleWaterCupsDay", "cups/day")}</p>
       </div>
     </div>
     <button class="water-btn water-btn-ghost" onclick={() => (showHistory = !showHistory)}>
@@ -123,9 +123,9 @@
       />
     </div>
     <div class="water-progress-info">
-      <span class="water-progress-label">{_t("moduleWaterProgressPercent", "{p}% of daily goal").replace("{p}", String(progressPercent))}</span>
+      <span class="water-progress-label">{@html _t("moduleWaterProgressPercent", "{p}% of daily goal").replace("{p}", `<span class="number number-hero number-semibold">${progressPercent}</span>`)}</span>
       {#if remaining > 0}
-        <span class="water-progress-remaining">{_t("moduleWaterRemaining", "{n} cups remaining").replace("{n}", String(remaining))}</span>
+        <span class="water-progress-remaining">{@html _t("moduleWaterRemaining", "{n} cups remaining").replace("{n}", `<span class="number number-stat">${remaining}</span>`)}</span>
       {:else}
         <span class="water-progress-done">✅ {_t("moduleWaterGoalReached", "Goal reached!")}</span>
       {/if}
@@ -141,7 +141,7 @@
           <button class="water-preset-btn" onclick={() => addLog(preset.amount)}>
             <span class="water-preset-icon">{preset.icon}</span>
             <span class="water-preset-label">{preset.label}</span>
-            <span class="water-preset-amount">{preset.amount} cups</span>
+            <span class="water-preset-amount"><span class="number number-tabular">{preset.amount}</span> cups</span>
           </button>
         {/each}
       </div>
@@ -182,7 +182,7 @@
         <div class="water-log-list">
           {#each todayLogs as log (log.id)}
             <div class="water-log-row" transition:slide={{ duration: 100 }}>
-              <span class="water-log-amount">{log.amount} cups</span>
+              <span class="water-log-amount"><span class="number number-tabular">{log.amount}</span> cups</span>
               <span class="water-log-time">{new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
               <button class="water-btn-icon water-btn-icon--danger" onclick={() => deleteLog(log.id)}>✕</button>
             </div>
@@ -206,7 +206,7 @@
             <div class="water-day-header">
               <span class="water-day-date">{new Date(day.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</span>
               <span class="water-day-total" class:water-day-total--done={day.total >= dailyGoal}>
-                {day.total} cups
+                <span class="number number-stat">{day.total}</span> cups
               </span>
             </div>
             <div class="water-day-bar">

@@ -135,44 +135,6 @@ pub async fn passwords_save(
     Ok(())
 }
 
-/// Get a single password vault entry by ID.
-#[tauri::command]
-pub async fn passwords_get(
-    auth: State<'_, crate::auth::AuthManager>,
-    crypto: State<'_, CryptoService>,
-    id: String,
-) -> Result<Option<VaultEntry>, String> {
-    crate::auth::require_billing_tier(&auth, "passwords").await?;
-
-    let pool = crypto.pool("passwords").await?;
-    ensure_passwords_table(&pool).await?;
-
-    let row = sqlx::query(
-        "SELECT id, site, username, password_encrypted, notes_encrypted, \
-                created_at, updated_at \
-         FROM passwords \
-         WHERE id = ?",
-    )
-    .bind(&id)
-    .fetch_optional(&pool)
-    .await
-    .map_err(|e| e.to_string())?;
-
-    Ok(row.map(|r| VaultEntry {
-        id: r.try_get::<String, _>("id").unwrap_or_default(),
-        site: r.try_get::<String, _>("site").unwrap_or_default(),
-        username: r.try_get::<String, _>("username").unwrap_or_default(),
-        password: r
-            .try_get::<String, _>("password_encrypted")
-            .unwrap_or_default(),
-        notes: r
-            .try_get::<String, _>("notes_encrypted")
-            .unwrap_or_default(),
-        created: r.try_get::<i64, _>("created_at").unwrap_or(0),
-        updated: r.try_get::<i64, _>("updated_at").unwrap_or(0),
-    }))
-}
-
 /// Search password vault entries by site or username.
 #[tauri::command]
 pub async fn passwords_search(
@@ -231,52 +193,16 @@ pub async fn passwords_delete(
     let pool = crypto.pool("passwords").await?;
     ensure_passwords_table(&pool).await?;
 
-    sqlx::query("DELETE FROM passwords WHERE id = ?")
+    let result = sqlx::query("DELETE FROM passwords WHERE id = ?")
         .bind(&id)
         .execute(&pool)
         .await
         .map_err(|e| e.to_string())?;
 
+    if result.rows_affected() == 0 {
+        return Err(format!("No password entry found with id '{}'", id));
+    }
+
     Ok(())
 }
 
-/// Migrate existing localStorage passwords into the encrypted DB.
-///
-/// Accepts a JSON string (the full `bento_passwords` localStorage value) and
-/// inserts all entries that don't already exist (idempotent — safe to call
-/// multiple times). Returns the count of entries migrated.
-#[tauri::command]
-pub async fn passwords_migrate_from_storage(
-    auth: State<'_, crate::auth::AuthManager>,
-    crypto: State<'_, CryptoService>,
-    entries_json: String,
-) -> Result<usize, String> {
-    crate::auth::require_billing_tier(&auth, "passwords").await?;
-
-    let entries: Vec<VaultEntry> =
-        serde_json::from_str(&entries_json).map_err(|e| format!("Invalid entries JSON: {e}"))?;
-
-    let pool = crypto.pool("passwords").await?;
-    ensure_passwords_table(&pool).await?;
-    let count = entries.len();
-
-    for entry in &entries {
-        sqlx::query(
-            "INSERT OR IGNORE INTO passwords \
-                (id, site, username, password_encrypted, notes_encrypted, created_at, updated_at) \
-             VALUES (?, ?, ?, ?, ?, ?, ?)",
-        )
-        .bind(&entry.id)
-        .bind(&entry.site)
-        .bind(&entry.username)
-        .bind(&entry.password)
-        .bind(&entry.notes)
-        .bind(entry.created)
-        .bind(entry.updated)
-        .execute(&pool)
-        .await
-        .map_err(|e| e.to_string())?;
-    }
-
-    Ok(count)
-}

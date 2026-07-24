@@ -1034,9 +1034,9 @@
           {#if showColorPicker}
             <div class="color-picker-popup">
               {#each TEXT_COLORS as c}
-                <button class="color-swatch" style="background:{c.color}" title={c.label} onclick={() => handleColorAction(MarkType.Color, c.id)} type="button"></button>
+                <button class="color-swatch" style="background:{c.color}" use:tooltip={{ text: c.label }} onclick={() => handleColorAction(MarkType.Color, c.id)} type="button"></button>
               {/each}
-              <button class="color-swatch" style="background:transparent;border:1px dashed var(--muted);" title="Remove color" onclick={() => handleColorAction(MarkType.Color, '')} type="button"><span style="color:var(--muted);font-size:10px;">✕</span></button>
+              <button class="color-swatch" style="background:transparent;border:1px dashed var(--muted);" use:tooltip={{ text: "Remove color" }} onclick={() => handleColorAction(MarkType.Color, '')} type="button"><span style="color:var(--muted);font-size:10px;">✕</span></button>
             </div>
           {/if}
         </div>
@@ -1047,9 +1047,9 @@
           {#if showHighlightPicker}
             <div class="color-picker-popup">
               {#each HIGHLIGHT_COLORS as c}
-                <button class="color-swatch" style="background:{c.color}" title={c.label} onclick={() => handleColorAction(MarkType.BgColor, c.id)} type="button"></button>
+                <button class="color-swatch" style="background:{c.color}" use:tooltip={{ text: c.label }} onclick={() => handleColorAction(MarkType.BgColor, c.id)} type="button"></button>
               {/each}
-              <button class="color-swatch" style="background:transparent;border:1px dashed var(--muted);" title="Remove highlight" onclick={() => handleColorAction(MarkType.BgColor, '')} type="button"><span style="color:var(--muted);font-size:10px;">✕</span></button>
+              <button class="color-swatch" style="background:transparent;border:1px dashed var(--muted);" use:tooltip={{ text: "Remove highlight" }} onclick={() => handleColorAction(MarkType.BgColor, '')} type="button"><span style="color:var(--muted);font-size:10px;">✕</span></button>
             </div>
           {/if}
         </div>

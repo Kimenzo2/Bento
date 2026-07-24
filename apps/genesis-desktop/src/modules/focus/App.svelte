@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
+  import { toast } from "svelte-sonner";
   import { activeBundle, createTranslator } from "$lib/i18n";
   import { sanitizeError } from "$lib/utils/logger";
   import { exportContentToFile } from "$lib/services/task-service";
@@ -13,7 +13,7 @@
   import TimerIcon from "@lucide/svelte/icons/timer";
   import Volume2Icon from "@lucide/svelte/icons/volume-2";
   import VolumeXIcon from "@lucide/svelte/icons/volume-x";
-  import { startAmbient, getActiveAmbient, stopAmbientImmediate, preloadSounds, ensureAudioContext, isSoundLoaded, type SoundName } from "$lib/services/sounds";
+  import { startAmbient, getActiveAmbient, stopAmbientImmediate, preloadSounds, ensureAudioContext, type SoundName } from "$lib/services/sounds";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import {
@@ -30,12 +30,13 @@
     ensureModuleSection,
     getModuleSectionLabel,
     moduleSectionStore,
-    setModuleSection,
   } from "$lib/stores/module-sections.store";
 
   const moduleId = "focus";
   const sectionLabels = ["Timer", "Sessions", "Sounds", "Blocking", "History", "Review"] as const;
   let selectedSection = $derived(getModuleSectionLabel($moduleSectionStore, moduleId, sectionLabels));
+
+  let _t = $derived.by(() => createTranslator($activeBundle));
 
   type FocusPreset = {
     label: string;
@@ -123,18 +124,19 @@
     try { localStorage.setItem("focus:soundVolume", String(v)); } catch {}
   }
 
-  onMount(() => {
+  $effect(() => {
     ensureModuleSection(moduleId, sectionLabels);
     void loadFocusDashboard();
-    // Preload ambient sounds in the background
     void preloadSounds(focusSounds.map(s => s.name));
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = undefined;
+      }
+      stopAmbientImmediate();
+    };
   });
-
-  let _t = $derived.by(() => createTranslator($activeBundle));
-
-  function navigateToSection(section: typeof sectionLabels[number]) {
-    setModuleSection(moduleId, section, sectionLabels);
-  }
 
   async function loadFocusDashboard() {
     focusLoading = true;
@@ -143,9 +145,10 @@
     try {
       focusDashboard = await invoke<FocusDashboardData>("get_focus_dashboard");
     } catch (error) {
-      console.warn("[focus] failed to load dashboard:", error);
+      const msg = error instanceof Error ? sanitizeError(error.message) : "Could not load focus data.";
+      toast.error(msg);
       focusDashboard = createEmptyFocusDashboard();
-      focusError = error instanceof Error ? sanitizeError(error.message) : "Could not load focus data.";
+      focusError = msg;
     } finally {
       focusLoading = false;
     }
@@ -166,7 +169,7 @@
       });
       await loadFocusDashboard();
     } catch (error) {
-      console.warn("[focus] failed to record session:", error);
+      toast.error(sanitizeError(String(error)));
     }
   }
 
@@ -226,6 +229,7 @@
       } else {
         // Timer completed — log the session via backend
         stopTimer();
+        toast.success(`Focus session "${currentSession}" completed!`, { duration: 5000 });
         const elapsedMinutes = Math.round(totalDuration / 60);
         void logFocusSession(elapsedMinutes, currentSession);
       }
@@ -247,10 +251,10 @@
         "CSV files"
       );
       if (saved) {
-        console.log("[focus] export saved to:", saved);
+        toast.success("Focus sessions exported successfully");
       }
     } catch (error) {
-      console.warn("[focus] export failed:", error);
+      toast.error("Failed to export focus sessions");
     }
   }
 
@@ -267,7 +271,7 @@
       await startAmbient(name, { volume: soundVolume, fadeInMs: 300 });
       activeSoundName = name;
     } catch (e) {
-      console.warn("[focus] Failed to start sound:", e);
+      toast.error("Failed to start sound");
     } finally {
       soundLoading = false;
     }
@@ -280,9 +284,7 @@
     if (current) current.setVolume(v, 150);
   }
 
-  onDestroy(() => {
-    stopAmbientImmediate();
-  });
+
 </script>
 
 <main class="focus-workspace module-root" data-module="focus">
@@ -306,7 +308,7 @@
     <header class="focus-shell__header">
       <div class="focus-shell__intro">
         <div class="focus-shell__eyebrow">
-          <TimerIcon size={13}/><span>Focus</span><Badge variant="outline">{selectedSection}</Badge>
+          <TimerIcon size={13}/><span>{_t('moduleFocusTitle')}</span><Badge variant="outline">{selectedSection}</Badge>
         </div>
         <h1>Deep work sessions</h1>
         <p>Block distractions, track time, and build focus habits.</p>
@@ -315,12 +317,21 @@
 
     {#if selectedSection === "Timer"}
     <section class="focus-hero-grid focus-hero-grid--full">
-      <Card class="focus-timer-card">
-        <CardHeader>
-          <CardTitle>{currentSession}</CardTitle>
-          <CardDescription>Single-session control stays front and center.</CardDescription>
-        </CardHeader>
-        <CardContent class="focus-timer-card__content">
+    {#if focusLoading}
+      <div class="focus-timer-layout">
+        <div class="focus-timer-layout__main">
+          <div class="skeleton skeleton--ring" />
+          <div class="skeleton skeleton--controls" />
+        </div>
+        <div class="focus-preset-grid">
+          {#each { length: 4 } as _}
+            <div class="skeleton skeleton--preset" />
+          {/each}
+        </div>
+      </div>
+    {:else}
+      <div class="focus-timer-layout">
+        <div class="focus-timer-layout__main">
           <div class="focus-ring">
             <PremiumRing
               size={200}
@@ -337,7 +348,7 @@
               class="focus-controls__button focus-controls__button--reset"
               aria-label={_t('commonRestart')}
               onclick={resetTimer}
-              use:tooltip={{ text: "Reset timer" }}
+              use:tooltip={{ text: _t('commonRestart') }}
             >
               <RotateCcwIcon size={20} />
             </button>
@@ -355,25 +366,24 @@
               {/if}
             </button>
           </div>
-        </CardContent>
-        <div class="focus-timer-presets">
-          <div class="focus-preset-grid">
-            {#each timerPresets as preset}
-              <button
-                type="button"
-                class:focus-preset-btn--active={currentSession === preset.label}
-                onclick={() => selectPreset(preset)}
-                disabled={isRunning}
-              >
-                <strong>{preset.label}</strong>
-                {#if preset.description}
-                  <p>{preset.description}</p>
-                {/if}
-              </button>
-            {/each}
-          </div>
         </div>
-      </Card>
+        <div class="focus-preset-grid">
+          {#each timerPresets as preset (preset.label)}
+            <button
+              type="button"
+              class:focus-preset-btn--active={currentSession === preset.label}
+              onclick={() => selectPreset(preset)}
+              disabled={isRunning}
+            >
+              <strong>{preset.label}</strong>
+              {#if preset.description}
+                <p>{preset.description}</p>
+              {/if}
+            </button>
+          {/each}
+        </div>
+      </div>
+    {/if}
         </section>
     {/if}
 
@@ -410,13 +420,13 @@
                 </div>
               </div>
             {:else}
-              {#each focusDashboard.sessions as session}
+              {#each focusDashboard.sessions as session (session.id)}
                 <article>
                   <div>
                     <strong>{session.label}</strong>
                     <p>{session.note}</p>
                   </div>
-                  <span>{session.duration}</span>
+                  <span class="number number-metric">{session.duration}</span>
                 </article>
               {/each}
             {/if}
@@ -430,7 +440,7 @@
           </CardHeader>
           <CardContent class="focus-sound-list">
             <div class="focus-sound-grid">
-              {#each focusSounds as snd}
+              {#each focusSounds as snd (snd.name)}
                 {const isActive = activeSoundName === snd.name}
                 <button
                   type="button"
@@ -467,7 +477,7 @@
                 value={soundVolume}
                 oninput={(e) => updateSoundVolume(parseFloat((e.target as HTMLInputElement).value))}
               />
-              <span>{Math.round(soundVolume * 100)}%</span>
+              <span class="number number-tabular number-medium">{Math.round(soundVolume * 100)}%</span>
             </div>
           </CardContent>
         </Card>
@@ -501,7 +511,7 @@
                 </div>
               </div>
             {:else}
-              {#each focusDashboard.blockers as blocker}
+              {#each focusDashboard.blockers as blocker (blocker.title)}
                 <article>
                   <BanIcon size={18} />
                   <div>
@@ -544,7 +554,7 @@
                 </div>
               </div>
             {:else}
-              {#each focusDashboard.reviewNotes as note}
+              {#each focusDashboard.reviewNotes as note (note.title)}
                 <article>
                   <SparklesIcon size={18} />
                   <div>
@@ -573,7 +583,7 @@
 </main>
 
 <style>
-  :global(.focus-workspace) {
+  .focus-workspace {
     --focus-bg: var(--background);
     --focus-surface: color-mix(in srgb, var(--surface) 96%, var(--background));
     --focus-surface-strong: color-mix(in srgb, var(--surface) 88%, var(--background));
@@ -594,18 +604,18 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  :global(.focus-workspace) button,
-  :global(.focus-workspace) input,
-  :global(.focus-workspace) select {
+  .focus-workspace button,
+  .focus-workspace input,
+  .focus-workspace select {
     user-select: none;
   }
 
-  :global(.focus-workspace) ::selection {
+  .focus-workspace ::selection {
     background: color-mix(in srgb, var(--focus-accent) 22%, transparent);
     color: var(--focus-ink);
   }
 
-  :global(.focus-shell) {
+  .focus-shell {
     display: flex;
     flex-direction: column;
     gap: 0;
@@ -615,18 +625,18 @@
     box-sizing: border-box;
   }
 
-  :global(.focus-shell__header) {
+  .focus-shell__header {
     display: flex;
     justify-content: space-between;
     gap: 20px;
     align-items: flex-start;
   }
 
-  :global(.focus-shell__intro) {
+  .focus-shell__intro {
     max-width: 56rem;
   }
 
-  :global(.focus-shell__eyebrow) {
+  .focus-shell__eyebrow {
     display: flex;
     gap: 10px;
     align-items: center;
@@ -637,7 +647,7 @@
     text-transform: uppercase;
   }
 
-  :global(.focus-shell__intro) h1 {
+  .focus-shell__intro h1 {
     margin: 0;
     font-size: clamp(1.7rem, 2.5vw, 2.6rem);
     line-height: 1.05;
@@ -646,7 +656,7 @@
     text-wrap: balance;
   }
 
-  :global(.focus-shell__intro) p {
+  .focus-shell__intro p {
     margin: 12px 0 0;
     max-width: 42rem;
     color: var(--focus-muted);
@@ -655,7 +665,7 @@
     text-wrap: pretty;
   }
 
-  :global(.focus-status-banner) {
+  .focus-status-banner {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -666,12 +676,12 @@
     color: var(--focus-ink);
   }
 
-  :global(.focus-status-banner--error) {
+  .focus-status-banner--error {
     border-color: color-mix(in srgb, #ef4444 38%, var(--focus-border));
     background: color-mix(in srgb, #ef4444 10%, var(--focus-surface));
   }
 
-  :global(.focus-status-banner__dot) {
+  .focus-status-banner__dot {
     width: 8px;
     height: 8px;
     border-radius: 999px;
@@ -679,34 +689,23 @@
     flex-shrink: 0;
   }
 
-  :global(.focus-status-banner--error) .focus-status-banner__dot {
+  .focus-status-banner--error .focus-status-banner__dot {
     background: #ef4444;
   }
 
-  :global(.focus-hero-grid) {
+  .focus-hero-grid {
     display: grid;
     grid-template-columns: 1.1fr 0.9fr;
     gap: 16px;
   }
 
-  :global(.focus-hero-grid--full) {
+  .focus-hero-grid--full {
     display: flex;
     flex-direction: column;
     flex: 1;
     min-height: 0;
   }
 
-  :global(.focus-hero-grid--full > .focus-timer-card) {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    width: calc(100% - 48px);
-    border-radius: 16px;
-    margin: 16px 24px 24px;
-  }
-
-  :global(.focus-timer-card),
   :global(.focus-panel) {
     border-color: var(--focus-border);
     background:
@@ -717,54 +716,56 @@
       );
   }
 
-  :global(.focus-hero-grid--full > .focus-timer-card > div) {
-    flex: 1;
+  .focus-timer-layout {
     display: flex;
     flex-direction: column;
-  }
-
-  :global(.focus-timer-card__content) {
-    flex: 1;
-    display: grid;
-    grid-template-columns: 1fr auto;
     gap: 24px;
-    align-items: center;
+    flex: 1;
+    min-height: 0;
+    padding: 0 24px 24px;
   }
 
-  :global(.focus-ring) {
+  .focus-timer-layout__main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 48px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .focus-ring {
     position: relative;
     width: 220px;
     aspect-ratio: 1;
   }
 
-  :global(.focus-ring) svg {
+  .focus-ring svg {
     width: 100%;
     height: 100%;
     transform: rotate(-90deg);
   }
 
-  :global(.focus-ring__bg),
-  :global(.focus-ring__progress) {
+  .focus-ring__bg,
+  .focus-ring__progress {
     fill: none;
     stroke-width: 8;
   }
 
-  :global(.focus-ring__bg) {
+  .focus-ring__bg {
     stroke: color-mix(in srgb, var(--focus-border) 72%, transparent);
   }
 
-  :global(.focus-ring__progress) {
+  .focus-ring__progress {
     stroke: var(--focus-accent);
     stroke-linecap: round;
   }
 
-  :global(.focus-ring) strong {
+  .focus-ring strong {
     position: absolute;
     inset: 0;
     display: grid;
     place-items: center;
-    /* Space Grotesk — timer digits ONLY. tnum keeps digits equal-width so
-       the display never jumps as seconds change. */
     font-family: 'Space Grotesk', system-ui, sans-serif;
     font-size: 64px;
     font-weight: 700;
@@ -773,13 +774,13 @@
     line-height: 1;
   }
 
-  :global(.focus-controls) {
+  .focus-controls {
     display: flex;
     gap: 12px;
     align-items: center;
   }
 
-  :global(.focus-controls__button) {
+  .focus-controls__button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -791,17 +792,22 @@
     user-select: none;
   }
 
+  .focus-controls__button:focus-visible {
+    outline: 2px solid var(--focus-accent);
+    outline-offset: 3px;
+  }
+
   @media (hover: hover) and (pointer: fine) {
-    :global(.focus-controls__button:hover) {
+    .focus-controls__button:hover {
       transform: translateY(-1px);
     }
   }
 
-  :global(.focus-controls__button:active) {
+  .focus-controls__button:active {
     transform: translateY(0) scale(0.96);
   }
 
-  :global(.focus-controls__button--reset) {
+  .focus-controls__button--reset {
     width: 52px;
     height: 52px;
     border: 1px solid var(--focus-border);
@@ -809,12 +815,12 @@
     color: var(--focus-ink);
   }
 
-  :global(.focus-controls__button--reset:hover) {
+  .focus-controls__button--reset:hover {
     background: color-mix(in srgb, var(--focus-surface-strong) 100%, transparent);
     border-color: color-mix(in srgb, var(--focus-border) 140%, transparent);
   }
 
-  :global(.focus-controls__button--play) {
+  .focus-controls__button--play {
     width: 68px;
     height: 68px;
     border: none;
@@ -822,34 +828,27 @@
     color: var(--focus-bg);
   }
 
-  :global(.focus-controls__button--play:hover) {
+  .focus-controls__button--play:hover {
     background: color-mix(in srgb, var(--focus-ink) 88%, transparent);
   }
 
-  :global(.focus-hero-list),
-  :global(.focus-session-list),
-  :global(.focus-sound-list),
-  :global(.focus-block-list),
-  :global(.focus-review-list) {
+  .focus-session-list,
+  .focus-sound-list,
+  .focus-block-list,
+  .focus-review-list {
     display: grid;
     gap: 12px;
   }
 
-  :global(.focus-hero-list) article,
-  :global(.focus-session-list) article,
-  :global(.focus-block-list) article,
-  :global(.focus-review-list) article {
+  .focus-session-list article,
+  .focus-block-list article,
+  .focus-review-list article {
     border: 1px solid color-mix(in srgb, var(--focus-border) 92%, transparent);
     border-radius: 20px;
     background: color-mix(in srgb, var(--focus-surface-strong) 92%, transparent);
   }
 
-  :global(.focus-hero-list) article {
-    padding: 16px 18px;
-  }
-
-  /* ── Sound grid ── */
-  :global(.focus-sound-grid) {
+  .focus-sound-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
@@ -870,6 +869,11 @@
     transition: border-color 160ms ease, background-color 160ms ease;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
+  }
+
+  :global(.focus-sound-card:focus-visible) {
+    outline: 2px solid var(--focus-accent);
+    outline-offset: 2px;
   }
 
   @media (hover: hover) and (pointer: fine) {
@@ -899,7 +903,7 @@
     cursor: default;
   }
 
-  :global(.focus-sound-card span) {
+  :global(.focus-sound-card) span {
     font-size: 0.85rem;
     font-weight: 600;
     line-height: 1.2;
@@ -913,7 +917,7 @@
     color: var(--focus-accent);
   }
 
-  :global(.focus-sound-volume) {
+  .focus-sound-volume {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -924,7 +928,7 @@
     background: color-mix(in srgb, var(--focus-surface-strong) 94%, transparent);
   }
 
-  :global(.focus-sound-volume label) {
+  .focus-sound-volume label {
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -933,13 +937,13 @@
     white-space: nowrap;
   }
 
-  :global(.focus-sound-volume input[type="range"]) {
+  .focus-sound-volume input[type="range"] {
     flex: 1;
     accent-color: var(--focus-accent);
     height: 4px;
   }
 
-  :global(.focus-sound-volume span) {
+  .focus-sound-volume span {
     font-size: 0.8rem;
     font-variant-numeric: tabular-nums;
     color: var(--focus-muted);
@@ -947,7 +951,7 @@
     text-align: right;
   }
 
-  :global(.focus-empty-state) {
+  .focus-empty-state {
     display: flex;
     align-items: flex-start;
     gap: 10px;
@@ -957,15 +961,15 @@
     color: var(--focus-muted);
   }
 
-  :global(.focus-empty-state--center) {
+  .focus-empty-state--center {
     align-items: center;
   }
 
-  :global(.focus-empty-state--wide) {
+  .focus-empty-state--wide {
     padding-top: 6px;
   }
 
-  :global(.focus-empty-state) svg {
+  .focus-empty-state svg {
     flex-shrink: 0;
     width: 18px;
     height: 18px;
@@ -973,33 +977,33 @@
     color: currentColor;
   }
 
-  :global(.focus-empty-state p) {
+  .focus-empty-state p {
     margin: 0;
     line-height: 1.45;
   }
 
-  :global(.focus-empty-state strong) {
+  .focus-empty-state strong {
     display: block;
     margin-bottom: 2px;
     color: var(--focus-ink);
   }
 
-  :global(.focus-hero-list) span,
-  :global(.focus-session-list) p,
-  :global(.focus-sound-list) p,
-  :global(.focus-block-list) p,
-  :global(.focus-review-list) p {
+  .focus-session-list p,
+  .focus-sound-list p,
+  .focus-block-list p,
+  .focus-review-list p {
     color: var(--focus-muted);
   }
 
-  :global(.focus-shell__body),
+  .focus-shell__body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+
   :global(.focus-panel),
   :global(.focus-panel) :global(.card-content) {
     min-height: 0;
-  }
-
-  :global(.focus-shell__body) {
-    flex: 1;
   }
 
   :global(.focus-panel) {
@@ -1011,26 +1015,26 @@
     height: 100%;
   }
 
-  :global(.focus-preset-grid),
-  :global(.focus-session-list),
-  :global(.focus-sound-list),
-  :global(.focus-block-list),
-  :global(.focus-review-list) {
+  .focus-preset-grid,
+  .focus-session-list,
+  .focus-sound-list,
+  .focus-block-list,
+  .focus-review-list {
     min-height: 0;
     overflow: auto;
   }
 
-  :global(.focus-preset-grid) {
+  .focus-preset-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 12px;
   }
 
-  :global(.focus-preset-grid) button {
+  .focus-preset-grid button {
     padding: 18px 16px;
-    border: 1px solid color-mix(in srgb, var(--focus-accent) 38%, var(--focus-border));
+    border: 1px solid color-mix(in srgb, var(--focus-border) 80%, transparent);
     border-radius: 20px;
-    background: color-mix(in srgb, var(--focus-accent) 10%, var(--focus-surface));
+    background: color-mix(in srgb, var(--focus-surface-strong) 88%, transparent);
     color: inherit;
     font: inherit;
     cursor: pointer;
@@ -1039,39 +1043,40 @@
     user-select: none;
   }
 
-  :global(.focus-preset-btn--active) {
+  .focus-preset-grid button:focus-visible {
+    outline: 2px solid var(--focus-accent);
+    outline-offset: 2px;
+  }
+
+  .focus-preset-btn--active {
     border-color: var(--focus-accent) !important;
-    background: color-mix(in srgb, var(--focus-accent) 22%, var(--focus-surface)) !important;
+    background: color-mix(in srgb, var(--focus-accent) 16%, var(--focus-surface)) !important;
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--focus-accent) 30%, transparent);
   }
 
-  :global(.focus-preset-grid) button:disabled {
+  .focus-preset-grid button:disabled {
     opacity: 0.5;
     cursor: default;
   }
 
   @media (hover: hover) and (pointer: fine) {
-    :global(.focus-preset-grid) button:not(:disabled):hover {
-      border-color: color-mix(in srgb, var(--focus-accent) 60%, var(--focus-border));
-      background: color-mix(in srgb, var(--focus-accent) 16%, var(--focus-surface));
+    .focus-preset-grid button:not(:disabled):hover {
+      border-color: color-mix(in srgb, var(--focus-accent) 28%, var(--focus-border));
+      background: color-mix(in srgb, var(--focus-accent) 7%, var(--focus-surface));
     }
   }
 
-  :global(.focus-preset-grid) button:active:not(:disabled) {
+  .focus-preset-grid button:active:not(:disabled) {
     transform: scale(0.96);
   }
 
-  :global(.focus-preset-grid) button p {
+  .focus-preset-grid button p {
     margin: 4px 0 0;
     font-size: 0.8rem;
     color: var(--focus-muted);
   }
 
-  :global(.focus-timer-presets) {
-    padding: 0 24px 20px;
-  }
-
-  :global(.focus-session-list) article {
+  .focus-session-list article {
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 14px;
@@ -1079,7 +1084,7 @@
     padding: 16px 18px;
   }
 
-  :global(.focus-block-list) article {
+  .focus-block-list article {
     display: grid;
     grid-template-columns: 18px 1fr auto;
     gap: 12px;
@@ -1087,34 +1092,77 @@
     padding: 16px 18px;
   }
 
-  :global(.focus-review-list) article {
+  .focus-review-list article {
     display: grid;
     grid-template-columns: 18px 1fr;
     gap: 12px;
     padding: 16px 18px;
   }
 
-  :global(.focus-review-list__export) {
+  .focus-review-list__export {
     grid-template-columns: 1fr auto !important;
     align-items: center;
   }
 
-  /* ── Reduced Motion ─────────────────────────────────────────── */
+  .skeleton {
+    border-radius: 12px;
+    background: linear-gradient(90deg, var(--focus-surface) 25%, var(--focus-surface-strong) 50%, var(--focus-surface) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  }
+
+  .skeleton--title {
+    height: 24px;
+    width: 40%;
+    margin-bottom: 8px;
+  }
+
+  .skeleton--desc {
+    height: 16px;
+    width: 60%;
+  }
+
+  .skeleton--ring {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+  }
+
+  .skeleton--controls {
+    width: 120px;
+    height: 68px;
+    border-radius: 999px;
+  }
+
+  .skeleton--preset {
+    height: 80px;
+    border-radius: 20px;
+  }
+
+  @keyframes skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    :global(.focus-controls__button),
+    .focus-controls__button,
     :global(.focus-sound-card),
-    :global(.focus-preset-grid) button {
+    .focus-preset-grid button {
       transition: none !important;
     }
-    :global(.focus-controls__button:active),
+    .focus-controls__button:active,
     :global(.focus-sound-card:active),
-    :global(.focus-preset-grid) button:active:not(:disabled) {
+    .focus-preset-grid button:active:not(:disabled) {
       transform: none !important;
     }
+    .skeleton {
+      animation: none;
+      background: var(--focus-surface);
+    }
     @media (hover: hover) and (pointer: fine) {
-      :global(.focus-controls__button:hover),
+      .focus-controls__button:hover,
       :global(.focus-sound-card:hover),
-      :global(.focus-preset-grid) button:not(:disabled):hover {
+      .focus-preset-grid button:not(:disabled):hover {
         transform: none !important;
       }
     }

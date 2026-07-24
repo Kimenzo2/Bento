@@ -165,7 +165,7 @@
               text-anchor="middle"
               dominant-baseline="middle"
               dy={centerValue ? "-1.6em" : "0"}
-              class="pr-arc-label"
+              class="number number-metric pr-arc-label"
             >{centerLabel}</text>
           {/if}
 
@@ -174,7 +174,7 @@
               text-anchor="middle"
               dominant-baseline="middle"
               dy={centerLabel ? "0" : (centerNote ? "-0.6em" : "0")}
-              class="pr-arc-value"
+              class="number number-hero pr-arc-value"
             >{centerValue}</text>
           {/if}
 
@@ -183,7 +183,7 @@
               text-anchor="middle"
               dominant-baseline="middle"
               dy={centerValue ? "1.4em" : "0"}
-              class="pr-arc-note"
+              class="number number-stat pr-arc-note"
             >{centerNote}</text>
           {/if}
         </g>
@@ -215,7 +215,7 @@
             textAnchor="middle"
             verticalAnchor="middle"
             dy={label ? 4 : 16}
-            class="pr-dots-value tabular-nums fill-foreground"
+            class="number number-hero number-semibold pr-dots-value fill-foreground"
           />
         {/if}
         {#if label}
@@ -224,7 +224,7 @@
             textAnchor="middle"
             verticalAnchor="middle"
             dy={value !== undefined ? 28 : 16}
-            class="pr-dots-label fill-muted-foreground"
+            class="number number-metric pr-dots-label fill-muted-foreground"
           />
         {/if}
       {/snippet}
@@ -257,7 +257,6 @@
     font-size: 1.55rem;
     font-weight: 700;
     fill: var(--foreground, currentColor);
-    font-variant-numeric: tabular-nums;
   }
 
   .pr-arc-note {

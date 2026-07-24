@@ -8,11 +8,3 @@ export interface VaultEntry {
   created: number;
   updated: number;
 }
-
-/** Form data for adding or editing a vault entry. */
-export interface VaultFormData {
-  site: string;
-  username: string;
-  password: string;
-  notes: string;
-}

@@ -355,7 +355,6 @@ pub async fn record_focus_session(
 pub async fn export_focus_sessions(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
-    _dummy: Option<String>,
 ) -> Result<String, String> {
     crate::auth::require_billing_tier(&auth, "focus").await?;
 

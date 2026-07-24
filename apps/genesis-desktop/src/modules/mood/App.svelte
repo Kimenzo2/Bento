@@ -1,10 +1,8 @@
 ﻿<script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
-  import CalendarDaysIcon from "@lucide/svelte/icons/calendar-days";
   import DownloadIcon from "@lucide/svelte/icons/download";
   import HeartHandshakeIcon from "@lucide/svelte/icons/heart-handshake";
   import PlusIcon from "@lucide/svelte/icons/plus";
-  import SparklesIcon from "@lucide/svelte/icons/sparkles";
   import CheckIcon from "@lucide/svelte/icons/check";
   import Loader2Icon from "@lucide/svelte/icons/loader-2";
   import TrashIcon from "@lucide/svelte/icons/trash-2";
@@ -14,12 +12,14 @@
     Card, CardContent, CardDescription, CardHeader, CardTitle,
   } from "$lib/components/ui/card/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
+  import { tooltip } from "$lib/components/Tooltip.svelte";
   import {
     getModuleSectionLabel, moduleSectionStore,
   } from "$lib/stores/module-sections.store";
-  import { activeBundle, createTranslator } from "$lib/i18n";
-  import { onMount } from "svelte";
+  import { activeBundle, createTranslator, activeLang } from "$lib/i18n";
   import { time } from '$lib/utils/time';
+  import { toast } from "svelte-sonner";
+  import { sanitizeError } from "$lib/utils/logger";
 
   const moduleId = "mood";
   const sectionLabels = ["Check-in", "Calendar", "Activities", "Export"] as const;
@@ -35,17 +35,8 @@
   type MoodStats     = { streak: number; total: number; greatDays: number; calmDays: number; };
   type ActivityRow   = { id: string; name: string; createdAt: number; };
   type MoodPattern   = { label: string; value: number; note: string; positive: boolean; };
-  type PrivateNote   = { id: string; content: string; createdAt: number; };
 
   // ── Static mood definitions ───────────────────────────────────────────────
-  const journalMoods = [
-    { id: 'awful', label: 'Awful', color: '#ef4444' },
-    { id: 'low',   label: 'Low',   color: '#f97316' },
-    { id: 'okay',  label: 'Okay',  color: '#eab308' },
-    { id: 'good',  label: 'Good',  color: '#22c55e' },
-    { id: 'great', label: 'Great', color: '#8b5cf6' },
-  ];
-
   const moods = [
     { id: "drained",   label: "Drained",   emoji: "😞", intensity: 24 },
     { id: "restless",  label: "Restless",  emoji: "😕", intensity: 39 },
@@ -56,37 +47,51 @@
 
   // ── Reactive state ───────────────────────────────────────────────────────
   let selectedMood       = $state("steady");
-  let selectedJournalMood = $state('good');
   let noteText           = $state("");
   let selectedActivities: string[] = $state([]);
 
   // DB data
-  let stats:           MoodStats   = $state({ streak: 0, total: 0, greatDays: 0, calmDays: 0 });
-  let todayCheckins:   CheckinRow[] = $state([]);
-  let monthCheckins:   CheckinRow[] = $state([]);
-  let activityLibrary: ActivityRow[] = $state([]);
-  let patterns:        MoodPattern[] = $state([]);
-  let privateNotes:    PrivateNote[] = $state([]);
+  let stats:           MoodStats   = $state.raw({ streak: 0, total: 0, greatDays: 0, calmDays: 0 });
+  let todayCheckins:   CheckinRow[] = $state.raw([]);
+  let monthCheckins:   CheckinRow[] = $state.raw([]);
+  let activityLibrary: ActivityRow[] = $state.raw([]);
+  let patterns:        MoodPattern[] = $state.raw([]);
 
   // UI state
   let saving          = $state(false);
   let saved           = $state(false);
   let saveError       = $state("");
-  let appLoading      = true;
+  let appLoading      = $state(true);
   let newActivityName = $state("");
   let addingActivity  = $state(false);
-  let newNoteText     = "";
-  let savingNote      = false;
-  let noteSaved       = false;
-  let currentMonth    = time.toISOMonth(time.now()); // "2026-05"
+  let currentMonth    = $state(time.toISOMonth(time.now()));
 
   let selectedMoodEntry = $derived(moods.find(m => m.id === selectedMood) ?? moods[2]);
 
-  function journalMoodColor(id: string | null) {
-    return journalMoods.find(m => m.id === id)?.color ?? '#666';
-  }
+  let monthLabel = $derived.by(() => {
+    const [y, mo] = currentMonth.split("-").map(Number);
+    return time.formatCustom(new Date(y, mo - 1, 1).getTime(), 'F Y', $activeLang);
+  });
 
   // ── Calendar helpers ──────────────────────────────────────────────────────
+  let monthGeneration = 0;
+
+  function prevMonth() {
+    const [y, mo] = currentMonth.split("-").map(Number);
+    const d = new Date(y, mo - 2, 1);
+    currentMonth = time.toISOMonth(d.getTime());
+    monthGeneration++;
+    loadMonthCheckins();
+  }
+
+  function nextMonth() {
+    const [y, mo] = currentMonth.split("-").map(Number);
+    const d = new Date(y, mo, 1);
+    currentMonth = time.toISOMonth(d.getTime());
+    monthGeneration++;
+    loadMonthCheckins();
+  }
+
   let calendarMap = $derived.by(() => {
     const m = new Map<string, CheckinRow>();
     for (const c of monthCheckins) m.set(c.dateKey, c);
@@ -98,19 +103,18 @@
     return time.getMonthDays(y)[mo];
   });
 
+  const moodEmojis: Record<string, string> = {
+    drained: '😞', restless: '😕', steady: '🙂', bright: '😊', energized: '🤩',
+  };
   function moodEmoji(mood: string) {
-    return moods.find(m => m.id === mood)?.emoji ?? "·";
+    return moodEmojis[mood] ?? "·";
   }
 
+  const moodColors: Record<string, string> = {
+    drained: 'var(--mood-muted)', restless: '#f97316', steady: '#eab308', bright: '#22c55e', energized: '#8b5cf6',
+  };
   function moodColor(moodId: string): string {
-    const map: Record<string, string> = {
-      drained:   'var(--mood-muted)',
-      restless:  '#f97316',
-      steady:    '#eab308',
-      bright:    '#22c55e',
-      energized: '#8b5cf6',
-    };
-    return map[moodId] ?? 'var(--mood-muted)';
+    return moodColors[moodId] ?? 'var(--mood-muted)';
   }
 
   // ── Activity helpers ──────────────────────────────────────────────────────
@@ -148,39 +152,38 @@
       loadMonthCheckins(),
       loadActivityLibrary(),
       loadPatterns(),
-      loadPrivateNotes(),
     ]);
     appLoading = false;
   }
 
   async function loadStats() {
     try { stats = await invoke("mood_stats"); }
-    catch (e) { console.error("mood_stats:", e); }
+    catch (e) { toast.error(sanitizeError(String(e))); }
   }
 
   async function loadTodayCheckins() {
     try { todayCheckins = await invoke("mood_checkins_today"); }
-    catch (e) { console.error("mood_checkins_today:", e); }
+    catch (e) { toast.error(sanitizeError(String(e))); }
   }
 
   async function loadMonthCheckins() {
-    try { monthCheckins = await invoke("mood_checkins_month", { month: currentMonth }); }
-    catch (e) { console.error("mood_checkins_month:", e); }
+    const gen = monthGeneration;
+    try {
+      const data: CheckinRow[] = await invoke("mood_checkins_month", { month: currentMonth });
+      if (gen !== monthGeneration) return;
+      monthCheckins = data;
+    }
+    catch (e) { toast.error(sanitizeError(String(e))); }
   }
 
   async function loadActivityLibrary() {
     try { activityLibrary = await invoke("mood_activity_library"); }
-    catch (e) { console.error("mood_activity_library:", e); }
+    catch (e) { toast.error(sanitizeError(String(e))); }
   }
 
   async function loadPatterns() {
     try { patterns = await invoke("mood_patterns"); }
-    catch (e) { console.error("mood_patterns:", e); }
-  }
-
-  async function loadPrivateNotes() {
-    try { privateNotes = await invoke("mood_private_notes_list"); }
-    catch (e) { console.error("mood_private_notes_list:", e); }
+    catch (e) { toast.error(sanitizeError(String(e))); }
   }
 
   // ── Check-in save ─────────────────────────────────────────────────────────
@@ -196,13 +199,15 @@
         },
       });
       todayCheckins = [...todayCheckins, row];
-      monthCheckins = [...monthCheckins, row];
+      if (row.dateKey.startsWith(currentMonth)) {
+        monthCheckins = [...monthCheckins, row];
+      }
       noteText = ""; selectedActivities = [];
       saved = true; setTimeout(() => (saved = false), 2500);
       await loadStats();
     } catch (e: any) {
       saveError = String(e);
-      console.error("mood_checkin_save:", e);
+      toast.error(sanitizeError(String(e)));
     } finally { saving = false; }
   }
 
@@ -213,7 +218,7 @@
       todayCheckins  = todayCheckins.filter(c => c.id !== id);
       monthCheckins  = monthCheckins.filter(c => c.id !== id);
       await loadStats();
-    } catch (e) { console.error("mood_checkin_delete:", e); }
+    } catch (e) { toast.error(sanitizeError(String(e))); }
   }
 
   // ── Activity management ───────────────────────────────────────────────────
@@ -225,46 +230,23 @@
       activityLibrary = [...activityLibrary.filter(a => a.id !== row.id), row]
         .sort((a, b) => a.name.localeCompare(b.name));
       newActivityName = "";
-    } catch (e) { console.error("mood_activity_add:", e); }
+    } catch (e) { toast.error(sanitizeError(String(e))); }
     finally { addingActivity = false; }
   }
 
   async function deleteActivity(id: string) {
+    if (!confirm("Remove this activity tag?")) return;
     try {
       await invoke("mood_activity_delete", { id });
       activityLibrary = activityLibrary.filter(a => a.id !== id);
-    } catch (e) { console.error("mood_activity_delete:", e); }
-  }
-
-  // ── Private notes ─────────────────────────────────────────────────────────
-  async function savePrivateNote() {
-    if (!newNoteText.trim()) return;
-    savingNote = true;
-    try {
-      const row: PrivateNote = await invoke("mood_private_note_save", { content: newNoteText.trim() });
-      privateNotes = [row, ...privateNotes];
-      newNoteText = "";
-      noteSaved = true; setTimeout(() => (noteSaved = false), 2000);
-    } catch (e) { console.error("mood_private_note_save:", e); }
-    finally { savingNote = false; }
-  }
-
-  async function deletePrivateNote(id: string) {
-    try {
-      await invoke("mood_private_note_delete", { id });
-      privateNotes = privateNotes.filter(n => n.id !== id);
-    } catch (e) { console.error("mood_private_note_delete:", e); }
+    } catch (e) { toast.error(sanitizeError(String(e))); }
   }
 
   // ── Export helpers ────────────────────────────────────────────────────────
-  let exportingCsv  = false;
-  let exportingPdf  = false;
-  let exportingRecap = false;
+  let exporting: string | null = $state(null);
 
   async function doExport(type: "csv" | "pdf" | "recap") {
-    if (type === "csv")   exportingCsv   = true;
-    if (type === "pdf")   exportingPdf   = true;
-    if (type === "recap") exportingRecap = true;
+    exporting = type;
     try {
       const dir: string | null = await invoke("pick_export_directory");
       if (!dir) return;
@@ -273,8 +255,9 @@
       let filename = "";
 
       if (type === "csv") {
+        const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
         const rows = monthCheckins.map(c =>
-          [c.dateKey, c.mood, c.intensity, c.activities.join("|"), c.note ?? ""].join(",")
+          [esc(c.dateKey), esc(c.mood), String(c.intensity), esc(c.activities.join("|")), esc(c.note ?? "")].join(",")
         );
         content  = ["date,mood,intensity,activities,note", ...rows].join("\n");
         filename = `mood-timeline-${currentMonth}.csv`;
@@ -294,7 +277,7 @@
           ...patterns.map(p => `${p.label}: ${p.value}% — ${p.note}`),
         ];
         content  = lines.join("\n");
-        filename = `mood-therapist-report-${currentMonth}.txt`;
+        filename = `mood-report-${currentMonth}.txt`;
       } else {
         const avg = monthCheckins.length
           ? Math.round(monthCheckins.reduce((a, b) => a + b.intensity, 0) / monthCheckins.length)
@@ -314,21 +297,21 @@
 
       const { writeTextFile } = await import("@tauri-apps/plugin-fs");
       await writeTextFile(`${dir}/${filename}`, content);
-    } catch (e) { console.error("export failed:", e); }
-    finally {
-      exportingCsv   = false;
-      exportingPdf   = false;
-      exportingRecap = false;
-    }
+    } catch (e) { toast.error(sanitizeError(String(e))); }
+    finally { exporting = null; }
   }
 
   const exportOptions = $derived.by(() => [
-    { label: _t('moduleMoodExportCSVTitle'), detail: _t('moduleMoodExportCSVDetail') },
-    { label: _t('moduleMoodExportPDFTitle'), detail: _t('moduleMoodExportPDFDetail') },
-    { label: _t('moduleMoodExportRecapTitle'), detail: _t('moduleMoodExportRecapDetail') },
+    { label: _t('moduleMoodExportCSVTitle'), detail: _t('moduleMoodExportCSVDetail'), type: "csv" as const },
+    { label: _t('moduleMoodExportPDFTitle'), detail: _t('moduleMoodExportPDFDetail'), type: "pdf" as const },
+    { label: _t('moduleMoodExportRecapTitle'), detail: _t('moduleMoodExportRecapDetail'), type: "recap" as const },
   ]);
 
-  onMount(loadAll);
+  function isExporting(type: string) {
+    return exporting === type;
+  }
+
+  $effect(() => { loadAll(); });
 </script>
 
 <main class="mood-workspace module-root" data-module="mood">
@@ -356,12 +339,36 @@
       </div>
     </header>
 
-    {#if selectedSection === "Check-in"}
+    {#if appLoading}
+      <section class="mood-hero-grid">
+        <Card class="mood-profile-card">
+          <CardContent class="mood-profile-card__content">
+            <div class="mood-skeleton mood-skeleton--circle" style="width:96px;height:96px;border-radius:999px"></div>
+            <div class="mood-skeleton" style="width:80px;height:16px;margin:0 auto"></div>
+            <div class="mood-stats-row">
+              {#each [1,2,3,4] as _}
+                <div class="mood-stat"><div class="mood-skeleton" style="width:36px;height:22px"></div></div>
+              {/each}
+            </div>
+          </CardContent>
+        </Card>
+        <Card class="mood-checkin-card">
+          <CardContent class="mood-checkin">
+            <div class="mood-picker">
+              {#each [1,2,3,4,5] as _}
+                <div class="mood-skeleton mood-skeleton--btn"></div>
+              {/each}
+            </div>
+            <div class="mood-skeleton" style="height:40px;border-radius:14px"></div>
+          </CardContent>
+        </Card>
+      </section>
+    {:else if selectedSection === "Check-in"}
       <section class="mood-hero-grid">
         <!-- Profile card -->
         <Card class="mood-profile-card">
           <CardContent class="mood-profile-card__content">
-            <div class="mood-avatar">
+            <div class="mood-avatar" role="img" aria-label={selectedMoodEntry.label}>
               {selectedMoodEntry.emoji}
             </div>
             <div class="mood-now">
@@ -369,10 +376,10 @@
               <strong class="mood-now__mood">{_t('moduleMoodMood' + (selectedMoodEntry.id.charAt(0).toUpperCase() + selectedMoodEntry.id.slice(1)))}</strong>
             </div>
             <div class="mood-stats-row">
-              <div class="mood-stat"><strong>{stats.streak}</strong><span>{_t('moduleMoodStreak')}</span></div>
-              <div class="mood-stat"><strong>{stats.total}</strong><span>{_t('moduleMoodEntries')}</span></div>
-              <div class="mood-stat"><strong>{stats.greatDays}</strong><span>{_t('moduleMoodGreatDays')}</span></div>
-              <div class="mood-stat"><strong>{stats.calmDays}</strong><span>{_t('moduleMoodCalmDays')}</span></div>
+              <div class="mood-stat"><strong class="number number-metric">{stats.streak}</strong><span>{_t('moduleMoodStreak')}</span></div>
+              <div class="mood-stat"><strong class="number number-metric">{stats.total}</strong><span>{_t('moduleMoodEntries')}</span></div>
+              <div class="mood-stat"><strong class="number number-metric">{stats.greatDays}</strong><span>{_t('moduleMoodGreatDays')}</span></div>
+              <div class="mood-stat"><strong class="number number-metric">{stats.calmDays}</strong><span>{_t('moduleMoodCalmDays')}</span></div>
             </div>
           </CardContent>
         </Card>
@@ -401,14 +408,14 @@
             <Input bind:value={noteText} placeholder={_t('moduleMoodNotePlaceholder')} class="mood-note-input" />
             {#if selectedActivities.length > 0}
               <div class="mood-chip-row">
-                {#each selectedActivities as activity}
+                {#each selectedActivities as activity (activity)}
                   <Badge variant="secondary" class="mood-chip">{activity}</Badge>
                 {/each}
               </div>
             {/if}
             {#if saveError}<p class="mood-error">{saveError}</p>{/if}
             <div class="mood-checkin__footer">
-              <span class="mood-intensity-hint">{_t('moduleMoodIntensity').replace('{value}', String(selectedMoodEntry.intensity))}</span>
+              <span class="mood-intensity-hint">{@html _t('moduleMoodIntensity').replace('{value}', `<span class="number number-stat">${selectedMoodEntry.intensity}</span>`)}</span>
               <Button onclick={saveCheckin} disabled={saving} class="mood-save-btn">
                 {#if saving}<Loader2Icon data-icon="inline-start" class="mood-spin"/>{_t('moduleMoodSaving')}
                 {:else if saved}<CheckIcon data-icon="inline-start"/>{_t('moduleMoodSaved')}
@@ -427,21 +434,21 @@
             <CardDescription>{_t('moduleMoodTimelineDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="mood-timeline">
-            {#each todayCheckins as entry}
+            {#each todayCheckins as entry (entry.id)}
               <article class="mood-timeline__item">
-                <span class="mood-timeline__time">{time.formatTime(entry.loggedAt)}</span>
+                <span class="mood-timeline__time">{time.formatTime(entry.loggedAt, '12h', $activeLang)}</span>
                 <div class="mood-timeline__mood-dot" style="background:{moodColor(entry.mood)}"></div>
                 <div class="mood-timeline__body">
                   <div class="mood-timeline__head">
                     <strong>{moodEmoji(entry.mood)} {entry.mood}</strong>
-                    <span class="mood-timeline__pct">{entry.intensity}%</span>
+                    <span class="mood-timeline__pct"><span class="number number-stat">{entry.intensity}</span>%</span>
                   </div>
                   {#if entry.note}<p class="mood-timeline__note">{entry.note}</p>{/if}
                   {#if entry.activities.length > 0}
                     <div class="mood-timeline__acts">{entry.activities.join(" · ")}</div>
                   {/if}
                 </div>
-                <button class="mood-timeline__del" onclick={() => deleteCheckin(entry.id)} title={_t('commonDelete')}>
+                <button class="mood-timeline__del" onclick={() => deleteCheckin(entry.id)} use:tooltip={{ text: _t('commonDelete') }}>
                   <TrashIcon size={13} />
                 </button>
               </article>
@@ -458,12 +465,22 @@
     {:else if selectedSection === "Calendar"}
       <Card class="mood-calendar-card">
         <CardHeader>
-          <CardTitle>{_t('moduleMoodCalendarTitle')}</CardTitle>
+          <div class="mood-calendar__header">
+            <CardTitle>{_t('moduleMoodCalendarTitle')}</CardTitle>
+            <div class="mood-calendar__nav">
+              <button class="mood-cal-nav-btn" onclick={prevMonth} aria-label="Previous month">&larr;</button>
+              <span class="mood-calendar__month-label">{monthLabel}</span>
+              <button class="mood-cal-nav-btn" onclick={nextMonth} aria-label="Next month">&rarr;</button>
+            </div>
+          </div>
           <CardDescription>{_t('moduleMoodCalendarDesc')}</CardDescription>
         </CardHeader>
         <CardContent class="mood-calendar">
           <div class="mood-calendar__grid">
-            {#each Array.from({ length: daysInMonth }, (_, i) => i + 1) as day}
+            {#each ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as day}
+              <div class="mood-cal-day-head">{day}</div>
+            {/each}
+            {#each Array.from({ length: daysInMonth }, (_, i) => i + 1) as day (day)}
               {const key = `${currentMonth}-${String(day).padStart(2,"0")}`}
               {const entry = calendarMap.get(key)}
               {const mood = entry ? moods.find(m => m.id === entry.mood) ?? moods[2] : null}
@@ -488,7 +505,7 @@
             <CardDescription>{_t('moduleMoodActivityDesc')}</CardDescription>
           </CardHeader>
           <CardContent class="mood-activity-grid">
-            {#each activityLibrary as activity}
+            {#each activityLibrary as activity (activity.id)}
               <div
                 class="mood-act-btn"
                 class:mood-act-btn--selected={selectedActivities.includes(activity.name)}
@@ -498,7 +515,7 @@
                 onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleActivity(activity.name); }}
               >
                 <span class="mood-act-btn__label">{activity.name}</span>
-                <button class="mood-act-btn__del" onclick={(e) => { e.stopPropagation(); deleteActivity(activity.id); }} title={_t('moduleMoodActivityRemove')}>
+                <button class="mood-act-btn__del" onclick={(e) => { e.stopPropagation(); deleteActivity(activity.id); }} use:tooltip={{ text: _t('moduleMoodActivityRemove') }}>
                   ×
                 </button>
               </div>
@@ -506,7 +523,7 @@
           </CardContent>
           <div class="mood-act-add">
             <Input bind:value={newActivityName} placeholder={_t('moduleMoodActivityPlaceholder')} />
-            <Button onclick={addActivity} disabled={addingActivity} variant="outline">
+            <Button onclick={addActivity} disabled={addingActivity} variant="outline" class="mood-act-add-btn">
               {#if addingActivity}<Loader2Icon data-icon="inline-start" class="mood-spin"/>{_t('moduleMoodAdding')}
               {:else}<PlusIcon data-icon="inline-start"/>{_t('moduleMoodAdd')}{/if}
             </Button>
@@ -520,16 +537,16 @@
           </CardHeader>
           <CardContent class="mood-correlations">
             {#if activityCorrelations.length > 0}
-              {#each activityCorrelations as c}
+              {#each activityCorrelations as c (c.name)}
                 <article class="mood-correlation">
                   <div class="mood-correlation__head">
                     <strong>{c.name}</strong>
-                    <span class="mood-correlation__count">{c.count}x</span>
+                    <span class="mood-correlation__count"><span class="number number-tabular">{c.count}</span>x</span>
                   </div>
                   <div class="mood-meter">
                     <i style="--fill:{Math.min(c.avg, 100)}%"></i>
                   </div>
-                  <span class="mood-correlation__avg">{_t('moduleMoodAvgIntensity').replace('{avg}', String(c.avg)).replace('{count}', String(c.count))}</span>
+                  <span class="mood-correlation__avg">{@html _t('moduleMoodAvgIntensity').replace('{avg}', `<span class="number number-stat">${c.avg}</span>`).replace('{count}', `<span class="number number-tabular">${c.count}</span>`)}</span>
                 </article>
               {/each}
             {:else}
@@ -548,13 +565,13 @@
           <CardDescription>{_t('moduleMoodExportDesc')}</CardDescription>
         </CardHeader>
         <CardContent class="mood-export-list">
-          {#each exportOptions as option}
+          {#each exportOptions as option (option.type)}
             <article class="mood-export-item">
               <div>
                 <strong>{option.label}</strong>
                 <p>{option.detail}</p>
               </div>
-              <Button variant="outline" class="mood-export-btn">
+              <Button variant="outline" class="mood-export-btn" onclick={() => doExport(option.type)} disabled={isExporting(option.type)}>
                 <DownloadIcon data-icon="inline-start" />
                 {_t('moduleMoodExportBtn')}
               </Button>
@@ -698,8 +715,10 @@
     transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
   }
 
-  :global(.mood-avatar):hover {
-    transform: scale(1.04);
+  @media (hover: hover) and (pointer: fine) {
+    :global(.mood-avatar):hover {
+      transform: scale(1.04);
+    }
   }
 
   :global(.mood-now) {
@@ -791,6 +810,11 @@
     transform: scale(0.96);
   }
 
+  :global(.mood-picker__item):focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
   :global(.mood-picker__item--active) {
     background: color-mix(in srgb, var(--primary) 14%, var(--mood-surface));
     color: var(--foreground);
@@ -810,7 +834,7 @@
 
   :global(.mood-note-input) {
     border: none;
-    background: color-mix(in srgb, var(--mood-surface-strong) 72%, transparent);
+    background: var(--mood-bg);
     border-radius: 14px;
   }
 
@@ -849,7 +873,7 @@
 
   :global(.mood-save-btn) {
     border-radius: 999px;
-    padding: 8px 20px;
+    padding: 8px 20px 8px 18px;
     font-size: 0.85rem;
   }
 
@@ -877,7 +901,7 @@
 
   :global(.mood-timeline__item) {
     display: grid;
-    grid-template-columns: 52px 8px 1fr 20px;
+    grid-template-columns: 52px 8px 1fr 28px;
     gap: 10px;
     align-items: center;
     padding: 10px 12px;
@@ -885,8 +909,10 @@
     transition: background 0.15s;
   }
 
-  :global(.mood-timeline__item):hover {
-    background: color-mix(in srgb, var(--mood-surface-strong) 60%, transparent);
+  @media (hover: hover) and (pointer: fine) {
+    :global(.mood-timeline__item):hover {
+      background: color-mix(in srgb, var(--mood-surface-strong) 60%, transparent);
+    }
   }
 
   :global(.mood-timeline__time) {
@@ -938,8 +964,8 @@
   }
 
   :global(.mood-timeline__del) {
-    width: 20px;
-    height: 20px;
+    width: 28px;
+    height: 28px;
     border-radius: 999px;
     border: none;
     background: transparent;
@@ -952,14 +978,22 @@
     flex-shrink: 0;
   }
 
-  :global(.mood-timeline__item):hover :global(.mood-timeline__del) {
-    opacity: 0.5;
+  @media (hover: hover) and (pointer: fine) {
+    :global(.mood-timeline__item):hover :global(.mood-timeline__del) {
+      opacity: 0.5;
+    }
+
+    :global(.mood-timeline__del):hover {
+      opacity: 1 !important;
+      background: color-mix(in srgb, #ef4444 14%, transparent);
+      color: #ef4444;
+    }
   }
 
-  :global(.mood-timeline__del):hover {
-    opacity: 1 !important;
-    background: color-mix(in srgb, #ef4444 14%, transparent);
-    color: #ef4444;
+  :global(.mood-timeline__del):focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    opacity: 1;
   }
 
   /* ── Empty state ──────────────────── */
@@ -992,10 +1026,66 @@
     height: 100%;
   }
 
+  :global(.mood-calendar__header) {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  :global(.mood-calendar__nav) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  :global(.mood-cal-nav-btn) {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: none;
+    background: color-mix(in srgb, var(--mood-surface-strong) 72%, transparent);
+    color: var(--foreground);
+    font: inherit;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: background 0.15s;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    :global(.mood-cal-nav-btn):hover {
+      background: color-mix(in srgb, var(--mood-surface-strong) 90%, transparent);
+    }
+  }
+
+  :global(.mood-cal-nav-btn):focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  :global(.mood-calendar__month-label) {
+    font-size: 0.88rem;
+    font-weight: 600;
+    min-width: 80px;
+    text-align: center;
+  }
+
   :global(.mood-calendar__grid) {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(7, 1fr);
     gap: 10px;
+  }
+
+  :global(.mood-cal-day-head) {
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--mood-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 6px 0;
   }
 
   :global(.mood-cal-day) {
@@ -1057,14 +1147,14 @@
     justify-content: space-between;
     gap: 6px;
     padding: 10px 12px;
-    border: none;
+    border: 1px solid color-mix(in srgb, var(--mood-border) 88%, transparent);
     border-radius: 12px;
-    background: color-mix(in srgb, var(--mood-surface-strong) 72%, transparent);
-    color: var(--foreground);
+    background: color-mix(in srgb, var(--mood-surface-strong) 88%, transparent);
+    color: var(--mood-muted);
     font: inherit;
     font-size: 0.82rem;
     cursor: pointer;
-    transition: transform 160ms var(--ease-spring), background 160ms ease, color 160ms ease;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
     text-align: left;
     overflow: hidden;
     -webkit-tap-highlight-color: transparent;
@@ -1073,22 +1163,26 @@
 
   @media (hover: hover) and (pointer: fine) {
     :global(.mood-act-btn):hover {
+      border-color: color-mix(in srgb, var(--accent) 40%, var(--mood-border));
       background: color-mix(in srgb, var(--accent) 10%, var(--mood-surface-strong));
     }
   }
 
-  :global(.mood-act-btn):active {
-    transform: scale(0.96);
+  :global(.mood-act-btn):focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
   }
 
   :global(.mood-act-btn--selected) {
-    background: color-mix(in srgb, var(--accent) 16%, var(--mood-surface));
+    border-color: color-mix(in srgb, var(--accent) 60%, var(--mood-border));
+    background: color-mix(in srgb, var(--accent) 14%, var(--mood-surface));
+    color: var(--foreground);
     font-weight: 500;
   }
 
   :global(.mood-act-btn__del) {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     border-radius: 999px;
     border: none;
     background: transparent;
@@ -1103,13 +1197,15 @@
     line-height: 1;
   }
 
-  :global(.mood-act-btn):hover :global(.mood-act-btn__del) {
-    opacity: 0.5;
-  }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.mood-act-btn):hover :global(.mood-act-btn__del) {
+      opacity: 0.5;
+    }
 
-  :global(.mood-act-btn__del):hover {
-    opacity: 1 !important;
-    color: #ef4444;
+    :global(.mood-act-btn__del):hover {
+      opacity: 1 !important;
+      color: #ef4444;
+    }
   }
 
   :global(.mood-act-add) {
@@ -1122,8 +1218,43 @@
   :global(.mood-act-add) :global(input) {
     flex: 1;
     border: none;
-    background: color-mix(in srgb, var(--mood-surface-strong) 72%, transparent);
+    background: var(--mood-bg);
     border-radius: 12px;
+  }
+
+  :global(.mood-act-add-btn) {
+    border-radius: 12px;
+    height: 36px;
+    padding: 0 16px 0 14px;
+    border: 1px solid color-mix(in srgb, var(--mood-border) 88%, transparent);
+    background: color-mix(in srgb, var(--mood-surface-strong) 88%, transparent);
+    color: var(--foreground);
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    :global(.mood-act-add-btn):hover {
+      border-color: color-mix(in srgb, var(--accent) 40%, var(--mood-border));
+      background: color-mix(in srgb, var(--accent) 10%, var(--mood-surface-strong));
+    }
+  }
+
+  :global(.mood-act-add-btn):disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  :global(.mood-act-add-btn):focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
   }
 
   /* ── Correlations ──────────────────── */
@@ -1273,5 +1404,28 @@
     :global(.mood-grid-2col) {
       grid-template-columns: 1fr;
     }
+  }
+
+  /* ════════════════════════════════════════
+     SKELETON LOADING
+     ════════════════════════════════════════ */
+  :global(.mood-skeleton) {
+    background: color-mix(in srgb, var(--mood-surface-strong) 60%, transparent);
+    border-radius: 8px;
+    animation: mood-shimmer 1.5s ease-in-out infinite;
+  }
+
+  :global(.mood-skeleton--circle) {
+    border-radius: 999px;
+  }
+
+  :global(.mood-skeleton--btn) {
+    height: 64px;
+    border-radius: 16px;
+  }
+
+  @keyframes mood-shimmer {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.8; }
   }
 </style>

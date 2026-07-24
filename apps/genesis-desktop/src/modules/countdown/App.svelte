@@ -1,6 +1,6 @@
 ﻿<script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
-  import { onMount, onDestroy } from "svelte";
+  import { toast } from "svelte-sonner";
   import PlusIcon from "@lucide/svelte/icons/plus";
   import XIcon from "@lucide/svelte/icons/x";
   import DownloadIcon from "@lucide/svelte/icons/download";
@@ -75,7 +75,7 @@
     try {
       events = await invoke<CountdownItem[]>("countdown_list_events");
     } catch (e) {
-      console.error("Failed to load countdown events:", e);
+      toast.error("Failed to load countdown events", { description: String(e) });
     } finally {
       eventsLoading = false;
     }
@@ -89,7 +89,7 @@
     try {
       milestones = await invoke<Milestone[]>("countdown_list_milestones");
     } catch (e) {
-      console.error("Failed to load milestones:", e);
+      toast.error("Failed to load milestones", { description: String(e) });
     } finally {
       milestonesLoading = false;
     }
@@ -103,11 +103,20 @@
     try {
       birthdays = await invoke<Birthday[]>("countdown_list_birthdays");
     } catch (e) {
-      console.error("Failed to load birthdays:", e);
+      toast.error("Failed to load birthdays", { description: String(e) });
     } finally {
       birthdaysLoading = false;
     }
   }
+
+  // ─── Auto-focus first input when drawer opens ────────────────────────────
+
+  let focusEl = $state<HTMLInputElement | null>(null);
+  $effect(() => {
+    if (drawer && focusEl) {
+      requestAnimationFrame(() => focusEl?.focus());
+    }
+  });
 
   // ─── Live tick ────────────────────────────────────────────────────────────
 
@@ -118,6 +127,12 @@
 
   type DrawerKind = "event" | "milestone" | "birthday" | "fullscreen" | "edit-progress" | null;
   let drawer = $state<DrawerKind>(null);
+
+  // Edit state
+  let editEventId = $state<string | null>(null);
+  let editBirthdayId = $state<string | null>(null);
+  let editingEvent = $derived(editEventId ? events.find(e => e.id === editEventId) ?? null : null);
+  let editingBirthday = $derived(editBirthdayId ? birthdays.find(b => b.id === editBirthdayId) ?? null : null);
 
   // Add-event form
   let newName     = $state("");
@@ -149,40 +164,86 @@
   // Called directly in the click handler — MUST be inside a user gesture
   // or AudioContext is blocked by browser autoplay policy.
   let _soundIdx = 0;
+  let _audioCtx: AudioContext | null = null;
+  let _lastSoundTime = 0;
+
+  function getAudioContext(): AudioContext | null {
+    const Ctx = window.AudioContext ?? (window as any).webkitAudioContext;
+    if (!Ctx) return null;
+    if (!_audioCtx || _audioCtx.state === 'closed') {
+      _audioCtx = new Ctx();
+    }
+    return _audioCtx;
+  }
 
   function playCelebrationSound() {
+    const now = Date.now();
+    if (now - _lastSoundTime < 300) return;
+    _lastSoundTime = now;
     try {
-      const Ctx = window.AudioContext ?? (window as any).webkitAudioContext;
-      if (!Ctx) return;
-      const ctx: AudioContext = new Ctx();
-      const run = () => {
-        const i = _soundIdx++ % 6;
-        if (i === 0) {
-          // Bright ascending chime
-          [523,659,784].forEach((f,j) => { const o=ctx.createOscillator(),g=ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type='sine'; o.frequency.value=f; const t=ctx.currentTime+j*0.10; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.22,t+0.03); g.gain.exponentialRampToValueAtTime(0.001,t+0.5); o.start(t); o.stop(t+0.55); });
-        } else if (i === 1) {
-          // Soft pop + shimmer
-          const buf=ctx.createBuffer(1,ctx.sampleRate*0.08,ctx.sampleRate); const d=buf.getChannelData(0); for(let k=0;k<d.length;k++) d[k]=(Math.random()*2-1)*Math.exp(-k/400); const s=ctx.createBufferSource(); s.buffer=buf; const g=ctx.createGain(); g.gain.value=0.35; s.connect(g); g.connect(ctx.destination); s.start();
-          [1047,1319,1568].forEach((f,j) => { const o=ctx.createOscillator(),g=ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type='triangle'; o.frequency.value=f; const t=ctx.currentTime+0.05+j*0.07; g.gain.setValueAtTime(0.12,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.4); o.start(t); o.stop(t+0.45); });
-        } else if (i === 2) {
-          // Ta-da fanfare
-          [[392,0],[523,0.18],[659,0.32],[784,0.44]].forEach(([f,delay]) => { const o=ctx.createOscillator(),g=ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type='sawtooth'; o.frequency.value=f as number; const t=ctx.currentTime+(delay as number); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.12,t+0.04); g.gain.exponentialRampToValueAtTime(0.001,t+0.35); o.start(t); o.stop(t+0.4); });
-        } else if (i === 3) {
-          // Bouncy plucks
-          [440,554,659,880,1108].forEach((f,j) => { const o=ctx.createOscillator(),g=ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type='square'; o.frequency.value=f; const t=ctx.currentTime+j*0.08; g.gain.setValueAtTime(0.10,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.25); o.start(t); o.stop(t+0.28); });
-        } else if (i === 4) {
-          // Boom + sparkle
-          const o1=ctx.createOscillator(),g1=ctx.createGain(); o1.connect(g1); g1.connect(ctx.destination); o1.type='sine'; o1.frequency.setValueAtTime(120,ctx.currentTime); o1.frequency.exponentialRampToValueAtTime(40,ctx.currentTime+0.3); g1.gain.setValueAtTime(0.4,ctx.currentTime); g1.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.4); o1.start(); o1.stop(ctx.currentTime+0.45);
-          [2093,2637,3136].forEach((f,j) => { const o=ctx.createOscillator(),g=ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type='sine'; o.frequency.value=f; const t=ctx.currentTime+0.05+j*0.06; g.gain.setValueAtTime(0.08,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.3); o.start(t); o.stop(t+0.35); });
-        } else {
-          // Pentatonic cascade
-          [523,587,659,784,880,1047].forEach((f,j) => { const o=ctx.createOscillator(),g=ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type='sine'; o.frequency.value=f; const t=ctx.currentTime+j*0.06; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.15,t+0.02); g.gain.exponentialRampToValueAtTime(0.001,t+0.55); o.start(t); o.stop(t+0.6); });
-        }
-        setTimeout(() => ctx.close().catch(() => {}), 2500);
-      };
-      void (ctx.state === 'suspended' ? ctx.resume().then(run) : run());
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      const i = (_soundIdx++) % 6;
+      if (i === 0) {
+        // Bright ascending chime
+        [523,659,784].forEach((f,j) => { const o=ctx.createOscillator(),g=ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type='sine'; o.frequency.value=f; const t=ctx.currentTime+j*0.10; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.22,t+0.03); g.gain.exponentialRampToValueAtTime(0.001,t+0.5); o.start(t); o.stop(t+0.55); });
+      } else if (i === 1) {
+        // Soft pop + shimmer
+        const buf=ctx.createBuffer(1,ctx.sampleRate*0.08,ctx.sampleRate); const d=buf.getChannelData(0); for(let k=0;k<d.length;k++) d[k]=(Math.random()*2-1)*Math.exp(-k/400); const s=ctx.createBufferSource(); s.buffer=buf; const g=ctx.createGain(); g.gain.value=0.35; s.connect(g); g.connect(ctx.destination); s.start();
+        [1047,1319,1568].forEach((f,j) => { const o=ctx.createOscillator(),g=ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type='triangle'; o.frequency.value=f; const t=ctx.currentTime+0.05+j*0.07; g.gain.setValueAtTime(0.12,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.4); o.start(t); o.stop(t+0.45); });
+      } else if (i === 2) {
+        // Ta-da fanfare
+        [[392,0],[523,0.18],[659,0.32],[784,0.44]].forEach(([f,delay]) => { const o=ctx.createOscillator(),g=ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type='sawtooth'; o.frequency.value=f as number; const t=ctx.currentTime+(delay as number); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.12,t+0.04); g.gain.exponentialRampToValueAtTime(0.001,t+0.35); o.start(t); o.stop(t+0.4); });
+      } else if (i === 3) {
+        // Bouncy plucks
+        [440,554,659,880,1108].forEach((f,j) => { const o=ctx.createOscillator(),g=ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type='square'; o.frequency.value=f; const t=ctx.currentTime+j*0.08; g.gain.setValueAtTime(0.10,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.25); o.start(t); o.stop(t+0.28); });
+      } else if (i === 4) {
+        // Boom + sparkle
+        const o1=ctx.createOscillator(),g1=ctx.createGain(); o1.connect(g1); g1.connect(ctx.destination); o1.type='sine'; o1.frequency.setValueAtTime(120,ctx.currentTime); o1.frequency.exponentialRampToValueAtTime(40,ctx.currentTime+0.3); g1.gain.setValueAtTime(0.4,ctx.currentTime); g1.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.4); o1.start(); o1.stop(ctx.currentTime+0.45);
+        [2093,2637,3136].forEach((f,j) => { const o=ctx.createOscillator(),g=ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type='sine'; o.frequency.value=f; const t=ctx.currentTime+0.05+j*0.06; g.gain.setValueAtTime(0.08,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.3); o.start(t); o.stop(t+0.35); });
+      } else {
+        // Pentatonic cascade
+        [523,587,659,784,880,1047].forEach((f,j) => { const o=ctx.createOscillator(),g=ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type='sine'; o.frequency.value=f; const t=ctx.currentTime+j*0.06; g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.15,t+0.02); g.gain.exponentialRampToValueAtTime(0.001,t+0.55); o.start(t); o.stop(t+0.6); });
+      }
+      setTimeout(() => { if (!_audioCtx || _audioCtx.state === 'closed') return; try { _audioCtx.close(); _audioCtx = null; } catch { /* */ } }, 2500);
     } catch { /* silence any errors */ }
   }
+
+  // ─── CSV escaping ─────────────────────────────────────────────────────────
+
+  function csvEscape(val: string): string {
+    if (val.includes('"') || val.includes(',') || val.includes('\n')) {
+      return `"${val.replace(/"/g, '""')}"`;
+    }
+    return val;
+  }
+
+  // ─── Delete confirmation ──────────────────────────────────────────────────
+
+  let confirmTarget = $state<{ id: string; name: string } | null>(null);
+  let confirmCb = $state<(() => void) | null>(null);
+
+  function requestDelete(id: string, name: string, onConfirm: () => void) {
+    confirmTarget = { id, name };
+    confirmCb = onConfirm;
+  }
+
+  function executeDelete() {
+    confirmCb?.();
+    confirmTarget = null;
+    confirmCb = null;
+  }
+
+  function cancelDelete() {
+    confirmTarget = null;
+    confirmCb = null;
+  }
+
+  // ─── Busy state (prevents double-clicks) ──────────────────────────────────
+
+  let saveBusy = $state(false);
+  let deleteBusy = $state<Record<string, boolean>>({});
+  let exportBusy = $state<string | null>(null);
 
   // ─── Computed helpers ─────────────────────────────────────────────────────
 
@@ -231,12 +292,15 @@
   const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const daysInMonth = (m: number) => new Date(2000, m, 0).getDate();
 
-  const sortedEvents   = $derived([...events].filter(e => !isPast(e.targetMs)).sort((a,b) => a.targetMs - b.targetMs));
-  const pastEvents     = $derived([...events].filter(e =>  isPast(e.targetMs)).sort((a,b) => b.targetMs - a.targetMs));
-  const heroEvent      = $derived(sortedEvents[0] ?? null);
-  const restEvents     = $derived(sortedEvents.slice(1));
-  const sortedBirthdays= $derived([...birthdays].sort((a,b) => daysUntilBirthday(a) - daysUntilBirthday(b)));
-  const nextBirthday   = $derived(sortedBirthdays[0] ?? null);
+  const sortedEvents      = $derived([...events].filter(e => !isPast(e.targetMs)).sort((a,b) => a.targetMs - b.targetMs));
+  const pastEvents        = $derived([...events].filter(e =>  isPast(e.targetMs)).sort((a,b) => b.targetMs - a.targetMs));
+  const heroEvent         = $derived(sortedEvents[0] ?? null);
+  const restEvents        = $derived(sortedEvents.slice(1));
+  const activeMilestones  = $derived([...milestones].filter(m => !isPast(m.targetMs)).sort((a,b) => a.targetMs - b.targetMs));
+  const pastMilestones    = $derived([...milestones].filter(m =>  isPast(m.targetMs)).sort((a,b) => b.targetMs - a.targetMs));
+  const sortedBirthdays   = $derived([...birthdays].sort((a,b) => daysUntilBirthday(a) - daysUntilBirthday(b)));
+  const nextBirthday      = $derived(sortedBirthdays[0] ?? null);
+  const showLoading       = $derived(eventsLoading || milestonesLoading || birthdaysLoading);
 
   // Celebration TiltCard popup (must be after pastEvents is declared above)
   let celebEventId = $state<string | null>(null);
@@ -252,34 +316,74 @@
   async function addEvent() {
     if (!newName.trim() || !newDate) return;
     if (!validateDate(newDate)) { newDateWarn = true; return; }
+    if (!editEventId && events.some(e => e.name.toLowerCase() === newName.trim().toLowerCase())) {
+      toast.error("An event with this name already exists"); return;
+    }
+    const targetMs = new Date(newDate).getTime();
+    if (!editEventId && targetMs < Date.now() - 864e5) {
+      toast.warning("This date is in the past — it will show as \"days ago\"", { duration: 5000 });
+    }
+    saveBusy = true;
     try {
-      await invoke("countdown_save_event", {
-        params: {
-          name: newName.trim(),
-          targetMs: new Date(newDate).getTime(),
-          category: newCategory,
-          accent: nextAccent(),
-          note: newNote.trim() || null,
-        },
-      });
+      const params = {
+        name: newName.trim(),
+        targetMs,
+        category: newCategory,
+        accent: nextAccent(),
+        note: newNote.trim() || null,
+      };
+      if (editEventId) {
+        await invoke("countdown_update_event", { id: editEventId, params });
+        toast.success("Event updated");
+      } else {
+        await invoke("countdown_save_event", { params });
+        toast.success("Event added");
+      }
       await loadEvents();
-      newName = ""; newDate = ""; newNote = ""; newDateWarn = false; drawer = null;
+      resetEventForm();
+      closeDrawer();
     } catch (e) {
-      console.error("Failed to add event:", e);
+      toast.error("Failed to save event", { description: String(e) });
+    } finally {
+      saveBusy = false;
     }
   }
 
+  function resetEventForm() {
+    newName = ""; newDate = ""; newNote = ""; newDateWarn = false;
+    editEventId = null;
+  }
+
+  function startEditEvent(ev: CountdownItem) {
+    editEventId = ev.id;
+    newName = ev.name;
+    newDate = new Date(ev.targetMs).toISOString().slice(0, 10);
+    newCategory = ev.category;
+    newNote = ev.note || "";
+    newDateWarn = false;
+    drawer = "event";
+  }
+
   async function removeEvent(id: string) {
+    deleteBusy[id] = true;
     try {
       await invoke("countdown_delete_event", { id });
       await loadEvents();
+      toast.success("Event removed");
     } catch (e) {
-      console.error("Failed to delete event:", e);
+      toast.error("Failed to delete event", { description: String(e) });
+    } finally {
+      deleteBusy[id] = false;
     }
   }
 
   async function addMilestone() {
     if (!msName.trim() || !msDate) return;
+    if (!validateDate(msDate)) { toast.error("Please enter a valid date"); return; }
+    if (milestones.some(m => m.name.toLowerCase() === msName.trim().toLowerCase())) {
+      toast.error("A milestone with this name already exists"); return;
+    }
+    saveBusy = true;
     try {
       await invoke("countdown_save_milestone", {
         params: {
@@ -291,18 +395,26 @@
         },
       });
       await loadMilestones();
-      msName = ""; msDate = ""; msProgress = 0; msNote = ""; drawer = null;
+      msName = ""; msDate = ""; msProgress = 0; msNote = "";
+      closeDrawer();
+      toast.success("Milestone added");
     } catch (e) {
-      console.error("Failed to add milestone:", e);
+      toast.error("Failed to add milestone", { description: String(e) });
+    } finally {
+      saveBusy = false;
     }
   }
 
   async function removeMilestone(id: string) {
+    deleteBusy[id] = true;
     try {
       await invoke("countdown_delete_milestone", { id });
       await loadMilestones();
+      toast.success("Milestone removed");
     } catch (e) {
-      console.error("Failed to delete milestone:", e);
+      toast.error("Failed to delete milestone", { description: String(e) });
+    } finally {
+      deleteBusy[id] = false;
     }
   }
 
@@ -312,47 +424,79 @@
 
   async function saveProgress() {
     if (!editMsId) return;
+    saveBusy = true;
     try {
       await invoke("countdown_update_milestone_progress", {
         id: editMsId,
         progress: editMsVal,
       });
       await loadMilestones();
+      toast.success("Progress updated");
     } catch (e) {
-      console.error("Failed to update progress:", e);
+      toast.error("Failed to update progress", { description: String(e) });
+    } finally {
+      saveBusy = false;
+      editMsId = null; closeDrawer();
     }
-    editMsId = null; drawer = null;
   }
 
   async function addBirthday() {
     if (!bdName.trim()) return;
+    if (!editBirthdayId && birthdays.some(b => b.name.toLowerCase() === bdName.trim().toLowerCase())) {
+      toast.error("A birthday with this name already exists"); return;
+    }
+    saveBusy = true;
     try {
-      await invoke("countdown_save_birthday", {
-        params: {
-          name: bdName.trim(),
-          month: bdMonth,
-          day: bdDay,
-          accent: nextAccent(),
-        },
-      });
+      const params = {
+        name: bdName.trim(),
+        month: bdMonth,
+        day: bdDay,
+        accent: nextAccent(),
+      };
+      if (editBirthdayId) {
+        await invoke("countdown_update_birthday", { id: editBirthdayId, params });
+        toast.success("Birthday updated");
+      } else {
+        await invoke("countdown_save_birthday", { params });
+        toast.success("Birthday added");
+      }
       await loadBirthdays();
-      bdName = ""; bdMonth = 1; bdDay = 1; drawer = null;
+      resetBirthdayForm();
+      closeDrawer();
     } catch (e) {
-      console.error("Failed to add birthday:", e);
+      toast.error("Failed to save birthday", { description: String(e) });
+    } finally {
+      saveBusy = false;
     }
   }
 
+  function resetBirthdayForm() {
+    bdName = ""; bdMonth = 1; bdDay = 1;
+    editBirthdayId = null;
+  }
+
+  function startEditBirthday(bd: Birthday) {
+    editBirthdayId = bd.id;
+    bdName = bd.name;
+    bdMonth = bd.month;
+    bdDay = bd.day;
+    drawer = "birthday";
+  }
+
   async function removeBirthday(id: string) {
+    deleteBusy[id] = true;
     try {
       await invoke("countdown_delete_birthday", { id });
       await loadBirthdays();
+      toast.success("Birthday removed");
     } catch (e) {
-      console.error("Failed to delete birthday:", e);
+      toast.error("Failed to delete birthday", { description: String(e) });
+    } finally {
+      deleteBusy[id] = false;
     }
   }
 
   // ─── Export ──────────────────────────────────────────────────────────────
-  let exportLoading = $state<string | null>(null);
 
   function fmtDateShort(ms: number) {
     const d = new Date(ms);
@@ -360,12 +504,12 @@
   }
 
   async function exportEventsCsv() {
-    exportLoading = "events";
+    exportBusy = "events";
     try {
       const all = [...sortedEvents, ...pastEvents];
       const header = "Name,Date,Category,Days Until,Notes\n";
       const csv = header + all.map(e =>
-        `"${e.name}",${fmtDateShort(e.targetMs)},${e.category},${daysTo(e.targetMs)},"${e.note || ""}"`
+        `${csvEscape(e.name)},${fmtDateShort(e.targetMs)},${csvEscape(e.category)},${daysTo(e.targetMs)},${csvEscape(e.note || "")}`
       ).join("\n");
       await invoke("export_content_to_file", {
         content: csv,
@@ -373,20 +517,21 @@
         extension: "csv",
         filterName: "CSV files",
       });
+      toast.success("Events exported");
     } catch (e) {
-      console.error("Failed to export events:", e);
+      toast.error("Failed to export events", { description: String(e) });
     } finally {
-      exportLoading = null;
+      exportBusy = null;
     }
   }
 
   async function exportBirthdaysCsv() {
-    exportLoading = "birthdays";
+    exportBusy = "birthdays";
     try {
       const header = "Name,Month,Day,Next Occurrence,Days Until\n";
       const csv = header + birthdays.map(b => {
         const nextMs = nextOccurrenceMs(b.month, b.day);
-        return `"${b.name}",${b.month},${b.day},${fmtDateShort(nextMs)},${daysUntilBirthday(b)}`;
+        return `${csvEscape(b.name)},${b.month},${b.day},${fmtDateShort(nextMs)},${daysUntilBirthday(b)}`;
       }).join("\n");
       await invoke("export_content_to_file", {
         content: csv,
@@ -394,19 +539,20 @@
         extension: "csv",
         filterName: "CSV files",
       });
+      toast.success("Birthdays exported");
     } catch (e) {
-      console.error("Failed to export birthdays:", e);
+      toast.error("Failed to export birthdays", { description: String(e) });
     } finally {
-      exportLoading = null;
+      exportBusy = null;
     }
   }
 
   async function exportMilestonesCsv() {
-    exportLoading = "milestones";
+    exportBusy = "milestones";
     try {
       const header = "Name,Target Date,Progress %,Days Left,Notes\n";
       const csv = header + milestones.map(m =>
-        `"${m.name}",${fmtDateShort(m.targetMs)},${m.progress},${daysTo(m.targetMs)},"${m.note || ""}"`
+        `${csvEscape(m.name)},${fmtDateShort(m.targetMs)},${m.progress},${daysTo(m.targetMs)},${csvEscape(m.note || "")}`
       ).join("\n");
       await invoke("export_content_to_file", {
         content: csv,
@@ -414,23 +560,58 @@
         extension: "csv",
         filterName: "CSV files",
       });
+      toast.success("Milestones exported");
     } catch (e) {
-      console.error("Failed to export milestones:", e);
+      toast.error("Failed to export milestones", { description: String(e) });
     } finally {
-      exportLoading = null;
+      exportBusy = null;
     }
   }
+
+  // Re-export legacy alias for template
+  let exportLoading = $state<string | null>(null);
+  $effect(() => { exportLoading = exportBusy; });
 
   function openFullscreen(id: string) { focusId = id; drawer = "fullscreen"; }
   function closeFullscreen() { focusId = null; drawer = null; }
 
-  // Escape key closes any open drawer
-  function onKeydown(e: KeyboardEvent) {
-    if (e.key === "Escape") {
-      drawer = null; focusId = null;
+  function onBackdropClick(e: MouseEvent) {
+    if ((e.target as HTMLElement).classList.contains('cd-overlay--fullscreen')) {
+      closeFullscreen();
     }
-    // Enter submits the active form
-    if (e.key === "Enter" && !e.shiftKey) {
+  }
+
+  // Escape key closes any open drawer or celebration popup
+  function trapFocus(e: KeyboardEvent) {
+    if (e.key !== 'Tab' || !drawer) return;
+    const sheet = document.querySelector('.cd-sheet');
+    if (!sheet) return;
+    const focusable = sheet.querySelectorAll<HTMLElement>('input, select, button, textarea, [tabindex]:not([tabindex="-1"])');
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
+  function closeDrawer() {
+    drawer = null; focusId = null;
+    editEventId = null; editBirthdayId = null;
+  }
+
+  function onKeydown(e: KeyboardEvent) {
+    trapFocus(e);
+    if (e.key === "Escape") {
+      if (celebEventId) { celebEventId = null; return; }
+      closeDrawer();
+    }
+    // Enter submits the active form (only when a drawer is open)
+    if (e.key === "Enter" && !e.shiftKey && drawer) {
       if (drawer === "event")         addEvent();
       else if (drawer === "milestone") addMilestone();
       else if (drawer === "birthday")  addBirthday();
@@ -438,18 +619,22 @@
     }
   }
 
-  onMount(() => {
+  $effect(() => {
     ensureModuleSection(moduleId, sectionLabels);
     loadEvents();
     loadMilestones();
     loadBirthdays();
-    tickTimer = setInterval(() => { tick = Date.now(); }, 1000);
+    let prevMs = Date.now();
+    tickTimer = setInterval(() => {
+      const now = Date.now();
+      tick = now;
+      prevMs = now;
+    }, 1000);
     window.addEventListener("keydown", onKeydown);
-  });
-
-  onDestroy(() => {
-    clearInterval(tickTimer);
-    window.removeEventListener("keydown", onKeydown);
+    return () => {
+      clearInterval(tickTimer);
+      window.removeEventListener("keydown", onKeydown);
+    };
   });
 </script>
 
@@ -459,7 +644,8 @@
   {#if drawer === "fullscreen" && focusEvent}
     {const remaining = msToTarget(focusEvent.targetMs)}
     {const { days, hours, mins, secs } = decompose(remaining)}
-    <div class="cd-overlay cd-overlay--fullscreen" role="dialog" aria-modal="true" aria-label="Fullscreen countdown: {focusEvent.name}">
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="cd-overlay cd-overlay--fullscreen" role="dialog" aria-modal="true" aria-label="Fullscreen countdown: {focusEvent.name}" onclick={onBackdropClick}>
       <button class="cd-overlay-close" onclick={closeFullscreen} aria-label="Close fullscreen (Escape)" use:tooltip={{ text: "Close" }}>
         <XIcon size={18}/>
       </button>
@@ -484,16 +670,16 @@
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="cd-overlay cd-overlay--backdrop" role="dialog" aria-modal="true"
-      onclick={(e) => { if ((e.target as HTMLElement).classList.contains('cd-overlay--backdrop')) drawer = null; }}>
+      onclick={(e) => { if ((e.target as HTMLElement).classList.contains('cd-overlay--backdrop')) closeDrawer(); }}>
       <div class="cd-sheet">
-        <button class="cd-overlay-close" onclick={() => drawer = null} aria-label="Close (Escape)" use:tooltip={{ text: "Close" }}>
+        <button class="cd-overlay-close" onclick={() => closeDrawer()} aria-label="Close (Escape)" use:tooltip={{ text: "Close" }}>
           <XIcon size={18}/>
         </button>
 
         {#if drawer === "event"}
-          <h3 class="cd-drawer-title">New countdown</h3>
+          <h3 class="cd-drawer-title">{editEventId ? "Edit event" : "New countdown"}</h3>
           <div class="cd-form">
-            <input class="cd-input" placeholder="What are you counting down to?" bind:value={newName} />
+            <input class="cd-input" placeholder="What are you counting down to?" bind:value={newName} bind:this={focusEl} />
             <input class="cd-input cd-input--date" type="date" bind:value={newDate}
               oninput={() => { newDateWarn = false; }}
               aria-invalid={newDateWarn}
@@ -508,15 +694,15 @@
             </select>
             <input class="cd-input" placeholder="Note (optional)" bind:value={newNote} />
             <div class="cd-form-actions">
-              <Button variant="outline" onclick={() => drawer = null}>Cancel</Button>
-              <Button onclick={addEvent} disabled={!newName.trim() || !newDate}>Add event</Button>
+              <Button variant="outline" onclick={() => { resetEventForm(); closeDrawer(); }}>Cancel</Button>
+              <Button onclick={addEvent} disabled={!newName.trim() || !newDate || saveBusy}>Add event</Button>
             </div>
           </div>
 
         {:else if drawer === "milestone"}
           <h3 class="cd-drawer-title">New milestone</h3>
           <div class="cd-form">
-            <input class="cd-input" placeholder="What are you working toward?" bind:value={msName} />
+            <input class="cd-input" placeholder="What are you working toward?" bind:value={msName} bind:this={focusEl} />
             <input class="cd-input cd-input--date" type="date" bind:value={msDate} />
             <label class="cd-range-label">
               Progress so far — <strong>{msProgress}%</strong>
@@ -524,16 +710,16 @@
             </label>
             <input class="cd-input" placeholder="Any context? (optional)" bind:value={msNote} />
             <div class="cd-form-actions">
-              <Button variant="outline" onclick={() => drawer = null}>Cancel</Button>
-              <Button onclick={addMilestone} disabled={!msName.trim() || !msDate}>Add milestone</Button>
+              <Button variant="outline" onclick={() => { msName = ""; msDate = ""; msProgress = 0; msNote = ""; closeDrawer(); }}>Cancel</Button>
+              <Button onclick={addMilestone} disabled={!msName.trim() || !msDate || saveBusy}>Add milestone</Button>
             </div>
           </div>
 
         {:else if drawer === "birthday"}
-          <h3 class="cd-drawer-title">Add a birthday</h3>
+          <h3 class="cd-drawer-title">{editBirthdayId ? "Edit birthday" : "Add a birthday"}</h3>
           <p class="cd-drawer-sub">Month and day only — it repeats every year automatically.</p>
           <div class="cd-form">
-            <input class="cd-input" placeholder="Who is this?" bind:value={bdName} />
+            <input class="cd-input" placeholder="Who is this?" bind:value={bdName} bind:this={focusEl} />
             <div class="cd-bday-selects">
               <select class="cd-input" bind:value={bdMonth} aria-label="Birth month">
                 {#each MONTHS as m, i}
@@ -547,8 +733,8 @@
               </select>
             </div>
             <div class="cd-form-actions">
-              <Button variant="outline" onclick={() => drawer = null}>Cancel</Button>
-              <Button onclick={addBirthday} disabled={!bdName.trim()}>Add person</Button>
+              <Button variant="outline" onclick={() => { resetBirthdayForm(); closeDrawer(); }}>Cancel</Button>
+              <Button onclick={addBirthday} disabled={!bdName.trim() || saveBusy}>Add person</Button>
             </div>
           </div>
 
@@ -559,12 +745,12 @@
             <p class="cd-drawer-sub">{ms.name}</p>
             <div class="cd-form">
               <label class="cd-range-label">
-                <strong style="font-size:2rem;font-family:var(--font-heading);letter-spacing:-0.04em;color:var(--foreground)">{editMsVal}%</strong>
+                <strong class="number number-hero number-semibold">{editMsVal}%</strong>
                 <input type="range" min="0" max="100" bind:value={editMsVal} class="cd-range" aria-label="Progress percentage"/>
               </label>
               <div class="cd-form-actions">
-                <Button variant="outline" onclick={() => drawer = null}>Cancel</Button>
-                <Button onclick={saveProgress}>Save</Button>
+                <Button variant="outline" onclick={() => { editMsId = null; closeDrawer(); }}>Cancel</Button>
+                <Button onclick={saveProgress} disabled={saveBusy}>Save</Button>
               </div>
             </div>
           {/if}
@@ -572,6 +758,23 @@
 
       </div><!-- /.cd-sheet -->
     </div><!-- /.cd-overlay--backdrop -->
+  {/if}
+
+  <!-- ══ DELETE CONFIRMATION overlay ══ -->
+  {#if confirmTarget}
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="cd-overlay cd-overlay--backdrop" role="alertdialog" aria-modal="true" aria-label="Confirm deletion"
+      onclick={(e) => { if ((e.target as HTMLElement).classList.contains('cd-overlay--backdrop')) cancelDelete(); }}>
+      <div class="cd-sheet cd-confirm-sheet">
+        <p class="cd-confirm-text">Remove <strong>{confirmTarget.name}</strong>?</p>
+        <p class="cd-confirm-sub">This cannot be undone.</p>
+        <div class="cd-form-actions">
+          <Button variant="outline" onclick={cancelDelete}>Cancel</Button>
+          <Button onclick={executeDelete}>Remove</Button>
+        </div>
+      </div>
+    </div>
   {/if}
 
   <!-- ══ MAIN CONTENT (always rendered — blur backdrop shows it underneath) ══ -->
@@ -619,7 +822,13 @@
     <!-- ══ EVENTS ══ -->
     {#if selectedSection === "Events"}
 
-      {#if heroEvent}
+      {#if eventsLoading && events.length === 0}
+        <div class="cd-loading">
+          <div class="cd-skeleton cd-skeleton--hero"></div>
+          <div class="cd-skeleton cd-skeleton--list"></div>
+        </div>
+      {:else}
+        {#if heroEvent}
         {const remaining = msToTarget(heroEvent.targetMs)}
         {const { days, hours, mins, secs } = decompose(remaining)}
         <Card class="cd-hero {urgencyClass(heroEvent.targetMs)}" style="--cd-accent:{heroEvent.accent}">
@@ -662,7 +871,8 @@
                     <span>{daysTo(ev.targetMs)}</span><small>days</small>
                   </div>
                   <button class="cd-icon-btn" onclick={() => openFullscreen(ev.id)} aria-label="Full screen {ev.name}" use:tooltip={{ text: "View fullscreen" }}><EyeIcon size={13}/></button>
-                  <button class="cd-icon-btn cd-icon-btn--del" onclick={() => removeEvent(ev.id)} aria-label="Remove {ev.name}" use:tooltip={{ text: "Remove event" }}><Trash2Icon size={13}/></button>
+                  <button class="cd-icon-btn" onclick={() => startEditEvent(ev)} aria-label="Edit {ev.name}" use:tooltip={{ text: "Edit event" }}><PencilIcon size={13}/></button>
+                  <button class="cd-icon-btn cd-icon-btn--del" onclick={() => requestDelete(ev.id, ev.name, () => removeEvent(ev.id))} aria-label="Remove {ev.name}" use:tooltip={{ text: "Remove event" }}><Trash2Icon size={13}/></button>
                 </div>
               </article>
             {/each}
@@ -693,7 +903,7 @@
                   <div class="cd-event-days">
                     <span>{Math.abs(daysTo(ev.targetMs))}</span><small>days ago</small>
                   </div>
-                  <button class="cd-icon-btn cd-icon-btn--del" onclick={(e) => { e.stopPropagation(); removeEvent(ev.id); }} aria-label="Remove {ev.name}" use:tooltip={{ text: "Remove event" }}><Trash2Icon size={13}/></button>
+                  <button class="cd-icon-btn cd-icon-btn--del" onclick={(e) => { e.stopPropagation(); requestDelete(ev.id, ev.name, () => removeEvent(ev.id)); }} aria-label="Remove {ev.name}" use:tooltip={{ text: "Remove event" }}><Trash2Icon size={13}/></button>
                 </div>
               </article>
             {/each}
@@ -732,67 +942,124 @@
         </div>
       {/if}
 
+      {/if}
+
     <!-- ══ MILESTONES ══ -->
     {:else if selectedSection === "Milestones"}
 
-      <div class="cd-milestone-grid">
-        {#each milestones as ms}
-          <Card class="cd-milestone-card" style="--cd-accent:{ms.accent}">
-            <CardContent class="cd-milestone-body">
-              <div class="cd-milestone-header">
-                <div>
-                  <h3 class="cd-milestone-name">{ms.name}</h3>
-                  {#if ms.note}<p class="cd-milestone-note">{ms.note}</p>{/if}
-                </div>
-                <div class="cd-ms-actions">
-                  <!-- Edit progress in place — this is the missing action -->
-                  <button class="cd-icon-btn" onclick={() => startEditProgress(ms)} aria-label="Update progress for {ms.name}" use:tooltip={{ text: "Edit progress" }}><PencilIcon size={13}/></button>
-                  <button class="cd-icon-btn cd-icon-btn--del" onclick={() => removeMilestone(ms.id)} aria-label="Remove {ms.name}" use:tooltip={{ text: "Remove milestone" }}><Trash2Icon size={13}/></button>
-                </div>
-              </div>
-
-              <div class="cd-progress-wrap">
-                <svg viewBox="0 0 80 80" class="cd-progress-ring" role="img" aria-label="{ms.progress}% complete">
-                  <circle cx="40" cy="40" r="32" fill="none" stroke="color-mix(in srgb, var(--border) 60%, transparent)" stroke-width="6"/>
-                  <circle cx="40" cy="40" r="32" fill="none"
-                    stroke={ms.accent} stroke-width="6" stroke-linecap="round"
-                    stroke-dasharray="{(ms.progress / 100) * 2 * Math.PI * 32} {2 * Math.PI * 32}"
-                    transform="rotate(-90 40 40)"
-                  />
-                  <text x="40" y="45" text-anchor="middle" class="cd-progress-text">{ms.progress}%</text>
-                </svg>
-                <div class="cd-milestone-right">
-                  <p class="cd-milestone-target">{fmtDate(ms.targetMs)}</p>
-                  <p class="cd-milestone-days">
-                    {#if isPast(ms.targetMs)}
-                      <span class="cd-ms-past">Deadline passed</span>
-                    {:else}
-                      <strong>{daysTo(ms.targetMs)}</strong> days left
-                    {/if}
-                  </p>
-                </div>
-              </div>
-
-              <div class="cd-progress-bar-wrap" role="progressbar" aria-valuenow={ms.progress} aria-valuemin={0} aria-valuemax={100}>
-                <div class="cd-progress-bar" style="width:{ms.progress}%;background:{ms.accent}"></div>
+      {#if milestonesLoading && milestones.length === 0}
+        <div class="cd-loading">
+          <div class="cd-skeleton cd-skeleton--list"></div>
+          <div class="cd-skeleton cd-skeleton--list"></div>
+        </div>
+      {:else}
+        {#if activeMilestones.length > 0}
+          <Card class="cd-list-card">
+            <CardHeader>
+              <CardTitle>In progress</CardTitle>
+              <CardDescription>Still time to reach these goals.</CardDescription>
+            </CardHeader>
+            <CardContent class="cd-event-list">
+              <div class="cd-milestone-grid">
+                {#each activeMilestones as ms}
+                  <Card class="cd-milestone-card" style="--cd-accent:{ms.accent}">
+                    <CardContent class="cd-milestone-body">
+                      <div class="cd-milestone-header">
+                        <div>
+                          <h3 class="cd-milestone-name">{ms.name}</h3>
+                          {#if ms.note}<p class="cd-milestone-note">{ms.note}</p>{/if}
+                        </div>
+                        <div class="cd-ms-actions">
+                          <button class="cd-icon-btn" onclick={() => startEditProgress(ms)} aria-label="Update progress for {ms.name}" use:tooltip={{ text: "Edit progress" }}><PencilIcon size={13}/></button>
+                          <button class="cd-icon-btn cd-icon-btn--del" onclick={() => requestDelete(ms.id, ms.name, () => removeMilestone(ms.id))} aria-label="Remove {ms.name}" use:tooltip={{ text: "Remove milestone" }}><Trash2Icon size={13}/></button>
+                        </div>
+                      </div>
+                      <div class="cd-progress-wrap">
+                        <svg viewBox="0 0 80 80" class="cd-progress-ring" role="img" aria-label="{ms.progress}% complete">
+                          <circle cx="40" cy="40" r="32" fill="none" stroke="color-mix(in srgb, var(--border) 60%, transparent)" stroke-width="6"/>
+                          <circle cx="40" cy="40" r="32" fill="none"
+                            stroke={ms.accent} stroke-width="6" stroke-linecap="round"
+                            stroke-dasharray="{(ms.progress / 100) * 2 * Math.PI * 32} {2 * Math.PI * 32}"
+                            transform="rotate(-90 40 40)"
+                          />
+                          <text x="40" y="45" text-anchor="middle" class="cd-progress-text">{ms.progress}%</text>
+                        </svg>
+                        <div class="cd-milestone-right">
+                          <p class="cd-milestone-target">{fmtDate(ms.targetMs)}</p>
+                          <p class="cd-milestone-days"><strong>{daysTo(ms.targetMs)}</strong> days left</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                {/each}
               </div>
             </CardContent>
           </Card>
-        {/each}
-      </div>
+        {/if}
 
-      {#if milestones.length === 0}
-        <div class="cd-empty">
-          <FlagIcon size={32} class="cd-empty__icon" aria-hidden="true"/>
-          <p>No milestones yet.</p>
-          <span>Track what you're building, not just when.</span>
-        </div>
+        {#if pastMilestones.length > 0}
+          <Card class="cd-list-card">
+            <CardHeader>
+              <CardTitle>Deadline passed</CardTitle>
+              <CardDescription>These milestones have passed their target date.</CardDescription>
+            </CardHeader>
+            <CardContent class="cd-event-list">
+              <div class="cd-milestone-grid">
+                {#each pastMilestones as ms}
+                  <Card class="cd-milestone-card cd-milestone-card--past" style="--cd-accent:{ms.accent}">
+                    <CardContent class="cd-milestone-body">
+                      <div class="cd-milestone-header">
+                        <div>
+                          <h3 class="cd-milestone-name">{ms.name}</h3>
+                          {#if ms.note}<p class="cd-milestone-note">{ms.note}</p>{/if}
+                        </div>
+                        <div class="cd-ms-actions">
+                          <button class="cd-icon-btn" onclick={() => startEditProgress(ms)} aria-label="Update progress for {ms.name}" use:tooltip={{ text: "Edit progress" }}><PencilIcon size={13}/></button>
+                          <button class="cd-icon-btn cd-icon-btn--del" onclick={() => requestDelete(ms.id, ms.name, () => removeMilestone(ms.id))} aria-label="Remove {ms.name}" use:tooltip={{ text: "Remove milestone" }}><Trash2Icon size={13}/></button>
+                        </div>
+                      </div>
+                      <div class="cd-progress-wrap">
+                        <svg viewBox="0 0 80 80" class="cd-progress-ring" role="img" aria-label="{ms.progress}% complete">
+                          <circle cx="40" cy="40" r="32" fill="none" stroke="color-mix(in srgb, var(--border) 60%, transparent)" stroke-width="6"/>
+                          <circle cx="40" cy="40" r="32" fill="none"
+                            stroke={ms.accent} stroke-width="6" stroke-linecap="round"
+                            stroke-dasharray="{(ms.progress / 100) * 2 * Math.PI * 32} {2 * Math.PI * 32}"
+                            transform="rotate(-90 40 40)"
+                          />
+                          <text x="40" y="45" text-anchor="middle" class="cd-progress-text">{ms.progress}%</text>
+                        </svg>
+                        <div class="cd-milestone-right">
+                          <p class="cd-milestone-target">{fmtDate(ms.targetMs)}</p>
+                          <p class="cd-milestone-days"><span class="cd-ms-past">Deadline passed</span></p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                {/each}
+              </div>
+            </CardContent>
+          </Card>
+        {/if}
+
+        {#if milestones.length === 0}
+          <div class="cd-empty">
+            <FlagIcon size={32} class="cd-empty__icon" aria-hidden="true"/>
+            <p>No milestones yet.</p>
+            <span>Track what you're building, not just when.</span>
+          </div>
+        {/if}
       {/if}
 
     <!-- ══ BIRTHDAYS ══ -->
     {:else if selectedSection === "Birthdays"}
 
-      {#if nextBirthday}
+      {#if birthdaysLoading && birthdays.length === 0}
+        <div class="cd-loading">
+          <div class="cd-skeleton cd-skeleton--list"></div>
+          <div class="cd-skeleton cd-skeleton--list"></div>
+        </div>
+      {:else}
+        {#if nextBirthday}
         <Card class="cd-bday-hero" style="--cd-accent:{nextBirthday.accent}">
           <CardContent class="cd-bday-hero__body">
             <CakeIcon size={28} class="cd-bday-icon" aria-hidden="true"/>
@@ -824,7 +1091,8 @@
                     <span>{daysUntilBirthday(bd)}</span><small>days</small>
                   </div>
                   <Badge variant="outline" class="cd-repeat-badge"><RepeatIcon size={10}/> Yearly</Badge>
-                  <button class="cd-icon-btn cd-icon-btn--del" onclick={() => removeBirthday(bd.id)} aria-label="Remove {bd.name}" use:tooltip={{ text: "Remove birthday" }}><Trash2Icon size={13}/></button>
+                  <button class="cd-icon-btn" onclick={() => startEditBirthday(bd)} aria-label="Edit {bd.name}" use:tooltip={{ text: "Edit birthday" }}><PencilIcon size={13}/></button>
+                  <button class="cd-icon-btn cd-icon-btn--del" onclick={() => requestDelete(bd.id, bd.name, () => removeBirthday(bd.id))} aria-label="Remove {bd.name}" use:tooltip={{ text: "Remove birthday" }}><Trash2Icon size={13}/></button>
                 </div>
               </article>
             {/each}
@@ -836,6 +1104,7 @@
           <p>No birthdays yet.</p>
           <span>Tap "Add person" — they'll auto-repeat every year.</span>
         </div>
+      {/if}
       {/if}
 
     <!-- ══ SINCE ══ -->
@@ -891,9 +1160,9 @@
                 <strong>Upcoming events (.csv)</strong>
                 <span>All events with dates, categories, and notes.</span>
               </div>
-              <Button variant="outline" size="sm" onclick={exportEventsCsv} disabled={exportLoading !== null}>
+                  <Button variant="outline" size="sm" onclick={exportEventsCsv} disabled={exportBusy !== null}>
                 <DownloadIcon data-icon="inline-start" size={13}/>
-                {exportLoading === 'events' ? 'Exporting...' : 'Export'}
+                {exportBusy === 'events' ? 'Exporting...' : 'Export'}
               </Button>
             </article>
             <article class="cd-event-row">
@@ -902,9 +1171,9 @@
                 <strong>Birthdays (.csv)</strong>
                 <span>All recurring birthdays with next occurrence dates.</span>
               </div>
-              <Button variant="outline" size="sm" onclick={exportBirthdaysCsv} disabled={exportLoading !== null}>
+              <Button variant="outline" size="sm" onclick={exportBirthdaysCsv} disabled={exportBusy !== null}>
                 <DownloadIcon data-icon="inline-start" size={13}/>
-                {exportLoading === 'birthdays' ? 'Exporting...' : 'Export'}
+                {exportBusy === 'birthdays' ? 'Exporting...' : 'Export'}
               </Button>
             </article>
             <article class="cd-event-row">
@@ -913,9 +1182,9 @@
                 <strong>Milestone summary (.csv)</strong>
                 <span>Goals, progress percentages, and deadlines.</span>
               </div>
-              <Button variant="outline" size="sm" onclick={exportMilestonesCsv} disabled={exportLoading !== null}>
+              <Button variant="outline" size="sm" onclick={exportMilestonesCsv} disabled={exportBusy !== null}>
                 <DownloadIcon data-icon="inline-start" size={13}/>
-                {exportLoading === 'milestones' ? 'Exporting...' : 'Export'}
+                {exportBusy === 'milestones' ? 'Exporting...' : 'Export'}
               </Button>
             </article>
         </CardContent>
@@ -1010,9 +1279,15 @@
     animation: cd-fade-in 200ms ease;
   }
 
-  @keyframes cd-fade-in {
-    from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: translateY(0); }
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes cd-fade-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cd-overlay { animation: none; }
+    .cd-sheet { animation: none; }
   }
 
   /* ── Fullscreen countdown ── */
@@ -1057,12 +1332,13 @@
 
   .cd-fs-digits span { display: flex; flex-direction: column; align-items: center; }
   .cd-fs-digits strong {
-    font-family: var(--font-heading);
+    font-family: var(--font-number);
     font-size: clamp(3rem, 8vw, 7rem);
     letter-spacing: -0.06em;
     line-height: 1;
     color: var(--foreground);
-    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums lining-nums;
+    font-synthesis: none;
   }
   .cd-fs-digits small { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-top: 0.25rem; }
   .cd-fs-secs strong { color: var(--primary); }
@@ -1141,6 +1417,10 @@
 
   .cd-form-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.35rem; }
 
+  .cd-confirm-sheet { max-width: 360px; text-align: center; gap: 0.25rem; }
+  .cd-confirm-text { font-size: 1rem; font-weight: 600; color: var(--foreground); margin: 0; }
+  .cd-confirm-sub { font-size: 0.8rem; color: var(--muted); margin: 0 0 0.5rem; }
+
   .cd-range-label {
     font-size: 0.82rem;
     color: var(--muted);
@@ -1216,12 +1496,13 @@
   }
 
   .cd-digit strong {
-    font-family: var(--font-heading);
+    font-family: var(--font-number);
     font-size: 2rem;
     letter-spacing: -0.05em;
     line-height: 1;
     color: var(--foreground);
-    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums lining-nums;
+    font-synthesis: none;
   }
 
   .cd-digit span {
@@ -1229,7 +1510,7 @@
     text-transform: uppercase; letter-spacing: 0.06em; margin-top: 0.2rem;
   }
 
-  .cd-digit--secs strong { color: var(--cd-accent, var(--primary)); font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+  .cd-digit--secs strong { color: var(--cd-accent, var(--primary)); font-size: 1.6rem; font-variant-numeric: tabular-nums lining-nums; font-family: var(--font-number); font-synthesis: none; }
 
   /* ── Urgency states ── */
   :global(.cd-urgency--today)    { border-color: #ef4444 !important; }
@@ -1262,7 +1543,7 @@
 
   .cd-event-days {
     display: flex; flex-direction: column; align-items: flex-end;
-    font-family: var(--font-heading); font-size: 1.3rem; letter-spacing: -0.04em; color: var(--foreground);
+    font-family: var(--font-number); font-size: 1.3rem; letter-spacing: -0.04em; color: var(--foreground); font-variant-numeric: tabular-nums lining-nums; font-synthesis: none;
   }
   .cd-event-days small { font-size: 0.65rem; color: var(--muted); font-family: var(--font-body); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
 
@@ -1279,7 +1560,7 @@
 
   /* ── Since ── */
   .cd-since-block { display: flex; flex-direction: column; align-items: flex-end; }
-  .cd-since-block strong { font-family: var(--font-heading); font-size: 1.4rem; letter-spacing: -0.04em; color: var(--foreground); font-variant-numeric: tabular-nums; }
+  .cd-since-block strong { font-family: var(--font-number); font-size: 1.4rem; letter-spacing: -0.04em; color: var(--foreground); font-variant-numeric: tabular-nums lining-nums; font-synthesis: none; }
   .cd-since-block span  { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
   .cd-since-block small { font-size: 0.7rem; color: var(--muted); }
 
@@ -1300,7 +1581,7 @@
   :global(.cd-bday-icon) { color: var(--cd-accent, #ec4899); margin-bottom: 0.25rem; }
   .cd-bday-hero__name { font-family: var(--font-heading); font-size: 1.6rem; letter-spacing: -0.04em; margin: 0; color: var(--foreground); }
   .cd-bday-days { margin: 0; font-size: 0.9rem; color: var(--muted); }
-  .cd-bday-days strong { font-size: 1.5rem; font-family: var(--font-heading); letter-spacing: -0.04em; color: var(--cd-accent, #ec4899); font-variant-numeric: tabular-nums; }
+  .cd-bday-days strong { font-size: 1.5rem; font-family: var(--font-number); letter-spacing: -0.04em; color: var(--cd-accent, #ec4899); font-variant-numeric: tabular-nums lining-nums; font-synthesis: none; }
   .cd-bday-hint { font-size: 0.82rem; color: var(--muted); margin: 0; }
 
   /* ── Milestones ── */
@@ -1326,8 +1607,8 @@
       );
   }
   :global(.cd-milestone-card .card-content) { padding: 1.75rem !important; }
-  .cd-progress-ring { width: 100px; height: 100px; flex-shrink: 0; }
-  .cd-progress-text { font-size: 16px; }
+  .cd-milestone-card--past { opacity: 0.6; }
+  .cd-milestone-card--past:hover { opacity: 0.8; }
 
   .cd-milestone-body { display: flex; flex-direction: column; gap: 0.75rem; }
   .cd-milestone-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
@@ -1337,11 +1618,11 @@
 
   .cd-progress-wrap { display: flex; align-items: center; gap: 1rem; }
   .cd-progress-ring { width: 80px; height: 80px; flex-shrink: 0; }
-  .cd-progress-text { font-family: var(--font-heading); font-size: 14px; fill: var(--foreground); font-weight: 700; }
+  .cd-progress-text { font-family: var(--font-number); font-size: 14px; fill: var(--foreground); font-weight: var(--font-weight-regular); font-variant-numeric: tabular-nums lining-nums; font-synthesis: none; }
   .cd-milestone-right { display: flex; flex-direction: column; gap: 0.25rem; }
   .cd-milestone-target { font-size: 0.8rem; color: var(--muted); margin: 0; }
   .cd-milestone-days { font-size: 0.85rem; margin: 0; color: var(--foreground); }
-  .cd-milestone-days strong { font-family: var(--font-heading); font-size: 1.3rem; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+  .cd-milestone-days strong { font-family: var(--font-number); font-size: 1.3rem; letter-spacing: -0.04em; font-variant-numeric: tabular-nums lining-nums; font-synthesis: none; }
   .cd-ms-past { color: var(--muted); font-style: italic; }
 
   .cd-progress-bar-wrap { height: 4px; border-radius: 9999px; background: color-mix(in srgb, var(--border) 60%, transparent); overflow: hidden; }
@@ -1349,6 +1630,21 @@
 
   /* ── Export ── */
   :global(.cd-export-icon) { color: var(--muted); flex-shrink: 0; }
+
+  /* ── Loading skeletons ── */
+  .cd-loading { display: flex; flex-direction: column; gap: 1.25rem; }
+  .cd-skeleton {
+    border-radius: 0.75rem;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--border) 40%, transparent) 25%, color-mix(in srgb, var(--border) 60%, transparent) 50%, color-mix(in srgb, var(--border) 40%, transparent) 75%);
+    background-size: 200% 100%;
+    animation: cd-shimmer 1.5s ease-in-out infinite;
+  }
+  .cd-skeleton--hero { height: 200px; }
+  .cd-skeleton--list { height: 80px; }
+  @keyframes cd-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .cd-skeleton { animation: none; background: color-mix(in srgb, var(--border) 40%, transparent); }
+  }
 
   /* ── Empty states ── */
   .cd-empty {
@@ -1392,11 +1688,13 @@
   .tc-emoji { font-size: 2rem; line-height: 1; flex-shrink: 0; }
   .tc-banner-text { display: flex; flex-direction: column; }
   .tc-banner-text strong {
-    font-family: var(--font-heading);
+    font-family: var(--font-number);
     font-size: 2rem;
     letter-spacing: -0.05em;
     line-height: 1;
     color: #fff;
+    font-variant-numeric: tabular-nums lining-nums;
+    font-synthesis: none;
   }
   .tc-banner-text span { font-size: 0.75rem; color: rgba(255,255,255,0.7); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
   .tc-note { font-size: 0.78rem; color: var(--muted); font-style: italic; margin: 0 0 0.5rem; }
@@ -1411,4 +1709,8 @@
   .tc-btn--primary { color: #fff; }
   .tc-btn--primary:hover { filter: brightness(1.1); }
   .tc-hint { font-size: 0.65rem; color: var(--muted); opacity: 0.45; text-align: center; margin: 0.5rem 0 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cd-root, .cd-root * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
 </style>

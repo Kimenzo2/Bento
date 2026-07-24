@@ -14,6 +14,31 @@ use crate::db::BentoAppState;
 use crate::util::time;
 
 // ═══════════════════════════════════════════════════════════════════════════
+// TABLE BOOTSTRAP
+// ═══════════════════════════════════════════════════════════════════════════
+
+pub async fn ensure_countdown_tables(pool: &sqlx::SqlitePool) -> Result<(), String> {
+    let ddl = [
+        "CREATE TABLE IF NOT EXISTS countdown_events (id TEXT PRIMARY KEY, name TEXT NOT NULL, target_ms INTEGER NOT NULL, category TEXT NOT NULL DEFAULT 'Personal', accent TEXT NOT NULL DEFAULT '#6366f1', note TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
+        "CREATE TABLE IF NOT EXISTS countdown_milestones (id TEXT PRIMARY KEY, name TEXT NOT NULL, target_ms INTEGER NOT NULL, progress INTEGER NOT NULL DEFAULT 0, accent TEXT NOT NULL DEFAULT '#6366f1', note TEXT NOT NULL DEFAULT '', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
+        "CREATE TABLE IF NOT EXISTS countdown_birthdays (id TEXT PRIMARY KEY, name TEXT NOT NULL, month INTEGER NOT NULL, day INTEGER NOT NULL, accent TEXT NOT NULL DEFAULT '#6366f1', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
+    ];
+    for sql in ddl {
+        sqlx::query(sql).execute(pool).await.map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+fn days_in_month(month: i32) -> i32 {
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 => 29,
+        _ => 0,
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -103,6 +128,7 @@ pub async fn countdown_list_events(
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<CountdownEvent>, String> {
     crate::auth::require_billing_tier(&auth, "countdown").await?;
+    ensure_countdown_tables(&state.db()).await?;
 
     let rows = sqlx::query(
         "SELECT id, name, target_ms, category, accent, note, created_at, updated_at FROM countdown_events ORDER BY target_ms ASC",
@@ -133,6 +159,14 @@ pub async fn countdown_save_event(
     params: CountdownEventSave,
 ) -> Result<CountdownEvent, String> {
     crate::auth::require_billing_tier(&auth, "countdown").await?;
+    ensure_countdown_tables(&state.db()).await?;
+
+    if params.name.trim().is_empty() {
+        return Err("Event name cannot be empty".to_string());
+    }
+    if params.target_ms <= 0 {
+        return Err("Target date must be a valid future timestamp".to_string());
+    }
 
     let id = Uuid::new_v4().to_string();
     let now = time::now_ms();
@@ -169,6 +203,58 @@ pub async fn countdown_save_event(
 }
 
 #[tauri::command]
+pub async fn countdown_update_event(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+    id: String,
+    params: CountdownEventSave,
+) -> Result<CountdownEvent, String> {
+    crate::auth::require_billing_tier(&auth, "countdown").await?;
+
+    if params.name.trim().is_empty() {
+        return Err("Event name cannot be empty".to_string());
+    }
+    if params.target_ms <= 0 {
+        return Err("Target date must be a valid future timestamp".to_string());
+    }
+
+    let now = time::now_ms();
+    let note = params.note.unwrap_or_default();
+
+    let result = sqlx::query(
+        r#"
+        UPDATE countdown_events SET name = ?, target_ms = ?, category = ?, accent = ?, note = ?, updated_at = ?
+        WHERE id = ?
+        "#,
+    )
+    .bind(&params.name)
+    .bind(params.target_ms)
+    .bind(&params.category)
+    .bind(&params.accent)
+    .bind(&note)
+    .bind(now)
+    .bind(&id)
+    .execute(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    if result.rows_affected() == 0 {
+        return Err("Event not found".to_string());
+    }
+
+    Ok(CountdownEvent {
+        id,
+        name: params.name,
+        target_ms: params.target_ms,
+        category: params.category,
+        accent: params.accent,
+        note,
+        created_at: 0,
+        updated_at: now,
+    })
+}
+
+#[tauri::command]
 pub async fn countdown_delete_event(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
@@ -176,11 +262,14 @@ pub async fn countdown_delete_event(
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "countdown").await?;
 
-    sqlx::query("DELETE FROM countdown_events WHERE id = ?")
+    let result = sqlx::query("DELETE FROM countdown_events WHERE id = ?")
         .bind(&id)
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    if result.rows_affected() == 0 {
+        return Err("Event not found".to_string());
+    }
     Ok(())
 }
 
@@ -194,6 +283,7 @@ pub async fn countdown_list_milestones(
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<CountdownMilestone>, String> {
     crate::auth::require_billing_tier(&auth, "countdown").await?;
+    ensure_countdown_tables(&state.db()).await?;
 
     let rows = sqlx::query(
         "SELECT id, name, target_ms, progress, accent, note, created_at, updated_at FROM countdown_milestones ORDER BY target_ms ASC",
@@ -224,6 +314,14 @@ pub async fn countdown_save_milestone(
     params: CountdownMilestoneSave,
 ) -> Result<CountdownMilestone, String> {
     crate::auth::require_billing_tier(&auth, "countdown").await?;
+    ensure_countdown_tables(&state.db()).await?;
+
+    if params.name.trim().is_empty() {
+        return Err("Milestone name cannot be empty".to_string());
+    }
+    if params.target_ms <= 0 {
+        return Err("Target date must be a valid future timestamp".to_string());
+    }
 
     let id = Uuid::new_v4().to_string();
     let now = time::now_ms();
@@ -269,13 +367,16 @@ pub async fn countdown_update_milestone_progress(
     crate::auth::require_billing_tier(&auth, "countdown").await?;
 
     let now = time::now_ms();
-    sqlx::query("UPDATE countdown_milestones SET progress = ?, updated_at = ? WHERE id = ?")
+    let result = sqlx::query("UPDATE countdown_milestones SET progress = ?, updated_at = ? WHERE id = ?")
         .bind(progress.clamp(0, 100))
         .bind(now)
         .bind(&id)
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    if result.rows_affected() == 0 {
+        return Err("Milestone not found".to_string());
+    }
     Ok(())
 }
 
@@ -287,11 +388,14 @@ pub async fn countdown_delete_milestone(
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "countdown").await?;
 
-    sqlx::query("DELETE FROM countdown_milestones WHERE id = ?")
+    let result = sqlx::query("DELETE FROM countdown_milestones WHERE id = ?")
         .bind(&id)
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    if result.rows_affected() == 0 {
+        return Err("Milestone not found".to_string());
+    }
     Ok(())
 }
 
@@ -305,9 +409,10 @@ pub async fn countdown_list_birthdays(
     state: State<'_, BentoAppState>,
 ) -> Result<Vec<CountdownBirthday>, String> {
     crate::auth::require_billing_tier(&auth, "countdown").await?;
+    ensure_countdown_tables(&state.db()).await?;
 
     let rows = sqlx::query(
-        "SELECT id, name, month, day, accent, created_at, updated_at FROM countdown_birthdays ORDER BY month ASC, day ASC",
+        "SELECT id, name, month, day, accent, created_at, updated_at FROM countdown_birthdays",
     )
     .fetch_all(&state.db())
     .await
@@ -334,12 +439,18 @@ pub async fn countdown_save_birthday(
     params: CountdownBirthdaySave,
 ) -> Result<CountdownBirthday, String> {
     crate::auth::require_billing_tier(&auth, "countdown").await?;
+    ensure_countdown_tables(&state.db()).await?;
+
+    if params.name.trim().is_empty() {
+        return Err("Birthday name cannot be empty".to_string());
+    }
 
     let id = Uuid::new_v4().to_string();
     let now = time::now_ms();
 
     let month = params.month.clamp(1, 12);
-    let day = params.day.clamp(1, 31);
+    let max_day = days_in_month(month);
+    let day = params.day.clamp(1, max_day);
 
     sqlx::query(
         r#"
@@ -370,6 +481,55 @@ pub async fn countdown_save_birthday(
 }
 
 #[tauri::command]
+pub async fn countdown_update_birthday(
+    auth: State<'_, crate::auth::AuthManager>,
+    state: State<'_, BentoAppState>,
+    id: String,
+    params: CountdownBirthdaySave,
+) -> Result<CountdownBirthday, String> {
+    crate::auth::require_billing_tier(&auth, "countdown").await?;
+
+    if params.name.trim().is_empty() {
+        return Err("Birthday name cannot be empty".to_string());
+    }
+
+    let now = time::now_ms();
+    let month = params.month.clamp(1, 12);
+    let max_day = days_in_month(month);
+    let day = params.day.clamp(1, max_day);
+
+    let result = sqlx::query(
+        r#"
+        UPDATE countdown_birthdays SET name = ?, month = ?, day = ?, accent = ?, updated_at = ?
+        WHERE id = ?
+        "#,
+    )
+    .bind(&params.name)
+    .bind(month)
+    .bind(day)
+    .bind(&params.accent)
+    .bind(now)
+    .bind(&id)
+    .execute(&state.db())
+    .await
+    .map_err(|e| e.to_string())?;
+
+    if result.rows_affected() == 0 {
+        return Err("Birthday not found".to_string());
+    }
+
+    Ok(CountdownBirthday {
+        id,
+        name: params.name,
+        month,
+        day,
+        accent: params.accent,
+        created_at: 0,
+        updated_at: now,
+    })
+}
+
+#[tauri::command]
 pub async fn countdown_delete_birthday(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
@@ -377,10 +537,13 @@ pub async fn countdown_delete_birthday(
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "countdown").await?;
 
-    sqlx::query("DELETE FROM countdown_birthdays WHERE id = ?")
+    let result = sqlx::query("DELETE FROM countdown_birthdays WHERE id = ?")
         .bind(&id)
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    if result.rows_affected() == 0 {
+        return Err("Birthday not found".to_string());
+    }
     Ok(())
 }

@@ -988,7 +988,7 @@
                 <div class="goals-focus-band__info">
                   <span class="goals-focus-band__name">{area.name}</span>
                   {#if areaGoals.length > 0}
-                    <span class="goals-focus-band__count">{areaGoals.length} goal{areaGoals.length > 1 ? 's' : ''}</span>
+                    <span class="goals-focus-band__count"><span class="number number-tabular">{areaGoals.length}</span> goal{areaGoals.length > 1 ? 's' : ''}</span>
                   {/if}
                 </div>
               </div>
@@ -996,14 +996,14 @@
                 {#each areaGoals as goal (goal.id)}
                   <span class="goals-focus-band__pill" data-state={getGoalState(goal)}>
                     <span class="goals-focus-band__pill-title">{goal.title}</span>
-                    <span class="goals-focus-band__pill-pct">{goal.progress}%</span>
+                    <span class="goals-focus-band__pill-pct"><span class="number number-stat">{goal.progress}</span>%</span>
                   </span>
                 {/each}
                 {#if areaGoals.length === 0}
                   <span class="goals-focus-band__empty">Nothing here yet</span>
                 {/if}
               </div>
-              <span class="goals-focus-band__agg">{aggPct}%</span>
+              <span class="goals-focus-band__agg"><span class="number number-metric">{aggPct}</span>%</span>
             </div>
           {/each}
         {/if}
@@ -1074,7 +1074,7 @@
                   <span class="goals-timeline__group-label">{group.label}</span>
                   <div class="goals-timeline__group-bars">
                     {#each group.goals as g}
-                      <div class="goals-timeline__bar-row" tabindex="0" data-tooltip="{g.title}">
+                      <div class="goals-timeline__bar-row" tabindex="0" role="button" data-tooltip="{g.title}">
                         <div class="goals-timeline__bar"
                           style="left: {g.pctStart}%; width: {g.pctWidth}%">
                           <div class="goals-timeline__bar-fill" style="width: {g.progress}%"></div>
@@ -1083,9 +1083,9 @@
                         <div class="goals-timeline__tooltip">
                           <span class="goals-timeline__tooltip-title">{g.title}</span>
                           <span class="goals-timeline__tooltip-state" data-state={getGoalState(g)}>{getGoalPhrase(g)}</span>
-                          <span class="goals-timeline__tooltip-progress">{g.progress}% complete</span>
+                          <span class="goals-timeline__tooltip-progress"><span class="number number-stat">{g.progress}</span>% complete</span>
                           {#if g.daysRemaining !== null}
-                            <span class="goals-timeline__tooltip-days">{g.daysRemaining} day{g.daysRemaining !== 1 ? 's' : ''} remaining</span>
+                            <span class="goals-timeline__tooltip-days"><span class="number number-tabular">{g.daysRemaining}</span> day{g.daysRemaining !== 1 ? 's' : ''} remaining</span>
                           {/if}
                         </div>
                       </div>
@@ -1117,7 +1117,7 @@
                 {#each hmData.days as day}
                   <span class="goals-heatmap__cell"
                     style="opacity: {day.opacity}"
-                    title="{day.dateStr}: {day.count} update{day.count !== 1 ? 's' : ''}"
+                    use:tooltip={{ text: `${day.dateStr}: ${day.count} update${day.count !== 1 ? 's' : ''}` }}
                   ></span>
                 {/each}
               </div>
@@ -1319,7 +1319,7 @@
             </div>
             <div class="goals-detail-page__streak">
               <span class="goals-detail-page__streak-label">Days on track</span>
-              <span class="goals-detail-page__streak-value">{computeStreak(detailGoal.updateHistory)}</span>
+              <span class="goals-detail-page__streak-value number number-stat">{computeStreak(detailGoal.updateHistory)}</span>
             </div>
             <div class="goals-detail-page__focus-tag">
               <span class="goals-detail-page__focus-label">Focus area</span>
@@ -1349,7 +1349,7 @@
             </div>
             <div class="goals-detail-page__slider-row">
               <input type="range" min="0" max="100" step="1" bind:value={sliderProgress} onchange={handleProgressSliderChange} class="goals-progress-slider" aria-label="Goal progress" />
-              <span class="goals-detail-page__slider-value">{sliderProgress}%</span>
+              <span class="goals-detail-page__slider-value"><span class="number number-stat">{sliderProgress}</span>%</span>
             </div>
             <section class="goals-detail-page__section">
               <h3 class="goals-detail-page__section-title">Milestones</h3>
@@ -1455,7 +1455,7 @@
       <!-- Horizons section header -->
       <div class="gp1-horizon-section-label" data-horizon={horizonFilter}>
         {horizonFilter === 'weekly' ? 'This Week' : horizonFilter === 'monthly' ? 'This Month' : 'This Year'}
-        <span class="gp1-horizon-count">{filteredGoals.length} goal{filteredGoals.length !== 1 ? 's' : ''}</span>
+        <span class="gp1-horizon-count"><span class="number number-tabular">{filteredGoals.length}</span> goal{filteredGoals.length !== 1 ? 's' : ''}</span>
       </div>
 
       <!-- Goal list -->
@@ -1558,7 +1558,7 @@
                         <!-- Copy: name + step number -->
                         <div class="gp1-med-copy">
                           <strong>{st.label}</strong>
-                          <p>Step {si + 1} of {goal.subTasks.length}</p>
+                          <p>Step <span class="number number-tabular">{si + 1}</span> of <span class="number number-tabular">{goal.subTasks.length}</span></p>
                         </div>
                         <!-- Right: done/pending state -->
                         <div class="gp1-med-right">
@@ -1578,7 +1578,7 @@
                   <span class="goals-row__state" data-state={getGoalState(goal)}>
                     {getGoalPhrase(goal)}
                   </span>
-                  <span class="gp1-progress-pct">{goal.progress}%</span>
+                  <span class="gp1-progress-pct"><span class="number number-stat">{goal.progress}</span>%</span>
                 </div>
               </article>
 
@@ -1628,7 +1628,7 @@
               <div class="goals-panel__progress-actions">
                 <button class="goals-panel__progress-btn" onclick={() => updateProgress(selectedGoal.id, Math.min(selectedGoal.progress + 10, 100))} disabled={selectedGoal.progress >= 100}>+10%</button>
                 <button class="goals-panel__progress-btn" onclick={() => updateProgress(selectedGoal.id, Math.min(selectedGoal.progress + 25, 100))} disabled={selectedGoal.progress >= 100}>+25%</button>
-                <span class="goals-panel__progress-value">{selectedGoal.progress}%</span>
+                <span class="goals-panel__progress-value"><span class="number number-stat">{selectedGoal.progress}</span>%</span>
               </div>
               <button class="goals-panel__big3-btn" class:goals-panel__big3-btn--active={selectedGoal.isBig3} onclick={() => toggleBig3(selectedGoal.id, selectedGoal.isBig3)}>
                 <svg viewBox="0 0 24 24" fill={selectedGoal.isBig3 ? "currentColor" : "none"} stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>

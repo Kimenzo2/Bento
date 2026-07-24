@@ -671,7 +671,7 @@
       <Card>
         <CardHeader>
           <CardTitle>Progress</CardTitle>
-          <CardDescription>{completedCount} of {totalHabits} done today</CardDescription>
+          <CardDescription><span class="number number-stat">{completedCount}</span> of <span class="number number-stat">{totalHabits}</span> done today</CardDescription>
         </CardHeader>
         <CardContent class="hb-ring-content">
           <div class="hb-ring-wrap">
@@ -694,10 +694,10 @@
           <CardDescription>Your momentum, right now.</CardDescription>
         </CardHeader>
         <CardContent class="hb-glance">
-          <article><span>Top streak</span><strong>{topStreak} days</strong>{#if streakMilestoneLabel}<span class="hb-milestone-note">{streakMilestoneLabel}</span>{/if}</article>
-          <article><span>90-day rate</span><strong>{avgRate}%</strong></article>
+          <article><span>Top streak</span><strong><span class="number number-metric">{topStreak}</span> days</strong>{#if streakMilestoneLabel}<span class="hb-milestone-note">{streakMilestoneLabel}</span>{/if}</article>
+          <article><span>90-day rate</span><strong><span class="number number-metric">{avgRate}</span>%</strong></article>
           <article><span>Best day</span><strong>{bestDay}s</strong></article>
-          <article><span>Freeze tokens</span><strong>{availableFreezeTokens} left</strong></article>
+          <article><span>Freeze tokens</span><strong><span class="number number-metric">{availableFreezeTokens}</span> left</strong></article>
         </CardContent>
       </Card>
     </section>
@@ -769,15 +769,15 @@
                     <span class="hb-stack-label">{h.stackAfterName}</span>
                   </div>
                 {/if}
-                <div class="hb-streak-pill" title={`Day ${h.streak}`}>
-                  <span>{h.streak}</span><span class="hb-streak-unit">d</span>
+                <div class="hb-streak-pill" use:tooltip={{ text: `Day ${h.streak}` }}>
+                  <span class="number number-tabular">{h.streak}</span><span class="hb-streak-unit">d</span>
                 </div>
                 <div class="hb-row-actions">
-                  <button class="hb-icon-btn hb-icon-btn--subtle" title="Skip today — no guilt" aria-label="Skip today" onclick={() => skipHabit(h.id)}>
+                  <button class="hb-icon-btn hb-icon-btn--subtle" use:tooltip={{ text: "Skip today — no guilt" }} aria-label="Skip today" onclick={() => skipHabit(h.id)}>
                     <span class="hb-skip-icon" aria-hidden="true">→</span>
                   </button>
                   {#if availableFreezeTokens > 0}
-                    <button class="hb-icon-btn hb-icon-btn--ice" title="Protect streak" aria-label="Protect streak" onclick={() => freezeStreak(h.id)}><span aria-hidden="true">❄</span></button>
+                    <button class="hb-icon-btn hb-icon-btn--ice" use:tooltip={{ text: "Protect streak" }} aria-label="Protect streak" onclick={() => freezeStreak(h.id)}><span aria-hidden="true">❄</span></button>
                   {/if}
                 </div>
               </article>
@@ -811,7 +811,7 @@
                   </div>
                 </div>
                 <div class="hb-streak-pill hb-frozen" title={`Day ${h.streak}`}>
-                  <span>{h.streak}</span><span class="hb-streak-unit">d</span>
+                  <span class="number number-tabular">{h.streak}</span><span class="hb-streak-unit">d</span>
                 </div>
                 <div class="hb-mood-group">
                   {#each [['😤','Frustrated'],['😐','Neutral'],['🙂','Slightly happy'],['😊','Happy'],['🔥','On fire']] as [mood, label]}
@@ -875,7 +875,7 @@
           <CardDescription>{sortedByStreak[0]?.name ?? '—'}</CardDescription>
         </CardHeader>
         <CardContent class="hb-streak-hero-content">
-          <div class="hb-big-number">{topStreak}</div>
+          <div class="hb-big-number"><span class="number number-hero number-semibold">{topStreak}</span></div>
           <div class="hb-big-label">days</div>
           {#if streakMilestoneLabel}
             <div class="hb-badge-milestone">✨ {streakMilestoneLabel}</div>
@@ -898,7 +898,7 @@
               <span class="hb-token" class:hb-token-spent={i < usedFreezeTokens}>❄️</span>
             {/each}
           </div>
-          <article><span>Available</span><strong>{availableFreezeTokens} of {freezeTokens}</strong></article>
+          <article><span>Available</span><strong><span class="number number-metric">{availableFreezeTokens}</span> of <span class="number number-metric">{freezeTokens}</span></strong></article>
           <article class="hb-tip-small"><p>Tokens reset monthly. Apply one before the day ends to keep your streak safe.</p></article>
         </CardContent>
       </Card>
@@ -923,8 +923,8 @@
                 </div>
               </div>
               <div class="hb-s-nums">
-                <span class="hb-s-cur">{h.streak}d</span>
-                <span class="hb-s-best">best {h.longestStreak}d</span>
+                <span class="hb-s-cur"><span class="number number-tabular">{h.streak}</span>d</span>
+                <span class="hb-s-best">best <span class="number number-tabular">{h.longestStreak}</span>d</span>
               </div>
               <div class="hb-s-actions">
                 {#if !h.frozenStreak && availableFreezeTokens > 0}
@@ -956,7 +956,7 @@
             <article style="--hc:{h.color}">
               <span>{@render habitIcon(h.emoji, 16)}&thinsp;{h.name}</span>
               <div class="hb-strength-bar-wrap"><div class="hb-strength-bar" style="width:{score}%;background:{h.color}" role="meter" aria-label="Habit strength" aria-valuemin={0} aria-valuemax={100} aria-valuenow={score}></div></div>
-              <strong>{score}</strong>
+              <strong class="number number-tabular">{score}</strong>
             </article>
           {/each}
           <article class="hb-tip-small"><p>Strength = Streak (50%) + 90-day rate (30%) + Last 7 days (20%).</p></article>
@@ -980,25 +980,25 @@
       <section class="hb-hero-grid hb-hero-grid--4">
         <Card>
           <CardContent class="hb-stat-box">
-            <strong>{heatmapHabit.completionHistory.filter(Boolean).length}</strong>
+            <strong class="number number-stat">{heatmapHabit.completionHistory.filter(Boolean).length}</strong>
             <span>days completed</span>
           </CardContent>
         </Card>
         <Card>
           <CardContent class="hb-stat-box">
-            <strong>{Math.round(heatmapHabit.completionHistory.filter(Boolean).length / 90 * 100)}%</strong>
+            <strong class="number number-stat">{Math.round(heatmapHabit.completionHistory.filter(Boolean).length / 90 * 100)}%</strong>
             <span>completion rate</span>
           </CardContent>
         </Card>
         <Card>
           <CardContent class="hb-stat-box">
-            <strong>{heatmapHabit.streak}</strong>
+            <strong class="number number-stat">{heatmapHabit.streak}</strong>
             <span>current streak</span>
           </CardContent>
         </Card>
         <Card>
           <CardContent class="hb-stat-box">
-            <strong>{heatmapHabit.longestStreak}</strong>
+            <strong class="number number-stat">{heatmapHabit.longestStreak}</strong>
             <span>best ever</span>
           </CardContent>
         </Card>
@@ -1025,7 +1025,7 @@
               {#each heatmapHabit.completionHistory as day, i}
                 <div class="hb-hm-cell" class:hb-hm-on={day}
                   style={day ? `opacity:${hmOpacity(i)}` : ''}
-                  title="{new Date(Date.now()-(89-i)*86400000).toLocaleDateString()}: {day ? '✓' : '·'}"
+                  use:tooltip={{ text: `${new Date(Date.now()-(89-i)*86400000).toLocaleDateString()}: ${day ? '✓' : '·'}` }}
                 ></div>
               {/each}
             </div>
@@ -1065,7 +1065,7 @@
               <span class="hb-perf-icon">{@render habitIcon(h.emoji, 16)}</span>
               <span class="hb-perf-name">{h.name}</span>
               <div class="hb-perf-track"><div class="hb-perf-fill" style="width:{rate}%;background:{h.color}" role="meter" aria-label="{h.name} completion rate" aria-valuemin={0} aria-valuemax={100} aria-valuenow={rate}></div></div>
-              <span class="hb-perf-pct">{rate}%</span>
+              <span class="hb-perf-pct"><span class="number number-stat">{rate}</span>%</span>
             </article>
           {/each}
         </CardContent>
@@ -1100,7 +1100,7 @@
             {@const srRows = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map((day, i) => { const dayTotal = activeHabits.reduce((s,h) => { const idx = 89 - (6 - i); return s + (h.completionHistory[idx] ? 1 : 0); }, 0); return `${day} ${dayTotal}`; }).join(', ')}
             <div class="hl-wc" role="img" aria-label="Weekly habit completion: {srRows}">
               <div class="hl-wc-y" aria-hidden="true">
-                <span>{totalHabits}</span><span>{Math.round(totalHabits * 0.75)}</span><span>{Math.round(totalHabits * 0.5)}</span><span>{Math.round(totalHabits * 0.25)}</span><span>0</span>
+                <span class="number number-tabular">{totalHabits}</span><span class="number number-tabular">{Math.round(totalHabits * 0.75)}</span><span class="number number-tabular">{Math.round(totalHabits * 0.5)}</span><span class="number number-tabular">{Math.round(totalHabits * 0.25)}</span><span class="number number-tabular">0</span>
                 <span class="hl-wc-ytitle">Completed</span>
               </div>
               <div class="hl-wc-body">
@@ -1115,7 +1115,7 @@
                     {const pct = totalHabits > 0 ? dayTotal / totalHabits : 0}
                     <div class="hl-wc-col">
                       {#if dayTotal > 0}
-                        <span class="hl-wc-val">{dayTotal}</span>
+                        <span class="hl-wc-val number number-stat">{dayTotal}</span>
                       {/if}
                       <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
                       <div class="hl-wc-bar"
@@ -1158,8 +1158,8 @@
           <CardDescription>Your numbers, held gently.</CardDescription>
         </CardHeader>
         <CardContent class="hb-list">
-          <article><span>Completions this week</span><strong>{thisWeekTotal}</strong></article>
-          <article><span>90-day rate</span><strong>{avgRate}%</strong></article>
+          <article><span>Completions this week</span><strong class="number number-stat">{thisWeekTotal}</strong></article>
+          <article><span>90-day rate</span><strong class="number number-stat">{avgRate}%</strong></article>
           <article><span>Best day</span><strong>{bestDay}s</strong></article>
           <article><span>Most consistent</span><strong>{@render habitIcon(bestHabit?.emoji, 14)} {bestHabit?.name}</strong></article>
         </CardContent>
@@ -1197,8 +1197,8 @@
                 <div class="hb-bd-bar"><div class="hb-bd-fill" style="width:{rate}%" role="meter" aria-label="{h.name} 90-day rate" aria-valuemin={0} aria-valuemax={100} aria-valuenow={rate}></div></div>
               </div>
               <div class="hb-bd-nums">
-                <span>{rate}%</span>
-                <span class="hb-bd-streak">{h.streak}d</span>
+                <span class="number number-stat">{rate}%</span>
+                <span class="hb-bd-streak"><span class="number number-tabular">{h.streak}</span>d</span>
               </div>
             </article>
           {/each}
@@ -1236,10 +1236,10 @@
                 <strong>{h.name}</strong>
                 <span>{h.kind === 'quit' ? 'Reducing' : 'Building'} · {h.frequency}</span>
               </div>
-              <button class="hb-icon-btn" title="Edit" aria-label="Edit habit" onclick={() => openEditModal(h)}>
+              <button class="hb-icon-btn" use:tooltip={{ text: "Edit" }} aria-label="Edit habit" onclick={() => openEditModal(h)}>
                 <PencilIcon size={13} style="opacity:0.5" aria-hidden="true"/>
               </button>
-              <button class="hb-icon-btn hb-icon-btn--archive" title="Archive — pause without losing progress" aria-label="Archive habit" onclick={() => archiveHabit(h.id)}>
+              <button class="hb-icon-btn hb-icon-btn--archive" use:tooltip={{ text: "Archive — pause without losing progress" }} aria-label="Archive habit" onclick={() => archiveHabit(h.id)}>
                 <span style="font-size:13px;opacity:0.6" aria-hidden="true">📦</span>
               </button>
             </article>
@@ -1262,7 +1262,7 @@
                 freezeTokens = t;
                 await invoke('habits_save_freeze_state', { freezeTokens: t, usedFreezeTokens });
               }}}>−</button>
-              <strong>{freezeTokens}</strong>
+              <strong class="number number-metric">{freezeTokens}</strong>
               <button onclick={async () => { if (freezeTokens < 5) {
                 const t = freezeTokens + 1;
                 freezeTokens = t;
@@ -1270,7 +1270,7 @@
               }}}>+</button>
             </div>
           </article>
-          <article><span>Used this month</span><strong>{usedFreezeTokens} / {freezeTokens}</strong></article>
+          <article><span>Used this month</span><strong><span class="number number-metric">{usedFreezeTokens}</span> / <span class="number number-metric">{freezeTokens}</span></strong></article>
           <div class="hb-token-bar"><div class="hb-token-bar-fill" style="width:{freezeTokens > 0 ? (usedFreezeTokens/freezeTokens*100) : 0}%" role="meter" aria-label="Freeze token usage" aria-valuemin={0} aria-valuemax={freezeTokens} aria-valuenow={usedFreezeTokens}></div></div>
         </CardContent>
       </Card>
@@ -1322,10 +1322,10 @@
                 <span>Paused — {h.streak}d streak saved</span>
               </div>
               <div class="hb-row-actions">
-                <button class="hb-icon-btn" title="Resume" aria-label="Resume habit" onclick={() => unarchiveHabit(h.id)}>
+                <button class="hb-icon-btn" use:tooltip={{ text: "Resume" }} aria-label="Resume habit" onclick={() => unarchiveHabit(h.id)}>
                   <span style="font-size:14px" aria-hidden="true">↩</span>
                 </button>
-                <button class="hb-icon-btn" title="Delete permanently" aria-label="Delete habit permanently" onclick={() => deleteHabit(h.id)}>
+                <button class="hb-icon-btn" use:tooltip={{ text: "Delete permanently" }} aria-label="Delete habit permanently" onclick={() => deleteHabit(h.id)}>
                   <span style="font-size:13px;opacity:0.5" aria-hidden="true">✕</span>
                 </button>
               </div>
@@ -1629,6 +1629,9 @@
   font-size: 1.2rem;
   font-weight: 700;
   line-height: 1.2;
+  font-family: var(--font-number);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-synthesis: none;
 }
 :global(.hb-milestone-note) {
   font-size: 0.65rem;
@@ -2008,9 +2011,10 @@
   font-size: 3.6rem;
   font-weight: 900;
   line-height: 1;
-  font-family: var(--font-display);
+  font-family: var(--font-number);
   letter-spacing: -0.04em;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-synthesis: none;
 }
 :global(.hb-big-label) {
   font-size: 0.9rem;
@@ -2119,7 +2123,6 @@
   font-size: 1.5rem;
   font-weight: 800;
   line-height: 1;
-  font-family: var(--font-display);
 }
 :global(.hb-stat-box span) {
   font-size: 0.72rem;

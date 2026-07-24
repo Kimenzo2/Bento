@@ -13,6 +13,7 @@
   import { time } from "$lib/utils/time";
   import { trackEvent } from "$lib/ipc";
   import { openExternal } from "$lib/desktop/open-external";
+  import { tooltip } from "$lib/components/Tooltip.svelte";
   import SearchIcon        from "@lucide/svelte/icons/search";
   import PinIcon           from "@lucide/svelte/icons/pin";
   import PinOffIcon        from "@lucide/svelte/icons/pin-off";
@@ -695,7 +696,7 @@
                       </span>
                       <span class="cb-clip-row__meta">
                         <ClockIcon size={10} /> {time.elapsed(Date.now() - clip.timestamp)}
-                        {#if clip.byteSize} · {formatBytes(clip.byteSize)}{/if}
+                        {#if clip.byteSize} · <span class="number number-tabular">{formatBytes(clip.byteSize)}</span>{/if}
                         {#if clip.pinned}<span class="cb-clip-row__pin">Pinned</span>{/if}
                       </span>
                     </div>
@@ -775,10 +776,10 @@
                   {/each}
                 </div>
                 <div class="cb-detail__footer-actions">
-                  <button class="cb-detail__icon-action" class:active={clip.favorite} onclick={() => toggleFavorite(clip.id)} title="Favorite">
+                  <button class="cb-detail__icon-action" class:active={clip.favorite} onclick={() => toggleFavorite(clip.id)} use:tooltip={{ text: "Favorite" }}>
                     <StarIcon size={14}/>
                   </button>
-                  <button class="cb-detail__icon-action" class:active={clip.pinned} onclick={() => togglePin(clip.id)} title="Pin">
+                  <button class="cb-detail__icon-action" class:active={clip.pinned} onclick={() => togglePin(clip.id)} use:tooltip={{ text: "Pin" }}>
                     {#if clip.pinned}<PinOffIcon size={14}/>{:else}<PinIcon size={14}/>{/if}
                   </button>
                   <button class="cb-action-btn--primary" onclick={() => copyClip(clip.id, pasteMode)}>
@@ -831,10 +832,10 @@
                 <span class="cb-image-card__frame">
                   <ClipboardImage hash={clip.contentHash} alt="" class="cb-image-card__img" imagePath={imagePathCache.get(clip.contentHash)} />
                   <span class="cb-image-card__actions">
-                    <button class="cb-image-card__action" onclick={(e) => { e.stopPropagation(); activeId = clip.id; setModuleSection(moduleId, "History", sectionLabels); }} aria-label="View in detail panel" title="View details">
+                    <button class="cb-image-card__action" onclick={(e) => { e.stopPropagation(); activeId = clip.id; setModuleSection(moduleId, "History", sectionLabels); }} aria-label="View in detail panel" use:tooltip={{ text: "View details" }}>
                       <EyeIcon size={12} />
                     </button>
-                    <button class="cb-image-card__action cb-image-card__action--danger" onclick={(e) => { e.stopPropagation(); deleteClip(clip.id); }} aria-label="Delete image" title="Delete">
+                    <button class="cb-image-card__action cb-image-card__action--danger" onclick={(e) => { e.stopPropagation(); deleteClip(clip.id); }} aria-label="Delete image" use:tooltip={{ text: "Delete" }}>
                       <Trash2Icon size={12} />
                     </button>
                   </span>
@@ -941,7 +942,7 @@
                   <!-- Hover actions -->
                   <div class="cb-pin-card__actions">
                     {#if bookmarkCopyId === clip.id}
-                      <button class="cb-pin-card__action cb-pin-card__action--confirm" disabled aria-label="Copied" title="Copied">
+                      <button class="cb-pin-card__action cb-pin-card__action--confirm" disabled aria-label="Copied" use:tooltip={{ text: "Copied" }}>
                         <CheckIcon size={12} />
                       </button>
                     {:else}
@@ -949,7 +950,7 @@
                         class="cb-pin-card__action"
                         onclick={(e) => { e.stopPropagation(); void copyBookmarkUrl(clip); }}
                         aria-label="Copy URL"
-                        title="Copy URL"
+                        use:tooltip={{ text: "Copy URL" }}
                       >
                         <CopyIcon size={12} />
                       </button>
@@ -958,7 +959,7 @@
                       class="cb-pin-card__action cb-pin-card__action--danger"
                       onclick={(e) => { e.stopPropagation(); void deleteClip(clip.id); }}
                       aria-label="Delete bookmark"
-                      title="Delete"
+                      use:tooltip={{ text: "Delete" }}
                     >
                       <Trash2Icon size={12} />
                     </button>

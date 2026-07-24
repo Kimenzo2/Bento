@@ -13,7 +13,9 @@ use crate::audio::dictation::{
     detect_agent_trigger, post_process, AgentTriggerResult, DictationProcessResult, DictationStyle,
 };
 use crate::audio::AudioState;
+use crate::db::BentoAppState;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 /// Response returned by voice_start / voice_stop.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -92,6 +94,117 @@ pub async fn voice_resume(state: tauri::State<'_, AudioState>) -> Result<VoiceSe
 #[tauri::command]
 pub async fn voice_cancel(state: tauri::State<'_, AudioState>) -> Result<(), String> {
     state.engine.cancel_recording().await
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Voice Memo Persistence Command
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Result of saving a voice memo.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VoiceMemoResult {
+    pub success: bool,
+    pub id: String,
+}
+
+/// Save a voice memo entry with transcript to the Voice Memos database.
+///
+/// When `recording_id` is provided, upserts the transcript into the existing
+/// `recording_transcripts` row (for Rust recording modes where audio is already
+/// persisted). Otherwise creates a new `recording_metadata` + `recording_transcripts`
+/// pair (for text-only dictation).
+///
+/// For text-only dictation (no audio file), `file_path` is an empty string.
+/// For Rust recording modes, pass the existing `file_path` to link the audio.
+#[tauri::command]
+pub async fn voice_save_memo(
+    state: tauri::State<'_, BentoAppState>,
+    recording_id: Option<String>,
+    title: String,
+    transcript: String,
+    duration_secs: f64,
+    source: String,
+    file_path: Option<String>,
+) -> Result<VoiceMemoResult, String> {
+    let pool = state.db();
+    let now_ms = crate::util::time::now_ms();
+
+    let id = if let Some(ref rid) = recording_id {
+        sqlx::query(
+            r#"UPDATE recording_metadata SET title = ?, transcribed = 1 WHERE id = ?"#,
+        )
+        .bind(&title)
+        .bind(rid)
+        .execute(&pool)
+        .await
+        .map_err(|e| format!("Failed to update recording metadata: {e}"))?;
+
+        sqlx::query(
+            r#"INSERT INTO recording_transcripts 
+            (recording_id, transcript, language, model_path, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(recording_id) DO UPDATE SET
+              transcript = excluded.transcript,
+              updated_at = excluded.updated_at"#,
+        )
+        .bind(rid)
+        .bind(&transcript)
+        .bind(None::<String>)
+        .bind(None::<String>)
+        .bind(now_ms)
+        .bind(now_ms)
+        .execute(&pool)
+        .await
+        .map_err(|e| format!("Failed to upsert recording transcript: {e}"))?;
+
+        rid.clone()
+    } else {
+        let id = Uuid::new_v4().to_string();
+        let fp = file_path.unwrap_or_default();
+
+        sqlx::query(
+            r#"INSERT INTO recording_metadata 
+            (id, title, duration_secs, file_path, file_size_bytes, module_id, 
+             created_at, device_name, sample_rate, channels, transcribed)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)"#,
+        )
+        .bind(&id)
+        .bind(&title)
+        .bind(duration_secs)
+        .bind(&fp)
+        .bind(0i64)
+        .bind(&source)
+        .bind(now_ms)
+        .bind(None::<String>)
+        .bind(0i32)
+        .bind(0i32)
+        .execute(&pool)
+        .await
+        .map_err(|e| format!("Failed to insert recording metadata: {e}"))?;
+
+        sqlx::query(
+            r#"INSERT INTO recording_transcripts 
+            (recording_id, transcript, language, model_path, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)"#,
+        )
+        .bind(&id)
+        .bind(&transcript)
+        .bind(None::<String>)
+        .bind(None::<String>)
+        .bind(now_ms)
+        .bind(now_ms)
+        .execute(&pool)
+        .await
+        .map_err(|e| format!("Failed to insert recording transcript: {e}"))?;
+
+        id
+    };
+
+    Ok(VoiceMemoResult {
+        success: true,
+        id,
+    })
 }
 
 // ═══════════════════════════════════════════════════════════════════════

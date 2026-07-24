@@ -311,7 +311,6 @@ async fn purge_local_user_content(pool: &SqlitePool) -> Result<(), String> {
         "journal_entries",
         "recording_transcripts",
         "recording_metadata",
-        "mood_private_notes",
         "mood_activities",
         "mood_checkins",
         "health_doses",

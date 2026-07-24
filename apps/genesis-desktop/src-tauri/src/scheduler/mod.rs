@@ -367,9 +367,10 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
         // Initial interval: 30s. On pool timeout, interval DOUBLES (up to 8 min)
         // to avoid hammering an already-congested DB. Resets to 30s on success.
         let mut poll_interval_secs = 30u64;
-        // Use the dedicated reader pool so scheduler polling never competes
-        // with user-facing IPC writes for the single writer connection slot.
-        let db = state.db_reader();
+        // Use the writer pool so scheduler can persist its state (updating
+        // next_fire_at, recording notification history). Reader pool is
+        // read-only and would cause infinite refire loops on write failure.
+        let db = state.db();
 
         // Ensure scheduler + notification tables exist before entering the loop
         if let Err(e) = ensure_scheduler_tables(&db).await {
@@ -387,7 +388,6 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
             // Check for due schedules
             let due = match store.get_due().await {
                 Ok(schedules) => {
-                    // Reset poll interval on success
                     if poll_interval_secs > 30 {
                         poll_interval_secs = 30;
                         println!("[scheduler] poll interval reset to 30s after successful query");
@@ -396,7 +396,6 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
                 }
                 Err(e) => {
                     println!("[scheduler] Failed to query due schedules: {e}");
-                    // Exponential backoff: double interval up to 8 min max
                     poll_interval_secs = (poll_interval_secs * 2).min(480);
                     println!("[scheduler] backing off — next poll in {poll_interval_secs}s");
                     tokio::time::sleep(tokio::time::Duration::from_secs(poll_interval_secs)).await;
@@ -414,11 +413,9 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
                 println!("[scheduler]   due: id={:?} label={} module={} next_fire={}", s.id, s.label, s.module_id, s.next_fire_at.unwrap_or(0));
             }
 
-            // Read settings once per poll cycle to avoid repeated filesystem I/O
             let notif_settings = settings::current_settings(&app_handle).notifications;
 
             for schedule in due {
-                // Guard: skip if already fired within the last 60s (crash recovery guard)
                 if let Some(last) = schedule.last_fired_at {
                     if time::now_ms() - last < 60_000 {
                         println!(
@@ -435,10 +432,7 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
                 let dbc = db.clone();
                 let sched_notif_settings = notif_settings.clone();
 
-                // Fire notification for this schedule
                 tauri::async_runtime::spawn(async move {
-
-                    // 1. Emit event to frontend so passive-intelligence can pick it up
                     if let Some(window) = app.get_webview_window("main") {
                         let payload: serde_json::Value = serde_json::json!({
                             "scheduleId": sched.id,
@@ -455,7 +449,6 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
                     println!("[scheduler] Webview window 'main' not found — cannot emit schedule-fire event");
                     }
 
-                    // 2. Dispatch native OS notification (with sound if enabled)
                     let title = &sched.label;
                     let body = &format!("Your scheduled {} reminder is due.", sched.label);
                     let permission = crate::notifications::is_permission_granted(&app);
@@ -473,20 +466,14 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
                     } else {
                         println!("[scheduler] Background alerts disabled, skipping native notification for '{}'", sched.label);
                     }
-                    // Record in history (best-effort)
                     let notif_store = crate::notifications::NotificationStore::new(dbc.clone());
-                    if let Err(e) = notif_store
+                    let _ = notif_store
                         .record_fired(&sched.module_id, title, body, sched.id.as_deref())
-                        .await
-                    {
-                        println!("[scheduler] Failed to record notification: {e}");
-                    }
+                        .await;
 
-                    // 3. Advance schedule (snaps daily to start_at to prevent drift)
                     let mut updated = sched.clone();
                     updated.advance();
 
-                    // 4. Persist advanced schedule (advance() already sets last_fired_at + updated_at)
                     let store = ScheduleStore::new(dbc.clone());
                     if let Some(id) = updated.id.as_ref() {
                         if let Err(e) = store.update(&updated).await {
@@ -494,22 +481,18 @@ pub fn spawn_scheduler_worker(state: crate::db::BentoAppState, app_handle: tauri
                         }
                     }
 
-                    // 5. Check for pending snoozed notifications
                     if let Ok(pending) = notif_store.get_pending_snoozed().await {
                         for n in pending {
                             if let Some(_nid) = n.id {
-                                if let Err(e) = crate::notifications::dispatch_notification_with_custom_sound(
+                                let _ = crate::notifications::dispatch_notification_with_custom_sound(
                                     &app, &n.title, &n.body, sched.sound.as_deref(),
-                                ) {
-                                    println!("[scheduler] Snoozed dispatch failed: {e}");
-                                }
+                                );
                             }
                         }
                     }
                 });
             }
 
-            // Sleep before next poll (do this at end so first iteration fires immediately)
             tokio::time::sleep(tokio::time::Duration::from_secs(poll_interval_secs)).await;
         }
     });

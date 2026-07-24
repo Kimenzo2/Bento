@@ -35,7 +35,7 @@
         <CardDescription class="text-[0.65rem] uppercase tracking-[0.18em] text-[var(--muted)]">
           {stat.label}
         </CardDescription>
-        <CardTitle class="font-[var(--font-heading)] text-2xl font-semibold text-[var(--foreground)]">
+        <CardTitle class="number number-metric text-[var(--foreground)]">
           {stat.value}
         </CardTitle>
       </CardHeader>

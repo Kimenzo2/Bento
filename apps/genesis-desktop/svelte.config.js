@@ -21,7 +21,20 @@ const config = {
     // ── Silently drop all accessibility warnings ──
     // These are noisy during rapid development and can hide UI elements
     // when running `bun run check`. Address them when polishing.
-    if (warning.code.startsWith("a11y-")) {
+    if (warning.code.startsWith("a11y")) {
+      return;
+    }
+
+    // ── Suppress known non-critical warnings ──
+    // Kept in sync with the `--compiler-warnings` list in package.json
+    // so that Vite builds (tauri build, release:windows) stay as clean
+    // as `svelte-check`.
+    const suppressed = new Set([
+      "css_unused_selector",
+      "svelte_component_deprecated",
+      "element_invalid_self_closing_tag",
+    ]);
+    if (suppressed.has(warning.code)) {
       return;
     }
 
