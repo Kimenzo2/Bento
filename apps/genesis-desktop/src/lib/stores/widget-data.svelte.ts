@@ -417,16 +417,23 @@ async function runLoaderWithRetry(
 
 /**
  * Initialize all widget data loaders. Call this once on mount.
- * Each loader invokes its Tauri command and updates the reactive store.
- * On transient failure, retries with linear backoff before falling back.
+ * Loaders run with a concurrency limit of 4 to avoid flooding IPC
+ * on initial load. On transient failure, retries with linear backoff
+ * before falling back to static defaults.
  */
 export function initWidgetData(): void {
   if (initialized) return;
   initialized = true;
-  for (const [id, loader] of Object.entries(ALL_LOADERS)) {
-    // runLoaderWithRetry never throws — all errors are caught internally
-    runLoaderWithRetry(loader, id);
+  const entries = Object.entries(ALL_LOADERS);
+  let idx = 0;
+  function next() {
+    while (idx < entries.length) {
+      const i = idx++;
+      runLoaderWithRetry(entries[i][1], entries[i][0]);
+    }
   }
+  // Start 4 concurrent workers
+  for (let i = 0; i < 4; i++) next();
 }
 
 /**

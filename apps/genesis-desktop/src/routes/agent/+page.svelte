@@ -112,20 +112,20 @@
     justify-content: center;
     border-radius: 6px;
     border: none;
-    background: rgba(255, 255, 255, 0.08);
-    color: #737373;
+    background: oklch(1 0 89.876 / 0.08);
+    color: oklch(0.556 0 89.876);
     cursor: pointer;
     transition: background 0.15s ease, color 0.15s ease;
     z-index: 10;
   }
 
   .agent-close:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: #fff;
+    background: oklch(1 0 89.876 / 0.15);
+    color: oklch(1 0 89.876);
   }
 
   .agent-close:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.4);
+    outline: 2px solid oklch(1 0 89.876 / 0.4);
     outline-offset: 2px;
   }
 </style>

@@ -689,7 +689,7 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 4px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 20px oklch(from var(--color-shadow) l c h / 0.1);
     min-width: 160px;
   }
 
@@ -708,8 +708,8 @@
   }
 
   .ctx-item:hover { background: color-mix(in srgb, var(--foreground) 6%, transparent); }
-  .ctx-item.ctx-danger { color: var(--destructive, #ef4444); }
-  .ctx-item.ctx-danger:hover { background: color-mix(in srgb, var(--destructive, #ef4444) 8%, transparent); }
+  .ctx-item.ctx-danger { color: var(--destructive, oklch(0.637 0.208 25.331)); }
+  .ctx-item.ctx-danger:hover { background: color-mix(in srgb, var(--destructive, oklch(0.637 0.208 25.331)) 8%, transparent); }
 
   .ctx-sep {
     height: 1px;

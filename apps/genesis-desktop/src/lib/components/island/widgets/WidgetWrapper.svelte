@@ -43,8 +43,8 @@
     flex: 1;
     overflow: hidden;
     border-radius: 18px;
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
-    background: rgba(20, 20, 22, 0.85);
+    border: 0.5px solid oklch(1 0 89.876 / 0.08);
+    background: oklch(0.191 0.002 264.364 / 0.85);
     padding: 14px;
   }
 
@@ -60,7 +60,7 @@
     font-size: 13px;
     font-weight: 500;
     letter-spacing: -0.01em;
-    color: rgba(255, 255, 255, 0.5);
+    color: oklch(1 0 89.876 / 0.5);
   }
 
   .ww-actions {
@@ -79,13 +79,13 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    color: rgba(255, 255, 255, 0.35);
+    color: oklch(1 0 89.876 / 0.35);
     padding: 0;
   }
 
   .ww-actions :global(button:hover) {
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.7);
+    background: oklch(1 0 89.876 / 0.06);
+    color: oklch(1 0 89.876 / 0.7);
   }
 
   .ww-body {

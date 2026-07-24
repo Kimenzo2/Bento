@@ -1665,7 +1665,7 @@
     border-radius: 10px;
     border: none;
     background: var(--sleep-accent);
-    color: #fff;
+    color: oklch(1 0 89.876);
     font-size: 0.82rem;
     font-weight: 600;
     cursor: pointer;
@@ -1676,7 +1676,7 @@
 
   :global(.sr-add-btn:disabled) { opacity: 0.5; cursor: not-allowed; }
   @media (hover: hover) and (pointer: fine) {
-    :global(.sr-add-btn:hover:not(:disabled)) { background: color-mix(in srgb, var(--sleep-accent) 85%, #0a0a0a); }
+    :global(.sr-add-btn:hover:not(:disabled)) { background: color-mix(in srgb, var(--sleep-accent) 85%, oklch(0.145 0 89.876)); }
   }
   :global(.sr-add-btn:active:not(:disabled)) { transform: scale(0.96); }
 
@@ -1774,7 +1774,7 @@
     border-radius: 10px;
     border: none;
     background: var(--sleep-accent);
-    color: #fff;
+    color: oklch(1 0 89.876);
     font-size: 0.82rem;
     font-weight: 600;
     cursor: pointer;
@@ -1789,7 +1789,7 @@
   :global(.sa-feedback--success) { color: oklch(0.723 0.192 149.579); }
   :global(.sa-empty) { text-align: center; color: var(--sleep-muted); padding: 20px; }
   @media (hover: hover) and (pointer: fine) {
-    :global(.sa-add-btn:hover:not(:disabled)) { background: color-mix(in srgb, var(--sleep-accent) 85%, #0a0a0a); }
+    :global(.sa-add-btn:hover:not(:disabled)) { background: color-mix(in srgb, var(--sleep-accent) 85%, oklch(0.145 0 89.876)); }
   }
   :global(.sa-add-btn:active:not(:disabled)) { transform: scale(0.96); }
 
@@ -2188,7 +2188,7 @@
     background: var(--sleep-accent);
     cursor: pointer;
     border: 2px solid var(--sleep-bg);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    box-shadow: 0 1px 4px oklch(from var(--color-shadow) l c h / 0.15);
   }
 
   :global(.sg-slider-labels) {

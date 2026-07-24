@@ -75,17 +75,17 @@
   box-shadow: none;
   border-radius: 20px;
   padding: 24px;
-  color: #ffffff;
+  color: oklch(1 0 89.876);
 }
 .card-accent .label,
 .card-accent span:not([class]),
 .card-accent small {
-  color: rgba(255, 255, 255, 0.75);
+  color: oklch(1 0 89.876 / 0.75);
 }
 .card-accent strong,
 .card-accent .value,
 .card-accent .count {
-  color: #ffffff;
+  color: oklch(1 0 89.876);
 }
 
 /* TYPE C — Dark card. Maximum contrast. One per app, optional. */

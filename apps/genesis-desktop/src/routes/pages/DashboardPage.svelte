@@ -1,5 +1,6 @@
 <script lang="ts">
   import PromptDialog from "$lib/components/PromptDialog.svelte";
+  import { toast } from "svelte-sonner";
   import { onMount } from "svelte";
   import { browser } from "$app/environment";
   import { isTauri } from "@tauri-apps/api/core";
@@ -68,21 +69,20 @@
     lastUsedMs: number;
   }
 
-  let data = $state<DashboardPayload | null>(null);
-  let loading = $state(true);    let error = $state<string | null>(null);
+  let data = $state.raw<DashboardPayload | null>(null);
+  let loading = $state(true);
+  let refreshing = $state(false);
+  let error = $state<string | null>(null);
   let quickAddOpen = $state(false);
-  let quickAddValue = $state("");
 
   const canUseTauri = browser && isTauri();
-
-  const clientGreeting = $derived(data?.greeting ?? "Welcome back");
 
   function loadFallbackData() {
     data = {
       greeting: "Welcome back",
       insightLine: "Open a module to get started",
       featuredModule: {
-        id: "tasks", name: "Tasks", icon: "clipboard-list", accentHex: "#52b788",
+        id: "tasks", name: "Tasks", icon: "clipboard-list", accentHex: "oklch(0.706 0.118 160.888)",
         primaryCount: 0, primaryLabel: "tasks", descriptorLabel: "Open Tasks →",
         items: [{ text: "Add a task to get started", secondary: null, completed: false }],
       },
@@ -98,6 +98,7 @@
   let basePollInterval = 30_000;
   let loadInFlight = false;
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  let destroyed = false;
 
   /**
    * Load dashboard data with debounce + concurrency guard.
@@ -125,6 +126,7 @@
       }
 
       loadInFlight = true;
+      refreshing = true;
       try {
         const result = await invokeWithTimeout<DashboardPayload>("get_dashboard_data", undefined, 10_000);
         data = result;
@@ -134,13 +136,18 @@
         restartPolling();
       } catch (err) {
         console.error("[dashboard] loadDashboard failed:", err);
-        error = typeof err === "string" ? err : _t('dashboardFailedToLoad');
+        if (!data) {
+          error = typeof err === "string" ? err : _t('dashboardFailedToLoad');
+        } else {
+          toast.error(typeof err === "string" ? err : _t('dashboardFailedToLoad'));
+        }
         // Poll backoff: double interval up to 2 min max
         basePollInterval = Math.min(basePollInterval * 2, 120_000);
         restartPolling();
       } finally {
         loadInFlight = false;
-        loading = false;
+        refreshing = false;
+        if (!destroyed) loading = false;
       }
     }, 500); // 500ms debounce
   }
@@ -175,8 +182,13 @@
     window.addEventListener("focus", handleFocus);
     window.addEventListener("bento:dashboard-refresh", handleDashboardRefresh as EventListener);
     return () => {
+      destroyed = true;
       stopPolling();
-      if (debounceTimer) clearTimeout(debounceTimer);
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+        debounceTimer = null;
+        loading = false;
+      }
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("bento:dashboard-refresh", handleDashboardRefresh as EventListener);
     };
@@ -185,24 +197,20 @@
   const LAST_MODULE_KEY = "bento:lastModule";
   const LAST_MODULE_AT_KEY = "bento:lastModuleAt";
 
-  // The live "last used" module — Rust backend is the sole source of truth.
-  const lastModule = $derived.by(() => {
+  const lastModule = $derived(data?.recentModules?.[0] ?? null);
+
+  $effect(() => {
+    if (!browser) return;
     const liveFirst = data?.recentModules?.[0];
-    if (liveFirst) {
-      // Keep localStorage in sync so the app switcher can reference it
-      if (browser) {
-        try {
-          const at = localStorage.getItem(LAST_MODULE_AT_KEY);
-          const existingAt = at ? Number(at) : 0;
-          if (liveFirst.lastUsedMs >= existingAt) {
-            localStorage.setItem(LAST_MODULE_KEY, liveFirst.id);
-            localStorage.setItem(LAST_MODULE_AT_KEY, String(liveFirst.lastUsedMs));
-          }
-        } catch {}
+    if (!liveFirst) return;
+    try {
+      const at = localStorage.getItem(LAST_MODULE_AT_KEY);
+      const existingAt = at ? Number(at) : 0;
+      if (liveFirst.lastUsedMs >= existingAt) {
+        localStorage.setItem(LAST_MODULE_KEY, liveFirst.id);
+        localStorage.setItem(LAST_MODULE_AT_KEY, String(liveFirst.lastUsedMs));
       }
-      return { id: liveFirst.id, name: liveFirst.name };
-    }
-    return null;
+    } catch {}
   });
 
   function openQuickAdd() {
@@ -210,7 +218,6 @@
       window.dispatchEvent(new CustomEvent("bento:quick-add"));
       return;
     }
-    quickAddValue = "";
     quickAddOpen = true;
   }
 
@@ -223,7 +230,7 @@
       await invoke("create_quick_task", { title: trimmed });
       await loadDashboard();
     } catch (err) {
-      error = typeof err === "string" ? err : _t('dashboardFailedToAdd');
+      toast.error(typeof err === "string" ? err : _t('dashboardFailedToAdd'));
     }
   }
 
@@ -238,7 +245,7 @@
     try {
       await switchModule(parsed.data as BentoModuleId);
     } catch (err) {
-      error = typeof err === "string" ? err : _t('dashboardFailedToOpen');
+      toast.error(typeof err === "string" ? err : _t('dashboardFailedToOpen'));
     }
   }
 
@@ -247,9 +254,13 @@
     if (lastModule) void navigateToModule(lastModule.id);
   }
 
-  const trendIcon = $derived((direction: string) => direction === "up" ? "↑" : "↓");
+  function trendIcon(direction: string) {
+    return direction === "up"
+      ? '<svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:0.7em;height:0.7em"><path d="M8 12V4"/><path d="m4 8 4-4 4 4"/></svg>'
+      : '<svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:0.7em;height:0.7em"><path d="M8 4v8"/><path d="m4 8 4 4 4-4"/></svg>';
+  }
 
-  const moduleIconSVG = $derived((iconName: string) => {
+  function moduleIconSVG(iconName: string) {
     const icons: Record<string, string> = {
       "layout-grid": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>`,
       "file-text": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
@@ -277,38 +288,42 @@
       "brain": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 1 4.5 7.5A5 5 0 1 1 12 18a5 5 0 1 1-4.5-8.5A5 5 0 0 1 12 2z"/><path d="M12 2v20"/></svg>`,
     };
     return icons[iconName] ?? icons["layout-grid"];
-  });
+  }
 </script>
 
 <section class="dashboard">
-  {#if loading}
+  {#if loading && !data}
     <div class="dashboard__loading">
       <div class="dashboard__loading-spinner"></div>
       <span>{_t('dashboardLoading')}</span>
     </div>
-  {:else if error}
+  {:else if error && !data}
     <div class="dashboard__error">
       <p>{error}</p>
-      <button class="dashboard__retry-btn" onclick={() => { loading = true; void loadDashboard(); }}>{_t('dashboardRetry')}</button>
+      <button type="button" class="dashboard__retry-btn" onclick={() => { loading = true; error = null; void loadDashboard(); }}>{_t('dashboardRetry')}</button>
     </div>
   {:else if data}
+
+    {#if refreshing}
+      <div class="dashboard__refresh-bar" role="progressbar" aria-label="Refreshing"></div>
+    {/if}
 
     <!-- ══ ZONE 1: GREETING ══ -->
     <header class="dashboard__greeting">
       <div class="dashboard__greeting-text">
-        <h1 class="dashboard__greeting-heading">{clientGreeting}</h1>
+        <h1 class="dashboard__greeting-heading">{data.greeting?.trim() || "Welcome back"}</h1>
         <p class="dashboard__greeting-insight">{data.insightLine}</p>
       </div>
       <div class="dashboard__pills">
-        <button class="dashboard__pill" onclick={openQuickAdd}>
+        <button type="button" class="dashboard__pill" onclick={openQuickAdd}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dashboard__pill-icon"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
           {_t('dashboardQuickAdd')}
         </button>
-        <button class="dashboard__pill" onclick={continueLastModule} disabled={!lastModule}>
+        <button type="button" class="dashboard__pill" onclick={continueLastModule} disabled={!lastModule} title={lastModule ? _t('dashboardContinueIn').replace('{name}', lastModule.name) : _t('dashboardOpenModule')}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dashboard__pill-icon"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          {_t('dashboardContinueIn').replace('{name}', lastModule?.name ?? '…')}
+          {lastModule ? _t('dashboardContinueIn').replace('{name}', lastModule.name) : _t('dashboardOpenModule')}
         </button>
-        <button class="dashboard__pill" onclick={openFocusMode}>
+        <button type="button" class="dashboard__pill" onclick={openFocusMode}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="dashboard__pill-icon"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M12 2v2"/><path d="M10 2h4"/></svg>
           {_t('dashboardTodaysFocus')}
         </button>
@@ -319,7 +334,7 @@
     <div class="dashboard__cards">
 
       <!-- Card 1: Today's Priority -->
-      <article class="dashboard__card dashboard__card--priority" style="--card-accent: {data.featuredModule.accentHex};">
+      <article class="dashboard__card dashboard__card--priority" style="--card-accent: {data.featuredModule.accentHex};" role="region" aria-label={_t('dashboardTodaysPriority')}>
         <div class="dashboard__card-header">
           <span class="dashboard__card-count">{data.featuredModule.primaryCount}</span>
         </div>
@@ -335,8 +350,8 @@
                 <div class="dpi__node" class:dpi__node--done={item.completed}>
                   {#if item.completed}
                     <svg class="dpi__svg" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="10" cy="10" r="10" fill="#3b82f6"/>
-                      <path d="M5.5 10.25l3.25 3.25 5.75-6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="10" cy="10" r="10" fill="oklch(0.623 0.188 259.815)"/>
+                      <path d="M5.5 10.25l3.25 3.25 5.75-6" stroke="oklch(1 0 89.876)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                   {:else}
                     <svg class="dpi__svg" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -371,7 +386,7 @@
       </article>
 
       <!-- Card 2: Recent Activity -->
-      <article class="dashboard__card dashboard__card--activity">
+      <article class="dashboard__card dashboard__card--activity" role="region" aria-label={_t('dashboardRecentActivity')}>
         <div class="dashboard__card-header">
           <h3 class="dashboard__card-title">{_t('dashboardRecentActivity')}</h3>
         </div>
@@ -398,7 +413,7 @@
       </article>
 
       <!-- Card 3: Quick Stats -->
-      <article class="dashboard__card dashboard__card--stats">
+      <article class="dashboard__card dashboard__card--stats" role="region" aria-label={_t('dashboardQuickStats')}>
         <div class="dashboard__stat-block dashboard__stat-block--streak"
           style="--stat-gradient-start: {data.gradientColors[0]}; --stat-gradient-end: {data.gradientColors[1]};">
           <div class="dashboard__stat-header">
@@ -421,8 +436,10 @@
             {#if data.featuredMetric.trend}
               <span class="dashboard__stat-trend"
                 class:dashboard__stat-trend--up={data.featuredMetric.trend.direction === "up"}
-                class:dashboard__stat-trend--down={data.featuredMetric.trend.direction === "down"}>
-                {trendIcon(data.featuredMetric.trend.direction)} {data.featuredMetric.trend.percentage.toFixed(0)}%
+                class:dashboard__stat-trend--down={data.featuredMetric.trend.direction === "down"}
+                aria-label={`${data.featuredMetric.trend.direction} ${Number.isFinite(data.featuredMetric.trend.percentage) ? data.featuredMetric.trend.percentage.toFixed(0) : 0}%`}>
+                <!-- safe: icon SVGs are hardcoded in trendIcon -->
+                {@html trendIcon(data.featuredMetric.trend.direction)} {Number.isFinite(data.featuredMetric.trend.percentage) ? data.featuredMetric.trend.percentage.toFixed(0) : 0}%
               </span>
             {/if}
           </div>
@@ -437,6 +454,7 @@
         <div class="dashboard__modules-track">
           {#each data.recentModules.filter(m => !hiddenModuleIds.has(m.id)).slice(0, 8) as module}
             <button class="dashboard__module-chip" style="--chip-accent: {module.accentHex};" onclick={() => navigateToModule(module.id)}>
+              <!-- safe: icon names are hardcoded in moduleIconSVG, not user-controlled -->
               <span class="dashboard__module-chip-icon" style="color: {module.accentHex};">{@html moduleIconSVG(module.icon)}</span>
               <span class="dashboard__module-chip-name">{module.name}</span>
             </button>
@@ -533,6 +551,25 @@
 
   @keyframes dashboard-spin { to { transform: rotate(360deg); } }
 
+  .dashboard__refresh-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    animation: dashboard-refresh-slide 1.2s ease-in-out infinite;
+    z-index: 100;
+    pointer-events: none;
+  }
+  @keyframes dashboard-refresh-slide {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dashboard__refresh-bar { display: none; }
+  }
+
   .dashboard__error p { color: var(--destructive); font-size: 0.9rem; }
 
   .dashboard__retry-btn {
@@ -543,10 +580,11 @@
     padding: 0.5rem 1rem;
     font-size: 0.85rem;
     font-weight: 700;
-    cursor: default;
+    cursor: pointer;
     transition: background 150ms ease;
   }
   .dashboard__retry-btn:hover { background: color-mix(in srgb, var(--foreground) 8%, transparent); }
+  .dashboard__retry-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
   /* ═══════════════════════════════════════════════════════════════════
      DAILY PROGRESS INDICATOR  (dpi)
@@ -620,7 +658,7 @@
 
   /* Blue line when both this item AND next item are done */
   .dpi__connector--done {
-    background: #3b82f6;
+    background: oklch(0.623 0.188 259.815);
   }
 
   /* Right body — text block, padding-bottom creates the row height
@@ -666,7 +704,7 @@
   }
 
   .dpi__secondary--overdue {
-    color: #ef4444;
+    color: oklch(0.637 0.208 25.331);
     font-weight: 600;
   }
 
@@ -732,7 +770,7 @@
     color: var(--foreground);
     font-size: 12px;
     font-weight: 500;
-    cursor: default;
+    cursor: pointer;
     white-space: nowrap;
     transition: background 150ms ease, border-color 150ms ease, transform 120ms ease;
     flex-shrink: 0;
@@ -745,6 +783,7 @@
   }
 
   .dashboard__pill:active { transform: translateY(0) scale(0.985); }
+  .dashboard__pill:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
   .dashboard__pill-icon {
     width: 0.8rem;
@@ -769,6 +808,7 @@
     /* Height is driven by the grid parent (dashboard row 2) — no explicit height */
     min-height: 0;
     margin-bottom: clamp(16px, 2.5vh, 28px);
+    contain: layout style;
   }
 
   .dashboard__card {
@@ -781,7 +821,9 @@
     overflow: hidden;
   }
 
-  .dashboard__card:hover { opacity: 0.97; }
+  .dashboard__card:hover {
+    background: color-mix(in srgb, var(--foreground) 3%, transparent);
+  }
 
   .dashboard__card-header {
     display: flex;
@@ -803,88 +845,30 @@
   .dashboard__card--priority {
     --card-accent: var(--accent);
     padding: clamp(14px, 2vw, 20px);
-    background: color-mix(in srgb, var(--card-accent) 12%, transparent);
+    background: color-mix(in srgb, var(--card-accent) 12%, var(--background));
     border: 1px solid color-mix(in srgb, var(--card-accent) 20%, transparent);
-    /* Flex column — dpi list gets flex:1 and fills space; action pinned to bottom */
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     min-width: 0;
     min-height: 0;
-    /* remove grid-template-rows — flex handles layout now */
   }
-
-  .dashboard__card-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.2rem 0.6rem 0.2rem 0.4rem;
-    border-radius: 9999px;
-    background: color-mix(in srgb, var(--card-accent) 14%, transparent);
-    color: var(--card-accent);
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: var(--letter-spacing-wider);
-  }
-
-  .dashboard__card-badge :global(svg) { width: 0.8rem; height: 0.8rem; }
 
   .dashboard__card-count {
-    font-family: var(--font-display);
+    font-family: var(--font-number);
     font-size: clamp(28px, 4vh, 48px);   /* was 64px — give the list more room */
     font-weight: 800;
     letter-spacing: var(--letter-spacing-tight);
     color: var(--card-accent);
     line-height: 1;
+    font-variant-numeric: tabular-nums;
   }
 
   .dashboard__card-primary-label {
     margin: 0 0 4px;
     color: var(--muted);
     font-size: clamp(10px, 1.3vh, 12px);
-  }
-
-  .dashboard__card-items {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: 0.3rem;
-    align-content: start;
-    overflow: hidden;
-  }
-
-  .dashboard__card-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem 0;
-    min-width: 0;
-  }
-
-  .dashboard__card-item-dot {
-    width: 0.4rem;
-    height: 0.4rem;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .dashboard__card-item-text {
-    flex: 1;
-    min-width: 0;
-    font-size: 12px;
-    color: var(--foreground);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .dashboard__card-item-secondary {
-    flex-shrink: 0;
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--muted);
   }
 
   .dashboard__card-action {
@@ -896,11 +880,12 @@
     color: var(--card-accent);
     font-size: 12px;
     font-weight: 700;
-    cursor: default;
+    cursor: pointer;
     padding: 0.25rem 0;
     transition: gap 150ms ease;
   }
   .dashboard__card-action:hover { gap: 0.55rem; }
+  .dashboard__card-action:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
   .dashboard__card-arrow { width: 0.8rem; height: 0.8rem; transition: transform 150ms ease; }
   .dashboard__card-action:hover .dashboard__card-arrow { transform: translateX(2px); }
 
@@ -973,8 +958,8 @@
   .dashboard__stat-block--streak {
     background: linear-gradient(
       135deg,
-      color-mix(in srgb, var(--stat-gradient-start) 12%, transparent),
-      color-mix(in srgb, var(--stat-gradient-end) 6%, transparent)
+      color-mix(in srgb, var(--stat-gradient-start) 12%, var(--background)),
+      color-mix(in srgb, var(--stat-gradient-end) 6%, var(--background))
     );
     border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
   }
@@ -1016,8 +1001,8 @@
   .dashboard__stat-unit { font-size: 11px; font-weight: 700; color: var(--muted); }
   .dashboard__stat-context { font-size: 10px; color: var(--muted); }
   .dashboard__stat-trend { font-size: 11px; font-weight: 700; }
-  .dashboard__stat-trend--up { color: #22c55e; }
-  .dashboard__stat-trend--down { color: #ef4444; }
+  .dashboard__stat-trend--up { color: oklch(0.723 0.192 149.579); }
+  .dashboard__stat-trend--down { color: oklch(0.637 0.208 25.331); }
 
   /* ═══════════════════════════════════════════════════════════════════
      ZONE 3: RECENT MODULES
@@ -1026,6 +1011,7 @@
 
   .dashboard__modules {
     overflow: hidden;
+    contain: layout;
   }
 
   .dashboard__modules-heading {
@@ -1059,10 +1045,13 @@
     gap: 0.4rem;
     padding: 0.4rem 0.8rem;
     border-radius: 9999px;
+    border: none;
+    background: transparent;
+    font-family: inherit;
     color: var(--foreground);
     font-size: 11px;
     font-weight: 500;
-    cursor: default;
+    cursor: pointer;
     white-space: nowrap;
     transition: background 150ms ease, transform 120ms ease;
     flex-shrink: 0;
@@ -1070,6 +1059,7 @@
 
   .dashboard__module-chip:hover { transform: translateY(-1px); }
   .dashboard__module-chip:active { transform: translateY(0) scale(0.985); }
+  .dashboard__module-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
   .dashboard__module-chip-icon { display: inline-flex; align-items: center; }
   .dashboard__module-chip-icon :global(svg) { width: 0.85rem; height: 0.85rem; }
@@ -1124,5 +1114,19 @@
   @media (max-height: 560px) {
     .dashboard { padding-top: 16px; }
     .dashboard__pills { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dashboard { animation: none; }
+    .dashboard__loading-spinner { animation: none; }
+    .dashboard__pill { transition: none; }
+    .dashboard__pill:active { transform: none; }
+    .dashboard__module-chip { transition: none; }
+    .dashboard__module-chip:hover { transform: none; }
+    .dashboard__module-chip:active { transform: none; }
+    .dashboard__card-action { transition: none; }
+    .dashboard__card-action:hover { gap: 0.35rem; }
+    .dashboard__card-action:hover .dashboard__card-arrow { transform: none; }
+    .dashboard__stat-block--streak { transition: none; }
   }
 </style>

@@ -174,7 +174,7 @@
     border: none;
     border-radius: 6px;
     background: var(--primary);
-    color: var(--primary-foreground, #fff);
+    color: var(--primary-foreground, oklch(1 0 89.876));
     font: inherit;
     font-size: 0.82rem;
     font-weight: 600;

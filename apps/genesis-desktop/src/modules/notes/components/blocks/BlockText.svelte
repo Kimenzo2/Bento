@@ -109,29 +109,29 @@
   const COLOR_MAP: Record<string, string> = {
     default: 'var(--foreground)',
     grey:    'color-mix(in srgb, var(--foreground) 55%, var(--background))',
-    yellow:  'var(--block-color-yellow,  #e2b631)',
-    amber:   'var(--block-color-amber,   #e07b2a)',
-    red:     'var(--block-color-red,     #e05c5c)',
-    pink:    'var(--block-color-pink,    #e05090)',
-    purple:  'var(--block-color-purple,  #9c4de0)',
-    blue:    'var(--block-color-blue,    #4a90e0)',
-    sky:     'var(--block-color-sky,     #2ab8d4)',
-    teal:    'var(--block-color-teal,    #27ae8f)',
-    green:   'var(--block-color-green,   #4caf50)',
+    yellow:  'var(--block-color-yellow,  oklch(0.794 0.149 89.172))',
+    amber:   'var(--block-color-amber,   oklch(0.683 0.153 54.227))',
+    red:     'var(--block-color-red,     oklch(0.644 0.166 22.921))',
+    pink:    'var(--block-color-pink,    oklch(0.643 0.188 356.282))',
+    purple:  'var(--block-color-purple,  oklch(0.588 0.216 305.353))',
+    blue:    'var(--block-color-blue,    oklch(0.645 0.14 253.408))',
+    sky:     'var(--block-color-sky,     oklch(0.723 0.119 214.938))',
+    teal:    'var(--block-color-teal,    oklch(0.674 0.12 172.841))',
+    green:   'var(--block-color-green,   oklch(0.673 0.162 144.208))',
   };
 
   const BG_MAP: Record<string, string> = {
     default: 'transparent',
     grey:    'color-mix(in srgb, var(--foreground) 8%,  var(--background))',
-    yellow:  'color-mix(in srgb, var(--block-color-yellow,  #e2b631) 14%, var(--background))',
-    amber:   'color-mix(in srgb, var(--block-color-amber,   #e07b2a) 14%, var(--background))',
-    red:     'color-mix(in srgb, var(--block-color-red,     #e05c5c) 14%, var(--background))',
-    pink:    'color-mix(in srgb, var(--block-color-pink,    #e05090) 14%, var(--background))',
-    purple:  'color-mix(in srgb, var(--block-color-purple,  #9c4de0) 14%, var(--background))',
-    blue:    'color-mix(in srgb, var(--block-color-blue,    #4a90e0) 14%, var(--background))',
-    sky:     'color-mix(in srgb, var(--block-color-sky,     #2ab8d4) 14%, var(--background))',
-    teal:    'color-mix(in srgb, var(--block-color-teal,    #27ae8f) 14%, var(--background))',
-    green:   'color-mix(in srgb, var(--block-color-green,   #4caf50) 14%, var(--background))',
+    yellow:  'color-mix(in srgb, var(--block-color-yellow,  oklch(0.794 0.149 89.172)) 14%, var(--background))',
+    amber:   'color-mix(in srgb, var(--block-color-amber,   oklch(0.683 0.153 54.227)) 14%, var(--background))',
+    red:     'color-mix(in srgb, var(--block-color-red,     oklch(0.644 0.166 22.921)) 14%, var(--background))',
+    pink:    'color-mix(in srgb, var(--block-color-pink,    oklch(0.643 0.188 356.282)) 14%, var(--background))',
+    purple:  'color-mix(in srgb, var(--block-color-purple,  oklch(0.588 0.216 305.353)) 14%, var(--background))',
+    blue:    'color-mix(in srgb, var(--block-color-blue,    oklch(0.645 0.14 253.408)) 14%, var(--background))',
+    sky:     'color-mix(in srgb, var(--block-color-sky,     oklch(0.723 0.119 214.938)) 14%, var(--background))',
+    teal:    'color-mix(in srgb, var(--block-color-teal,    oklch(0.674 0.12 172.841)) 14%, var(--background))',
+    green:   'color-mix(in srgb, var(--block-color-green,   oklch(0.673 0.162 144.208)) 14%, var(--background))',
   };
 
   let resolvedColor   = $derived(color   && color   !== 'default' ? (COLOR_MAP[color]  ?? 'var(--foreground)') : '');
@@ -872,7 +872,7 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    box-shadow: 0 4px 16px oklch(from var(--color-shadow) l c h / 0.12);
     padding: 4px;
     z-index: 100;
     max-height: 240px;
@@ -1089,7 +1089,7 @@
     border-radius: 12px;
     padding: 16px;
     width: 320px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    box-shadow: var(--shadow-sm);
   }
 
   .link-dialog-header {

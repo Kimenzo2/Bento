@@ -322,7 +322,7 @@
 
   .tasks-recurring-panel-close:hover {
     background: color-mix(in srgb, var(--foreground) 8%, var(--background));
-    color: rgba(255, 255, 255, 0.8);
+    color: oklch(1 0 89.876 / 0.8);
   }
 
   /* ── Count ── */
@@ -355,8 +355,8 @@
   .tasks-recurring-panel-spinner {
     width: 20px;
     height: 20px;
-    border: 2px solid rgba(255, 255, 255, 0.08);
-    border-top-color: rgba(255, 255, 255, 0.5);
+    border: 2px solid oklch(1 0 89.876 / 0.08);
+    border-top-color: oklch(1 0 89.876 / 0.5);
     border-radius: 50%;
     animation: tasks-spin 0.6s linear infinite;
   }
@@ -378,7 +378,7 @@
 
   .tasks-recurring-panel-error p {
     font-size: 12px;
-    color: #ef4444;
+    color: oklch(0.637 0.208 25.331);
     margin: 0;
   }
 
@@ -386,7 +386,7 @@
     font-size: 11px;
     padding: 4px 12px;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid oklch(1 0 89.876 / 0.1);
     background: color-mix(in srgb, var(--foreground) 4%, var(--background));
     color: color-mix(in srgb, var(--foreground) 60%, var(--background));
     cursor: pointer;
@@ -412,13 +412,13 @@
   .tasks-recurring-panel-empty p {
     font-size: 13px;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.5);
+    color: oklch(1 0 89.876 / 0.5);
     margin: 0;
   }
 
   .tasks-recurring-panel-empty span {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.3);
+    color: oklch(1 0 89.876 / 0.3);
   }
 
   /* ── Row ── */
@@ -463,7 +463,7 @@
   }
 
   .tasks-recurring-panel-row-overdue {
-    color: #ef4444;
+    color: oklch(0.637 0.208 25.331);
   }
 
   /* ── Row actions ── */
@@ -492,7 +492,7 @@
   }
 
   .tasks-recurring-panel-select:hover {
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: oklch(1 0 89.876 / 0.15);
   }
 
   .tasks-recurring-panel-select option {
@@ -520,7 +520,7 @@
   }
 
   .tasks-recurring-panel-row-btn--danger:hover {
-    background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
+    background: oklch(0.637 0.208 25.331 / 0.15);
+    color: oklch(0.637 0.208 25.331);
   }
 </style>

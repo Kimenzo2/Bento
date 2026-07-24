@@ -1,13 +1,19 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
-  import { X, Sun, Monitor, Moon, Type, Keyboard } from 'lucide-svelte';
+  import XIcon from '@lucide/svelte/icons/x';
+  import SunIcon from '@lucide/svelte/icons/sun';
+  import MonitorIcon from '@lucide/svelte/icons/monitor';
+  import MoonIcon from '@lucide/svelte/icons/moon';
+  import TypeIcon from '@lucide/svelte/icons/type';
+  import KeyboardIcon from '@lucide/svelte/icons/keyboard';
+
+  import { desktopSettings, updateDesktopSettings } from '$lib/desktop/settings';
 
   let { onClose = () => {} } = $props();
 
   let activeTab = $state<'general' | 'appearance' | 'shortcuts'>('general');
-  let theme = $state(localStorage.getItem('bento-theme') || 'system');
   let fontFamily = $state(localStorage.getItem('notes-font') || 'Instrument Serif');
-  let fontSize = $state(parseInt(localStorage.getItem('notes-font-size') || '16'));
+  let fontSize = $state(parseInt(localStorage.getItem('notes-font-size') || '16', 10));
   let defaultTemplateId = $state('');
   let templates = $state<any[]>([]);
 
@@ -16,8 +22,7 @@
   }
 
   function setTheme(t: string) {
-    theme = t;
-    localStorage.setItem('bento-theme', t);
+    updateDesktopSettings((c) => ({ ...c, appearance: { ...c.appearance, mode: t as 'light' | 'dark' | 'system' } }));
     document.documentElement.setAttribute('data-theme', t);
   }
 
@@ -40,7 +45,7 @@
   <div class="settings" onclick={(e) => e.stopPropagation()} role="dialog" aria-label="Settings">
     <div class="settings-header">
       <span class="settings-title">Settings</span>
-      <button class="settings-close" onclick={() => onClose()} type="button"><X size={14} /></button>
+      <button class="settings-close" onclick={() => onClose()} type="button"><XIcon size={14} /></button>
     </div>
 
     <div class="settings-tabs">
@@ -64,14 +69,14 @@
         <div class="settings-section">
           <label class="settings-label">Theme</label>
           <div class="theme-options">
-            <button class="theme-option" class:active={theme === 'light'} onclick={() => setTheme('light')} type="button">
-              <Sun size={16} /> Light
+            <button class="theme-option" class:theme-active={$desktopSettings.appearance.mode === 'light'} onclick={() => setTheme('light')} type="button">
+              <SunIcon size={16} /> Light
             </button>
-            <button class="theme-option" class:active={theme === 'dark'} onclick={() => setTheme('dark')} type="button">
-              <Moon size={16} /> Dark
+            <button class="theme-option" class:theme-active={$desktopSettings.appearance.mode === 'dark'} onclick={() => setTheme('dark')} type="button">
+              <MoonIcon size={16} /> Dark
             </button>
-            <button class="theme-option" class:active={theme === 'system'} onclick={() => setTheme('system')} type="button">
-              <Monitor size={16} /> System
+            <button class="theme-option" class:theme-active={$desktopSettings.appearance.mode === 'system'} onclick={() => setTheme('system')} type="button">
+              <MonitorIcon size={16} /> System
             </button>
           </div>
         </div>
@@ -113,7 +118,7 @@
 
 <style>
   .settings-overlay { position: fixed; inset: 0; z-index: 9996; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--background) 60%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-  .settings { width: 420px; max-height: 520px; background: var(--background); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); display: flex; flex-direction: column; overflow: hidden; }
+  .settings { width: 420px; max-height: 520px; background: var(--background); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-md); display: flex; flex-direction: column; overflow: hidden; }
   .settings-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
   .settings-title { font-size: 14px; font-weight: 600; color: var(--foreground); }
   .settings-close { display: grid; place-items: center; width: 24px; height: 24px; border: none; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
@@ -130,7 +135,7 @@
   .theme-options { display: flex; gap: 6px; }
   .theme-option { display: flex; align-items: center; gap: 6px; flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 12px; cursor: pointer; justify-content: center; transition: all 100ms ease; }
   .theme-option:hover { background: color-mix(in srgb, var(--foreground) 4%, transparent); }
-  .theme-option.active { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); }
+  .theme-option.theme-active { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); }
   .settings-range { width: 100%; accent-color: var(--primary); }
   .shortcuts-list { display: flex; flex-direction: column; gap: 4px; }
   .shortcut-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; border-radius: 6px; }

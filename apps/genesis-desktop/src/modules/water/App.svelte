@@ -116,7 +116,7 @@
       <PremiumRing
         size={148}
         thickness={12}
-        segments={[{ value: progressPercent, color: "var(--accent, #3b82f6)", label: "Hydration" }]}
+        segments={[{ value: progressPercent, color: "var(--accent, oklch(0.623 0.188 259.815))", label: "Hydration" }]}
         centerLabel={_t("moduleWaterProgressPercent", "{p}% of daily goal").replace("{p}", String(progressPercent))}
         centerValue={String(todayTotal)}
         centerNote={_t("moduleWaterOf", "of") + ` ${dailyGoal}`}
@@ -233,26 +233,26 @@
   .water-header { display: flex; align-items: center; justify-content: space-between; }
   .water-header-left { display: flex; align-items: center; gap: 12px; }
   .water-icon { font-size: 28px; line-height: 1; }
-  .water-title { font-size: 20px; font-weight: 700; margin: 0; color: var(--text-primary, #1a1a2e); }
-  .water-subtitle { font-size: 13px; color: var(--text-secondary, #6b7280); margin: 2px 0 0 0; }
+  .water-title { font-size: 20px; font-weight: 700; margin: 0; color: var(--text-primary, oklch(0.228 0.038 282.932)); }
+  .water-subtitle { font-size: 13px; color: var(--text-secondary, oklch(0.551 0.023 264.364)); margin: 2px 0 0 0; }
 
   .water-btn {
     padding: 8px 18px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
   }
   .water-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .water-btn-primary { background: var(--accent, #3b82f6); color: #fff; }
+  .water-btn-primary { background: var(--accent, oklch(0.623 0.188 259.815)); color: oklch(1 0 89.876); }
   .water-btn-primary:not(:disabled):hover { opacity: 0.9; }
-  .water-btn-secondary { background: var(--bg-secondary, rgba(0,0,0,0.06)); color: var(--text-primary); }
-  .water-btn-ghost { background: transparent; color: var(--text-secondary, #6b7280); }
-  .water-btn-ghost:hover { background: var(--bg-secondary, rgba(0,0,0,0.06)); }
+  .water-btn-secondary { background: var(--bg-secondary, oklch(0 0 0 / 0.06)); color: var(--text-primary); }
+  .water-btn-ghost { background: transparent; color: var(--text-secondary, oklch(0.551 0.023 264.364)); }
+  .water-btn-ghost:hover { background: var(--bg-secondary, oklch(0 0 0 / 0.06)); }
 
   .water-btn-icon {
     width: 26px; height: 26px; border-radius: 6px; border: none; cursor: pointer;
     display: flex; align-items: center; justify-content: center; font-size: 11px;
     background: transparent; transition: all 0.15s;
   }
-  .water-btn-icon:hover { background: var(--bg-secondary, rgba(0,0,0,0.06)); }
-  .water-btn-icon--danger { color: var(--danger, #ef4444); }
+  .water-btn-icon:hover { background: var(--bg-secondary, oklch(0 0 0 / 0.06)); }
+  .water-btn-icon--danger { color: var(--danger, oklch(0.637 0.208 25.331)); }
 
   .water-progress {
     display: flex;
@@ -272,15 +272,15 @@
     position: absolute; inset: 0; display: flex; flex-direction: column;
     align-items: center; justify-content: center;
   }
-  .water-ring-value { font-size: 28px; font-weight: 700; color: var(--accent, #3b82f6); line-height: 1; }
-  .water-ring-label { font-size: 12px; color: var(--text-secondary, #6b7280); }
+  .water-ring-value { font-size: 28px; font-weight: 700; color: var(--accent, oklch(0.623 0.188 259.815)); line-height: 1; }
+  .water-ring-label { font-size: 12px; color: var(--text-secondary, oklch(0.551 0.023 264.364)); }
 
   .water-progress-info { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-  .water-progress-label { font-size: 15px; font-weight: 600; color: var(--text-primary, #1a1a2e); }
-  .water-progress-remaining { font-size: 13px; color: var(--text-secondary, #6b7280); }
-  .water-progress-done { font-size: 13px; color: #22c55e; font-weight: 600; }
+  .water-progress-label { font-size: 15px; font-weight: 600; color: var(--text-primary, oklch(0.228 0.038 282.932)); }
+  .water-progress-remaining { font-size: 13px; color: var(--text-secondary, oklch(0.551 0.023 264.364)); }
+  .water-progress-done { font-size: 13px; color: oklch(0.723 0.192 149.579); font-weight: 600; }
 
-  .water-section-label { font-size: 13px; font-weight: 600; color: var(--text-secondary, #6b7280); margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+  .water-section-label { font-size: 13px; font-weight: 600; color: var(--text-secondary, oklch(0.551 0.023 264.364)); margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
 
   .water-presets { display: flex; flex-direction: column; gap: 12px; }
   .water-preset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -290,21 +290,21 @@
     padding: 14px 8px; border-radius: 20px; border: none;
     background: var(--card); cursor: pointer; transition: all 0.15s;
   }
-  .water-preset-btn:hover { background: rgba(255,255,255,0.08); transform: translateY(-2px); }
+  .water-preset-btn:hover { background: oklch(1 0 89.876 / 0.08); transform: translateY(-2px); }
   .water-preset-icon { font-size: 24px; }
-  .water-preset-label { font-size: 12px; font-weight: 600; color: var(--text-primary, #1a1a2e); }
-  .water-preset-amount { font-size: 11px; color: var(--text-secondary, #6b7280); }
+  .water-preset-label { font-size: 12px; font-weight: 600; color: var(--text-primary, oklch(0.228 0.038 282.932)); }
+  .water-preset-amount { font-size: 11px; color: var(--text-secondary, oklch(0.551 0.023 264.364)); }
 
   .water-custom { display: flex; gap: 8px; }
   .water-input {
-    flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border, rgba(0,0,0,0.1));
-    background: var(--input-bg, #fff); color: var(--text-primary, #1a1a2e); font-size: 14px; outline: none;
+    flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border, oklch(0 0 0 / 0.1));
+    background: var(--input-bg, oklch(1 0 89.876)); color: var(--text-primary, oklch(0.228 0.038 282.932)); font-size: 14px; outline: none;
   }
-  .water-input:focus { border-color: var(--accent, #3b82f6); }
+  .water-input:focus { border-color: var(--accent, oklch(0.623 0.188 259.815)); }
   .water-input--small { max-width: 120px; }
 
   .water-loading { display: flex; flex-direction: column; gap: 8px; }
-  .water-skeleton { height: 48px; border-radius: 10px; background: var(--skeleton-bg, rgba(0,0,0,0.06)); animation: water-pulse 1.5s infinite; }
+  .water-skeleton { height: 48px; border-radius: 10px; background: var(--skeleton-bg, oklch(0 0 0 / 0.06)); animation: water-pulse 1.5s infinite; }
   @keyframes water-pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 
   .water-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 40px 20px; }
@@ -313,7 +313,7 @@
   .water-empty {
     display: flex; align-items: center; gap: 8px; justify-content: center;
     padding: 24px; border-radius: 10px; background: var(--bg-secondary, rgba(0,0,0,0.03));
-    color: var(--text-secondary, #6b7280); font-size: 13px;
+    color: var(--text-secondary, oklch(0.551 0.023 264.364)); font-size: 13px;
   }
   .water-empty-icon { font-size: 20px; }
 
@@ -326,7 +326,7 @@
     border-radius: 20px; background: var(--card); border: none;
   }
   .water-log-amount { flex: 1; font-size: 14px; font-weight: 500; color: var(--text-primary); }
-  .water-log-time { font-size: 12px; color: var(--text-secondary, #6b7280); }
+  .water-log-time { font-size: 12px; color: var(--text-secondary, oklch(0.551 0.023 264.364)); }
 
   .water-day {
     padding: 10px 12px; border-radius: 20px; background: var(--card); border: none;
@@ -336,8 +336,8 @@
   .water-day-header { display: flex; justify-content: space-between; align-items: center; }
   .water-day-date { font-size: 13px; font-weight: 500; color: var(--text-primary); }
   .water-day-total { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
-  .water-day-total--done { color: #22c55e; }
+  .water-day-total--done { color: oklch(0.723 0.192 149.579); }
 
-  .water-day-bar { height: 6px; border-radius: 3px; background: var(--bg-secondary, rgba(0,0,0,0.06)); overflow: hidden; }
-  .water-day-fill { height: 100%; border-radius: 3px; background: var(--accent, #3b82f6); transition: width 0.3s; }
+  .water-day-bar { height: 6px; border-radius: 3px; background: var(--bg-secondary, oklch(0 0 0 / 0.06)); overflow: hidden; }
+  .water-day-fill { height: 100%; border-radius: 3px; background: var(--accent, oklch(0.623 0.188 259.815)); transition: width 0.3s; }
 </style>

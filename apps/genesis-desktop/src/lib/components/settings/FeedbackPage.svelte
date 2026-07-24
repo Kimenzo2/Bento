@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
-  import { createClient } from '@supabase/supabase-js';
   import { time } from '$lib/utils/time';
 
   // ── Types ────────────────────────────────────────────────────────────
@@ -23,13 +22,6 @@
     updated_at: string;
   }
 
-  interface FeedbackRealtimeConfig {
-    supabaseUrl: string;
-    anonKey: string;
-    accessToken: string;
-    userId: string;
-  }
-
   // ── State ────────────────────────────────────────────────────────────
   let reports = $state<FeedbackReport[]>([]);
   let loading = $state(true);
@@ -42,6 +34,7 @@
     const now = time.now();
     const then = time.parseISO(dateStr);
     const diffMs = now - then;
+    if (diffMs < 0) return 'just now';
     const diffSec = Math.floor(diffMs / 1000);
     if (diffSec < 60) return 'just now';
     const diffMin = Math.floor(diffSec / 60);
@@ -91,30 +84,13 @@
     }
   }
 
-  // ── Realtime subscription ────────────────────────────────────────────
-  let supabaseClient: any = null;
-  let realtimeChannel: any = null;
+  // ── Polling fallback for real-time updates ───────────────────────────
   let intervalId: ReturnType<typeof setInterval> | null = null;
 
   function markUpdated(ids: string[]) {
     if (ids.length === 0) return;
     updatedIds = new Set(ids);
     setTimeout(() => { updatedIds = new Set(); }, 2000);
-  }
-
-  function applyUpdatedReport(updated: FeedbackReport) {
-    let changed = false;
-    reports = reports.map((report) => {
-      if (report.id !== updated.id) return report;
-      changed = report.status !== updated.status ||
-        report.developer_note !== updated.developer_note ||
-        report.github_issue_url !== updated.github_issue_url;
-      return updated;
-    });
-
-    if (changed) {
-      markUpdated([updated.id]);
-    }
   }
 
   function startPollingFallback() {
@@ -140,66 +116,17 @@
     }, 15000);
   }
 
-  async function initRealtime() {
-    try {
-      const config = await invoke<FeedbackRealtimeConfig>('get_feedback_realtime_config');
-      supabaseClient = createClient(config.supabaseUrl, config.anonKey, {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-          detectSessionInUrl: false,
-        },
-        global: {
-          headers: {
-            Authorization: `Bearer ${config.accessToken}`,
-          },
-        },
-      });
+  // ── Lifecycle ────────────────────────────────────────────────────────
+  onMount(() => {
+    fetchReports();
+    startPollingFallback();
+  });
 
-      realtimeChannel = supabaseClient
-        .channel(`feedback_reports:${config.userId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'feedback_reports',
-            filter: `user_id=eq.${config.userId}`,
-          },
-          (payload: { new: FeedbackReport }) => {
-            applyUpdatedReport(payload.new as FeedbackReport);
-          },
-        )
-        .subscribe((status: string) => {
-          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-            startPollingFallback();
-          }
-        });
-    } catch {
-      startPollingFallback();
-    }
-  }
-
-  function cleanupRealtime() {
+  onDestroy(() => {
     if (intervalId) {
       clearInterval(intervalId);
       intervalId = null;
     }
-    if (supabaseClient && realtimeChannel) {
-      void supabaseClient.removeChannel(realtimeChannel);
-    }
-    realtimeChannel = null;
-    supabaseClient = null;
-  }
-
-  // ── Lifecycle ────────────────────────────────────────────────────────
-  onMount(() => {
-    fetchReports();
-    initRealtime();
-  });
-
-  onDestroy(() => {
-    cleanupRealtime();
   });
 
   // ── Toggle expanded description ──────────────────────────────────────
@@ -348,7 +275,7 @@
     color: var(--muted);
     white-space: nowrap;
   }
-  .feedback-card__status svg {
+  .feedback-card__status :global(svg) {
     width: 14px;
     height: 14px;
   }

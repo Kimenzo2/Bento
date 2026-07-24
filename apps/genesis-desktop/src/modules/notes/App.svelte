@@ -937,7 +937,7 @@
   .editor-empty-btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .editor-empty-shortcuts { display: flex; gap: 12px; margin-top: 12px; font-size: 11px; color: color-mix(in srgb, var(--foreground) 30%, transparent); }
   .editor-empty-shortcuts kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; padding: 1px 5px; border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent); border-radius: 4px; background: color-mix(in srgb, var(--foreground) 3%, transparent); font-family: inherit; font-size: 11px; font-weight: 600; color: color-mix(in srgb, var(--foreground) 45%, transparent); margin-right: 3px; }
-  .ctx-menu { position: fixed; z-index: 9999; min-width: 160px; border-radius: 13px; background: var(--background); border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent); box-shadow: 0 8px 32px rgba(0,0,0,0.18); padding: 5px; display: flex; flex-direction: column; gap: 1px; animation: ctx-in 0.12s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .ctx-menu { position: fixed; z-index: 9999; min-width: 160px; border-radius: 13px; background: var(--background); border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent); box-shadow: 0 8px 32px oklch(from var(--color-shadow) l c h / 0.18); padding: 5px; display: flex; flex-direction: column; gap: 1px; animation: ctx-in 0.12s cubic-bezier(0.22, 1, 0.36, 1) both; }
   @keyframes ctx-in { from { opacity: 0; transform: scale(0.95) translateY(-4px); } to { opacity: 1; transform: scale(1) translateY(0); } }
   .ctx-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: none; border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; cursor: pointer; text-align: left; width: 100%; transition: background 100ms ease; }
   .ctx-item:hover { background: color-mix(in srgb, var(--foreground) 6%, transparent); }
@@ -946,7 +946,7 @@
   .ctx-sep { height: 1px; margin: 3px 6px; background: color-mix(in srgb, var(--foreground) 8%, transparent); }
   .modal-overlay { position: fixed; inset: 0; z-index: 9998; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--background) 60%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); animation: fade-in 0.12s ease; }
   @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-  .modal { width: 360px; max-height: 480px; border-radius: 14px; background: var(--background); border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; }
+  .modal { width: 360px; max-height: 480px; border-radius: 14px; background: var(--background); border: 1px solid var(--border); box-shadow: 0 8px 32px oklch(from var(--color-shadow) l c h / 0.2); display: flex; flex-direction: column; overflow: hidden; }
   .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
   .modal-title { margin: 0; font-size: 14px; font-weight: 600; color: var(--foreground); }
   .modal-close-btn { display: grid; place-items: center; width: 24px; height: 24px; border: none; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }

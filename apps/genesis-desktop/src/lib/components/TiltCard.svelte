@@ -88,7 +88,7 @@
         class="tc-highlight"
         style="
           opacity: {active ? 1 : 0};
-          background: radial-gradient(circle at {hx}% {hy}%, rgba(255,255,255,0.15) 0%, transparent 60%);
+          background: radial-gradient(circle at {hx}% {hy}%, oklch(1 0 89.876 / 0.15) 0%, transparent 60%);
         "
       ></div>
 

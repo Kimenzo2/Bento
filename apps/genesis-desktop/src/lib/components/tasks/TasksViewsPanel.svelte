@@ -258,6 +258,6 @@
   .ts-view-row:hover .ts-view-row-actions { opacity: 1; }
   .ts-view-row-btn { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 6px; border: none; background: transparent; color: color-mix(in srgb, var(--foreground) 30%, var(--background)); cursor: pointer; transition: background .12s,color .12s; }
   .ts-view-row-btn:hover { background: color-mix(in srgb, var(--foreground) 6%, var(--background)); color: color-mix(in srgb, var(--foreground) 60%, var(--background)); }
-  .ts-view-row-btn--danger:hover { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .ts-view-row-btn--danger:hover { background: oklch(0.637 0.208 25.331 / 0.15); color: oklch(0.637 0.208 25.331); }
   .ts-view-rename-input { font-size: 12.5px; font-weight: 500; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); background: color-mix(in srgb, var(--foreground) 4%, var(--background)); color: var(--foreground); outline: none; width: 100%; box-sizing: border-box; }
 </style>

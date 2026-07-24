@@ -675,34 +675,34 @@
   ══════════════════════════════════════════════════════════════════ */
 
   .journal-editor {
-    --je-bg: #F9F3EA;
-    --je-ink: #3C2A1A;
-    --je-ruled: rgba(155, 163, 180, 0.22);
-    --je-ruled-hard: rgba(155, 163, 180, 0.30);
-    --je-margin: rgba(170, 90, 70, 0.45);
-    --je-margin-dot: #B06A50;
-    --je-caret: #C8923E;
-    --je-selection: rgba(180, 140, 80, 0.25);
-    --je-shadow-bottom: rgba(130, 100, 75, 0.07);
+    --je-bg: oklch(0.966 0.014 78.263);
+    --je-ink: oklch(0.302 0.038 62.274);
+    --je-ruled: oklch(0.715 0.026 265.523 / 0.22);
+    --je-ruled-hard: oklch(0.715 0.026 265.523 / 0.3);
+    --je-margin: oklch(0.558 0.11 35.058 / 0.45);
+    --je-margin-dot: oklch(0.595 0.098 41.018);
+    --je-caret: oklch(0.697 0.119 75.35);
+    --je-selection: oklch(0.665 0.092 76.22 / 0.25);
+    --je-shadow-bottom: oklch(0.527 0.054 61.068 / 0.07);
     --je-focus-dim: 0.65;
-    --je-header-ink: #4A3828;
-    --je-muted-ink: #8A7A6A;
-    --je-token-sep: rgba(140, 120, 100, 0.20);
+    --je-header-ink: oklch(0.356 0.037 62.868);
+    --je-muted-ink: oklch(0.59 0.031 67.168);
+    --je-token-sep: oklch(0.586 0.038 66.955 / 0.2);
   }
 
   /* Dark mode — warm brown-black like a leather-bound journal */
   .journal-editor.je-dark {
-    --je-bg: #1C1814;
-    --je-ink: #D4C5B0;
-    --je-ruled: rgba(175, 145, 100, 0.11);
-    --je-ruled-hard: rgba(175, 145, 100, 0.18);
-    --je-margin: rgba(155, 95, 75, 0.35);
-    --je-margin-dot: #A0806A;
-    --je-selection: rgba(180, 140, 80, 0.18);
-    --je-shadow-bottom: rgba(0, 0, 0, 0.20);
-    --je-header-ink: #C8B8A4;
-    --je-muted-ink: #8F8476;
-    --je-token-sep: rgba(180, 160, 130, 0.12);
+    --je-bg: oklch(0.212 0.01 67.247);
+    --je-ink: oklch(0.83 0.033 76.402);
+    --je-ruled: oklch(0.673 0.071 77.216 / 0.11);
+    --je-ruled-hard: oklch(0.673 0.071 77.216 / 0.18);
+    --je-margin: oklch(0.547 0.085 39.176 / 0.35);
+    --je-margin-dot: oklch(0.624 0.051 56.114);
+    --je-selection: oklch(0.665 0.092 76.22 / 0.18);
+    --je-shadow-bottom: oklch(0 0 0 / 0.2);
+    --je-header-ink: oklch(0.791 0.033 73.445);
+    --je-muted-ink: oklch(0.619 0.024 73.945);
+    --je-token-sep: oklch(0.715 0.048 77.864 / 0.12);
   }
 
   /* ══════════════════════════════════════════════════════════════════
@@ -1126,13 +1126,13 @@
     border: 1px solid var(--je-ruled-hard);
     border-radius: 10px;
     box-shadow:
-      0 4px 24px rgba(0,0,0,0.10),
-      inset 0 0 0 1px rgba(140, 110, 80, 0.04);
+      0 4px 24px oklch(from var(--color-shadow) l c h / 0.1),
+      inset 0 0 0 1px oklch(0.527 0.054 61.068 / 0.04);
     overflow: hidden;
   }
 
   .je-dark .je-slash-menu {
-    box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+    box-shadow: 0 4px 24px oklch(from var(--color-shadow) l c h / 0.35);
   }
 
   .je-slash-header {

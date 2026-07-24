@@ -40,7 +40,7 @@
     value        = $bindable<number | undefined>(undefined),
     count        = 60,
     label        = "",            // small text beneath the number in the SVG
-    activeColor  = "var(--color-success, #52b788)",
+    activeColor  = "var(--color-success, oklch(0.706 0.118 160.888))",
     trackColor   = "color-mix(in lch, currentColor 10%, transparent)",
 
     // ── MODE B: Smooth arc + center text ─────────────────────────────────────

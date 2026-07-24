@@ -23,14 +23,14 @@
   }
 
   const tagColors = [
-    'hsl(217, 90%, 60%)',
-    'hsl(142, 70%, 55%)',
-    'hsl(35, 90%, 55%)',
-    'hsl(320, 80%, 60%)',
-    'hsl(190, 80%, 55%)',
-    'hsl(270, 70%, 60%)',
-    'hsl(0, 70%, 55%)',
-    'hsl(50, 80%, 50%)',
+    'oklch(0.776 0.193 327.239)',
+    'oklch(0.819 0.127 194.951)',
+    'oklch(0.937 0.192 109.589)',
+    'oklch(0.871 0.048 66.097)',
+    'oklch(0.824 0.054 249.345)',
+    'oklch(0.679 0.236 327.794)',
+    'oklch(0.871 0.172 109.496)',
+    'oklch(0.9 0.156 109.169)',
   ];
 
   function tagColor(name: string): string {
@@ -163,7 +163,7 @@
   .ts-stat-chip--action:hover { background: color-mix(in srgb, var(--foreground) 8%, var(--background)); color: color-mix(in srgb, var(--foreground) 70%, var(--background)); }
   .ts-flyout-list { flex: 1; overflow-y: auto; padding: 4px 8px 10px; display: flex; flex-direction: column; gap: 1px; }
   .ts-flyout-loading { display: flex; align-items: center; justify-content: center; padding: 40px; }
-  .ts-spinner { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.08); border-top-color: color-mix(in srgb, var(--foreground) 50%, var(--background)); border-radius: 50%; animation: tspin .6s linear infinite; }
+  .ts-spinner { width: 20px; height: 20px; border: 2px solid oklch(1 0 89.876 / 0.08); border-top-color: color-mix(in srgb, var(--foreground) 50%, var(--background)); border-radius: 50%; animation: tspin .6s linear infinite; }
   @keyframes tspin { to { transform: rotate(360deg); } }
   .ts-flyout-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 36px 20px; text-align: center; color: color-mix(in srgb, var(--foreground) 25%, var(--background)); gap: 6px; }
   .ts-flyout-empty p { font-size: 13px; font-weight: 500; color: color-mix(in srgb, var(--foreground) 50%, var(--background)); margin: 0; }

@@ -292,8 +292,8 @@
   }
 
   .account-page__input:focus {
-    border-color: var(--accent, #6b7aff);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #6b7aff) 20%, transparent);
+    border-color: var(--accent, oklch(0.636 0.196 274.568));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, oklch(0.636 0.196 274.568)) 20%, transparent);
   }
 
   .account-page__input:disabled {
@@ -323,12 +323,12 @@
   }
 
   .account-page__btn--primary {
-    color: #fff;
-    background: var(--accent, #6b7aff);
+    color: oklch(1 0 89.876);
+    background: var(--accent, oklch(0.636 0.196 274.568));
   }
 
   .account-page__btn--primary:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--accent, #6b7aff) 80%, #000);
+    background: color-mix(in srgb, var(--accent, oklch(0.636 0.196 274.568)) 80%, oklch(0 0 0));
   }
 
   .account-page__btn--ghost {
@@ -385,8 +385,8 @@
     width: 4rem;
     height: 4rem;
     border-radius: 50%;
-    background: color-mix(in srgb, var(--accent, #6b7aff) 20%, transparent);
-    color: var(--accent, #6b7aff);
+    background: color-mix(in srgb, var(--accent, oklch(0.636 0.196 274.568)) 20%, transparent);
+    color: var(--accent, oklch(0.636 0.196 274.568));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -398,7 +398,7 @@
   /* ── Error ────────────────────────────────────────── */
   .account-page__error {
     font-size: 0.8125rem;
-    color: #e74c3c;
+    color: oklch(0.631 0.194 29.442);
     margin: 0;
     animation: account-error-in 0.2s ease-out;
   }
@@ -429,13 +429,13 @@
     border-radius: 14px;
     z-index: 1000;
     animation: account-toast-in 0.25s ease-out;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+    box-shadow: var(--shadow-sm);
   }
 
   .account-page__toast--success {
-    color: #2e7d32;
-    background: #e8f5e9;
-    border: 1px solid #c8e6c9;
+    color: oklch(0.523 0.135 144.167);
+    background: oklch(0.957 0.021 147.636);
+    border: 1px solid oklch(0.895 0.05 146.037);
   }
 
   @keyframes account-toast-in {

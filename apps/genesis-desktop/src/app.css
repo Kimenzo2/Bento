@@ -198,7 +198,12 @@
   --color-surface: var(--surface);
   --color-background: var(--background);
   --color-border: var(--border);
-  --color-shadow: 0 0 0;
+  --color-shadow: oklch(0 0 0);
+  --shadow-xs: 0 1px 3px oklch(from var(--color-shadow) l c h / 0.08);
+  --shadow-sm: 0 4px 12px oklch(from var(--color-shadow) l c h / 0.12);
+  --shadow-md: 0 8px 24px oklch(from var(--color-shadow) l c h / 0.18);
+  --shadow-lg: 0 16px 48px oklch(from var(--color-shadow) l c h / 0.25);
+  --shadow-xl: 0 24px 48px oklch(from var(--color-shadow) l c h / 0.35);
   --primary-foreground: var(--surface);
   --secondary: color-mix(in srgb, var(--surface) 88%, var(--background));
   --secondary-foreground: var(--foreground);
@@ -1357,7 +1362,7 @@ body.sidebar-dragging * {
 }
 
 .desktop-sidebar__nav-item--flyout {
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+  border-bottom: 1px dashed oklch(1 0 89.876 / 0.08);
   margin-bottom: 2px;
   position: relative;
 }
@@ -1630,7 +1635,7 @@ body.sidebar-dragging * {
   width: 7px;
   height: 7px;
   border-radius: 999px;
-  background: var(--destructive, #e53e3e);
+  background: var(--destructive, oklch(0.614 0.204 25.565));
   pointer-events: none;
 }
 
@@ -2040,7 +2045,7 @@ body.sidebar-dragging * {
 .starter-kanban {
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--starter-accent) 10%, transparent), transparent),
-    color-mix(in srgb, var(--background) 94%, #eef0ff 6%);
+    color-mix(in srgb, var(--background) 94%, oklch(0.958 0.02 279.937) 6%);
 }
 
 .starter-kanban__header h2 {
@@ -2141,7 +2146,7 @@ body.sidebar-dragging * {
 
 .starter-task-card__tags span {
   border-radius: 0.45rem;
-  background: rgba(255, 255, 255, 0.5);
+  background: oklch(1 0 89.876 / 0.5);
   padding: 0.2rem 0.45rem;
   color: inherit;
   font-size: 0.66rem;
@@ -2322,7 +2327,7 @@ body.sidebar-dragging * {
   background-image: repeating-linear-gradient(
     -45deg,
     transparent 0 6px,
-    rgba(255, 255, 255, 0.38) 6px 10px
+    oklch(1 0 89.876 / 0.38) 6px 10px
   );
 }
 
@@ -2417,11 +2422,11 @@ body.sidebar-dragging * {
   border-radius: 1.6rem;
   padding: 1.5rem;
   background:
-    radial-gradient(circle at 74% 50%, rgba(255, 255, 255, 0.28), transparent 8rem),
+    radial-gradient(circle at 74% 50%, oklch(1 0 89.876 / 0.28), transparent 8rem),
     linear-gradient(
       135deg,
       var(--starter-accent),
-      color-mix(in srgb, var(--starter-accent) 72%, #ffffff)
+      color-mix(in srgb, var(--starter-accent) 72%, oklch(1 0 89.876))
     );
   color: white;
 }
@@ -2520,8 +2525,8 @@ body.sidebar-dragging * {
   height: 10rem;
   border-radius: 4rem;
   background:
-    radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.82), transparent 25%),
-    linear-gradient(135deg, var(--starter-accent), #111);
+    radial-gradient(circle at 25% 25%, oklch(1 0 89.876 / 0.82), transparent 25%),
+    linear-gradient(135deg, var(--starter-accent), oklch(0.178 0 89.876));
 }
 
 .starter-media-grid {
@@ -2562,7 +2567,7 @@ body.sidebar-dragging * {
 }
 
 .starter-line-card path:nth-child(2) {
-  stroke: color-mix(in srgb, var(--starter-accent) 42%, #5b6df5);
+  stroke: color-mix(in srgb, var(--starter-accent) 42%, oklch(0.596 0.203 272.944));
 }
 
 .starter-line-card strong {
@@ -2685,7 +2690,7 @@ body.sidebar-dragging * {
 }
 
 .starter-telemetry__panel strong {
-  color: #fff;
+  color: oklch(1 0 89.876);
   font-size: 1.55rem;
 }
 
@@ -3303,7 +3308,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   background:
     repeating-linear-gradient(
       -45deg,
-      rgba(255, 255, 255, 0.28) 0 0.35rem,
+      oklch(1 0 89.876 / 0.28) 0 0.35rem,
       transparent 0.35rem 0.7rem
     ),
     color-mix(in srgb, var(--starter-text) 8%, transparent);
@@ -3385,7 +3390,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   margin-left: -0.55rem;
   border: 2px solid var(--starter-board);
   background: color-mix(in srgb, var(--starter-accent) 26%, white);
-  color: #141414;
+  color: oklch(0.191 0 89.876);
   font-size: 0.65rem;
 }
 
@@ -3410,7 +3415,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 }
 
 .theme-dark .starter-kanban-column {
-  background: rgba(255, 255, 255, 0.045) !important;
+  background: oklch(1 0 89.876 / 0.045) !important;
 }
 
 .starter-kanban-column [data-slot="card-header"] {
@@ -3441,7 +3446,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 
 .starter-kanban-card h4 {
   margin: 0.75rem 0 0.38rem;
-  color: #181818;
+  color: oklch(0.209 0 89.876);
   font-family: var(--font-heading);
   font-size: 1rem;
   letter-spacing: -0.035em;
@@ -3449,7 +3454,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 
 .starter-kanban-card p {
   margin: 0;
-  color: rgba(20, 20, 20, 0.56);
+  color: oklch(0.156 0 89.876 / 0.56);
   font-size: 0.78rem;
   line-height: 1.32;
 }
@@ -3464,7 +3469,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   display: block;
   height: 0.38rem;
   border-radius: 9999px;
-  background: color-mix(in srgb, var(--starter-accent) 78%, #111 22%);
+  background: color-mix(in srgb, var(--starter-accent) 78%, oklch(0.178 0 89.876) 22%);
 }
 
 .starter-voice-pro {
@@ -3562,14 +3567,14 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   border: 1px solid var(--starter-line);
   border-radius: 1.5rem;
   background:
-    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(oklch(1 0 89.876 / 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(1 0 89.876 / 0.05) 1px, transparent 1px),
     radial-gradient(
       circle at 38% 58%,
       color-mix(in srgb, var(--starter-accent) 28%, transparent),
       transparent 9rem
     ),
-    #111513;
+    oklch(0.191 0.007 164.084);
   background-size:
     34px 34px,
     34px 34px,
@@ -3601,9 +3606,9 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   top: 1.2rem;
   display: grid;
   gap: 0.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid oklch(1 0 89.876 / 0.12);
   border-radius: 1.2rem;
-  background: rgba(0, 0, 0, 0.28);
+  background: oklch(0 0 0 / 0.28);
   padding: 1rem;
 }
 
@@ -3767,11 +3772,11 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   box-shadow: none;
   border-radius: 20px;
   padding: 24px;
-  color: #ffffff;
+  color: oklch(1 0 89.876);
 }
 
 .card-accent :where(label, small, .muted) {
-  color: rgba(255, 255, 255, 0.75);
+  color: oklch(1 0 89.876 / 0.75);
 }
 
 .card-dark {
@@ -3965,7 +3970,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
     .focus-timer,
     .time-summary
   ) {
-  color: #fff !important;
+  color: oklch(1 0 89.876) !important;
 }
 
 :is(html.dark, .theme-dark) .budget-growth div {
@@ -3973,15 +3978,15 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 }
 
 :is(html.dark, .theme-dark) .reading-app footer span {
-  background: linear-gradient(90deg, #e11d48 62%, rgba(255, 255, 255, 0.16) 0) !important;
+  background: linear-gradient(90deg, oklch(0.586 0.222 17.585) 62%, oklch(1 0 89.876 / 0.16) 0) !important;
 }
 
 :is(html.dark, .theme-dark) .study-hours span {
-  background: linear-gradient(#66d3d8 0 20%, rgba(255, 255, 255, 0.12) 0) !important;
+  background: linear-gradient(oklch(0.805 0.1 199.39) 0 20%, oklch(1 0 89.876 / 0.12) 0) !important;
 }
 
 :is(html.dark, .theme-dark) .study-hours .study-today {
-  background: #f8fafc !important;
+  background: oklch(0.984 0.003 247.858) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -4026,7 +4031,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   opacity: 0;
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--foreground) 10%, transparent),
-    0 4px 14px rgba(0, 0, 0, 0.18);
+    0 4px 14px oklch(0 0 0 / 0.18);
   font-weight: 500;
   pointer-events: none;
 }
@@ -4056,7 +4061,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 :is(html.dark, .theme-dark) .genesis-tooltip {
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--foreground) 12%, transparent),
-    0 4px 16px rgba(0, 0, 0, 0.42);
+    0 4px 16px oklch(0 0 0 / 0.42);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -4360,8 +4365,8 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   height: 22px;
   border-radius: 50%;
   border: none;
-  background: rgba(0, 0, 0, 0.65);
-  color: #fff;
+  background: oklch(0 0 0 / 0.65);
+  color: oklch(1 0 89.876);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -4370,7 +4375,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 }
 
 .feedback-modal__screenshot-remove:hover {
-  background: rgba(0, 0, 0, 0.85);
+  background: oklch(0 0 0 / 0.85);
 }
 
 /* ── Segmented control (severity / category pills) ──────────────────── */
@@ -4945,7 +4950,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 
 /* Over-budget card: very subtle left accent only — no red background */
 .bcat-card--over {
-  outline: 1px solid color-mix(in srgb, var(--budget-red, #ef4444) 20%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--budget-red, oklch(0.637 0.208 25.331)) 20%, transparent);
   outline-offset: -1px;
 }
 
@@ -5052,7 +5057,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 }
 
 .bcat-remaining--neg {
-  color: var(--budget-red, #ef4444);
+  color: var(--budget-red, oklch(0.637 0.208 25.331));
 }
 
 /* Inline edit panel */
@@ -5149,12 +5154,12 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 }
 
 .subs-month-badge.paid {
-  background: color-mix(in srgb, #22c55e 15%, transparent);
-  color: #22c55e;
+  background: color-mix(in srgb, oklch(0.723 0.192 149.579) 15%, transparent);
+  color: oklch(0.723 0.192 149.579);
 }
 .subs-month-badge.unpaid {
-  background: color-mix(in srgb, #f59e0b 15%, transparent);
-  color: #f59e0b;
+  background: color-mix(in srgb, oklch(0.769 0.165 70.08) 15%, transparent);
+  color: oklch(0.769 0.165 70.08);
 }
 
 .subs-month-total {
@@ -5265,7 +5270,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 .subs-icon-letter {
   font-size: 12px;
   font-weight: 800;
-  color: #fff;
+  color: oklch(1 0 89.876);
   line-height: 1;
 }
 
@@ -5339,7 +5344,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   flex-shrink: 0;
   font-size: 20px;
   font-weight: 900;
-  color: #fff;
+  color: oklch(1 0 89.876);
 }
 
 .subs-detail-meta {
@@ -5408,13 +5413,13 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
-  background: color-mix(in srgb, #f59e0b 15%, transparent);
-  color: #f59e0b;
+  background: color-mix(in srgb, oklch(0.769 0.165 70.08) 15%, transparent);
+  color: oklch(0.769 0.165 70.08);
 }
 
 .subs-status-pill.paid {
-  background: color-mix(in srgb, #22c55e 15%, transparent);
-  color: #22c55e;
+  background: color-mix(in srgb, oklch(0.723 0.192 149.579) 15%, transparent);
+  color: oklch(0.723 0.192 149.579);
 }
 
 .subs-detail-actions {
@@ -5452,8 +5457,8 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   place-items: center;
   border: none;
   border-radius: 10px;
-  background: color-mix(in srgb, #ef4444 10%, transparent);
-  color: #ef4444;
+  background: color-mix(in srgb, oklch(0.637 0.208 25.331) 10%, transparent);
+  color: oklch(0.637 0.208 25.331);
   cursor: pointer;
 }
 
@@ -5562,7 +5567,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   place-items: center;
   font-size: 14px;
   font-weight: 800;
-  color: #fff;
+  color: oklch(1 0 89.876);
   flex-shrink: 0;
 }
 
@@ -5602,7 +5607,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 }
 
 :global(.subs-paid-check) {
-  color: #22c55e;
+  color: oklch(0.723 0.192 149.579);
 }
 
 .subs-empty {
@@ -5746,8 +5751,8 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   border: none !important;
 }
 .budget-shell .grade-badge.good {
-  background: color-mix(in srgb, #22c55e 12%, transparent) !important;
-  color: #22c55e !important;
+  background: color-mix(in srgb, oklch(0.723 0.192 149.579) 12%, transparent) !important;
+  color: oklch(0.723 0.192 149.579) !important;
 }
 
 /* Cross-module items */
@@ -5787,7 +5792,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 
 /* Error banner */
 .budget-shell .error-banner {
-  background: color-mix(in srgb, #ef4444 10%, var(--card)) !important;
+  background: color-mix(in srgb, oklch(0.637 0.208 25.331) 10%, var(--card)) !important;
   border: none !important;
   border-radius: 12px !important;
 }
@@ -5863,20 +5868,20 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   place-items: center;
 }
 .budget-metric-icon.income {
-  background: color-mix(in srgb, #22c55e 12%, transparent);
-  color: #22c55e;
+  background: color-mix(in srgb, oklch(0.723 0.192 149.579) 12%, transparent);
+  color: oklch(0.723 0.192 149.579);
 }
 .budget-metric-icon.expense {
-  background: color-mix(in srgb, #ef4444 12%, transparent);
-  color: #ef4444;
+  background: color-mix(in srgb, oklch(0.637 0.208 25.331) 12%, transparent);
+  color: oklch(0.637 0.208 25.331);
 }
 .budget-metric-icon.savings {
-  background: color-mix(in srgb, #3b82f6 12%, transparent);
-  color: #3b82f6;
+  background: color-mix(in srgb, oklch(0.623 0.188 259.815) 12%, transparent);
+  color: oklch(0.623 0.188 259.815);
 }
 .budget-metric-icon.rate {
-  background: color-mix(in srgb, #a855f7 12%, transparent);
-  color: #a855f7;
+  background: color-mix(in srgb, oklch(0.627 0.233 303.9) 12%, transparent);
+  color: oklch(0.627 0.233 303.9);
 }
 
 .budget-metric-label {
@@ -5966,12 +5971,12 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   font-weight: 700;
 }
 .subs-badge--paid {
-  background: color-mix(in srgb, #22c55e 14%, transparent);
-  color: #22c55e;
+  background: color-mix(in srgb, oklch(0.723 0.192 149.579) 14%, transparent);
+  color: oklch(0.723 0.192 149.579);
 }
 .subs-badge--unpaid {
-  background: color-mix(in srgb, #f59e0b 14%, transparent);
-  color: #f59e0b;
+  background: color-mix(in srgb, oklch(0.769 0.165 70.08) 14%, transparent);
+  color: oklch(0.769 0.165 70.08);
 }
 
 .subs-month-total {
@@ -6079,7 +6084,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   place-items: center;
   font-size: 11px;
   font-weight: 800;
-  color: #fff;
+  color: oklch(1 0 89.876);
   border: none;
   cursor: pointer;
   flex-shrink: 0;
@@ -6138,7 +6143,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
 
 /* Detail card */
 .subs-detail {
-  background: color-mix(in srgb, var(--sb, #6b7280) 10%, var(--card));
+  background: color-mix(in srgb, var(--sb, oklch(0.551 0.023 264.364)) 10%, var(--card));
   border-radius: 20px;
   border: none;
   padding: 16px 18px 14px;
@@ -6160,7 +6165,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   place-items: center;
   font-size: 18px;
   font-weight: 900;
-  color: #fff;
+  color: oklch(1 0 89.876);
   flex-shrink: 0;
 }
 .subs-detail-meta {
@@ -6219,12 +6224,12 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
-  background: color-mix(in srgb, #f59e0b 12%, transparent);
-  color: #f59e0b;
+  background: color-mix(in srgb, oklch(0.769 0.165 70.08) 12%, transparent);
+  color: oklch(0.769 0.165 70.08);
 }
 .subs-status--paid {
-  background: color-mix(in srgb, #22c55e 12%, transparent);
-  color: #22c55e;
+  background: color-mix(in srgb, oklch(0.723 0.192 149.579) 12%, transparent);
+  color: oklch(0.723 0.192 149.579);
 }
 .subs-detail-actions {
   display: flex;
@@ -6258,8 +6263,8 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   place-items: center;
   border: none;
   border-radius: 10px;
-  background: color-mix(in srgb, #ef4444 10%, transparent);
-  color: #ef4444;
+  background: color-mix(in srgb, oklch(0.637 0.208 25.331) 10%, transparent);
+  color: oklch(0.637 0.208 25.331);
   cursor: pointer;
 }
 
@@ -6352,7 +6357,7 @@ body.sidebar-dragging .desktop-sidebar__move-handle::after {
   place-items: center;
   font-size: 13px;
   font-weight: 800;
-  color: #fff;
+  color: oklch(1 0 89.876);
   flex-shrink: 0;
 }
 .subs-row-info {

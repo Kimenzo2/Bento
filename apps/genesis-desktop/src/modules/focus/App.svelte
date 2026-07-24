@@ -677,8 +677,8 @@
   }
 
   .focus-status-banner--error {
-    border-color: color-mix(in srgb, #ef4444 38%, var(--focus-border));
-    background: color-mix(in srgb, #ef4444 10%, var(--focus-surface));
+    border-color: color-mix(in srgb, oklch(0.637 0.208 25.331) 38%, var(--focus-border));
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 10%, var(--focus-surface));
   }
 
   .focus-status-banner__dot {
@@ -690,7 +690,7 @@
   }
 
   .focus-status-banner--error .focus-status-banner__dot {
-    background: #ef4444;
+    background: oklch(0.637 0.208 25.331);
   }
 
   .focus-hero-grid {

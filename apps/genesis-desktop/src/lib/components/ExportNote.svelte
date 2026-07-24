@@ -278,7 +278,7 @@
     background: var(--background);
     border: 1px solid var(--border);
     border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    box-shadow: var(--shadow-sm);
     padding: 4px;
     z-index: 100;
     animation: drop-in 0.1s ease;

@@ -267,8 +267,8 @@
   .embed-value :global(.embed-error) {
     padding: 12px;
     border-radius: 8px;
-    background: color-mix(in srgb, var(--destructive, #ef4444) 10%, transparent);
-    color: var(--destructive, #ef4444);
+    background: color-mix(in srgb, var(--destructive, oklch(0.637 0.208 25.331)) 10%, transparent);
+    color: var(--destructive, oklch(0.637 0.208 25.331));
     font-family: monospace;
     font-size: 0.85rem;
   }
@@ -340,7 +340,7 @@
     border: none;
     border-radius: 6px;
     background: var(--primary);
-    color: var(--primary-foreground, #fff);
+    color: var(--primary-foreground, oklch(1 0 89.876));
     font: inherit;
     font-size: 0.82rem;
     font-weight: 600;

@@ -573,8 +573,8 @@
     <Dialog.Header>
       <div class="activation-shell__icon-wrap">
         <svg viewBox="0 0 64 64" fill="none" aria-hidden="true" class="activation-shell__icon">
-          <circle cx="32" cy="32" r="28" stroke="#22c55e" stroke-width="2.5" class="activation-shell__icon-ring" />
-          <path d="M20 33l8 8 16-16" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="activation-shell__icon-check" />
+          <circle cx="32" cy="32" r="28" stroke="oklch(0.723 0.192 149.579)" stroke-width="2.5" class="activation-shell__icon-ring" />
+          <path d="M20 33l8 8 16-16" stroke="oklch(0.723 0.192 149.579)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="activation-shell__icon-check" />
         </svg>
       </div>
       <Dialog.Title class="font-[var(--font-heading)] text-2xl text-[var(--foreground)] text-center">
@@ -811,11 +811,11 @@
   }
 
   .pricing-shell__refresh-feedback--ok {
-    color: #22c55e;
+    color: oklch(0.723 0.192 149.579);
   }
 
   .pricing-shell__refresh-feedback--err {
-    color: #ef4444;
+    color: oklch(0.637 0.208 25.331);
   }
 
   @keyframes feedback-in {
@@ -833,9 +833,9 @@
     gap: 0.75rem;
     padding: 0.85rem 1.1rem;
     border-radius: 1rem;
-    background: color-mix(in srgb, #ef4444 12%, transparent);
-    border: 1px solid color-mix(in srgb, #ef4444 30%, transparent);
-    color: #ef4444;
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 12%, transparent);
+    border: 1px solid color-mix(in srgb, oklch(0.637 0.208 25.331) 30%, transparent);
+    color: oklch(0.637 0.208 25.331);
     font-size: 0.9rem;
     font-weight: 500;
     line-height: 1.45;
@@ -1129,9 +1129,9 @@
     gap: 0.55rem;
     padding: 0.7rem 0.9rem;
     border-radius: 0.85rem;
-    background: color-mix(in srgb, #ef4444 12%, transparent);
-    border: 1px solid color-mix(in srgb, #ef4444 28%, transparent);
-    color: #ef4444;
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 12%, transparent);
+    border: 1px solid color-mix(in srgb, oklch(0.637 0.208 25.331) 28%, transparent);
+    color: oklch(0.637 0.208 25.331);
     font-size: 0.85rem;
     font-weight: 500;
     line-height: 1.4;
@@ -1158,8 +1158,8 @@
     margin-left: 0.5rem;
     padding: 0.15rem 0.55rem;
     border-radius: 9999px;
-    background: color-mix(in srgb, #f59e0b 20%, transparent);
-    color: #f59e0b;
+    background: color-mix(in srgb, oklch(0.769 0.165 70.08) 20%, transparent);
+    color: oklch(0.769 0.165 70.08);
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.02em;

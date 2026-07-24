@@ -111,7 +111,7 @@
   }
 
   const moodColors: Record<string, string> = {
-    drained: 'var(--mood-muted)', restless: '#f97316', steady: '#eab308', bright: '#22c55e', energized: '#8b5cf6',
+    drained: 'var(--mood-muted)', restless: 'oklch(0.705 0.187 47.604)', steady: 'oklch(0.795 0.162 86.047)', bright: 'oklch(0.723 0.192 149.579)', energized: 'oklch(0.606 0.219 292.717)',
   };
   function moodColor(moodId: string): string {
     return moodColors[moodId] ?? 'var(--mood-muted)';
@@ -854,7 +854,7 @@
   }
 
   :global(.mood-error) {
-    color: color-mix(in srgb, #ef4444 78%, var(--foreground));
+    color: color-mix(in srgb, oklch(0.637 0.208 25.331) 78%, var(--foreground));
     font-size: 0.82rem;
     margin: 0;
   }
@@ -985,8 +985,8 @@
 
     :global(.mood-timeline__del):hover {
       opacity: 1 !important;
-      background: color-mix(in srgb, #ef4444 14%, transparent);
-      color: #ef4444;
+      background: color-mix(in srgb, oklch(0.637 0.208 25.331) 14%, transparent);
+      color: oklch(0.637 0.208 25.331);
     }
   }
 
@@ -1204,7 +1204,7 @@
 
     :global(.mood-act-btn__del):hover {
       opacity: 1 !important;
-      color: #ef4444;
+      color: oklch(0.637 0.208 25.331);
     }
   }
 

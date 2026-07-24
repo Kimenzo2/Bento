@@ -92,10 +92,10 @@
   }
 
   .ai-code-wrapper :global(pre.shiki code .line.diff.add) {
-    background: rgb(34 197 94 / 0.1);
+    background: oklch(0.723 0.192 149.579 / 0.1);
   }
 
   .ai-code-wrapper :global(pre.shiki code .line.diff.remove) {
-    background: rgb(239 68 68 / 0.1);
+    background: oklch(0.637 0.208 25.331 / 0.1);
   }
 </style>

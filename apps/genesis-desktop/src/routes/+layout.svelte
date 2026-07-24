@@ -480,7 +480,7 @@
   .auth-booting {
     position: fixed;
     inset: 0;
-    background: var(--background, #08090b);
+    background: var(--background, oklch(0.139 0.005 262.802));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -496,7 +496,7 @@
     height: 32px;
     /* No CSS variable — during booting no theme has been loaded yet.
        Use the literal fallback directly. */
-    color: #e8e8e8;
+    color: oklch(0.931 0 89.876);
   }
 
   @keyframes auth-booting-pulse {

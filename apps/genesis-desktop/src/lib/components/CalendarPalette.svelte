@@ -125,7 +125,7 @@
 <style>
   .cal-overlay { position: fixed; inset: 0; z-index: 9997; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--background) 60%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); animation: fade-in 0.1s ease; }
   @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-  .cal-palette { width: 340px; max-height: 540px; background: var(--background); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); display: flex; flex-direction: column; overflow: hidden; animation: slide-up 0.12s cubic-bezier(0.22, 1, 0.36, 1); }
+  .cal-palette { width: 340px; max-height: 540px; background: var(--background); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-md); display: flex; flex-direction: column; overflow: hidden; animation: slide-up 0.12s cubic-bezier(0.22, 1, 0.36, 1); }
   @keyframes slide-up { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
   .cal-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
   .cal-title { font-size: 14px; font-weight: 600; color: var(--foreground); }

@@ -746,8 +746,8 @@
     gap: 6px;
     padding: 8px 16px;
     border-radius: 999px;
-    background: linear-gradient(135deg, #f59e0b, #ef4444);
-    color: #fff;
+    background: linear-gradient(135deg, oklch(0.769 0.165 70.08), oklch(0.637 0.208 25.331));
+    color: oklch(1 0 89.876);
     font-size: 13px;
     font-weight: 700;
     flex-shrink: 0;
@@ -778,7 +778,7 @@
     line-height: 1.75;
     color: var(--foreground);
     min-height: 1.5em;
-    caret-color: var(--mod-accent, #818cf8);
+    caret-color: var(--mod-accent, oklch(0.68 0.158 276.935));
     transition: opacity 0.15s;
     white-space: pre-wrap;
     word-wrap: break-word;
@@ -863,7 +863,7 @@
 
   .j-block--quote {
     padding-left: 20px;
-    border-left: 3px solid var(--mod-accent, #818cf8);
+    border-left: 3px solid var(--mod-accent, oklch(0.68 0.158 276.935));
     font-style: italic;
     opacity: 0.85;
   }
@@ -942,7 +942,7 @@
     border-radius: 12px;
     background: var(--surface);
     border: 1px solid var(--border);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.08);
+    box-shadow: 0 8px 24px oklch(0 0 0 / 0.18), 0 2px 6px oklch(0 0 0 / 0.08);
     transform: translateX(-50%);
     animation: j-fadeIn 0.12s ease;
   }
@@ -998,7 +998,7 @@
     border-radius: 14px;
     background: var(--surface);
     border: 1px solid var(--border);
-    box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+    box-shadow: 0 12px 32px oklch(0 0 0 / 0.2);
     min-width: 220px;
     animation: j-fadeIn 0.12s ease;
   }
@@ -1090,13 +1090,13 @@
 
   .j-write-btn:hover {
     background: var(--muted-surface);
-    border-color: var(--mod-accent, #818cf8);
+    border-color: var(--mod-accent, oklch(0.68 0.158 276.935));
   }
 
   .j-write-btn--save {
-    background: var(--mod-accent, #818cf8);
-    border-color: var(--mod-accent, #818cf8);
-    color: #fff;
+    background: var(--mod-accent, oklch(0.68 0.158 276.935));
+    border-color: var(--mod-accent, oklch(0.68 0.158 276.935));
+    color: oklch(1 0 89.876);
   }
 
   .j-write-btn--save:hover {
@@ -1104,8 +1104,8 @@
   }
 
   .j-write-btn--saved {
-    background: #22c55e;
-    border-color: #22c55e;
+    background: oklch(0.723 0.192 149.579);
+    border-color: oklch(0.723 0.192 149.579);
   }
 
   .j-btn-icon {
@@ -1121,8 +1121,8 @@
   .j-spinner {
     width: 14px;
     height: 14px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top-color: #fff;
+    border: 2px solid oklch(1 0 89.876 / 0.3);
+    border-top-color: oklch(1 0 89.876);
     border-radius: 50%;
     animation: j-spin 0.6s linear infinite;
     display: inline-block;

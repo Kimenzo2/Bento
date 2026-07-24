@@ -627,9 +627,9 @@
     margin: 0 10px 8px;
     padding: 8px 12px;
     border-radius: 8px;
-    background: color-mix(in srgb, #ef4444 10%, transparent);
-    border: 1px solid color-mix(in srgb, #ef4444 20%, transparent);
-    color: #ef4444;
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 10%, transparent);
+    border: 1px solid color-mix(in srgb, oklch(0.637 0.208 25.331) 20%, transparent);
+    color: oklch(0.637 0.208 25.331);
     font-size: 12px;
     font-weight: 500;
     text-align: center;
@@ -730,8 +730,8 @@
   }
 
   .entry-row-delete:hover {
-    color: #ef4444;
-    background: color-mix(in srgb, #ef4444 10%, transparent);
+    color: oklch(0.637 0.208 25.331);
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 10%, transparent);
   }
 
   .sidebar-loading, .sidebar-empty {

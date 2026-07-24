@@ -402,11 +402,11 @@
   gap: 4px;
   font-size: 0.7rem;
   font-weight: 700;
-  color: #22c55e;
+  color: oklch(0.723 0.192 149.579);
   white-space: nowrap;
   padding: 3px 7px;
   border-radius: 6px;
-  background: color-mix(in srgb, #22c55e 10%, transparent);
+  background: color-mix(in srgb, oklch(0.723 0.192 149.579) 10%, transparent);
   flex-shrink: 0;
 }
 
@@ -786,7 +786,7 @@
   border: none;
   border-radius: 10px;
   background: color-mix(in srgb, #000 65%, transparent);
-  color: #fff;
+  color: oklch(1 0 89.876);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -993,8 +993,8 @@
   height: 40px;
   border: none;
   border-radius: 999px;
-  background: color-mix(in srgb, #fff 12%, transparent);
-  color: #fff;
+  background: color-mix(in srgb, oklch(1 0 89.876) 12%, transparent);
+  color: oklch(1 0 89.876);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -1008,7 +1008,7 @@
 }
 
 :global(.cb-lightbox__close:hover) {
-  background: color-mix(in srgb, #fff 20%, transparent);
+  background: color-mix(in srgb, oklch(1 0 89.876) 20%, transparent);
 }
 
 :global(.cb-lightbox__img) {
@@ -1028,7 +1028,7 @@
   padding: 6px 14px;
   border-radius: 8px;
   background: color-mix(in srgb, #000 60%, transparent);
-  color: #fff;
+  color: oklch(1 0 89.876);
   font-size: 0.8rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -1043,8 +1043,8 @@
   height: 44px;
   border: none;
   border-radius: 999px;
-  background: color-mix(in srgb, #fff 10%, transparent);
-  color: #fff;
+  background: color-mix(in srgb, oklch(1 0 89.876) 10%, transparent);
+  color: oklch(1 0 89.876);
   font-size: 1.6rem;
   display: grid;
   place-items: center;
@@ -1059,7 +1059,7 @@
 }
 
 :global(.cb-lightbox__nav:hover) {
-  background: color-mix(in srgb, #fff 20%, transparent);
+  background: color-mix(in srgb, oklch(1 0 89.876) 20%, transparent);
 }
 
 :global(.cb-lightbox__nav--prev) {
@@ -1162,7 +1162,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #fff;
+  color: oklch(1 0 89.876);
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
@@ -1179,22 +1179,22 @@
   background: #000;
 }
 :global(.cb-bookmark-input__badge[data-platform="youtube"]) {
-  background: #ff0000;
+  background: oklch(0.628 0.258 29.234);
 }
 :global(.cb-bookmark-input__badge[data-platform="reddit"]) {
-  background: #ff4500;
+  background: oklch(0.66 0.229 35.403);
 }
 :global(.cb-bookmark-input__badge[data-platform="threads"]) {
   background: #000;
 }
 :global(.cb-bookmark-input__badge[data-platform="instagram"]) {
-  background: #ff0076;
+  background: oklch(0.643 0.258 5.592);
 }
 :global(.cb-bookmark-input__badge[data-platform="tiktok"]) {
   background: #000;
 }
 :global(.cb-bookmark-input__badge[data-platform="other"]) {
-  background: #787873;
+  background: oklch(0.571 0.008 106.636);
 }
 
 /* Save button */
@@ -1239,8 +1239,8 @@
 
 /* Saved confirmation state */
 :global(.cb-bookmark-input__save--saved) {
-  background: #22c55e;
-  color: #fff;
+  background: oklch(0.723 0.192 149.579);
+  color: oklch(1 0 89.876);
 }
 
 :global(.cb-bookmark-input__error) {
@@ -1256,9 +1256,9 @@
    
    Design tokens extracted from Pinterest production CSS:
    - Font: "Pin Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, ...
-   - Card: #fff surface, 16px image clip rounding, 8px button rounding
+   - Card: oklch(1 0 89.876) surface, 16px image clip rounding, 8px button rounding
    - Title: 16px / 700 / 1.4, single-line clamp
-   - Meta: 12px / 400 / 1.5, #211922 / #62625b
+   - Meta: 12px / 400 / 1.5, oklch(0.227 0.021 322.602) / oklch(0.494 0.011 106.792)
    - Shadow: 0px 1.5px 6px 0px rgba(0,0,0,.08) (raised)
    - Gap: 16px columns, card margin-bottom 16px
    - Card width: ~234px natural column
@@ -1327,7 +1327,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.5);
+  color: oklch(1 0 89.876 / 0.5);
   font-size: 28px;
   font-weight: 700;
   line-height: 1;
@@ -1353,7 +1353,7 @@
   align-items: center;
   justify-content: center;
   gap: 3px;
-  color: #fff;
+  color: oklch(1 0 89.876);
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
@@ -1374,22 +1374,22 @@
   background: #000;
 }
 :global(.cb-pin-card__badge[data-platform="youtube"]) {
-  background: #ff0000;
+  background: oklch(0.628 0.258 29.234);
 }
 :global(.cb-pin-card__badge[data-platform="reddit"]) {
-  background: #ff4500;
+  background: oklch(0.66 0.229 35.403);
 }
 :global(.cb-pin-card__badge[data-platform="threads"]) {
   background: #000;
 }
 :global(.cb-pin-card__badge[data-platform="instagram"]) {
-  background: #ff0076;
+  background: oklch(0.643 0.258 5.592);
 }
 :global(.cb-pin-card__badge[data-platform="tiktok"]) {
   background: #000;
 }
 :global(.cb-pin-card__badge[data-platform="cosmos"]) {
-  background: #6c5ce7;
+  background: oklch(0.568 0.202 283.084);
 }
 :global(.cb-pin-card__badge[data-platform="arena"]) {
   background: #000;
@@ -1398,13 +1398,13 @@
   background: #000;
 }
 :global(.cb-pin-card__badge[data-platform="linkedin"]) {
-  background: #0a66c2;
+  background: oklch(0.516 0.163 254.728);
 }
 :global(.cb-pin-card__badge[data-platform="github"]) {
-  background: #181717;
+  background: oklch(0.206 0.002 17.285);
 }
 :global(.cb-pin-card__badge[data-platform="other"]) {
-  background: #787873;
+  background: oklch(0.571 0.008 106.636);
 }
 
 /* ─── Card Footer ─── */
@@ -1474,8 +1474,8 @@
   height: 40px;
   border: none;
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.65);
-  color: #fff;
+  background: oklch(0 0 0 / 0.65);
+  color: oklch(1 0 89.876);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -1493,20 +1493,20 @@
 }
 
 :global(.cb-pin-card__action:hover) {
-  background: rgba(0, 0, 0, 0.8);
+  background: oklch(0 0 0 / 0.8);
 }
 
 :global(.cb-pin-card__action--danger:hover) {
-  background: rgba(220, 38, 38, 0.8);
+  background: oklch(0.586 0.222 17.585 / 0.8);
 }
 
 :global(.cb-pin-card__action--confirm) {
-  background: rgba(34, 197, 94, 0.8);
+  background: oklch(0.723 0.192 149.579 / 0.8);
   cursor: default;
 }
 
 :global(.cb-pin-card__action--confirm:hover) {
-  background: rgba(34, 197, 94, 0.8);
+  background: oklch(0.723 0.192 149.579 / 0.8);
 }
 
 :global(.cb-pin-card__action--confirm:disabled) {

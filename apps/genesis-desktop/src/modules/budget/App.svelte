@@ -95,14 +95,14 @@
   const SUB_COLORS: Record<string, string> = {
     'Netflix': '#E50914', 'Spotify': '#1DB954', 'Apple Music': '#FC3C44',
     'YouTube': '#FF0000', 'YouTube Premium': '#FF0000', 'Claude': '#D97706',
-    'ChatGPT': '#10A37F', 'Cursor': '#1C1C1C', 'Notion': '#000000',
-    'Figma': '#F24E1E', 'Linear': '#5E6AD2', 'GitHub': '#181717',
+    'ChatGPT': '#10A37F', 'Cursor': '#1C1C1C', 'Notion': 'oklch(0 0 0)',
+    'Figma': '#F24E1E', 'Linear': '#5E6AD2', 'GitHub': 'oklch(0.206 0.002 17.285)',
     'Dropbox': '#0061FF', 'iCloud': '#3693F3', 'iCloud+': '#3693F3',
     'Google One': '#4285F4', 'Microsoft 365': '#D83B01', 'Adobe': '#FF0000',
     'Slack': '#4A154B', 'Zoom': '#2D8CFF', 'Headspace': '#F47D31',
     'Duolingo': '#58CC02', 'LinkedIn': '#0A66C2', 'Twitter': '#1DA1F2',
     'Perplexity': '#1FB8CD', 'Midjourney': '#1D1D1D', 'Grok': '#1D1D1D',
-    'Gemini': '#4285F4', 'DeepSeek': '#4D6BFE', 'GitHub Copilot': '#181717',
+    'Gemini': '#4285F4', 'DeepSeek': '#4D6BFE', 'GitHub Copilot': 'oklch(0.206 0.002 17.285)',
   };
   const POPULAR_SERVICES = [
     { name: 'Netflix',         color: '#E50914' },
@@ -110,9 +110,9 @@
     { name: 'YouTube Premium', color: '#FF0000' },
     { name: 'Claude',          color: '#D97706' },
     { name: 'ChatGPT',         color: '#10A37F' },
-    { name: 'Cursor',          color: '#6366f1' },
+    { name: 'Cursor',          color: 'oklch(0.585 0.204 277.117)' },
     { name: 'iCloud+',         color: '#3693F3' },
-    { name: 'GitHub Copilot',  color: '#181717' },
+    { name: 'GitHub Copilot',  color: 'oklch(0.206 0.002 17.285)' },
     { name: 'Notion',          color: '#1C1C1C' },
     { name: 'Figma',           color: '#F24E1E' },
     { name: 'Linear',          color: '#5E6AD2' },
@@ -375,13 +375,13 @@
   let catFormName = $state('');
   let catFormGroup = $state('Other');
   let catFormIcon = $state('wallet');
-  let catFormColor = $state('#6366f1');
+  let catFormColor = $state('oklch(0.585 0.204 277.117)');
 
   function resetCatForm(cat?: BudgetCategory) {
     catFormName = cat?.name ?? '';
     catFormGroup = cat?.groupName ?? 'Other';
     catFormIcon = cat?.icon ?? 'wallet';
-    catFormColor = cat?.color ?? '#6366f1';
+    catFormColor = cat?.color ?? 'oklch(0.585 0.204 277.117)';
   }
 
   async function saveCategory() {
@@ -783,7 +783,7 @@
                         </Table.Cell>
                         <Table.Cell>
                           {#if tx.categoryName}
-                            <span class="bg-tx-dot" style="background: {categories.find(c => c.id === tx.categoryId)?.color ?? '#6b7280'}"></span>
+                            <span class="bg-tx-dot" style="background: {categories.find(c => c.id === tx.categoryId)?.color ?? 'oklch(0.551 0.023 264.364)'}"></span>
                           {/if}
                           <span class="font-medium">{tx.categoryName ?? 'Uncategorized'}</span>
                         </Table.Cell>
@@ -1081,7 +1081,7 @@
                           <button
                             class="subs-sqircle"
                             class:subs-sqircle--paid={bill.paidThisMonth}
-                            style="background:{SUB_COLORS[bill.name] ?? '#6b7280'}"
+                            style="background:{SUB_COLORS[bill.name] ?? 'oklch(0.551 0.023 264.364)'}"
                             onclick={() => selectedBill = selectedBill?.id === bill.id ? null : bill}
                             use:tooltip={{ text: `${bill.name} — ${CURRENCY}${bill.amount.toFixed(2)}` }}
                           >
@@ -1109,7 +1109,7 @@
               <!-- Detail card — brand-color tinted -->
               {#if selectedBill}
                 {const sb = selectedBill}
-                {const sbColor = SUB_COLORS[sb.name] ?? '#6b7280'}
+                {const sbColor = SUB_COLORS[sb.name] ?? 'oklch(0.551 0.023 264.364)'}
                 <div class="subs-detail" style="--sb:{sbColor}">
                   <div class="subs-detail-hd">
                     <div class="subs-detail-icon" style="background:{sbColor}18">
@@ -1180,7 +1180,7 @@
                       class:subs-row--sel={selectedBill?.id === bill.id}
                       onclick={() => selectedBill = selectedBill?.id === bill.id ? null : bill}
                     >
-                      <div class="subs-row-icon" style="background:{SUB_COLORS[bill.name] ?? '#6b7280'}">
+                      <div class="subs-row-icon" style="background:{SUB_COLORS[bill.name] ?? 'oklch(0.551 0.023 264.364)'}">
                         <BrandIcon name={bill.name} size={13} class="bg-brand-mono" />
                       </div>
                       <div class="subs-row-info">
@@ -1190,7 +1190,7 @@
                       <div class="subs-row-right">
                         <span class="number number-tabular subs-row-amt">{CURRENCY}{bill.amount.toFixed(2)}</span>
                         {#if bill.paidThisMonth}
-                          <CheckCircle2 size={12} color="#22c55e" />
+                          <CheckCircle2 size={12} color="oklch(0.723 0.192 149.579)" />
                         {/if}
                       </div>
                     </button>
@@ -1605,10 +1605,10 @@
      BUDGET WORKSPACE — Health Card System Tokens
      ═══════════════════════════════════════════════════════════════════ */
   :global(.bg-workspace) {
-    --bg-accent:             #e05a3a;
-    --bg-green:              #22c55e;
-    --bg-red:                #ef4444;
-    --bg-amber:              #f59e0b;
+    --bg-accent:             oklch(0.636 0.174 34.725);
+    --bg-green:              oklch(0.723 0.192 149.579);
+    --bg-red:                oklch(0.637 0.208 25.331);
+    --bg-amber:              oklch(0.769 0.165 70.08);
     --bg-bg:                 var(--background);
     --bg-surface:            color-mix(in srgb, var(--surface) 96%, var(--background));
     --bg-surface-strong:     color-mix(in srgb, var(--surface) 88%, var(--background));
@@ -2046,7 +2046,7 @@
     -webkit-tap-highlight-color: transparent;
   }
   @media (hover: hover) and (pointer: fine) {
-    :global(.bg-submit-btn:hover) { background: color-mix(in srgb, var(--bg-accent) 85%, #0a0a0a); }
+    :global(.bg-submit-btn:hover) { background: color-mix(in srgb, var(--bg-accent) 85%, oklch(0.145 0 89.876)); }
   }
   :global(.bg-submit-btn:active) {
     transform: scale(0.96);

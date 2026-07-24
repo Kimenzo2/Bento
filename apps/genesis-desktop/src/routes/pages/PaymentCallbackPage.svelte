@@ -55,8 +55,8 @@
       </p>
     {:else if state.status === "ready"}
       <svg class="payment-callback-shell__check-icon" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-        <circle cx="32" cy="32" r="28" stroke="#22c55e" stroke-width="2.5" class="payment-callback-shell__icon-ring" />
-        <path d="M20 33l8 8 16-16" stroke="#22c55e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="payment-callback-shell__icon-check" />
+        <circle cx="32" cy="32" r="28" stroke="oklch(0.723 0.192 149.579)" stroke-width="2.5" class="payment-callback-shell__icon-ring" />
+        <path d="M20 33l8 8 16-16" stroke="oklch(0.723 0.192 149.579)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="payment-callback-shell__icon-check" />
       </svg>
       <h1 class="payment-callback-shell__title">Subscription sync requested</h1>
       <p class="payment-callback-shell__desc">
@@ -183,7 +183,7 @@
   .payment-callback-shell__error-icon {
     width: 2.5rem;
     height: 2.5rem;
-    color: #ef4444;
+    color: oklch(0.637 0.208 25.331);
     display: block;
   }
 </style>

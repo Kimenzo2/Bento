@@ -135,14 +135,14 @@
 
   // System prompt handlers
   function handleSystemPromptInput(value: string) {
-    if (value.length > 2000) return; // enforce max length
+    if (value.length > 2000) { value = value.slice(0, 2000); }
     updateSystemPrompt(value);
     promptSavingStatus = 'unsaved';
   }
 
   function handleSavePrompt() {
     promptSavingStatus = 'saving';
-    void flushPendingAiPrefsSave().then(() => {
+    flushPendingAiPrefsSave().then(() => {
       promptSavingStatus = 'saved';
       setTimeout(() => (promptSavingStatus = ''), 2500);
     });
@@ -212,7 +212,7 @@
               {#if activeModel}
                 {activeModel}
               {:else}
-                Active provider
+                No model selected
               {/if}
             </span>
           </div>
@@ -394,7 +394,7 @@
         </div>
         <div class="ai-mcp-value-row">
           <code class="ai-mcp-value ai-mcp-value--token">
-            {#each Array(48) as _}
+            {#each Array($mcpConnectionInfo!.token.length) as _}
               &bull;
             {/each}
           </code>
@@ -556,12 +556,12 @@
     border-radius: 999px;
   }
   .ai-status-badge--ok {
-    background: color-mix(in srgb, #10b981 12%, var(--background));
-    color: #10b981;
+    background: color-mix(in srgb, oklch(0.63 0.135 163.337) 12%, var(--background));
+    color: oklch(0.63 0.135 163.337);
   }
   .ai-status-badge--idle {
-    background: color-mix(in srgb, #f59e0b 12%, var(--background));
-    color: #d97706;
+    background: color-mix(in srgb, oklch(0.769 0.165 70.08) 12%, var(--background));
+    color: oklch(0.666 0.157 58.318);
   }
   .ai-status-badge--off {
     background: color-mix(in srgb, var(--muted) 12%, var(--background));
@@ -637,19 +637,19 @@
     color: var(--muted);
   }
   .ai-prompt-status--saved {
-    color: #10b981;
+    color: oklch(0.63 0.128 151.4);
   }
   .ai-prompt-status--unsaved {
-    color: #f59e0b;
+    color: oklch(0.769 0.165 70.08);
   }
   .ai-prompt-status--synced {
-    color: #10b981;
+    color: oklch(0.63 0.128 151.4);
   }
   .ai-prompt-unsaved-dot {
     width: 0.4rem;
     height: 0.4rem;
     border-radius: 9999px;
-    background: #f59e0b;
+    background: oklch(0.769 0.165 70.08);
     flex-shrink: 0;
   }
   .ai-prompt-actions {
@@ -677,8 +677,8 @@
     letter-spacing: 0.06em;
     padding: 0.08rem 0.35rem;
     border-radius: 4px;
-    background: color-mix(in srgb, #f59e0b 14%, var(--background));
-    color: #d97706;
+    background: color-mix(in srgb, oklch(0.769 0.165 70.08) 14%, var(--background));
+    color: oklch(0.666 0.157 58.318);
     text-transform: uppercase;
   }
   .ai-mcp-value-row {
@@ -710,15 +710,15 @@
     gap: 0.45rem;
     padding: 0.65rem 0.85rem;
     border-radius: 8px;
-    background: color-mix(in srgb, #10b981 8%, var(--background));
+    background: color-mix(in srgb, oklch(0.63 0.128 151.4) 8%, var(--background));
     font-weight: 600;
-    color: #10b981;
+    color: oklch(0.63 0.128 151.4);
   }
   .ai-mcp-health-dot {
     width: 0.45rem;
     height: 0.45rem;
     border-radius: 9999px;
-    background: #10b981;
+    background: oklch(0.63 0.128 151.4);
     flex-shrink: 0;
   }
   .ai-mcp-version {

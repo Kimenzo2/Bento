@@ -402,7 +402,7 @@
             count={60}
             size={250}
             label="{hydrationTotal} / {hydrationGoalMl} ml"
-            activeColor="var(--color-success, #52b788)"
+            activeColor="var(--color-success, oklch(0.706 0.118 160.888))"
           />
           <div class="nutrition-hydration-controls">
             <div class="nutrition-hydration-stats">
@@ -1339,7 +1339,7 @@
     border-radius: 999px;
     background: var(--nutrition-surface);
     transition: transform 0.2s ease;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    box-shadow: 0 1px 3px oklch(from var(--color-shadow) l c h / 0.15);
   }
 
   :global(.nutrition-reminder-toggle[aria-checked="true"] .nutrition-reminder-toggle__thumb) {
@@ -1366,9 +1366,9 @@
 
   @media (hover: hover) and (pointer: fine) {
     :global(.nutrition-reminder-delete:hover:not(:disabled)) {
-      border-color: color-mix(in srgb, var(--destructive, #e74c3c) 50%, transparent);
-      color: var(--destructive, #e74c3c);
-      background: color-mix(in srgb, var(--destructive, #e74c3c) 10%, transparent);
+      border-color: color-mix(in srgb, var(--destructive, oklch(0.631 0.194 29.442)) 50%, transparent);
+      color: var(--destructive, oklch(0.631 0.194 29.442));
+      background: color-mix(in srgb, var(--destructive, oklch(0.631 0.194 29.442)) 10%, transparent);
     }
   }
 
@@ -1551,7 +1551,7 @@
 
   .nj-card--accent {
     background: var(--nutrition-accent, var(--primary));
-    color: #fff;
+    color: oklch(1 0 89.876);
     align-items: center;
     text-align: center;
   }
@@ -1563,7 +1563,7 @@
 
   .nj-card--dark {
     background: var(--surface);
-    color: var(--surface-foreground, #fff);
+    color: var(--surface-foreground, oklch(1 0 89.876));
   }
 
   .nj-card-label {
@@ -1656,12 +1656,14 @@
   }
 
   .nj-stat-big {
+    font-family: var(--font-number);
     font-size: 40px;
     font-weight: 700;
     line-height: 1;
     display: flex;
     align-items: baseline;
     gap: 4px;
+    font-variant-numeric: tabular-nums;
   }
 
   .nj-stat-unit {

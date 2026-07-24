@@ -131,13 +131,13 @@
 
   function typeColor(type: string): string {
     const colors: Record<string, string> = {
-      completed: 'hsl(142, 70%, 55%)',
-      created: 'hsl(217, 90%, 60%)',
-      updated: 'hsl(35, 90%, 55%)',
-      archived: 'hsl(0, 0%, 45%)',
-      recurrence: 'hsl(190, 80%, 55%)',
+      completed: 'oklch(0.819 0.127 194.951)',
+      created: 'oklch(0.776 0.193 327.239)',
+      updated: 'oklch(0.937 0.192 109.589)',
+      archived: 'oklch(0.556 0 89.876)',
+      recurrence: 'oklch(0.824 0.054 249.345)',
     };
-    return colors[type] ?? 'rgba(255,255,255,0.3)';
+    return colors[type] ?? 'oklch(1 0 89.876 / 0.3)';
   }
 </script>
 
@@ -225,7 +225,7 @@
   .ts-stat-chip svg { opacity: 0.5; }
   .ts-flyout-list { flex: 1; overflow-y: auto; padding: 4px 8px 10px; display: flex; flex-direction: column; gap: 1px; }
   .ts-flyout-loading { display: flex; align-items: center; justify-content: center; padding: 40px; }
-  .ts-spinner { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.08); border-top-color: color-mix(in srgb, var(--foreground) 50%, var(--background)); border-radius: 50%; animation: tspin .6s linear infinite; }
+  .ts-spinner { width: 20px; height: 20px; border: 2px solid oklch(1 0 89.876 / 0.08); border-top-color: color-mix(in srgb, var(--foreground) 50%, var(--background)); border-radius: 50%; animation: tspin .6s linear infinite; }
   @keyframes tspin { to { transform: rotate(360deg); } }
   .ts-flyout-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 36px 20px; text-align: center; color: color-mix(in srgb, var(--foreground) 25%, var(--background)); gap: 6px; }
   .ts-flyout-empty p { font-size: 13px; font-weight: 500; color: color-mix(in srgb, var(--foreground) 50%, var(--background)); margin: 0; }

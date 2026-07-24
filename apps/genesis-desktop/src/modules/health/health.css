@@ -1,6 +1,6 @@
 ﻿/* Base container - using transparent background to utilize global theme */
 .health-app-container {
-  --mod-accent: #4caf50;
+  --mod-accent: oklch(0.673 0.162 144.208);
   height: 100%;
   padding: 32px 40px;
   position: relative;
@@ -25,15 +25,15 @@
   font-size: 32px;
   font-weight: 400;
   margin: 0 0 8px 0;
-  color: var(--text-secondary, #9ca3af);
+  color: var(--text-secondary, oklch(0.714 0.019 261.325));
 }
 .health-app-container h1 span {
   font-weight: 700;
-  color: var(--text-primary, #f9fafb);
+  color: var(--text-primary, oklch(0.985 0.002 247.839));
 }
 .health-date {
   font-size: 15px;
-  color: var(--text-secondary, #9ca3af);
+  color: var(--text-secondary, oklch(0.714 0.019 261.325));
   margin: 0;
 }
 .health-header {
@@ -52,19 +52,19 @@
   border: none;
   font-size: 15px;
   font-weight: 500;
-  color: var(--text-secondary, #9ca3af);
+  color: var(--text-secondary, oklch(0.714 0.019 261.325));
   padding: 8px 24px;
   border-radius: 99px;
   cursor: default;
   transition: all 0.2s ease;
 }
 .health-nav button:hover {
-  background: var(--bg-hover, rgba(255, 255, 255, 0.05));
-  color: var(--text-primary, #f9fafb);
+  background: var(--bg-hover, oklch(1 0 89.876 / 0.05));
+  color: var(--text-primary, oklch(0.985 0.002 247.839));
 }
 .health-nav button.active {
-  background: var(--bg-active, rgba(255, 255, 255, 0.1));
-  color: var(--text-primary, #f9fafb);
+  background: var(--bg-active, oklch(1 0 89.876 / 0.1));
+  color: var(--text-primary, oklch(0.985 0.002 247.839));
 }
 
 /* Three Rings Container */
@@ -89,7 +89,7 @@
 }
 .health-ring-bg {
   fill: none;
-  stroke: var(--bg-elevated, rgba(255, 255, 255, 0.05));
+  stroke: var(--bg-elevated, oklch(1 0 89.876 / 0.05));
   stroke-width: 8;
 }
 .health-ring-progress {
@@ -99,13 +99,13 @@
   transition: stroke-dashoffset 1s ease-out;
 }
 .health-ring-green {
-  stroke: #22c55e;
+  stroke: oklch(0.723 0.192 149.579);
 }
 .health-ring-blue {
-  stroke: #3b82f6;
+  stroke: oklch(0.623 0.188 259.815);
 }
 .health-ring-cyan {
-  stroke: #06b6d4;
+  stroke: oklch(0.715 0.126 215.221);
 }
 
 .health-ring-content {
@@ -117,11 +117,11 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
-  color: var(--text-primary, #f9fafb);
+  color: var(--text-primary, oklch(0.985 0.002 247.839));
 }
 .health-ring-label {
   font-size: 14px;
-  color: var(--text-secondary, #9ca3af);
+  color: var(--text-secondary, oklch(0.714 0.019 261.325));
   margin: 0;
 }
 
@@ -133,7 +133,7 @@
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 20px 0;
-  color: var(--text-primary, #f9fafb);
+  color: var(--text-primary, oklch(0.985 0.002 247.839));
 }
 .health-log-list {
   list-style: none;
@@ -162,20 +162,20 @@
   color: white;
 }
 .health-icon-workout {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
+  background: oklch(0.723 0.192 149.579 / 0.2);
+  color: oklch(0.723 0.192 149.579);
 }
 .health-icon-meal {
-  background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
+  background: oklch(0.769 0.165 70.08 / 0.2);
+  color: oklch(0.769 0.165 70.08);
 }
 .health-icon-weight {
-  background: rgba(168, 85, 247, 0.2);
-  color: #a855f7;
+  background: oklch(0.627 0.233 303.9 / 0.2);
+  color: oklch(0.627 0.233 303.9);
 }
 .health-icon-water {
-  background: rgba(6, 182, 212, 0.2);
-  color: #06b6d4;
+  background: oklch(0.727 0.119 213.679 / 0.2);
+  color: oklch(0.715 0.126 215.221);
 }
 
 .health-log-details {
@@ -190,11 +190,13 @@
 }
 .health-log-time {
   font-size: 13px;
-  color: var(--text-secondary, #9ca3af);
+  color: var(--text-secondary, oklch(0.714 0.019 261.325));
 }
 .health-log-value {
+  font-family: var(--font-number);
   font-size: 16px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Empty State */
@@ -211,12 +213,12 @@
   margin-bottom: 16px;
 }
 .health-empty-state p {
-  color: var(--text-secondary, #9ca3af);
+  color: var(--text-secondary, oklch(0.714 0.019 261.325));
   margin-bottom: 24px;
 }
 .health-start-btn {
-  background: #c8f535;
-  color: #111318;
+  background: oklch(0.907 0.207 122.681);
+  color: oklch(0.187 0.011 268.112);
   border: none;
   padding: 12px 24px;
   border-radius: 99px;
@@ -232,7 +234,7 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: #c8f535;
+  background: oklch(0.907 0.207 122.681);
   border: none;
   display: flex;
   align-items: center;
@@ -253,7 +255,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: oklch(0 0 0 / 0.6);
   z-index: 100;
   backdrop-filter: blur(4px);
   animation: health-fade-in 0.2s ease;
@@ -286,7 +288,7 @@
   width: 48px;
   height: 6px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.2);
+  background: oklch(1 0 89.876 / 0.2);
   margin: 0 auto 32px;
 }
 .health-sheet-grid {
@@ -350,5 +352,5 @@
   background: var(--card) !important;
   border: none !important;
   box-shadow: none !important;
-  color: #fff !important;
+  color: oklch(1 0 89.876) !important;
 }

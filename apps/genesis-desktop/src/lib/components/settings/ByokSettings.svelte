@@ -41,6 +41,8 @@
     providerKnownModels,
   } from "$lib/stores/byok.store";
 
+  import { get } from "svelte/store";
+
   import { billingProfile } from "$lib/stores/billing.store";
   import { activeBundle, createTranslator } from "$lib/i18n";
 
@@ -65,6 +67,9 @@
   // Connection test
   let testingProvider = $state<string | null>(null);
   let connectionResult = $state<{ provider: string; result: ConnectionTestResult } | null>(null);
+
+  // Provider list loading guard
+  let providersLoaded = $state(false);
 
   // Model selector
   let showModelDropdown = $state(false);
@@ -94,10 +99,18 @@
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   onMount(() => {
     void loadByokSettings();
-    void refreshProviders();
+    void refreshProviders().then(() => { providersLoaded = true; });
   });
 
   // ── Handlers ───────────────────────────────────────────────────────────────
+
+  function clickOutside(node: HTMLElement, callback: () => void) {
+    function handler(e: MouseEvent) {
+      if (!node.contains(e.target as Node)) callback();
+    }
+    document.addEventListener('click', handler, true);
+    return { destroy: () => document.removeEventListener('click', handler, true) };
+  }
 
   function startAddKey(provider: string) {
     addingKeyProvider = provider;
@@ -162,6 +175,16 @@
     try {
       const result = await testConnection(provider);
       connectionResult = { provider, result };
+    } catch (e) {
+      connectionResult = {
+        provider,
+        result: {
+          ok: false,
+          error: { code: 'Unknown', message: String(e), statusCode: null },
+          latencyMs: null,
+          availableModels: [],
+        },
+      };
     } finally {
       testingProvider = null;
     }
@@ -186,19 +209,19 @@
   }
 
   async function handleBaseUrlChange(provider: string, url: string) {
-    const overrides = { ...$byokSettings.baseUrlOverrides, [provider]: url };
+    const overrides = { ...get(byokSettings).baseUrlOverrides, [provider]: url };
     await updateByokSettings({ baseUrlOverrides: overrides });
   }
 
 
 
   const providerColors: Record<string, string> = {
-    openai: "#10a37f",
-    anthropic: "#d4a574",
-    gemini: "#4285f4",
-    grok: "#1da1f2",
-    openrouter: "#ff6b35",
-    ollama: "#9b59b6",
+    openai: "oklch(0.637 0.124 169.506)",
+    anthropic: "oklch(0.754 0.085 67.104)",
+    gemini: "oklch(0.63 0.18 259.956)",
+    grok: "oklch(0.682 0.158 243.354)",
+    openrouter: "oklch(0.705 0.193 39.231)",
+    ollama: "oklch(0.577 0.152 315.318)",
   };
 </script>
 
@@ -261,7 +284,7 @@
         </div>
       </div>
     </div>
-  {:else if !$byokReady}
+  {:else if !$byokReady || !providersLoaded}
     <!-- Loading state -->
     <div class="byok-loading">
       <Loader2Icon size={20} class="byok-loading__spin" />
@@ -306,7 +329,7 @@
             <button
               type="button"
               class="byok-select-trigger"
-              onclick={() => (showProviderMenu = !showProviderMenu as any)}
+              onclick={() => (showProviderMenu = showProviderMenu ? null : "open")}
               aria-haspopup="listbox"
               aria-expanded={showProviderMenu ? 'true' : 'false'}
             >
@@ -326,7 +349,7 @@
             </button>
 
             {#if showProviderMenu}
-              <div class="byok-select-dropdown" role="listbox" transition:fade={{ duration: 100 }}>
+              <div class="byok-select-dropdown" role="listbox" transition:fade={{ duration: 100 }} use:clickOutside={() => (showProviderMenu = null)}>
                 {#if configuredProviders.length === 0}
                   <div class="byok-select-empty">No providers configured. Add an API key below.</div>
                 {:else}
@@ -370,7 +393,7 @@
                 </button>
 
                 {#if showModelDropdown}
-                  <div class="byok-select-dropdown byok-select-dropdown--models" role="listbox" transition:fade={{ duration: 100 }}>
+                  <div class="byok-select-dropdown byok-select-dropdown--models" role="listbox" transition:fade={{ duration: 100 }} use:clickOutside={() => (showModelDropdown = false)}>
                     {#each availableModels as model}
                       <button
                         type="button"
@@ -596,7 +619,7 @@
                       class="byok-key-input"
                       placeholder="http://localhost:11434"
                       value={$byokSettings.baseUrlOverrides["ollama"] ?? "http://localhost:11434"}
-                      onchange={(e) => void handleBaseUrlChange("ollama", e.currentTarget.value)}
+                      oninput={(e) => void handleBaseUrlChange("ollama", e.currentTarget.value)}
                       autocomplete="off"
                       spellcheck="false"
                     />
@@ -698,8 +721,8 @@
     margin-top: 0.4rem;
     padding: 0.55rem 0.7rem;
     border-radius: 8px;
-    background: color-mix(in srgb, #f59e0b 12%, var(--background));
-    color: #d97706;
+    background: color-mix(in srgb, oklch(0.769 0.165 70.08) 12%, var(--background));
+    color: oklch(0.666 0.157 58.318);
     line-height: 1.45;
   }
   .byok-onboarding__disclaimer svg {
@@ -745,8 +768,8 @@
     border-radius: 9999px;
     display: grid;
     place-items: center;
-    background: color-mix(in srgb, #a855f7 18%, var(--background));
-    color: #a855f7;
+    background: color-mix(in srgb, oklch(0.627 0.233 303.9) 18%, var(--background));
+    color: oklch(0.627 0.233 303.9);
   }
   .byok-gate__title {
     margin: 0;
@@ -777,7 +800,7 @@
     line-height: 1.4;
   }
   .byok-gate__feature svg {
-    color: #a855f7;
+    color: oklch(0.627 0.233 303.9);
     flex-shrink: 0;
   }
 
@@ -982,8 +1005,8 @@
     font-weight: 700;
     padding: 0.1rem 0.4rem;
     border-radius: 6px;
-    background: color-mix(in srgb, #9b59b6 14%, var(--background));
-    color: #9b59b6;
+    background: color-mix(in srgb, oklch(0.577 0.152 315.318) 14%, var(--background));
+    color: oklch(0.577 0.152 315.318);
     letter-spacing: 0.03em;
     margin-left: auto;
   }
@@ -1055,7 +1078,7 @@
     letter-spacing: 0.02em;
   }
   .byok-provider-status--configured {
-    color: #10b981;
+    color: oklch(0.696 0.149 162.48);
   }
   .byok-provider-status--missing {
     color: var(--muted);
@@ -1117,8 +1140,8 @@
     background: transparent;
   }
   .byok-btn--danger:hover {
-    color: #ef4444;
-    background: color-mix(in srgb, #ef4444 10%, var(--background));
+    color: oklch(0.637 0.208 25.331);
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 10%, var(--background));
   }
   .byok-btn:disabled {
     opacity: 0.5;
@@ -1172,15 +1195,15 @@
   }
   .byok-key-error {
     margin: 0;
-    color: #ef4444;
-    background: color-mix(in srgb, #ef4444 10%, var(--background));
+    color: oklch(0.637 0.208 25.331);
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 10%, var(--background));
     border-radius: 8px;
     padding: 0.45rem 0.7rem;
   }
   .byok-key-success {
     margin: 0;
-    color: #10b981;
-    background: color-mix(in srgb, #10b981 10%, var(--background));
+    color: oklch(0.696 0.149 162.48);
+    background: color-mix(in srgb, oklch(0.696 0.149 162.48) 10%, var(--background));
     border-radius: 8px;
     padding: 0.45rem 0.7rem;
   }
@@ -1205,12 +1228,12 @@
     line-height: 1.4;
   }
   .byok-connection-result--ok {
-    background: color-mix(in srgb, #10b981 10%, var(--background));
-    color: #10b981;
+    background: color-mix(in srgb, oklch(0.696 0.149 162.48) 10%, var(--background));
+    color: oklch(0.696 0.149 162.48);
   }
   .byok-connection-result--err {
-    background: color-mix(in srgb, #ef4444 10%, var(--background));
-    color: #ef4444;
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 10%, var(--background));
+    color: oklch(0.637 0.208 25.331);
   }
   .byok-connection-result svg {
     flex-shrink: 0;
@@ -1267,12 +1290,12 @@
     margin-top: 0.35rem !important;
     padding: 0.5rem 0.65rem;
     border-radius: 8px;
-    background: color-mix(in srgb, #f59e0b 10%, var(--background));
-    color: #d97706 !important;
+    background: color-mix(in srgb, oklch(0.769 0.165 70.08) 10%, var(--background));
+    color: oklch(0.666 0.157 58.318) !important;
     font-weight: 600 !important;
   }
   .byok-disclaimer__cost svg {
-    color: #d97706;
+    color: oklch(0.666 0.157 58.318);
     margin-top: 0.05rem;
   }
 

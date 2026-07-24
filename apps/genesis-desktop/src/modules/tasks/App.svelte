@@ -2461,7 +2461,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
               </Select.Content>
             </Select.Root>
             {#if editDueAt}
-              <span class="tasks-card-date" style="font-size: 12px; color: {isOverdue(editDueAt) ? 'var(--destructive)' : 'rgba(255,255,255,0.50)'}">
+              <span class="tasks-card-date" style="font-size: 12px; color: {isOverdue(editDueAt) ? 'var(--destructive)' : 'oklch(1 0 89.876 / 0.5)'}">
                 {formatDate(editDueAt)}
                 <button
                   class="tasks-detail-date-btn clear"
@@ -2708,7 +2708,7 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
         <div class="tasks-detail-section">
           <div class="tasks-detail-section-label">Activity</div>
           {#if editActivity.length === 0}
-            <p style="font-size: 11px; color: rgba(255,255,255,0.50);">No activity yet.</p>
+            <p style="font-size: 11px; color: oklch(1 0 89.876 / 0.5);">No activity yet.</p>
           {:else}
             {#each editActivity as entry}
               <div class="tasks-detail-activity-item">
@@ -2881,14 +2881,14 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
       {#if importResult}
         <!-- Result -->
         <div class="tasks-import-result">
-          <p style="font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.7); margin: 0 0 12px;">
+          <p style="font-size: 13px; font-weight: 500; color: oklch(1 0 89.876 / 0.7); margin: 0 0 12px;">
             Import complete
           </p>
-          <p style="font-size: 12px; color: rgba(255,255,255,0.45); margin: 0 0 4px;">
+          <p style="font-size: 12px; color: oklch(1 0 89.876 / 0.45); margin: 0 0 4px;">
             ✅ {importResult.imported} tasks imported
           </p>
           {#if importResult.skipped > 0}
-            <p style="font-size: 12px; color: rgba(255,255,255,0.50); margin: 0 0 4px;">
+            <p style="font-size: 12px; color: oklch(1 0 89.876 / 0.5); margin: 0 0 4px;">
               ⏭️ {importResult.skipped} skipped
             </p>
           {/if}
@@ -2904,8 +2904,8 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
       {:else if !importPreview}
         <!-- Pick file prompt -->
         <div class="tasks-import-prompt">
-          <FileText size={36} style="color: rgba(255,255,255,0.08); margin-bottom: 16px;" />
-          <p style="font-size: 13px; color: rgba(255,255,255,0.50); margin: 0 0 6px;">Supported formats</p>
+          <FileText size={36} style="color: oklch(1 0 89.876 / 0.08); margin-bottom: 16px;" />
+          <p style="font-size: 13px; color: oklch(1 0 89.876 / 0.5); margin: 0 0 6px;">Supported formats</p>
           <ul class="tasks-import-format-list">
             <li><strong>Todoist</strong> — data export</li>
             <li><strong>Things 3</strong> — CSV export</li>
@@ -2996,13 +2996,13 @@ let calViewMonthStr = $state(String(time.getDate(time.now()).month - 1));  let c
                       {/each}
                     </Table.Cell>
                     <Table.Cell style="font-size: 11px;">
-                      {#if entry.done}<span style="color: var(--primary);">Done</span>{:else}<span style="color: rgba(255,255,255,0.50);">Open</span>{/if}
+                      {#if entry.done}<span style="color: var(--primary);">Done</span>{:else}<span style="color: oklch(1 0 89.876 / 0.5);">Open</span>{/if}
                     </Table.Cell>
                   </Table.Row>
                 {/each}
                 {#if importPreview.entries.length > 100}
                   <Table.Row>
-                    <Table.Cell colspan={6} style="font-size: 11px; color: rgba(255,255,255,0.50); text-align: center; padding: 12px;">
+                    <Table.Cell colspan={6} style="font-size: 11px; color: oklch(1 0 89.876 / 0.5); text-align: center; padding: 12px;">
                       … and {importPreview.entries.length - 100} more
                     </Table.Cell>
                   </Table.Row>

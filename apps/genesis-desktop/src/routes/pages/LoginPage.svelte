@@ -155,14 +155,14 @@
 
 <style>
   .login-page {
-    --background: #08090b;
-    --surface: #0f1115;
-    --foreground: #f7f7f8;
-    --muted: #9a9ca3;
-    --muted-foreground: #9a9ca3;
-    --border: rgba(255, 255, 255, 0.13);
-    --primary: #f7f7f8;
-    --primary-foreground: #08090b;
+    --background: oklch(0.139 0.005 262.802);
+    --surface: oklch(0.177 0.009 264.318);
+    --foreground: oklch(0.976 0.001 286.376);
+    --muted: oklch(0.693 0.01 273.297);
+    --muted-foreground: oklch(0.693 0.01 273.297);
+    --border: oklch(1 0 89.876 / 0.13);
+    --primary: oklch(0.976 0.001 286.376);
+    --primary-foreground: oklch(0.139 0.005 262.802);
     position: fixed;
     inset: 0;
     display: flex;
@@ -186,7 +186,7 @@
   }
 
   .login-page__logo {
-    color: var(--foreground, #111111);
+    color: var(--foreground, oklch(0.178 0 89.876));
     margin-bottom: 20px;
   }
 
@@ -195,7 +195,7 @@
     font-size: 22px;
     font-weight: 600;
     line-height: 1.3;
-    color: var(--foreground, #111111);
+    color: var(--foreground, oklch(0.178 0 89.876));
     margin: 0;
   }
 
@@ -203,7 +203,7 @@
     font-size: 13px;
     font-weight: 400;
     line-height: 1.4;
-    color: var(--muted, #888888);
+    color: var(--muted, oklch(0.627 0 89.876));
     margin: 4px 0 32px 0;
   }
 
@@ -229,16 +229,16 @@
   }
 
   .login-page__google-btn:hover:not(:disabled) {
-    background: #e9e9eb;
+    background: oklch(0.935 0.003 286.348);
     box-shadow: none;
   }
 
   .login-page__google-btn:active:not(:disabled) {
-    background: #dfe0e3;
+    background: oklch(0.907 0.004 271.366);
   }
 
   .login-page__google-btn:focus-visible {
-    box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.3);
+    box-shadow: 0 0 0 3px oklch(0.492 0.14 249.078 / 0.3);
   }
 
   .login-page__google-btn:disabled {
@@ -259,7 +259,7 @@
     margin: 14px 0 0;
     font-size: 13px;
     line-height: 1.5;
-    color: var(--muted, #888888);
+    color: var(--muted, oklch(0.627 0 89.876));
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -270,7 +270,7 @@
   .login-page__retry-btn {
     border: none;
     background: transparent;
-    color: #4285f4;
+    color: oklch(0.63 0.18 259.956);
     font-family: var(--font-body, system-ui, sans-serif);
     font-size: 13px;
     font-weight: 500;
@@ -281,13 +281,13 @@
   }
 
   .login-page__retry-btn:hover {
-    background: rgba(66, 133, 244, 0.1);
+    background: oklch(0.492 0.14 249.078 / 0.1);
   }
 
   .login-page__spinner {
     width: 20px;
     height: 20px;
-    border: 2px solid rgba(8, 9, 11, 0.22);
+    border: 2px solid oklch(0.149 0.001 247.858 / 0.22);
     border-top-color: var(--background);
     border-radius: 50%;
     animation: login-spin 0.6s linear infinite;
@@ -315,10 +315,10 @@
     width: 100%;
     height: 48px;
     padding: 0 24px;
-    border: 1px solid rgba(66, 133, 244, 0.3);
+    border: 1px solid oklch(0.492 0.14 249.078 / 0.3);
     border-radius: 8px;
-    background: rgba(66, 133, 244, 0.15);
-    color: #4285f4;
+    background: oklch(0.492 0.14 249.078 / 0.15);
+    color: oklch(0.63 0.18 259.956);
     font-family: var(--font-body, system-ui, sans-serif);
     font-size: 14px;
     font-weight: 500;
@@ -328,7 +328,7 @@
   }
 
   .login-page__manual-btn:hover {
-    background: rgba(66, 133, 244, 0.25);
+    background: oklch(0.492 0.14 249.078 / 0.25);
   }
 
   @keyframes login-spin {

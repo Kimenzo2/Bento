@@ -266,8 +266,8 @@
   }
 
   .chatgpt-tab__badge--active {
-    color: #22c55e;
-    background: color-mix(in srgb, #22c55e 12%, transparent);
+    color: oklch(0.723 0.192 149.579);
+    background: color-mix(in srgb, oklch(0.723 0.192 149.579) 12%, transparent);
   }
 
   .chatgpt-tab__plan {
@@ -290,15 +290,15 @@
   }
 
   .chatgpt-tab__tier--pro {
-    color: #a855f7;
+    color: oklch(0.627 0.233 303.9);
   }
 
   .chatgpt-tab__row .chatgpt-tab__expired {
-    color: #ef4444;
+    color: oklch(0.637 0.208 25.331);
   }
 
   .chatgpt-tab__row .chatgpt-tab__near-expiry {
-    color: #f59e0b;
+    color: oklch(0.769 0.165 70.08);
   }
 
   /* ── Device code ────────────────────────────── */
@@ -409,7 +409,7 @@
     border-color: color-mix(in srgb, var(--foreground) 35%, transparent);
   }
   .chatgpt-tab__input--error {
-    border-color: #ef4444;
+    border-color: oklch(0.637 0.208 25.331);
   }
 
   .chatgpt-tab__test-result {
@@ -424,13 +424,13 @@
   }
 
   .chatgpt-tab__test-result--ok {
-    color: #22c55e;
-    background: color-mix(in srgb, #22c55e 10%, transparent);
+    color: oklch(0.723 0.192 149.579);
+    background: color-mix(in srgb, oklch(0.723 0.192 149.579) 10%, transparent);
   }
 
   .chatgpt-tab__test-result--err {
-    color: #ef4444;
-    background: color-mix(in srgb, #ef4444 10%, transparent);
+    color: oklch(0.637 0.208 25.331);
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 10%, transparent);
   }
 
   /* ── Buttons ────────────────────────────────── */
@@ -468,12 +468,12 @@
 
   .chatgpt-tab__btn--outline {
     background: transparent;
-    color: #ef4444;
-    border: 1px solid color-mix(in srgb, #ef4444 25%, transparent);
+    color: oklch(0.637 0.208 25.331);
+    border: 1px solid color-mix(in srgb, oklch(0.637 0.208 25.331) 25%, transparent);
   }
 
   .chatgpt-tab__btn--outline:hover {
-    background: color-mix(in srgb, #ef4444 10%, transparent);
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 10%, transparent);
   }
 
   .chatgpt-tab__btn--sm {
@@ -501,9 +501,9 @@
   .chatgpt-tab__error {
     margin: 0;
     font-size: 12px;
-    color: #ef4444;
+    color: oklch(0.637 0.208 25.331);
     padding: 6px 8px;
-    background: color-mix(in srgb, #ef4444 10%, transparent);
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 10%, transparent);
     border-radius: 6px;
     max-width: 320px;
   }

@@ -103,7 +103,7 @@
 
 <style>
   .activity-overlay { position: fixed; inset: 0; z-index: 9994; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--background) 60%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-  .activity { position: relative; width: 680px; height: 500px; background: var(--background); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); display: flex; flex-direction: column; overflow: hidden; }
+  .activity { position: relative; width: 680px; height: 500px; background: var(--background); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-md); display: flex; flex-direction: column; overflow: hidden; }
   .activity-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
   .activity-title { margin: 0; font-size: 15px; font-weight: 600; color: var(--foreground); }
   .activity-close { display: grid; place-items: center; width: 24px; height: 24px; border: none; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }

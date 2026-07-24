@@ -845,12 +845,12 @@
     flex-direction: column-reverse;
     overflow: hidden;
     border-radius: 16px;
-    background: #141414;
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    background: oklch(0.191 0 89.876);
+    border: 0.5px solid oklch(1 0 89.876 / 0.08);
     padding: 8px;
     box-sizing: border-box;
-    color: #fff;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    color: oklch(1 0 89.876);
+    box-shadow: 0 4px 6px -1px oklch(from var(--color-shadow) l c h / 0.1), 0 2px 4px -2px oklch(from var(--color-shadow) l c h / 0.1);
     transition:
       width 0.55s cubic-bezier(0.34, 1.3, 0.64, 1),
       height 0.55s cubic-bezier(0.34, 1.3, 0.64, 1);
@@ -877,7 +877,7 @@
     border: 1px solid oklch(1 0 0 / 0.12);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    box-shadow: 0 18px 40px -16px rgba(0, 0, 0, 0.55);
+    box-shadow: 0 18px 40px -16px oklch(from var(--color-shadow) l c h / 0.55);
     color-scheme: dark;
     transition:
       width 0.4s cubic-bezier(0.34, 1.3, 0.64, 1),
@@ -1016,7 +1016,7 @@
   .dock-status {
     margin: 0;
     font-size: 12px;
-    color: #a3a3a3;
+    color: oklch(0.715 0 89.876);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1024,19 +1024,19 @@
   }
 
   .dock-status--listening {
-    color: #ef4444;
+    color: oklch(0.637 0.208 25.331);
   }
 
   .dock-status--working {
-    color: #3b82f6;
+    color: oklch(0.623 0.188 259.815);
   }
 
   .dock-status--recording {
-    color: #ef4444;
+    color: oklch(0.637 0.208 25.331);
   }
 
   .dock-status--error {
-    color: #ef4444;
+    color: oklch(0.637 0.208 25.331);
   }
 
   .dock-actions {
@@ -1047,16 +1047,16 @@
   }
 
   :global(.dock-btn--listening) {
-    color: #ef4444 !important;
+    color: oklch(0.637 0.208 25.331) !important;
     animation: dock-pulse 1.5s ease-in-out infinite;
   }
 
   :global(.dock-btn--active) {
-    color: #3b82f6 !important;
+    color: oklch(0.623 0.188 259.815) !important;
   }
 
   :global(.dock-btn--send) {
-    color: #3b82f6 !important;
+    color: oklch(0.623 0.188 259.815) !important;
   }
 
   @keyframes dock-pulse {
@@ -1073,7 +1073,7 @@
     margin: 6px 0 2px;
     border-radius: 8px;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid oklch(1 0 89.876 / 0.08);
   }
 
   .dock-capture-img {
@@ -1094,19 +1094,19 @@
     justify-content: center;
     border-radius: 4px;
     border: none;
-    background: rgba(0, 0, 0, 0.6);
-    color: #a3a3a3;
+    background: oklch(0 0 0 / 0.6);
+    color: oklch(0.715 0 89.876);
     cursor: pointer;
     transition: background 0.15s ease;
   }
 
   .dock-capture-remove:hover {
-    background: rgba(239, 68, 68, 0.8);
-    color: #fff;
+    background: oklch(0.637 0.208 25.331 / 0.8);
+    color: oklch(1 0 89.876);
   }
 
   .dock-capture-remove:focus-visible {
-    outline: 2px solid rgba(239, 68, 68, 0.6);
+    outline: 2px solid oklch(0.637 0.208 25.331 / 0.6);
     outline-offset: 2px;
   }
 
@@ -1119,8 +1119,8 @@
     padding: 4px 8px;
     height: 24px;
     border-radius: 6px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: oklch(1 0 89.876 / 0.04);
+    border: 1px solid oklch(1 0 89.876 / 0.08);
   }
 
   .dock-waveform-bar {
@@ -1128,7 +1128,7 @@
     height: calc(var(--level, 0.03) * 18px);
     min-height: 2px;
     border-radius: 1px;
-    background: rgba(255, 255, 255, 0.85);
+    background: oklch(1 0 89.876 / 0.85);
     opacity: calc(0.4 + var(--level, 0.03) * 0.6);
     transition: height 0.05s ease, opacity 0.05s ease;
     transform-origin: bottom;
@@ -1144,24 +1144,24 @@
     margin: 6px 0 2px;
     padding: 8px 10px;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: oklch(1 0 89.876 / 0.04);
+    border: 1px solid oklch(1 0 89.876 / 0.08);
   }
 
   .dock-transcript--completed {
-    background: rgba(59, 130, 246, 0.08);
-    border: 1px solid rgba(59, 130, 246, 0.15);
+    background: oklch(0.623 0.188 259.815 / 0.08);
+    border: 1px solid oklch(0.623 0.188 259.815 / 0.15);
   }
 
   .dock-transcript--error {
-    background: rgba(239, 68, 68, 0.12);
-    border: 1px solid rgba(239, 68, 68, 0.2);
+    background: oklch(0.637 0.208 25.331 / 0.12);
+    border: 1px solid oklch(0.637 0.208 25.331 / 0.2);
   }
 
   .dock-transcript-text {
     margin: 0;
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.75);
+    color: oklch(1 0 89.876 / 0.75);
     line-height: 1.4;
     max-height: 60px;
     overflow: hidden;
@@ -1171,14 +1171,14 @@
   .dock-summary {
     margin-top: 8px;
     padding-top: 6px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid oklch(1 0 89.876 / 0.06);
   }
 
   .dock-summary-label {
     margin: 0 0 4px;
     font-size: 10px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.3);
+    color: oklch(1 0 89.876 / 0.3);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
@@ -1186,14 +1186,14 @@
   .dock-summary-text {
     margin: 0;
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.6);
+    color: oklch(1 0 89.876 / 0.6);
     line-height: 1.4;
   }
 
   .dock-actions-result {
     margin-top: 8px;
     padding-top: 6px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid oklch(1 0 89.876 / 0.06);
   }
 
   .dock-action-item {
@@ -1201,13 +1201,13 @@
     align-items: center;
     gap: 6px;
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.6);
+    color: oklch(1 0 89.876 / 0.6);
     padding: 2px 0;
     cursor: default;
   }
 
   .dock-action-item input[type="checkbox"] {
-    accent-color: #3b82f6;
+    accent-color: oklch(0.623 0.188 259.815);
   }
 
   /* ── Inline waveform styles removed (using pill-waveform instead) ── */
@@ -1220,14 +1220,14 @@
     margin: 6px 0 2px;
     padding: 6px 10px;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: oklch(1 0 89.876 / 0.04);
+    border: 1px solid oklch(1 0 89.876 / 0.08);
   }
 
   .dock-recording-timer {
     font-size: 14px;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.6);
+    color: oklch(1 0 89.876 / 0.6);
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.02em;
   }
@@ -1246,42 +1246,42 @@
     border-radius: 6px;
     font-size: 11px;
     font-weight: 500;
-    background: rgba(255, 255, 255, 0.06);
+    background: oklch(1 0 89.876 / 0.06);
     border: none;
-    color: rgba(255, 255, 255, 0.6);
+    color: oklch(1 0 89.876 / 0.6);
     cursor: pointer;
     font-family: inherit;
     transition: background 0.15s ease, color 0.15s ease;
   }
 
   .dock-rec-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
+    background: oklch(1 0 89.876 / 0.12);
+    color: oklch(1 0 89.876);
   }
 
   .dock-rec-btn:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.3);
+    outline: 2px solid oklch(1 0 89.876 / 0.3);
     outline-offset: 2px;
   }
 
   .dock-rec-btn--done {
-    background: rgba(59, 130, 246, 0.15);
-    color: #60a5fa;
+    background: oklch(0.623 0.188 259.815 / 0.15);
+    color: oklch(0.714 0.143 254.624);
   }
 
   .dock-rec-btn--done:hover {
-    background: rgba(59, 130, 246, 0.25);
-    color: #93bbfd;
+    background: oklch(0.623 0.188 259.815 / 0.25);
+    color: oklch(0.788 0.104 260.191);
   }
 
   .dock-rec-btn--cancel {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    background: oklch(0.637 0.208 25.331 / 0.1);
+    color: oklch(0.637 0.208 25.331);
   }
 
   .dock-rec-btn--cancel:hover {
-    background: rgba(239, 68, 68, 0.2);
-    color: #f87171;
+    background: oklch(0.637 0.208 25.331 / 0.2);
+    color: oklch(0.711 0.166 22.216);
   }
 
   .dock-composer {
@@ -1332,18 +1332,18 @@
     border-radius: 6px;
     border: none;
     background: transparent;
-    color: #a3a3a3;
+    color: oklch(0.715 0 89.876);
     cursor: pointer;
     transition: background 0.15s ease;
   }
 
   .dock-composer-close:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: oklch(1 0 89.876 / 0.1);
+    color: oklch(1 0 89.876);
   }
 
   .dock-composer-close:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.4);
+    outline: 2px solid oklch(1 0 89.876 / 0.4);
     outline-offset: 2px;
   }
 
@@ -1355,7 +1355,7 @@
     padding: 8px 36px 8px 8px;
     border: none;
     background: transparent;
-    color: rgba(255, 255, 255, 0.85);
+    color: oklch(1 0 89.876 / 0.85);
     font-size: 14px;
     font-family: inherit;
     line-height: 24px;
@@ -1363,11 +1363,11 @@
     outline: none;
     box-sizing: border-box;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+    scrollbar-color: oklch(1 0 89.876 / 0.15) transparent;
   }
 
   .dock-textarea::placeholder {
-    color: #737373;
+    color: oklch(0.556 0 89.876);
   }
 
   /* ── Chat messages container ─────────────────────────────────────── */
@@ -1381,7 +1381,7 @@
     flex-direction: column;
     gap: 8px;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.15) transparent;
+    scrollbar-color: oklch(1 0 89.876 / 0.15) transparent;
     transition: max-height 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
@@ -1398,7 +1398,7 @@
   }
 
   .dock-messages::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.15);
+    background: oklch(1 0 89.876 / 0.15);
     border-radius: 2px;
   }
 
@@ -1423,20 +1423,20 @@
 
   .dock-msg--user {
     align-self: flex-end;
-    background: #3b82f6;
-    color: #fff;
+    background: oklch(0.623 0.188 259.815);
+    color: oklch(1 0 89.876);
     border-bottom-right-radius: 4px;
   }
 
   .dock-msg--assistant {
     align-self: flex-start;
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.9);
+    background: oklch(1 0 89.876 / 0.08);
+    color: oklch(1 0 89.876 / 0.9);
     border-bottom-left-radius: 4px;
   }
 
   .dock-msg--streaming {
-    border-left: 2px solid #3b82f6;
+    border-left: 2px solid oklch(0.623 0.188 259.815);
   }
 
   .dock-msg--loading {
@@ -1447,9 +1447,9 @@
 
   .dock-msg--error {
     align-self: center;
-    background: rgba(239, 68, 68, 0.12);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+    background: oklch(0.637 0.208 25.331 / 0.12);
+    border: 1px solid oklch(0.637 0.208 25.331 / 0.2);
+    color: oklch(0.637 0.208 25.331);
   }
 
   .dock-msg-text {
@@ -1467,7 +1467,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.4);
+    background: oklch(1 0 89.876 / 0.4);
     animation: dock-dot-bounce 1.2s ease-in-out infinite;
   }
 
@@ -1491,9 +1491,9 @@
     gap: 4px;
     padding: 4px 10px;
     border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.06);
-    color: #a3a3a3;
+    border: 1px solid oklch(1 0 89.876 / 0.12);
+    background: oklch(1 0 89.876 / 0.06);
+    color: oklch(0.715 0 89.876);
     font-size: 11px;
     font-family: inherit;
     cursor: pointer;
@@ -1502,12 +1502,12 @@
   }
 
   .dock-jump-bottom:hover {
-    background: rgba(255,255,255,0.12);
-    color: #fff;
+    background: oklch(1 0 89.876 / 0.12);
+    color: oklch(1 0 89.876);
   }
 
   .dock-jump-bottom:focus-visible {
-    outline: 2px solid #3b82f6;
+    outline: 2px solid oklch(0.623 0.188 259.815);
     outline-offset: 2px;
   }
 
@@ -1519,9 +1519,9 @@
     margin-left: 8px;
     padding: 2px 8px;
     border-radius: 4px;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    border: 1px solid oklch(0.637 0.208 25.331 / 0.3);
+    background: oklch(0.637 0.208 25.331 / 0.1);
+    color: oklch(0.637 0.208 25.331);
     font-size: 11px;
     font-family: inherit;
     font-weight: 500;
@@ -1531,11 +1531,11 @@
   }
 
   .dock-msg-retry:hover {
-    background: rgba(239, 68, 68, 0.2);
+    background: oklch(0.637 0.208 25.331 / 0.2);
   }
 
   .dock-msg-retry:focus-visible {
-    outline: 2px solid rgba(239, 68, 68, 0.5);
+    outline: 2px solid oklch(0.637 0.208 25.331 / 0.5);
     outline-offset: 2px;
   }
 </style>

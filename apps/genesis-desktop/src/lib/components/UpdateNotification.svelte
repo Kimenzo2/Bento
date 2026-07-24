@@ -341,7 +341,7 @@
     border: 1px solid color-mix(in srgb, var(--border) 25%, transparent);
     background: color-mix(in srgb, var(--card) 80%, transparent);
     box-shadow:
-      0 4px 24px -8px rgb(0 0 0 / 0.08),
+      0 4px 24px -8px oklch(0 0 0 / 0.08),
       inset 0 1px 0 color-mix(in srgb, white 8%, transparent);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);

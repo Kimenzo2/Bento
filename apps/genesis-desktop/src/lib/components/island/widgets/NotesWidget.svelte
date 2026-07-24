@@ -149,10 +149,10 @@
   .notes-textarea {
     flex: 1;
     resize: none;
-    background: rgba(255, 255, 255, 0.03);
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    background: oklch(1 0 89.876 / 0.03);
+    border: 0.5px solid oklch(1 0 89.876 / 0.08);
     border-radius: 10px;
-    color: rgba(255, 255, 255, 0.85);
+    color: oklch(1 0 89.876 / 0.85);
     font-family: 'SF Mono', 'Consolas', monospace;
     font-size: 12px;
     padding: 10px;
@@ -161,11 +161,11 @@
   }
 
   .notes-textarea:focus {
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: oklch(1 0 89.876 / 0.15);
   }
 
   .notes-textarea::placeholder {
-    color: rgba(255, 255, 255, 0.2);
+    color: oklch(1 0 89.876 / 0.2);
   }
 
   .notes-preview {
@@ -178,7 +178,7 @@
   .notes-content {
     font-size: 12px;
     line-height: 1.6;
-    color: rgba(255, 255, 255, 0.75);
+    color: oklch(1 0 89.876 / 0.75);
     white-space: pre-wrap;
   }
 
@@ -189,6 +189,6 @@
     justify-content: center;
     font-size: 12px;
     font-style: italic;
-    color: rgba(255, 255, 255, 0.15);
+    color: oklch(1 0 89.876 / 0.15);
   }
 </style>

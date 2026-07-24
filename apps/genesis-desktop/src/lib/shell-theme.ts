@@ -6,17 +6,17 @@ export type ShellTokens = {
 };
 
 export const LIGHT_SHELL_TOKENS = {
-  "--shell-bg": "#EEEAE6",
-  "--shell-text": "#2A2724",
-  "--shell-border": "#D8D0C8",
-  "--shell-control-idle": "#C8C0B8",
+  "--shell-bg": "oklch(0.939 0.007 67.741)",
+  "--shell-text": "oklch(0.275 0.007 67.529)",
+  "--shell-border": "oklch(0.862 0.014 67.639)",
+  "--shell-control-idle": "oklch(0.812 0.014 67.624)",
 } as const satisfies ShellTokens;
 
 export const DARK_SHELL_TOKENS = {
-  "--shell-bg": "#080808",
-  "--shell-text": "#CCCCCC",
-  "--shell-border": "#1A1A1A",
-  "--shell-control-idle": "#333333",
+  "--shell-bg": "oklch(0.134 0 89.876)",
+  "--shell-text": "oklch(0.845 0 89.876)",
+  "--shell-border": "oklch(0.218 0 89.876)",
+  "--shell-control-idle": "oklch(0.321 0 89.876)",
 } as const satisfies ShellTokens;
 
 export function getShellTokens(isDark: boolean): ShellTokens {

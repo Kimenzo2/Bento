@@ -115,7 +115,7 @@ export const legalDocuments = [
       "• Crash reports: Optionally, if you opt in, anonymized crash diagnostics can be sent to help us fix bugs. This is disabled by default.\n" +
       "• AI API calls: If you use AI features, your prompts and context are sent to the AI provider you choose (OpenAI, Anthropic, Gemini, Grok, or a local model via Ollama). You manage your own API keys.\n\n" +
       "What we NEVER do:\n" +
-      "• No telemetry, analytics, or usage tracking (all tracking code was removed in v0.2.22)\n" +
+      "• No telemetry, analytics, or usage tracking (all tracking code was removed in v0.2.23)\n" +
       "• No session recording or keystroke capture\n" +
       "• No third-party cookies\n" +
       "• No data mining or profiling\n" +

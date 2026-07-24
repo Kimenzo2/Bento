@@ -118,7 +118,7 @@
             <img class="media-artwork" src={artworkSrc} alt={data.title ?? "Album art"} />
           {:else}
             <div class="media-artwork media-artwork--empty">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="oklch(1 0 89.876 / 0.25)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 18V5l12-2v13" />
                 <circle cx="6" cy="18" r="3" />
                 <circle cx="18" cy="16" r="3" />
@@ -186,7 +186,7 @@
     </div>
   {:else}
     <div class="media-empty">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="oklch(1 0 89.876 / 0.15)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 18V5l12-2v13" />
         <circle cx="6" cy="18" r="3" />
         <circle cx="18" cy="16" r="3" />
@@ -225,7 +225,7 @@
     width: 52px;
     height: 52px;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.04);
+    background: oklch(1 0 89.876 / 0.04);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -239,20 +239,20 @@
   .media-title {
     font-size: 13px;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.85);
+    color: oklch(1 0 89.876 / 0.85);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   .media-title--empty {
-    color: rgba(255, 255, 255, 0.3);
+    color: oklch(1 0 89.876 / 0.3);
   }
 
   .media-artist {
     font-size: 11px;
     font-weight: 400;
-    color: rgba(255, 255, 255, 0.45);
+    color: oklch(1 0 89.876 / 0.45);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -260,13 +260,13 @@
   }
 
   .media-artist--empty {
-    color: rgba(255, 255, 255, 0.2);
+    color: oklch(1 0 89.876 / 0.2);
   }
 
   .media-app {
     font-size: 9px;
     font-weight: 400;
-    color: rgba(255, 255, 255, 0.2);
+    color: oklch(1 0 89.876 / 0.2);
     margin-top: 2px;
   }
 
@@ -281,7 +281,7 @@
   .level-bar {
     flex: 1;
     border-radius: 2px;
-    background: rgba(95, 97, 237, 0.5);
+    background: oklch(0.574 0.196 271.147 / 0.5);
     transition: height 0.08s ease;
     min-height: 2px;
   }
@@ -298,7 +298,7 @@
     width: 100%;
     height: 3px;
     border-radius: 2px;
-    background: rgba(255, 255, 255, 0.08);
+    background: oklch(1 0 89.876 / 0.08);
     outline: none;
     cursor: pointer;
   }
@@ -308,7 +308,7 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.7);
+    background: oklch(1 0 89.876 / 0.7);
     cursor: pointer;
   }
 
@@ -316,7 +316,7 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.7);
+    background: oklch(1 0 89.876 / 0.7);
     cursor: pointer;
     border: none;
   }
@@ -329,7 +329,7 @@
   .seek-time {
     font-size: 10px;
     font-weight: 400;
-    color: rgba(255, 255, 255, 0.25);
+    color: oklch(1 0 89.876 / 0.25);
     font-variant-numeric: tabular-nums;
   }
 
@@ -350,30 +350,30 @@
     border-radius: 50%;
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.55);
+    color: oklch(1 0 89.876 / 0.55);
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
   }
 
   .ctrl-btn:hover {
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.85);
+    background: oklch(1 0 89.876 / 0.06);
+    color: oklch(1 0 89.876 / 0.85);
   }
 
   .ctrl-btn:active {
-    background: rgba(255, 255, 255, 0.1);
+    background: oklch(1 0 89.876 / 0.1);
   }
 
   .ctrl-btn--play {
     width: 34px;
     height: 34px;
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.8);
+    background: oklch(1 0 89.876 / 0.08);
+    color: oklch(1 0 89.876 / 0.8);
   }
 
   .ctrl-btn--play:hover {
-    background: rgba(255, 255, 255, 0.14);
-    color: #fff;
+    background: oklch(1 0 89.876 / 0.14);
+    color: oklch(1 0 89.876);
   }
 
   .media-empty {
@@ -383,7 +383,7 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    color: rgba(255, 255, 255, 0.15);
+    color: oklch(1 0 89.876 / 0.15);
     font-size: 12px;
     padding: 8px 0;
   }

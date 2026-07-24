@@ -148,6 +148,7 @@
 
 .tasks-sidebar-badge {
   margin-left: auto;
+  font-family: var(--font-number);
   font-size: 12px;
   font-weight: 600;
   padding: 2px 8px;
@@ -156,6 +157,7 @@
   color: color-mix(in srgb, var(--foreground) 55%, transparent);
   min-width: 16px;
   text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .tasks-sidebar-section {
@@ -259,9 +261,11 @@
 }
 
 .tasks-list-panel-count {
+  font-family: var(--font-number);
   font-size: 14px;
   color: color-mix(in srgb, var(--foreground) 50%, transparent);
   font-weight: 450;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ─── Resize Handle ─── */
@@ -347,14 +351,17 @@
 }
 
 .tasks-stat {
+  font-family: var(--font-number);
   font-size: 13px;
   color: color-mix(in srgb, var(--foreground) 50%, transparent);
   font-weight: 450;
+  font-variant-numeric: tabular-nums;
 }
 
 .tasks-stat strong {
   font-weight: 600;
   color: color-mix(in srgb, var(--foreground) 72%, transparent);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ─── Add Task Input ─── */
@@ -1266,10 +1273,12 @@
 }
 
 .tasks-subtask-progress {
+  font-family: var(--font-number);
   font-size: 12px;
   color: color-mix(in srgb, var(--foreground) 20%, transparent);
   margin: 0 8px 6px;
   font-weight: 450;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ─── Notes (Description) ─── */
@@ -1425,10 +1434,12 @@
 }
 
 .tasks-bulk-count {
+  font-family: var(--font-number);
   font-size: 13px;
   color: color-mix(in srgb, var(--foreground) 30%, transparent);
   font-weight: 450;
   margin-right: auto;
+  font-variant-numeric: tabular-nums;
 }
 
 .tasks-bulk-btn {
@@ -1542,12 +1553,14 @@
 }
 
 .tasks-board-column-count {
+  font-family: var(--font-number);
   font-size: 12px;
   font-weight: 500;
   color: color-mix(in srgb, var(--foreground) 20%, transparent);
   padding: 2px 8px;
   border-radius: 3px;
   background: color-mix(in srgb, var(--foreground) 4%, var(--background));
+  font-variant-numeric: tabular-nums;
 }
 
 .tasks-board-column-list {
@@ -2933,7 +2946,7 @@
   background: var(--background);
   border: 1px solid color-mix(in srgb, var(--foreground) 14%, transparent);
   border-radius: 10px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
+  box-shadow: 0 8px 32px oklch(from var(--color-shadow) l c h / 0.32);
   padding: 8px;
   min-width: 180px;
   display: flex;

@@ -532,7 +532,7 @@
     'Coffee': CoffeeIcon,
   };
   const iconOptions = Object.keys(habitIcons);
-  const colorOptions = ['var(--mod-accent)','#7c3aed','#0284c7','#d97706','#16a34a','#dc2626','#e05a3a'];
+  const colorOptions = ['var(--mod-accent)','oklch(0.541 0.247 293.009)','oklch(0.588 0.139 241.966)','oklch(0.666 0.157 58.318)','oklch(0.627 0.17 149.214)','oklch(0.577 0.215 27.325)','oklch(0.636 0.174 34.725)'];
 
   function openAddModal() {
     editingHabitId = null;
@@ -1727,7 +1727,7 @@
 }
 :global(.hb-check-on) {
   background: var(--hc, var(--hb-accent)) !important;
-  color: #fff !important;
+  color: oklch(1 0 89.876) !important;
 }
 @media (hover: hover) and (pointer: fine) {
   :global(.hb-check:hover:not(.hb-check-on)) {
@@ -1843,8 +1843,8 @@
   opacity: 0.6;
 }
 :global(.hb-frozen) {
-  background: color-mix(in srgb, #60a5fa 12%, transparent) !important;
-  color: #60a5fa !important;
+  background: color-mix(in srgb, oklch(0.714 0.143 254.624) 12%, transparent) !important;
+  color: oklch(0.714 0.143 254.624) !important;
 }
 
 /* Row actions */
@@ -1882,7 +1882,7 @@
   opacity: 0.7;
 }
 :global(.hb-icon-btn--ice) {
-  color: #60a5fa;
+  color: oklch(0.714 0.143 254.624);
 }
 :global(.hb-skip-icon) {
   font-size: 14px;
@@ -2085,10 +2085,10 @@
   min-height: 30px;
   padding: 4px 11px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, #60a5fa 25%, var(--hb-border));
+  border: 1px solid color-mix(in srgb, oklch(0.714 0.143 254.624) 25%, var(--hb-border));
   cursor: pointer;
-  background: color-mix(in srgb, #60a5fa 8%, transparent);
-  color: #60a5fa;
+  background: color-mix(in srgb, oklch(0.714 0.143 254.624) 8%, transparent);
+  color: oklch(0.714 0.143 254.624);
   font-size: 0.78rem;
   font-weight: 600;
   transition: transform 120ms var(--ease-out), background 120ms var(--ease-out);
@@ -2096,7 +2096,7 @@
 :global(.hb-freeze-btn:active) {
   transform: scale(0.95);
 }
-:global(.hb-frozen-lbl) { font-size: 0.78rem; color: #60a5fa; }
+:global(.hb-frozen-lbl) { font-size: 0.78rem; color: oklch(0.714 0.143 254.624); }
 
 :global(.hb-strength-bar-wrap) {
   flex: 1;
@@ -2501,7 +2501,7 @@
 :global(.hb-chip-on) {
   background: var(--hb-accent) !important;
   border-color: var(--hb-accent) !important;
-  color: #fff !important;
+  color: oklch(1 0 89.876) !important;
 }
 
 :global(.hb-color-row) { display: flex; gap: 8px; }
@@ -2554,7 +2554,7 @@
   font: inherit;
   font-size: 0.86rem;
   font-weight: 700;
-  color: #fff;
+  color: oklch(1 0 89.876);
   transition: transform 120ms var(--ease-out), opacity 120ms var(--ease-out);
 }
 :global(.hb-btn-primary:hover) {
@@ -2669,7 +2669,7 @@
 :global(.hb-tod-tab-on) {
   background: var(--hb-accent) !important;
   border-color: var(--hb-accent) !important;
-  color: #fff !important;
+  color: oklch(1 0 89.876) !important;
 }
 :global(.hb-tod-icon) { font-size: 0.85rem; line-height: 1; }
 :global(.hb-tod-count) {
@@ -2686,8 +2686,8 @@
   line-height: 1;
 }
 :global(.hb-tod-tab-on .hb-tod-count) {
-  background: color-mix(in srgb, #fff 20%, transparent);
-  color: #fff;
+  background: color-mix(in srgb, oklch(1 0 89.876) 20%, transparent);
+  color: oklch(1 0 89.876);
 }
 
 /* ── Stacking badge ─────────────────────────────────────────────── */

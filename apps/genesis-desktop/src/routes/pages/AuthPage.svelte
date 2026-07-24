@@ -70,16 +70,16 @@
 
 <style>
   .desktop-gate {
-    --background: #08090b;
-    --surface: #0f1115;
-    --card: #0f1115;
-    --foreground: #f7f7f8;
-    --muted: #9a9ca3;
-    --muted-foreground: #9a9ca3;
-    --border: rgba(255, 255, 255, 0.13);
-    --input: rgba(255, 255, 255, 0.07);
-    --primary: #f7f7f8;
-    --primary-foreground: #08090b;
+    --background: oklch(0.139 0.005 262.802);
+    --surface: oklch(0.177 0.009 264.318);
+    --card: oklch(0.177 0.009 264.318);
+    --foreground: oklch(0.976 0.001 286.376);
+    --muted: oklch(0.693 0.01 273.297);
+    --muted-foreground: oklch(0.693 0.01 273.297);
+    --border: oklch(1 0 89.876 / 0.13);
+    --input: oklch(1 0 89.876 / 0.07);
+    --primary: oklch(0.976 0.001 286.376);
+    --primary-foreground: oklch(0.139 0.005 262.802);
     position: fixed;
     inset: 0;
     display: grid;
@@ -105,13 +105,13 @@
   }
 
   .desktop-gate__error {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: oklch(0.637 0.208 25.331 / 0.1);
+    border: 1px solid oklch(0.637 0.208 25.331 / 0.3);
     border-radius: 8px;
     padding: 12px 16px;
     font-size: 13px;
     line-height: 1.5;
-    color: #ef4444;
+    color: oklch(0.637 0.208 25.331);
     text-align: center;
   }
 </style>

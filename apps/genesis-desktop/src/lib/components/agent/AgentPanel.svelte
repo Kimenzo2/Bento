@@ -1021,9 +1021,9 @@
 
   .agent-panel__msg--error {
     align-self: center;
-    background: color-mix(in srgb, #ef4444 12%, transparent);
-    border: 1px solid color-mix(in srgb, #ef4444 25%, transparent);
-    color: #ef4444;
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 12%, transparent);
+    border: 1px solid color-mix(in srgb, oklch(0.637 0.208 25.331) 25%, transparent);
+    color: oklch(0.637 0.208 25.331);
     max-width: 100%;
   }
 
@@ -1065,9 +1065,9 @@
     margin-left: 8px;
     padding: 2px 8px;
     border-radius: 4px;
-    border: 1px solid color-mix(in srgb, #ef4444 35%, transparent);
-    background: color-mix(in srgb, #ef4444 12%, transparent);
-    color: #ef4444;
+    border: 1px solid color-mix(in srgb, oklch(0.637 0.208 25.331) 35%, transparent);
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 12%, transparent);
+    color: oklch(0.637 0.208 25.331);
     font-size: 11px;
     font-family: inherit;
     font-weight: 500;
@@ -1077,11 +1077,11 @@
   }
 
   .agent-panel__msg-retry:hover {
-    background: color-mix(in srgb, #ef4444 25%, transparent);
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 25%, transparent);
   }
 
   .agent-panel__msg-retry:focus-visible {
-    outline: 2px solid color-mix(in srgb, #ef4444 50%, transparent);
+    outline: 2px solid color-mix(in srgb, oklch(0.637 0.208 25.331) 50%, transparent);
     outline-offset: 2px;
   }
 
@@ -1364,7 +1364,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #10b981;
+    background: oklch(0.696 0.149 162.48);
     flex-shrink: 0;
   }
   .agent-panel__auth-btn {

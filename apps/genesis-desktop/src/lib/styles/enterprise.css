@@ -139,7 +139,7 @@ a svg,
 }
 
 *:focus-visible {
-  outline: 2px solid var(--accent, #6366f1);
+  outline: 2px solid var(--accent, oklch(0.585 0.204 277.117));
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -150,7 +150,7 @@ a svg,
 input,
 textarea,
 [contenteditable] {
-  caret-color: var(--accent, #6366f1);
+  caret-color: var(--accent, oklch(0.585 0.204 277.117));
 }
 
 /* ─── 6. TAP HIGHLIGHT ───────────────────────────
@@ -190,12 +190,12 @@ body,
    Visible on both dark and light themes. */
 
 ::selection {
-  background: rgba(99, 102, 241, 0.3);
+  background: oklch(0.556 0.132 273.795 / 0.3);
   color: inherit;
 }
 
 ::-webkit-selection {
-  background: rgba(99, 102, 241, 0.3);
+  background: oklch(0.556 0.132 273.795 / 0.3);
   color: inherit;
 }
 
@@ -216,7 +216,7 @@ body,
 .journal-editor,
 .ai-response-body {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+  scrollbar-color: oklch(1 0 89.876 / 0.12) transparent;
 }
 
 .scrollable::-webkit-scrollbar,
@@ -231,7 +231,7 @@ body,
 .notes-editor::-webkit-scrollbar-thumb,
 .journal-editor::-webkit-scrollbar-thumb,
 .ai-response-body::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: oklch(1 0 89.876 / 0.12);
   border-radius: 999px;
 }
 

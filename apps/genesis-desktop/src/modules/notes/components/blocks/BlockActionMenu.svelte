@@ -37,10 +37,10 @@
   // ── Colour palette — port of U.Menu.getTextColors / getBgColors ────
   const COLORS = [
     { id: 'default', label: 'Default', hex: 'var(--foreground)' },
-    { id: 'grey',    label: 'Grey',    hex: '#9e9e9e' },
-    { id: 'yellow',  label: 'Yellow',  hex: '#e2b631' },
+    { id: 'grey',    label: 'Grey',    hex: 'oklch(0.699 0 89.876)' },
+    { id: 'yellow',  label: 'Yellow',  hex: 'oklch(0.794 0.149 89.172)' },
     { id: 'amber',   label: 'Amber',   hex: '#e07b2a' },
-    { id: 'red',     label: 'Red',     hex: '#e05c5c' },
+    { id: 'red',     label: 'Red',     hex: 'oklch(0.644 0.166 22.921)' },
     { id: 'pink',    label: 'Pink',    hex: '#e05090' },
     { id: 'purple',  label: 'Purple',  hex: '#9c4de0' },
     { id: 'blue',    label: 'Blue',    hex: '#4a90e0' },
@@ -376,7 +376,7 @@
       {#if matches('Background') || COLORS.some(c => matches(c.label))}
       <button class="bam-item {subMenu === 'background' ? 'is-active' : ''}"
         onclick={() => subMenu = subMenu === 'background' ? null : 'background'}>
-        <div class="bam-dot bam-dot--bg" style="background:{COLORS.find(c=>c.id===currentBg)?.hex??'#9e9e9e'}"></div>
+        <div class="bam-dot bam-dot--bg" style="background:{COLORS.find(c=>c.id===currentBg)?.hex??'oklch(0.699 0 89.876)'}"></div>
         <span class="bam-label">Background</span>
         <svg class="bam-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
@@ -521,9 +521,9 @@
     max-height: 80vh;
     overflow-y: auto;
     background: var(--surface, #1c1c1e);
-    border: 1px solid color-mix(in srgb, var(--border, #3a3a3c) 80%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border, oklch(0.349 0.003 286.221)) 80%, transparent);
     border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,.32), 0 2px 8px rgba(0,0,0,.16);
+    box-shadow: 0 8px 32px oklch(from var(--color-shadow) l c h / 0.32), 0 2px 8px oklch(from var(--color-shadow) l c h / 0.16);
     padding: 4px;
     display: flex;
     flex-direction: column;
@@ -536,7 +536,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px 10px;
-    border-bottom: 1px solid color-mix(in srgb, var(--border, #3a3a3c) 50%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--border, oklch(0.349 0.003 286.221)) 50%, transparent);
     margin-bottom: 2px;
   }
   .bam-filter {
@@ -545,8 +545,8 @@
     background: none;
     outline: none;
     font-size: 13px;
-    color: var(--foreground, #f0f0f0);
-    caret-color: var(--primary, #6c8cf7);
+    color: var(--foreground, oklch(0.955 0 89.876));
+    caret-color: var(--primary, oklch(0.666 0.163 269.123));
     min-width: 0;
   }
   .bam-filter::placeholder { color: var(--muted, #888); }
@@ -556,7 +556,7 @@
     display: flex;
     flex-direction: column;
     padding-bottom: 4px;
-    border-bottom: 1px solid color-mix(in srgb, var(--border, #3a3a3c) 35%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--border, oklch(0.349 0.003 286.221)) 35%, transparent);
     margin-bottom: 2px;
   }
   .bam-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
@@ -582,17 +582,17 @@
     cursor: pointer;
     border-radius: 8px;
     font-size: 13.5px;
-    color: var(--foreground, #f0f0f0);
+    color: var(--foreground, oklch(0.955 0 89.876));
     text-align: left;
     transition: background .1s;
   }
   .bam-item:hover, .bam-item.is-active {
-    background: color-mix(in srgb, var(--foreground, #f0f0f0) 8%, transparent);
+    background: color-mix(in srgb, var(--foreground, oklch(0.955 0 89.876)) 8%, transparent);
   }
-  .bam-item.is-checked { color: var(--primary, #6c8cf7); }
-  .bam-item--danger { color: var(--error, #e05c5c); }
+  .bam-item.is-checked { color: var(--primary, oklch(0.666 0.163 269.123)); }
+  .bam-item--danger { color: var(--error, oklch(0.644 0.166 22.921)); }
   .bam-item--danger:hover {
-    background: color-mix(in srgb, var(--error, #e05c5c) 10%, transparent);
+    background: color-mix(in srgb, var(--error, oklch(0.644 0.166 22.921)) 10%, transparent);
   }
 
   .bam-icon { flex-shrink: 0; color: var(--muted, #888); }
@@ -600,14 +600,14 @@
   .bam-label  { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .bam-caption { font-size: 11.5px; color: var(--muted, #888); white-space: nowrap; flex-shrink: 0; }
   .bam-chevron { flex-shrink: 0; color: var(--muted, #888); margin-left: auto; }
-  .bam-check   { flex-shrink: 0; color: var(--primary, #6c8cf7); margin-left: auto; }
+  .bam-check   { flex-shrink: 0; color: var(--primary, oklch(0.666 0.163 269.123)); margin-left: auto; }
 
   /* ── Colour dot ──────────────────────────────────────────────────── */
   .bam-dot {
     width: 14px; height: 14px;
     border-radius: 50%;
     flex-shrink: 0;
-    border: 1px solid color-mix(in srgb, var(--border,#3a3a3c) 60%, transparent);
+    border: 1px solid color-mix(in srgb, var(--border,oklch(0.349 0.003 286.221)) 60%, transparent);
   }
   .bam-dot--bg { opacity: .55; }
 
@@ -615,6 +615,6 @@
   .bam-sub {
     margin-left: 8px;
     padding-left: 8px;
-    border-left: 2px solid color-mix(in srgb, var(--border,#3a3a3c) 45%, transparent);
+    border-left: 2px solid color-mix(in srgb, var(--border,oklch(0.349 0.003 286.221)) 45%, transparent);
   }
 </style>

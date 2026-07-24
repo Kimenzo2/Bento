@@ -48,7 +48,7 @@
     font-size: 14px;
     font-weight: 500;
     font-family: inherit;
-    color: #fff;
+    color: oklch(1 0 89.876);
     background: transparent;
     border: none;
     cursor: pointer;
@@ -57,11 +57,11 @@
   }
 
   .dock-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: oklch(1 0 89.876 / 0.1);
   }
 
   .dock-btn:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.4);
+    outline: 2px solid oklch(1 0 89.876 / 0.4);
     outline-offset: 2px;
   }
 
@@ -91,9 +91,9 @@
     align-items: center;
     justify-content: center;
     border-radius: 6px;
-    background: rgba(255, 255, 255, 0.1);
+    background: oklch(1 0 89.876 / 0.1);
     font-family: monospace;
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.6);
+    color: oklch(1 0 89.876 / 0.6);
   }
 </style>

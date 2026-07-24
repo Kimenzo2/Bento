@@ -61,6 +61,43 @@
   // ── i18n ──────────────────────────────────────────────────────────────────
   let _t = $derived.by(() => createTranslator($activeBundle));
 
+  // ── Custom confirm dialog ────────────────────────────────────────────────
+  let confirmAction: (() => void) | null = null;
+  let confirmMessage = "";
+  let confirmInput = "";
+  let confirmRequiredText = "";
+  let confirmOpen = $state(false);
+  let confirmType: "confirm" | "prompt" = "confirm";
+
+  function openConfirm(message: string, action: () => void) {
+    confirmMessage = message;
+    confirmAction = action;
+    confirmType = "confirm";
+    confirmOpen = true;
+  }
+
+  function openPrompt(message: string, requiredText: string, action: () => void) {
+    confirmMessage = message;
+    confirmRequiredText = requiredText;
+    confirmAction = action;
+    confirmType = "prompt";
+    confirmInput = "";
+    confirmOpen = true;
+  }
+
+  function handleConfirm() {
+    if (confirmType === "prompt" && confirmInput !== confirmRequiredText) return;
+    const action = confirmAction;
+    confirmOpen = false;
+    confirmAction = null;
+    action?.();
+  }
+
+  function handleCancelConfirm() {
+    confirmOpen = false;
+    confirmAction = null;
+  }
+
   async function handleManageBilling() {
     trackEvent("settings", "manage_billing", { section: activeSection });
     try {
@@ -104,6 +141,26 @@
   let open = $state(false);
   let activeSection = $state<SectionId>("account");
   let canUseTauri = $derived(browser && isTauri());
+
+  // Sidebar arrow key navigation
+  function handleNavKeydown(e: KeyboardEvent) {
+    const currentIdx = sections.findIndex((s) => s.id === activeSection);
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const next = (currentIdx + 1) % sections.length;
+      activeSection = sections[next].id;
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const prev = (currentIdx - 1 + sections.length) % sections.length;
+      activeSection = sections[prev].id;
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      activeSection = sections[0].id;
+    } else if (e.key === "End") {
+      e.preventDefault();
+      activeSection = sections[sections.length - 1].id;
+    }
+  }
 
   // Language picker
   let langSearch = $state("");
@@ -214,13 +271,14 @@
   }
 
   async function handleDeleteAccount() {
-    if (prompt("Type DELETE to confirm") !== "DELETE") return;
-    try {
-      if (canUseTauri) await invoke("delete_account");
-      clearBillingProfile();
-      setAuthLoginRequired();
-      hide();
-    } catch (e) { toast.error(sanitizeError("Delete account failed: " + String(e))); }
+    openPrompt("Type DELETE to confirm account deletion", "DELETE", async () => {
+      try {
+        if (canUseTauri) await invoke("delete_account");
+        clearBillingProfile();
+        setAuthLoginRequired();
+        hide();
+      } catch (e) { toast.error(sanitizeError("Delete account failed: " + String(e))); }
+    });
   }
 
   async function refreshCloudBackupState() {
@@ -314,19 +372,20 @@
 
   async function deleteCloudBackup(objectPath: string) {
     if (!canUseTauri) return;
-    if (!confirm("Delete this cloud backup permanently?")) return;
-    cloudBackupError = null;
-    cloudBackupSuccess = null;
-    cloudBackupBusyPath = objectPath;
-    try {
-      cloudBackupState = await invoke<CloudBackupState>("delete_backup", { objectPath });
-      cloudBackupSuccess = "Backup deleted from cloud storage.";
-      cloudBackupKeyState = await invoke<CloudBackupKeyState>("get_key_state");
-    } catch (error) {
-      cloudBackupError = String(error);
-    } finally {
-      cloudBackupBusyPath = null;
-    }
+    openConfirm("Delete this cloud backup permanently?", async () => {
+      cloudBackupError = null;
+      cloudBackupSuccess = null;
+      cloudBackupBusyPath = objectPath;
+      try {
+        cloudBackupState = await invoke<CloudBackupState>("delete_backup", { objectPath });
+        cloudBackupSuccess = "Backup deleted from cloud storage.";
+        cloudBackupKeyState = await invoke<CloudBackupKeyState>("get_key_state");
+      } catch (error) {
+        cloudBackupError = String(error);
+      } finally {
+        cloudBackupBusyPath = null;
+      }
+    });
   }
 
   async function testCloudBackupConnection() {
@@ -419,6 +478,11 @@
       void refreshCloudBackupState();
     }
   });
+
+  $effect(() => {
+    void $needsSetup;
+    encError = null;
+  });
 </script>
 
 {#if surface === "page" || open}
@@ -453,13 +517,15 @@
 
     <div class="global-settings__body">
       <!-- ── Sidebar Nav ─────────────────────────────── -->
-      <nav class="global-settings__nav" aria-label="Settings sections">
+      <nav class="global-settings__nav" aria-label="Settings sections" role="tablist" onkeydown={handleNavKeydown}>
         {#each sections as section}
           {const Icon = section.icon}
           <button
             type="button"
+            role="tab"
+            aria-selected={activeSection === section.id}
             class:global-settings__nav-active={activeSection === section.id}
-            aria-current={activeSection === section.id ? "true" : "false"}
+            aria-current={activeSection === section.id ? "page" : undefined}
             onclick={() => {
               activeSection = section.id;
               if (section.id === "backup") {
@@ -519,14 +585,14 @@
             </div>
             <div class="global-settings__label" id="mode-label">{_t('settingsAppearanceModeLabel')}</div>
             <div class="global-settings__segmented" role="group" aria-labelledby="mode-label">
-              <button type="button" aria-current={$desktopSettings.appearance.mode === "light" ? "true" : "false"} class:global-settings__segment-active={$desktopSettings.appearance.mode === "light"} onclick={() => void setMode("light")}>{_t('commonLight')}</button>
-              <button type="button" aria-current={$desktopSettings.appearance.mode === "system" ? "true" : "false"} class:global-settings__segment-active={$desktopSettings.appearance.mode === "system"} onclick={() => void setMode("system")}>{_t('commonSystem')}</button>
-              <button type="button" aria-current={$desktopSettings.appearance.mode === "dark" ? "true" : "false"} class:global-settings__segment-active={$desktopSettings.appearance.mode === "dark"} onclick={() => void setMode("dark")}>{_t('commonDark')}</button>
+              <button type="button" aria-current={$desktopSettings.appearance.mode === "light" ? "page" : undefined} class:global-settings__segment-active={$desktopSettings.appearance.mode === "light"} onclick={() => void setMode("light")}>{_t('commonLight')}</button>
+              <button type="button" aria-current={$desktopSettings.appearance.mode === "system" ? "page" : undefined} class:global-settings__segment-active={$desktopSettings.appearance.mode === "system"} onclick={() => void setMode("system")}>{_t('commonSystem')}</button>
+              <button type="button" aria-current={$desktopSettings.appearance.mode === "dark" ? "page" : undefined} class:global-settings__segment-active={$desktopSettings.appearance.mode === "dark"} onclick={() => void setMode("dark")}>{_t('commonDark')}</button>
             </div>
             <div class="global-settings__label" id="theme-label">{_t('settingsAppearanceThemeLabel')}</div>
             <div class="global-settings__theme-grid">
               {#each availableThemes as theme}
-                <button type="button" aria-current={$desktopSettings.appearance.themeId === theme.id ? "true" : "false"} class:global-settings__theme-active={$desktopSettings.appearance.themeId === theme.id} onclick={() => void setTheme(theme.id)}>
+                <button type="button" aria-current={$desktopSettings.appearance.themeId === theme.id ? "page" : undefined} class:global-settings__theme-active={$desktopSettings.appearance.themeId === theme.id} onclick={() => void setTheme(theme.id)}>
                   <span>{theme.name}</span>
                   {#if $desktopSettings.appearance.themeId === theme.id}<CheckIcon size={15} />{/if}
                 </button>
@@ -551,8 +617,8 @@
             <div class="global-settings__label">{_t('settingsTypographyFontPairing')}</div>
             <div class="global-settings__pill-group">
               {#each ["playful-classic", "editorial-focus", "bilingual-modern"] as id}
-                <button type="button" aria-current={$fontStore.id === id ? "true" : "false"} class:global-settings__pill-active={$fontStore.id === id} onclick={() => setFontPairing(id)}>
-                  {id === "playful-classic" ? _t('settingsTypographyPairingPlayfulClassic') : id === "editorial-focus" ? _t('settingsTypographyPairingEditorialFocus') : _t('settingsTypographyPairingBilingualModern')}
+                <button type="button" aria-current={$fontStore.id === id ? "page" : undefined} class:global-settings__pill-active={$fontStore.id === id} onclick={() => setFontPairing(id)}>
+                  {id === "playful-classic" ? _t('settingsTypographyPairingPlayfulClassic') : id === "editorial-focus" ? _t('settingsTypographyPairingEditorialFocus') : id === "bilingual-modern" ? _t('settingsTypographyPairingBilingualModern') : id}
                 </button>
               {/each}
             </div>
@@ -570,13 +636,13 @@
 
         {:else if activeSection === "credentials"}
           <div class="global-settings__section">
-            <div class="global-settings__section-heading"><h3>Credentials</h3><p>Manage locally stored provider keys and encrypted access tokens.</p></div>
+            <div class="global-settings__section-heading"><h3>{_t('settingsSectionCredentials', 'Credentials')}</h3><p>{_t('settingsCredentialsSubtitle', 'Manage locally stored provider keys and encrypted access tokens.')}</p></div>
             <ByokSettings surface="panel" />
           </div>
 
         {:else if activeSection === "ai"}
           <div class="global-settings__section">
-            <div class="global-settings__section-heading"><h3>AI Features</h3><p>Configure AI capabilities, custom instructions, and MCP server connection.</p></div>
+            <div class="global-settings__section-heading"><h3>{_t('settingsSectionAi', 'AI Features')}</h3><p>{_t('settingsAiSubtitle', 'Configure AI capabilities, custom instructions, and MCP server connection.')}</p></div>
             <AiFeatures surface="panel" />
           </div>
 
@@ -591,7 +657,7 @@
               <span><strong>Notification Sound</strong><small>Play a sound when native notifications arrive</small></span>
               <input type="checkbox" checked={$desktopSettings.notifications.soundEnabled ?? true} onchange={(e) => void updateDesktopSettings((c) => ({ ...c, notifications: { ...c.notifications, soundEnabled: e.currentTarget.checked } })) } />
             </label>
-            <div style="margin-top: 1rem;">
+            <div class="gs-mt-md">
               <button class="global-settings__btn" disabled={sendingTest} onclick={async () => {
                 if (sendingTest) return;
                 sendingTest = true;
@@ -631,14 +697,14 @@
             </div>
 
             <!-- Database Encryption -->
-            <div class="global-settings__label" style="margin-top:1.5rem">Database Encryption</div>
+            <div class="global-settings__label gs-mt-lg">Database Encryption</div>
 
             {#if encError}<p class="gs-enc-error" role="alert">{encError}</p>{/if}
             {#if encSuccess}<p class="gs-enc-success" role="status">{encSuccess}</p>{/if}
 
             {#if $needsSetup}
               <div class="gs-enc-card">
-                <p class="global-settings__muted" style="margin:0 0 0.75rem">
+                <p class="global-settings__muted gs-mb-sm">
                   Encrypt all local databases with AES-256 encryption. Your master password is never stored — only derived keys exist in memory during your session.
                 </p>
                 <input type="password" class="gs-enc-input" placeholder="Choose a master password (min 8 chars)…" bind:value={encSetupPw} autocomplete="new-password" />
@@ -672,8 +738,75 @@
           <div class="global-settings__section">
             <div class="global-settings__section-heading">
               <h3>Cloud Backup</h3>
-              <p>Coming soon. Cloud backup will be available in a future release.</p>
+              <p>Back up your data to cloud storage and restore from any device.</p>
             </div>
+
+            {#if cloudBackupLoading && !cloudBackupState}
+              <div class="global-settings__info-card"><span class="global-settings__muted">Loading backup state...</span></div>
+            {:else if cloudBackupState}
+              {#if cloudBackupError}
+                <p class="gs-enc-error" role="alert">{cloudBackupError}</p>
+              {/if}
+              {#if cloudBackupSuccess}
+                <p class="gs-enc-success" role="status">{cloudBackupSuccess}</p>
+              {/if}
+
+              <div class="global-settings__info-card">
+                <strong>Status</strong>
+                <span>{cloudBackupState.configured ? "Configured" : "Not configured"}</span>
+              </div>
+
+              <label class="global-settings__toggle">
+                <span><strong>Enable Cloud Backup</strong><small>Automatically back up your data</small></span>
+                <input type="checkbox" checked={cloudBackupState.enabled} onchange={(e) => void setCloudBackupEnabled(e.currentTarget.checked)} />
+              </label>
+
+              {#if cloudBackupState.lastBackupAt}
+                <div class="global-settings__info-card">
+                  <strong>Last backup</strong>
+                  <span>{cloudBackupState.lastBackupAt} ({cloudBackupState.lastBackupStatus})</span>
+                </div>
+              {/if}
+
+              <div class="gs-enc-actions">
+                <button type="button" class="gs-enc-btn" disabled={cloudBackupLoading} onclick={() => void runCloudBackupNow()}>
+                  {cloudBackupLoading ? "Backing up…" : "Back Up Now"}
+                </button>
+                <button type="button" class="gs-enc-btn gs-enc-btn--sec" disabled={cloudBackupLoading} onclick={() => void testCloudBackupConnection()}>Test Connection</button>
+                <button type="button" class="gs-enc-btn gs-enc-btn--sec" onclick={() => void refreshCloudBackupState()}>Refresh</button>
+              </div>
+
+              {#if cloudBackupState.backups.length > 0}
+                <div class="global-settings__label gs-mt-md">Backup History</div>
+                {#each cloudBackupState.backups as backup}
+                  <div class="gs-backup-row">
+                    <div class="gs-backup-info">
+                      <span class="gs-backup-date">{backup.createdAt}</span>
+                      <span class="gs-backup-size">{(backup.sizeBytes / 1024).toFixed(1)} KB</span>
+                    </div>
+                    <div class="gs-backup-actions">
+                      <button type="button" class="gs-text-btn" disabled={cloudBackupBusyPath === backup.objectPath} onclick={() => void restoreCloudBackup(backup.objectPath)}>Restore</button>
+                      <button type="button" class="gs-text-btn" style="color:var(--destructive)" disabled={cloudBackupBusyPath === backup.objectPath} onclick={() => void deleteCloudBackup(backup.objectPath)}>Delete</button>
+                    </div>
+                  </div>
+                {/each}
+              {/if}
+
+              <!-- Service Role Key -->
+              <div class="global-settings__label gs-mt-lg">Service Role Key</div>
+              <div class="gs-enc-card">
+                <p class="global-settings__muted gs-mb-sm">Required for cloud backup operations. Stored locally.</p>
+                <input type="password" class="gs-enc-input" placeholder="Enter service role key..." bind:value={cloudBackupServiceRole} autocomplete="off" />
+                <div class="gs-enc-actions">
+                  <button type="button" class="gs-enc-btn" disabled={cloudBackupLoading || !cloudBackupServiceRole.trim()} onclick={() => void saveCloudBackupKey()}>Save Key</button>
+                  {#if cloudBackupKeyState?.hasServiceRoleKey}
+                    <button type="button" class="gs-enc-btn gs-enc-btn--sec" onclick={() => void clearCloudBackupKey()}>Remove Key</button>
+                  {/if}
+                </div>
+              </div>
+            {:else}
+              <div class="global-settings__info-card"><span class="global-settings__muted">Could not load backup state.</span></div>
+            {/if}
           </div>
 
         {:else if activeSection === "system"}
@@ -732,24 +865,24 @@
               {/each}
             </div>
 
-            <div class="global-settings__label" id="date-format-label" style="margin-top:1.5rem">{_t('settingsLanguageDateFormat')}</div>
+            <div class="global-settings__label gs-mt-lg" id="date-format-label">{_t('settingsLanguageDateFormat')}</div>
             <div class="global-settings__pill-group">
               {#each DATE_FORMATS as fmt}
-                <button type="button" aria-current={$desktopSettings.language.dateFormat === fmt.id ? "true" : "false"} class:global-settings__pill-active={$desktopSettings.language.dateFormat === fmt.id} onclick={() => void updateDesktopSettings((c) => ({ ...c, language: { ...c.language, dateFormat: fmt.id } }))}>{fmt.label}</button>
+                <button type="button" aria-current={$desktopSettings.language.dateFormat === fmt.id ? "page" : undefined} class:global-settings__pill-active={$desktopSettings.language.dateFormat === fmt.id} onclick={() => void updateDesktopSettings((c) => ({ ...c, language: { ...c.language, dateFormat: fmt.id } }))}>{fmt.label}</button>
               {/each}
             </div>
 
-            <div class="global-settings__label" id="time-format-label" style="margin-top:1rem">{_t('settingsLanguageTimeFormat')}</div>
+            <div class="global-settings__label gs-mt-md" id="time-format-label">{_t('settingsLanguageTimeFormat')}</div>
             <div class="global-settings__segmented" role="group" aria-labelledby="time-format-label">
               {#each TIME_FORMATS as fmt}
-                <button type="button" aria-current={$desktopSettings.language.timeFormat === fmt.id ? "true" : "false"} class:global-settings__segment-active={$desktopSettings.language.timeFormat === fmt.id} onclick={() => void updateDesktopSettings((c) => ({ ...c, language: { ...c.language, timeFormat: fmt.id } }))}>{fmt.label}</button>
+                <button type="button" aria-current={$desktopSettings.language.timeFormat === fmt.id ? "page" : undefined} class:global-settings__segment-active={$desktopSettings.language.timeFormat === fmt.id} onclick={() => void updateDesktopSettings((c) => ({ ...c, language: { ...c.language, timeFormat: fmt.id } }))}>{fmt.label}</button>
               {/each}
             </div>
 
-            <div class="global-settings__label" id="first-day-label" style="margin-top:1rem">{_t('settingsLanguageFirstDay')}</div>
+            <div class="global-settings__label gs-mt-md" id="first-day-label">{_t('settingsLanguageFirstDay')}</div>
             <div class="global-settings__segmented" role="group" aria-labelledby="first-day-label">
               {#each FIRST_DAY_OPTIONS as day}
-                <button type="button" aria-current={$desktopSettings.language.firstDay === day.id ? "true" : "false"} class:global-settings__segment-active={$desktopSettings.language.firstDay === day.id} onclick={() => void updateDesktopSettings((c) => ({ ...c, language: { ...c.language, firstDay: day.id } }))}>{day.label}</button>
+                <button type="button" aria-current={$desktopSettings.language.firstDay === day.id ? "page" : undefined} class:global-settings__segment-active={$desktopSettings.language.firstDay === day.id} onclick={() => void updateDesktopSettings((c) => ({ ...c, language: { ...c.language, firstDay: day.id } }))}>{day.label}</button>
               {/each}
             </div>
           </div>
@@ -808,6 +941,37 @@
       </div>
     </div>
   </section>
+
+  {#if confirmOpen}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="gs-confirm-overlay" onclick={handleCancelConfirm} role="presentation">
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="gs-confirm-dialog" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Confirmation">
+        <p class="gs-confirm-message">{confirmMessage}</p>
+        {#if confirmType === "prompt"}
+          <input
+            type="text"
+            class="gs-confirm-input"
+            placeholder={confirmRequiredText}
+            bind:value={confirmInput}
+            onkeydown={(e) => { if (e.key === "Enter") handleConfirm(); if (e.key === "Escape") handleCancelConfirm(); }}
+            autocomplete="off"
+          />
+        {/if}
+        <div class="gs-confirm-actions">
+          <button type="button" class="gs-enc-btn gs-enc-btn--sec" onclick={handleCancelConfirm}>Cancel</button>
+          <button
+            type="button"
+            class="gs-enc-btn"
+            disabled={confirmType === "prompt" && confirmInput !== confirmRequiredText}
+            onclick={handleConfirm}
+          >
+            {confirmType === "prompt" ? "Delete" : "Confirm"}
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
 </div>
 {/if}
 
@@ -856,23 +1020,15 @@
   /* ── Encryption ──────────────────────────────────────────────────────────── */
   .gs-enc-card { border:1px solid var(--border); border-radius:14px; padding:1rem; display:flex; flex-direction:column; gap:0.6rem; background:color-mix(in srgb,var(--foreground) 3%,var(--background)); }
   .gs-enc-status { display:flex; align-items:center; gap:0.5rem; font-weight:600; }
-  .gs-enc-badge { font-size:0.72rem; font-weight:800; border-radius:999px; padding:0.15rem 0.5rem; background:color-mix(in srgb,#10b981 15%,var(--background)); color:#10b981; letter-spacing:0.06em; }
+  .gs-enc-badge { font-size:0.72rem; font-weight:800; border-radius:999px; padding:0.15rem 0.5rem; background:color-mix(in srgb,oklch(0.696 0.149 162.48) 15%,var(--background)); color:oklch(0.696 0.149 162.48); letter-spacing:0.06em; }
   .gs-enc-input { width:100%; border:1px solid var(--border); border-radius:10px; background:var(--background); padding:0.6rem 0.85rem; color:var(--foreground); outline:none; box-sizing:border-box; }
-  .gs-enc-input:focus { border-color:var(--primary); }
+  .gs-enc-input:focus-visible { border-color:var(--primary); }
   .gs-enc-btn { border:none; border-radius:10px; background:var(--primary); color:var(--primary-foreground); padding:0.6rem 1rem; font-size:0.88rem; font-weight:700; cursor:pointer; white-space:nowrap; }
   .gs-enc-btn:disabled { opacity:0.45; cursor:not-allowed; }
   .gs-enc-btn--sec { background:color-mix(in srgb,var(--foreground) 8%,var(--background)); color:var(--foreground); border:1px solid var(--border); }
   .gs-enc-actions { display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.25rem; }
   .gs-enc-error { font-size:0.85rem; color:var(--destructive); background:color-mix(in srgb,var(--destructive) 8%,var(--background)); border-radius:8px; padding:0.5rem 0.75rem; margin:0; }
-  .gs-enc-success { font-size:0.85rem; color:#10b981; background:color-mix(in srgb,#10b981 10%,var(--background)); border-radius:8px; padding:0.5rem 0.75rem; margin:0; }
-  .global-settings__grid-2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0.75rem; }
-  .gs-toggle-inline { justify-content:space-between; width:100%; }
-  .cloud-backup-module-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0.45rem 0.75rem; }
-  .cloud-backup-module { display:flex; align-items:center; gap:0.55rem; color:var(--foreground); }
-  .cloud-backup-module input { width:1rem; height:1rem; }
-  .cloud-backup-list { display:flex; flex-direction:column; gap:0.65rem; }
-  .cloud-backup-item { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; padding:0.8rem 0.9rem; border:1px solid var(--border); border-radius:12px; background:color-mix(in srgb,var(--foreground) 3%,var(--background)); }
-  .cloud-backup-item p { margin:0.1rem 0 0; }
+  .gs-enc-success { font-size:0.85rem; color:oklch(0.696 0.149 162.48); background:color-mix(in srgb,oklch(0.696 0.149 162.48) 10%,var(--background)); border-radius:8px; padding:0.5rem 0.75rem; margin:0; }
 
   /* ── Language picker ─────────────────────────────────────────────────────── */
   .global-settings__lang-search { margin-bottom:0.5rem; }
@@ -902,16 +1058,9 @@
   .global-settings__theme-grid { display:flex; flex-wrap:wrap; gap:0.5rem; }
   .global-settings__theme-grid button { display:inline-flex; align-items:center; gap:0.4rem; border:1px solid var(--border); border-radius:10px; background:color-mix(in srgb,var(--foreground) 4%,var(--background)); padding:0.55rem 0.85rem; color:var(--foreground); font-weight:600; font-size:0.85rem; cursor:pointer; transition:border-color 120ms ease, background 120ms ease, color 120ms ease; }
   .global-settings__theme-grid button:focus-visible,
-  .global-settings__app-card:focus-visible,
-  .global-settings__pill-group button:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+  .global-settings__pill-group button:focus-visible,
+  .global-settings__nav button:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
   .global-settings__theme-active { border-color:var(--primary) !important; color:var(--primary) !important; }
-  .global-settings__apps { display:flex; flex-direction:column; gap:0.5rem; }
-  .global-settings__app-card { display:flex; align-items:center; gap:0.75rem; border:1px solid var(--border); border-radius:12px; background:color-mix(in srgb,var(--foreground) 3%,var(--background)); padding:0.75rem 1rem; text-align:left; cursor:pointer; transition:border-color 120ms ease, background 120ms ease; }
-  .global-settings__app-accent { width:0.35rem; height:2rem; border-radius:999px; background:var(--app-accent,var(--primary)); flex-shrink:0; }
-  .global-settings__app-card > span { flex:1; min-width:0; display:grid; gap:0.1rem; }
-  .global-settings__app-card strong { color:var(--foreground); }
-  .global-settings__app-card small { font-size:0.85rem; color:var(--muted-foreground); }
-  .global-settings__app-card em { font-style:normal; font-size:0.85rem; font-weight:700; color:var(--primary); }
 
   /* ── Cards (matching Sleep gradient treatment) ───────────────────────────── */
   .global-settings__section { display:flex; flex-direction:column; gap:1rem; }
@@ -922,8 +1071,7 @@
   .global-settings__info-card,
   .gs-enc-card,
   .global-settings__preview-card,
-  .global-settings__about-card,
-  .cloud-backup-item {
+  .global-settings__about-card {
     border:1px solid var(--gs-border);
     background:
       linear-gradient(
@@ -940,4 +1088,22 @@
 
   .global-settings__muted { color:var(--muted-foreground); margin:0; }
   .global-settings__label { font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted-foreground); margin-bottom:0.35rem; }
+  .gs-mb-sm { margin-bottom:0.75rem; }
+  .gs-mt-lg { margin-top:1.5rem; }
+  .gs-mt-md { margin-top:1rem; }
+
+  /* ── Backup rows ─────────────────────────────────────────────────────────── */
+  .gs-backup-row { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:0.6rem 0.85rem; border:1px solid var(--border); border-radius:10px; background:color-mix(in srgb,var(--foreground) 3%,var(--background)); }
+  .gs-backup-info { display:flex; align-items:center; gap:0.75rem; min-width:0; }
+  .gs-backup-date { font-weight:600; color:var(--foreground); }
+  .gs-backup-size { color:var(--muted-foreground); }
+  .gs-backup-actions { display:flex; align-items:center; gap:0.5rem; }
+
+  /* ── Confirm Dialog ──────────────────────────────────────────────────────── */
+  .gs-confirm-overlay { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; background:color-mix(in srgb,var(--background) 50%,transparent); backdrop-filter:blur(4px); }
+  .gs-confirm-dialog { width:320px; padding:1.25rem; border-radius:14px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow-lg); display:flex; flex-direction:column; gap:0.85rem; }
+  .gs-confirm-message { margin:0; color:var(--foreground); font-weight:600; line-height:1.4; }
+  .gs-confirm-input { width:100%; border:1px solid var(--border); border-radius:8px; background:var(--background); padding:0.5rem 0.75rem; color:var(--foreground); outline:none; box-sizing:border-box; }
+  .gs-confirm-input:focus { border-color:var(--primary); }
+  .gs-confirm-actions { display:flex; justify-content:flex-end; gap:0.5rem; }
 </style>

@@ -38,14 +38,22 @@ export function invokeWithTimeout<T>(
   args?: Record<string, unknown>,
   ms = 8_000,
 ): Promise<T> {
-  return Promise.race([
-    invoke<T>(cmd, args),
-    new Promise<never>((_, reject) =>
-      setTimeout(() => {
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+
+    invoke<T>(cmd, args).then((result) => {
+      if (!settled) { settled = true; resolve(result); }
+    }).catch((err) => {
+      if (!settled) { settled = true; reject(err); }
+    });
+
+    setTimeout(() => {
+      if (!settled) {
+        settled = true;
         reject(new Error(`${cmd} timed out after ${ms}ms`));
-      }, ms),
-    ),
-  ]);
+      }
+    }, ms);
+  });
 }
 
 // ── Analytics helpers (no-op stubs — previously routed to LogRocket) ─

@@ -146,7 +146,7 @@
   function kindColor(kind: ClipKind): string {
     const map: Record<ClipKind, string> = {
       text: "var(--cb-ink)", code: "var(--cb-code)", link: "var(--cb-link)",
-      bookmark: "#774fc4", image: "var(--cb-image)", sensitive: "var(--cb-sensitive)", html: "var(--cb-code)",
+      bookmark: "oklch(0.531 0.175 295.596)", image: "var(--cb-image)", sensitive: "var(--cb-sensitive)", html: "var(--cb-code)",
     };
     return map[kind];
   }
@@ -203,9 +203,9 @@
       x: "#000", twitter: "#000", youtube: "#FF0000", reddit: "#FF4500",
       threads: "#000", instagram: "#FF0076", tiktok: "#000",
       cosmos: "#6C5CE7", arena: "#000", "are.na": "#000",
-      linkedin: "#0A66C2", github: "#181717",
+      linkedin: "#0A66C2", github: "oklch(0.206 0.002 17.285)",
     };
-    return p ? (colors[p] ?? "#787873") : "#787873";
+    return p ? (colors[p] ?? "oklch(0.571 0.008 106.636)") : "oklch(0.571 0.008 106.636)";
   }
 
   function bookmarkAlt(entry: ClipEntry): string {

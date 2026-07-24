@@ -38,6 +38,7 @@
   let copied = $state(false);
 
   onMount(() => {
+    signInError = null;
     loadChatGptSession();
   });
 
@@ -90,8 +91,9 @@
   }
 
   async function handleSignOut() {
-    cleanupPolling?.();
+    const polling = cleanupPolling;
     cleanupPolling = null;
+    polling?.();
     await signOut();
   }
 
@@ -106,6 +108,7 @@
     cleanupPolling?.();
     cleanupPolling = null;
     signingIn = false;
+    signInError = null;
     chatgptDeviceFlow.set(null);
   }
 </script>
@@ -340,9 +343,9 @@
     gap: 5px;
     font-size: 12px;
     font-weight: 500;
-    color: #22c55e;
+    color: oklch(0.723 0.192 149.579);
     padding: 3px 8px;
-    background: color-mix(in srgb, #22c55e 12%, transparent);
+    background: color-mix(in srgb, oklch(0.723 0.192 149.579) 12%, transparent);
     border-radius: 6px;
     align-self: flex-start;
   }
@@ -367,41 +370,6 @@
     color: var(--foreground);
     font-weight: 500;
     text-align: right;
-  }
-
-  .chatgpt-auth__value--expired {
-    color: #ef4444;
-  }
-
-  .chatgpt-auth__value--near-expiry {
-    color: #f59e0b;
-  }
-
-  .chatgpt-auth__tier-badge {
-    padding: 1px 6px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    background: color-mix(in srgb, var(--foreground) 12%, transparent);
-    color: var(--foreground);
-  }
-
-  .chatgpt-auth__tier-badge--pro {
-    background: color-mix(in srgb, #a855f7 15%, transparent);
-    color: #a855f7;
-  }
-
-  .chatgpt-auth__models {
-    max-width: 200px;
-  }
-
-  .chatgpt-auth__more {
-    color: var(--muted);
-    font-size: 11px;
-  }
-
-  .chatgpt-auth__simple-info {
-    color: var(--muted);
   }
 
   .chatgpt-auth__actions {
@@ -497,7 +465,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    color: var(--accent, #3b82f6);
+    color: var(--accent, oklch(0.623 0.188 259.815));
     cursor: pointer;
     text-decoration: none;
   }
@@ -550,7 +518,7 @@
     border-color: var(--primary);
   }
   .chatgpt-auth__input--error {
-    border-color: #ef4444;
+    border-color: oklch(0.637 0.208 25.331);
   }
 
   .chatgpt-auth__input::placeholder {
@@ -567,13 +535,13 @@
   }
 
   .chatgpt-auth__field-note--ok {
-    color: #22c55e;
-    background: color-mix(in srgb, #22c55e 10%, transparent);
+    color: oklch(0.723 0.192 149.579);
+    background: color-mix(in srgb, oklch(0.723 0.192 149.579) 10%, transparent);
   }
 
   .chatgpt-auth__field-note--err {
-    color: #ef4444;
-    background: color-mix(in srgb, #ef4444 10%, transparent);
+    color: oklch(0.637 0.208 25.331);
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 10%, transparent);
   }
 
   /* ── Buttons ──────────────────────────────────── */
@@ -617,12 +585,12 @@
   }
 
   .chatgpt-auth__btn--danger {
-    background: color-mix(in srgb, #ef4444 12%, transparent);
-    color: #ef4444;
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 12%, transparent);
+    color: oklch(0.637 0.208 25.331);
   }
 
   .chatgpt-auth__btn--danger:hover:not(:disabled) {
-    background: color-mix(in srgb, #ef4444 20%, transparent);
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 20%, transparent);
   }
 
   .chatgpt-auth__btn--ghost {
@@ -637,9 +605,9 @@
 
   .chatgpt-auth__error {
     margin: 0;
-    color: #ef4444;
+    color: oklch(0.637 0.208 25.331);
     padding: 6px 8px;
-    background: color-mix(in srgb, #ef4444 10%, transparent);
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 10%, transparent);
     border-radius: 6px;
   }
 

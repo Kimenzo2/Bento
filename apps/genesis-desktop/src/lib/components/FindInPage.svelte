@@ -218,12 +218,12 @@
     cursor: default;
   }
   .find-btn.active {
-    color: var(--accent, #6366f1);
-    background: color-mix(in srgb, var(--accent, #6366f1) 10%, transparent);
+    color: var(--accent, oklch(0.585 0.204 277.117));
+    background: color-mix(in srgb, var(--accent, oklch(0.585 0.204 277.117)) 10%, transparent);
   }
   .find-close:hover {
-    color: var(--destructive, #ef4444);
-    background: color-mix(in srgb, var(--destructive, #ef4444) 8%, transparent);
+    color: var(--destructive, oklch(0.637 0.208 25.331));
+    background: color-mix(in srgb, var(--destructive, oklch(0.637 0.208 25.331)) 8%, transparent);
   }
   .replace-toggle svg {
     transition: transform 120ms ease;

@@ -14,7 +14,7 @@
 
   // ── Derived: resolve icon + color once ──
   const islandItem = $derived(getIslandItem(activeModule.id));
-  const accentColor = $derived(islandItem?.accentColor ?? "#5f61ed");
+  const accentColor = $derived(islandItem?.accentColor ?? "oklch(0.571 0.206 277.056)");
   const ActiveIcon = $derived(getIcon(activeModule.icon));
 
   // ── Recording timer ──
@@ -144,7 +144,7 @@
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.04);
+    background: oklch(1 0 89.876 / 0.04);
     flex-shrink: 0;
   }
 
@@ -156,14 +156,14 @@
   .ma-name {
     font-size: 13px;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.85);
+    color: oklch(1 0 89.876 / 0.85);
   }
 
   .ma-status {
     font-size: 11px;
     font-family: "SF Mono", "Geist Mono", "SF Pro Text", monospace;
     font-variant-numeric: tabular-nums;
-    color: rgba(255, 255, 255, 0.35);
+    color: oklch(1 0 89.876 / 0.35);
   }
 
   .ma-back {
@@ -176,13 +176,13 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    color: rgba(255, 255, 255, 0.35);
+    color: oklch(1 0 89.876 / 0.35);
     transition: background 0.15s, color 0.15s;
   }
 
   .ma-back:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.7);
+    background: oklch(1 0 89.876 / 0.08);
+    color: oklch(1 0 89.876 / 0.7);
   }
 
   .ma-body {
@@ -209,8 +209,8 @@
     gap: 14px;
     padding: 24px 20px;
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 0.5px solid rgba(255, 255, 255, 0.06);
+    background: oklch(1 0 89.876 / 0.03);
+    border: 0.5px solid oklch(1 0 89.876 / 0.06);
     width: 100%;
     max-width: 380px;
   }
@@ -218,7 +218,7 @@
   .ma-hint {
     font-size: 10px;
     font-weight: 400;
-    color: rgba(255, 255, 255, 0.2);
+    color: oklch(1 0 89.876 / 0.2);
     text-align: center;
   }
 
@@ -241,7 +241,7 @@
   .mar-bar {
     width: 4px;
     border-radius: 2px;
-    background: #8b5cf6;
+    background: oklch(0.606 0.219 292.717);
     animation: mar-bounce 0.6s ease-in-out infinite alternate;
     transform-origin: bottom;
     min-height: 4px;
@@ -257,14 +257,14 @@
     align-items: center;
     gap: 7px;
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.45);
+    color: oklch(1 0 89.876 / 0.45);
   }
 
   .mar-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #ef4444;
+    background: oklch(0.637 0.208 25.331);
     animation: live-pulse 1s ease-in-out infinite;
   }
 
@@ -273,7 +273,7 @@
     font-variant-numeric: tabular-nums;
     font-size: 14px;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.7);
+    color: oklch(1 0 89.876 / 0.7);
   }
 
   @keyframes live-pulse {
@@ -290,16 +290,16 @@
     font-size: 11px;
     font-weight: 400;
     font-family: inherit;
-    background: rgba(255, 255, 255, 0.05);
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.5);
+    background: oklch(1 0 89.876 / 0.05);
+    border: 0.5px solid oklch(1 0 89.876 / 0.08);
+    color: oklch(1 0 89.876 / 0.5);
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
   }
 
   .ma-back-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.8);
+    background: oklch(1 0 89.876 / 0.1);
+    color: oklch(1 0 89.876 / 0.8);
   }
 
   /* ── Default layout ── */
@@ -312,12 +312,12 @@
 
   .mad-icon {
     display: flex;
-    color: rgba(255, 255, 255, 0.25);
+    color: oklch(1 0 89.876 / 0.25);
   }
 
   .mad-label {
     font-size: 12px;
     font-weight: 400;
-    color: rgba(255, 255, 255, 0.35);
+    color: oklch(1 0 89.876 / 0.35);
   }
 </style>

@@ -133,13 +133,13 @@
   function getPriorityColor(priority: string): string {
     switch (priority) {
       case "urgent":
-        return "rgba(239, 68, 68, 0.8)";
+        return "oklch(0.637 0.208 25.331 / 0.8)";
       case "high":
-        return "rgba(251, 146, 60, 0.8)";
+        return "oklch(0.758 0.159 55.934 / 0.8)";
       case "medium":
-        return "rgba(250, 204, 21, 0.8)";
+        return "oklch(0.861 0.173 91.936 / 0.8)";
       default:
-        return "rgba(255, 255, 255, 0.2)";
+        return "oklch(1 0 89.876 / 0.2)";
     }
   }
 
@@ -210,7 +210,7 @@
     display: flex;
     flex-direction: column;
     padding: 10px 20px;
-    background: #0b0b0b;
+    background: oklch(0.15 0 89.876);
     border-radius: 0;
     overflow: hidden;
     will-change: clip-path;
@@ -231,12 +231,12 @@
     align-items: center;
     justify-content: center;
     font-size: 10.5px;
-    color: rgba(255, 255, 255, 0.25);
+    color: oklch(1 0 89.876 / 0.25);
     padding: 12px 8px;
   }
 
   .task-error {
-    color: rgba(239, 68, 68, 0.6);
+    color: oklch(0.637 0.208 25.331 / 0.6);
   }
 
   .task-item {
@@ -254,16 +254,16 @@
     text-align: left;
     width: 100%;
     font-family: inherit;
-    color: rgba(255, 255, 255, 0.84);
+    color: oklch(1 0 89.876 / 0.84);
     transition: background 140ms cubic-bezier(0.23, 1, 0.32, 1);
   }
 
   .task-item:hover {
-    background: rgba(255, 255, 255, 0.04);
+    background: oklch(1 0 89.876 / 0.04);
   }
 
   .task-item:active {
-    background: rgba(255, 255, 255, 0.06);
+    background: oklch(1 0 89.876 / 0.06);
   }
 
   .task-item--done {
@@ -292,22 +292,22 @@
 
   .task-item--done .task-title {
     text-decoration: line-through;
-    color: rgba(255, 255, 255, 0.35);
+    color: oklch(1 0 89.876 / 0.35);
   }
 
   .task-due {
     flex-shrink: 0;
     font-size: 10.5px;
     font-weight: 450;
-    color: rgba(255, 255, 255, 0.3);
+    color: oklch(1 0 89.876 / 0.3);
     padding: 4px 8px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.04);
+    background: oklch(1 0 89.876 / 0.04);
     white-space: nowrap;
   }
 
   .task-due--overdue {
-    color: rgba(239, 68, 68, 0.7);
-    background: rgba(239, 68, 68, 0.08);
+    color: oklch(0.637 0.208 25.331 / 0.7);
+    background: oklch(0.637 0.208 25.331 / 0.08);
   }
 </style>

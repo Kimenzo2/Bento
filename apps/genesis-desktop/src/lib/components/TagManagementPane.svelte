@@ -128,7 +128,7 @@
   .tag-count { font-size: 11px; color: var(--muted); font-weight: 500; }
   .tag-action-btn { display: grid; place-items: center; width: 22px; height: 22px; border: none; border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; flex-shrink: 0; transition: all 100ms ease; }
   .tag-action-btn:hover { background: color-mix(in srgb, var(--foreground) 6%, transparent); color: var(--foreground); }
-  .tag-action-btn.danger:hover { background: color-mix(in srgb, #ef4444 10%, transparent); color: #ef4444; }
+  .tag-action-btn.danger:hover { background: color-mix(in srgb, oklch(0.637 0.208 25.331) 10%, transparent); color: oklch(0.637 0.208 25.331); }
   .tag-edit-input { flex: 1; height: 24px; padding: 0 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--background); color: var(--foreground); font: inherit; font-size: 12px; outline: none; }
   .tag-add-row { display: flex; align-items: center; gap: 4px; padding: 8px 10px; border-top: 1px solid var(--border); flex-shrink: 0; }
   .tag-add-input { flex: 1; height: 28px; padding: 0 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--background); color: var(--foreground); font: inherit; font-size: 12px; outline: none; }

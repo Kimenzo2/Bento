@@ -204,7 +204,7 @@
     let c = accentColorCache.get(id);
     if (!c) {
       const item = islandItems.find((i) => i.id === id);
-      c = item?.accentColor ?? "#5f61ed";
+      c = item?.accentColor ?? "oklch(0.571 0.206 277.056)";
       accentColorCache.set(id, c);
     }
     return c;
@@ -810,7 +810,7 @@
   }
 
   :focus-visible {
-    outline: 1px solid rgba(255, 255, 255, 0.2);
+    outline: 1px solid oklch(1 0 89.876 / 0.2);
     outline-offset: 2px;
   }
 
@@ -835,13 +835,13 @@
 
   .island-shell {
     position: relative;
-    background: #0d0d0d;
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    background: oklch(0.159 0 89.876);
+    border: 0.5px solid oklch(1 0 89.876 / 0.08);
     overflow: visible;
     display: block;
     width: 260px;
     height: 40px;
-    color: rgba(255, 255, 255, 0.85);
+    color: oklch(1 0 89.876 / 0.85);
     transition:
       width 0.55s cubic-bezier(0.34, 1.3, 0.64, 1),
       height 0.55s cubic-bezier(0.34, 1.3, 0.64, 1);
@@ -913,15 +913,15 @@
     transform: translateX(-50%);
     width: 260px;
     height: 40px;
-    background: #0d0d0d;
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    background: oklch(0.159 0 89.876);
+    border: 0.5px solid oklch(1 0 89.876 / 0.08);
     border-top: none;
     border-radius: 0 0 14px 14px;
     overflow: visible;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(255, 255, 255, 0.85);
+    color: oklch(1 0 89.876 / 0.85);
     cursor: pointer;
     z-index: 2;
     transition:
@@ -967,18 +967,18 @@
     transform: translateX(-50%);
     width: 260px;
     height: 40px;
-    background: #0d0d0d;
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    background: oklch(0.159 0 89.876);
+    border: 0.5px solid oklch(1 0 89.876 / 0.08);
     border-top: none;
     border-radius: 0 0 14px 14px;
   }
 
   .island-notch:hover {
-    border-color: rgba(255, 255, 255, 0.12);
+    border-color: oklch(1 0 89.876 / 0.12);
   }
 
   .island-notch:active {
-    background: #111;
+    background: oklch(0.178 0 89.876);
   }
 
   .island-notch::before {
@@ -990,7 +990,7 @@
     height: 7px;
     z-index: 10;
     pointer-events: none;
-    background: radial-gradient(circle at 0 100%, transparent 7px, #0d0d0d 7px);
+    background: radial-gradient(circle at 0 100%, transparent 7px, oklch(0.159 0 89.876) 7px);
   }
 
   .island-notch::after {
@@ -1002,7 +1002,7 @@
     height: 7px;
     z-index: 10;
     pointer-events: none;
-    background: radial-gradient(circle at 100% 100%, transparent 7px, #0d0d0d 7px);
+    background: radial-gradient(circle at 100% 100%, transparent 7px, oklch(0.159 0 89.876) 7px);
   }
 
   .island-panel {
@@ -1013,14 +1013,14 @@
     height: 480px;
     transform: translateX(-50%) translateY(0);
     transform-origin: top center;
-    background: #0d0d0d;
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    background: oklch(0.159 0 89.876);
+    border: 0.5px solid oklch(1 0 89.876 / 0.08);
     border-radius: 0 0 28px 28px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     border-top: none;
-    color: rgba(255, 255, 255, 0.85);
+    color: oklch(1 0 89.876 / 0.85);
     z-index: 1;
   }
 
@@ -1139,10 +1139,10 @@
     transform: translateX(-50%);
     width: 260px;
     height: 40px;
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border: 0.5px solid oklch(1 0 89.876 / 0.08);
     border-top: none;
     border-radius: 0 0 14px 14px;
-    background: #0d0d0d;
+    background: oklch(0.159 0 89.876);
   }
 
   .notch-morph {
@@ -1260,7 +1260,7 @@
   .compact-live-label {
     font-size: 11px;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.6);
+    color: oklch(1 0 89.876 / 0.6);
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -1272,7 +1272,7 @@
     font-size: 10px;
     font-weight: 400;
     font-variant-numeric: tabular-nums;
-    color: rgba(255, 255, 255, 0.3);
+    color: oklch(1 0 89.876 / 0.3);
     margin-left: auto;
     white-space: nowrap;
     overflow: hidden;
@@ -1283,7 +1283,7 @@
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: #ef4444;
+    background: oklch(0.637 0.208 25.331);
     animation: live-pulse 1s ease-in-out infinite;
   }
 
@@ -1301,16 +1301,16 @@
     font-weight: 450;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.02em;
-    color: rgba(255, 255, 255, 0.35);
+    color: oklch(1 0 89.876 / 0.35);
   }
 
   /* ── Compact notification ── */
   .compact-body--notification {
-    background: rgba(255, 255, 255, 0.03);
+    background: oklch(1 0 89.876 / 0.03);
   }
 
   .compact-body--notification:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: oklch(1 0 89.876 / 0.06);
   }
 
   .compact-notification {
@@ -1331,7 +1331,7 @@
   .compact-notification-text {
     font-size: 12px;
     font-weight: 450;
-    color: rgba(255, 255, 255, 0.6);
+    color: oklch(1 0 89.876 / 0.6);
   }
 
   @keyframes live-pulse {

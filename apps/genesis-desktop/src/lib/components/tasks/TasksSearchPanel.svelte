@@ -161,7 +161,7 @@
           >
             <div class="ts-result-icon">
               {#if task.done}
-                <CheckCircle2Icon size={16} style="color:hsl(142,70%,55%)" />
+                <CheckCircle2Icon size={16} style="color:oklch(0.819 0.127 194.951)" />
               {:else}
                 <CircleIcon size={16} class="ts-circle-icon" />
               {/if}

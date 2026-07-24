@@ -104,7 +104,7 @@
       color 0.15s ease,
       border-color 0.15s ease,
       box-shadow 0.15s ease;
-    box-shadow: 0 1px 3px color-mix(in srgb, #000 8%, transparent);
+    box-shadow: var(--shadow-xs);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
   }
@@ -113,7 +113,7 @@
     background: color-mix(in srgb, var(--background) 85%, var(--foreground));
     color: var(--foreground);
     border-color: color-mix(in srgb, var(--foreground) 25%, transparent);
-    box-shadow: 0 2px 8px color-mix(in srgb, #000 12%, transparent);
+    box-shadow: var(--shadow-sm);
   }
 
   .scroll-btn__button:active {

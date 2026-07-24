@@ -352,7 +352,7 @@
     border-radius: 24px;
     padding: 28px 32px;
     min-width: 320px;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+    box-shadow: var(--shadow-lg);
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -395,7 +395,7 @@
   :global(.rb-alarm-btn:active) { transform: scale(0.96); }
   :global(.rb-alarm-btn--dismiss) {
     background: oklch(0.637 0.208 25.331);
-    color: #fff;
+    color: oklch(1 0 89.876);
   }
   :global(.rb-alarm-btn--snooze) {
     background: color-mix(in srgb, var(--border) 50%, transparent);

@@ -223,7 +223,7 @@
     background: var(--background);
     border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
     border-radius: 14px;
-    box-shadow: 0 16px 48px rgba(0,0,0,0.25);
+    box-shadow: var(--shadow-lg);
     overflow: hidden;
   }
 

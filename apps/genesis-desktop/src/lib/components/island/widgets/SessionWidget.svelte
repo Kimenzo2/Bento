@@ -196,22 +196,22 @@
   }
 
   .session-add-input {
-    background: rgba(255, 255, 255, 0.03);
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    background: oklch(1 0 89.876 / 0.03);
+    border: 0.5px solid oklch(1 0 89.876 / 0.08);
     border-radius: 8px;
     padding: 8px 10px;
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.85);
+    color: oklch(1 0 89.876 / 0.85);
     font-family: inherit;
     outline: none;
   }
 
   .session-add-input:focus {
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: oklch(1 0 89.876 / 0.15);
   }
 
   .session-add-input::placeholder {
-    color: rgba(255, 255, 255, 0.2);
+    color: oklch(1 0 89.876 / 0.2);
   }
 
   .session-add-actions {
@@ -226,8 +226,8 @@
     padding: 5px 12px;
     border-radius: 8px;
     border: none;
-    background: rgba(95, 97, 237, 0.2);
-    color: #8b8df0;
+    background: oklch(0.574 0.196 271.147 / 0.2);
+    color: oklch(0.685 0.144 281.009);
     font-size: 11px;
     font-weight: 500;
     cursor: pointer;
@@ -235,7 +235,7 @@
   }
 
   .add-btn:hover {
-    background: rgba(95, 97, 237, 0.3);
+    background: oklch(0.574 0.196 271.147 / 0.3);
   }
 
   .cancel-btn {
@@ -243,14 +243,14 @@
     border-radius: 8px;
     border: none;
     background: transparent;
-    color: rgba(255, 255, 255, 0.3);
+    color: oklch(1 0 89.876 / 0.3);
     font-size: 11px;
     cursor: pointer;
     font-family: inherit;
   }
 
   .cancel-btn:hover {
-    color: rgba(255, 255, 255, 0.6);
+    color: oklch(1 0 89.876 / 0.6);
   }
 
   .session-empty {
@@ -260,16 +260,16 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    color: rgba(255, 255, 255, 0.2);
+    color: oklch(1 0 89.876 / 0.2);
     font-size: 12px;
   }
 
   .empty-btn {
-    background: rgba(255, 255, 255, 0.06);
+    background: oklch(1 0 89.876 / 0.06);
     border: none;
     padding: 6px 14px;
     border-radius: 10px;
-    color: rgba(255, 255, 255, 0.6);
+    color: oklch(1 0 89.876 / 0.6);
     font-size: 11px;
     font-weight: 500;
     cursor: pointer;
@@ -277,8 +277,8 @@
   }
 
   .empty-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.8);
+    background: oklch(1 0 89.876 / 0.1);
+    color: oklch(1 0 89.876 / 0.8);
   }
 
   .session-list {
@@ -299,8 +299,8 @@
   }
 
   .session-row--active {
-    background: rgba(95, 97, 237, 0.06);
-    border: 0.5px solid rgba(95, 97, 237, 0.12);
+    background: oklch(0.574 0.196 271.147 / 0.06);
+    border: 0.5px solid oklch(0.574 0.196 271.147 / 0.12);
   }
 
   .session-icon {
@@ -310,14 +310,14 @@
     align-items: center;
     justify-content: center;
     border-radius: 8px;
-    background: rgba(95, 97, 237, 0.15);
-    color: #8b8df0;
+    background: oklch(0.574 0.196 271.147 / 0.15);
+    color: oklch(0.685 0.144 281.009);
     flex-shrink: 0;
   }
 
   .session-icon.dim {
-    background: rgba(255, 255, 255, 0.04);
-    color: rgba(255, 255, 255, 0.35);
+    background: oklch(1 0 89.876 / 0.04);
+    color: oklch(1 0 89.876 / 0.35);
   }
 
   .session-info {
@@ -329,28 +329,28 @@
     font-size: 20px;
     font-weight: 400;
     letter-spacing: -0.02em;
-    color: rgba(255, 255, 255, 0.85);
+    color: oklch(1 0 89.876 / 0.85);
     line-height: 1;
     font-variant-numeric: tabular-nums;
   }
 
   .session-time.dim {
-    color: rgba(255, 255, 255, 0.5);
+    color: oklch(1 0 89.876 / 0.5);
   }
 
   .session-name {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.35);
+    color: oklch(1 0 89.876 / 0.35);
     margin-top: 3px;
   }
 
   .session-name.dim {
-    color: rgba(255, 255, 255, 0.25);
+    color: oklch(1 0 89.876 / 0.25);
   }
 
   .session-date {
     font-size: 10px;
-    color: rgba(255, 255, 255, 0.2);
+    color: oklch(1 0 89.876 / 0.2);
     flex-shrink: 0;
   }
 
@@ -362,30 +362,30 @@
     height: 26px;
     border-radius: 8px;
     border: none;
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.4);
+    background: oklch(1 0 89.876 / 0.06);
+    color: oklch(1 0 89.876 / 0.4);
     cursor: pointer;
     padding: 0;
     flex-shrink: 0;
   }
 
   .action-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.7);
+    background: oklch(1 0 89.876 / 0.1);
+    color: oklch(1 0 89.876 / 0.7);
   }
 
   .stop-btn {
-    background: rgba(255, 69, 58, 0.1);
-    color: #ff453a;
+    background: oklch(0.637 0.208 25.331 / 0.1);
+    color: oklch(0.663 0.224 28.292);
   }
 
   .stop-btn:hover {
-    background: rgba(255, 69, 58, 0.2);
+    background: oklch(0.637 0.208 25.331 / 0.2);
   }
 
   .session-sep {
     height: 0.5px;
-    background: rgba(255, 255, 255, 0.06);
+    background: oklch(1 0 89.876 / 0.06);
     margin: 4px 0;
   }
 </style>

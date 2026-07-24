@@ -237,7 +237,7 @@
         <div class="timer-row" class:timer-row--done={timer.remaining <= 0} in:slide={{ duration: 200 }} out:slide={{ duration: 150 }}>
           <div class="timer-ring" onclick={() => toggleTimer(timer.id)} role="button" tabindex="0" onkeydown={(e: KeyboardEvent) => { if (e.key === "Enter") toggleTimer(timer.id); }}>
             <svg viewBox="0 0 44 44" class="ring-svg">
-              <circle cx="22" cy="22" r="20" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3" />
+              <circle cx="22" cy="22" r="20" fill="none" stroke="oklch(1 0 89.876 / 0.06)" stroke-width="3" />
               <circle
                 cx="22" cy="22" r="20"
                 fill="none"
@@ -251,11 +251,11 @@
             </svg>
             <div class="ring-icon">
               {#if timer.remaining <= 0}
-                <checkIcon size={14} color="rgba(255,69,58,0.6)" strokeWidth={2.5}></checkIcon>
+                <checkIcon size={14} color="oklch(0.663 0.224 28.292 / 0.6)" strokeWidth={2.5}></checkIcon>
               {:else if timer.isRunning}
-                <pauseIcon size={14} color="rgba(255,255,255,0.3)" strokeWidth={2.5}></pauseIcon>
+                <pauseIcon size={14} color="oklch(1 0 89.876 / 0.3)" strokeWidth={2.5}></pauseIcon>
               {:else}
-                <timerPlayIcon size={14} color="rgba(255,255,255,0.3)" strokeWidth={2.5}></timerPlayIcon>
+                <timerPlayIcon size={14} color="oklch(1 0 89.876 / 0.3)" strokeWidth={2.5}></timerPlayIcon>
               {/if}
             </div>
           </div>
@@ -286,22 +286,22 @@
   }
 
   .timer-add-input {
-    background: rgba(255, 255, 255, 0.03);
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    background: oklch(1 0 89.876 / 0.03);
+    border: 0.5px solid oklch(1 0 89.876 / 0.08);
     border-radius: 8px;
     padding: 8px 10px;
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.85);
+    color: oklch(1 0 89.876 / 0.85);
     font-family: inherit;
     outline: none;
   }
 
   .timer-add-input:focus {
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: oklch(1 0 89.876 / 0.15);
   }
 
   .timer-add-input::placeholder {
-    color: rgba(255, 255, 255, 0.2);
+    color: oklch(1 0 89.876 / 0.2);
   }
 
   .timer-mins {
@@ -312,23 +312,23 @@
 
   .timer-mins-input {
     width: 70px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    background: oklch(1 0 89.876 / 0.03);
+    border: 0.5px solid oklch(1 0 89.876 / 0.08);
     border-radius: 8px;
     padding: 8px 10px;
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.85);
+    color: oklch(1 0 89.876 / 0.85);
     font-family: inherit;
     outline: none;
   }
 
   .timer-mins-input:focus {
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: oklch(1 0 89.876 / 0.15);
   }
 
   .timer-mins-label {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.3);
+    color: oklch(1 0 89.876 / 0.3);
   }
 
   .timer-presets {
@@ -340,9 +340,9 @@
     flex: 1;
     padding: 5px 0;
     border-radius: 8px;
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border: 0.5px solid oklch(1 0 89.876 / 0.08);
     background: transparent;
-    color: rgba(255, 255, 255, 0.4);
+    color: oklch(1 0 89.876 / 0.4);
     font-size: 11px;
     font-weight: 500;
     cursor: pointer;
@@ -350,8 +350,8 @@
   }
 
   .preset-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: rgba(255, 255, 255, 0.7);
+    background: oklch(1 0 89.876 / 0.05);
+    color: oklch(1 0 89.876 / 0.7);
   }
 
   .start-timer-btn {
@@ -362,8 +362,8 @@
     padding: 8px 0;
     border-radius: 8px;
     border: none;
-    background: rgba(95, 97, 237, 0.2);
-    color: #8b8df0;
+    background: oklch(0.574 0.196 271.147 / 0.2);
+    color: oklch(0.685 0.144 281.009);
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
@@ -371,7 +371,7 @@
   }
 
   .start-timer-btn:hover {
-    background: rgba(95, 97, 237, 0.3);
+    background: oklch(0.574 0.196 271.147 / 0.3);
   }
 
   .timer-empty {
@@ -381,16 +381,16 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    color: rgba(255, 255, 255, 0.2);
+    color: oklch(1 0 89.876 / 0.2);
     font-size: 12px;
   }
 
   .empty-btn {
-    background: rgba(255, 255, 255, 0.06);
+    background: oklch(1 0 89.876 / 0.06);
     border: none;
     padding: 6px 14px;
     border-radius: 10px;
-    color: rgba(255, 255, 255, 0.6);
+    color: oklch(1 0 89.876 / 0.6);
     font-size: 11px;
     font-weight: 500;
     cursor: pointer;
@@ -398,8 +398,8 @@
   }
 
   .empty-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.8);
+    background: oklch(1 0 89.876 / 0.1);
+    color: oklch(1 0 89.876 / 0.8);
   }
 
   .timer-list {
@@ -419,7 +419,7 @@
   }
 
   .timer-row--done {
-    background: rgba(255, 69, 58, 0.04);
+    background: oklch(0.637 0.208 25.331 / 0.04);
   }
 
   .timer-row:hover .timer-actions {
@@ -441,7 +441,7 @@
   }
 
   .ring-progress {
-    stroke: rgba(95, 97, 237, 0.7);
+    stroke: oklch(0.574 0.196 271.147 / 0.7);
     transition: stroke-dashoffset 0.8s linear;
   }
 
@@ -450,7 +450,7 @@
   }
 
   .ring-progress--done {
-    stroke: rgba(255, 69, 58, 0.6);
+    stroke: oklch(0.637 0.208 25.331 / 0.6);
   }
 
   .ring-icon {
@@ -471,18 +471,18 @@
     font-size: 20px;
     font-weight: 400;
     letter-spacing: -0.02em;
-    color: rgba(255, 255, 255, 0.85);
+    color: oklch(1 0 89.876 / 0.85);
     line-height: 1;
     font-variant-numeric: tabular-nums;
   }
 
   .timer-value--done {
-    color: rgba(255, 69, 58, 0.6);
+    color: oklch(0.637 0.208 25.331 / 0.6);
   }
 
   .timer-name {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.3);
+    color: oklch(1 0 89.876 / 0.3);
     margin-top: 2px;
   }
 
@@ -501,20 +501,20 @@
     height: 26px;
     border-radius: 8px;
     border: none;
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.35);
+    background: oklch(1 0 89.876 / 0.06);
+    color: oklch(1 0 89.876 / 0.35);
     cursor: pointer;
     padding: 0;
     flex-shrink: 0;
   }
 
   .t-action-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.7);
+    background: oklch(1 0 89.876 / 0.1);
+    color: oklch(1 0 89.876 / 0.7);
   }
 
   .danger:hover {
-    background: rgba(255, 69, 58, 0.15);
-    color: #ff453a;
+    background: oklch(0.637 0.208 25.331 / 0.15);
+    color: oklch(0.663 0.224 28.292);
   }
 </style>

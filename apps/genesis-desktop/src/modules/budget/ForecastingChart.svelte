@@ -588,7 +588,7 @@
     border-radius: 14px;
     padding: 12px 16px;
     min-width: 160px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.06);
+    box-shadow: 0 8px 32px oklch(from var(--color-shadow) l c h / 0.15), 0 2px 8px oklch(from var(--color-shadow) l c h / 0.06);
     backdrop-filter: blur(12px);
     pointer-events: none;
     z-index: 10;

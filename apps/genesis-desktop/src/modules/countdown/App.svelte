@@ -59,8 +59,8 @@
   // ─── Accent palette ───────────────────────────────────────────────────────
 
   const ACCENTS = [
-    "#ec4899","#f59e0b","#6366f1","#10b981",
-    "#ef4444","#8b5cf6","#06b6d4","#f97316",
+    "oklch(0.656 0.212 354.308)","oklch(0.769 0.165 70.08)","oklch(0.585 0.204 277.117)","oklch(0.696 0.149 162.48)",
+    "oklch(0.637 0.208 25.331)","oklch(0.606 0.219 292.717)","oklch(0.715 0.126 215.221)","oklch(0.705 0.187 47.604)",
   ];
   let accentIdx = $state(0);
   const nextAccent = () => { const a = ACCENTS[accentIdx % ACCENTS.length]; accentIdx++; return a; };
@@ -917,7 +917,7 @@
         <TiltCard open={true} onClose={() => celebEventId = null} maxTilt={25}>
           <p class="tc-meta">{fmtDate(celebEvent.targetMs)}</p>
           <p class="tc-name">{celebEvent.name}</p>
-          <div class="tc-banner" style="background:linear-gradient(135deg,{celebEvent.accent},color-mix(in srgb,{celebEvent.accent} 55%,#000))">
+          <div class="tc-banner" style="background:linear-gradient(135deg,{celebEvent.accent},color-mix(in srgb,{celebEvent.accent} 55%,oklch(0 0 0)))">
             <span class="tc-emoji">🎉</span>
             <div class="tc-banner-text">
               <strong>{daysGone}</strong>
@@ -1402,14 +1402,14 @@
     font-family: inherit;
   }
   .cd-input:focus { border-color: var(--primary); }
-  .cd-input[aria-invalid="true"] { border-color: #ef4444; }
+  .cd-input[aria-invalid="true"] { border-color: oklch(0.637 0.208 25.331); }
 
   /* Date input: hide the default calendar icon on webkit — it's noisy */
   .cd-input--date::-webkit-calendar-picker-indicator { opacity: 0.4; cursor: pointer; }
 
   .cd-warn {
     font-size: 0.78rem;
-    color: #ef4444;
+    color: oklch(0.637 0.208 25.331);
     margin: -0.25rem 0 0;
   }
 
@@ -1513,9 +1513,9 @@
   .cd-digit--secs strong { color: var(--cd-accent, var(--primary)); font-size: 1.6rem; font-variant-numeric: tabular-nums lining-nums; font-family: var(--font-number); font-synthesis: none; }
 
   /* ── Urgency states ── */
-  :global(.cd-urgency--today)    { border-color: #ef4444 !important; }
-  :global(.cd-urgency--tomorrow) { border-color: #f59e0b !important; }
-  :global(.cd-urgency--soon)     { border-color: color-mix(in srgb, #f59e0b 40%, var(--border)) !important; }
+  :global(.cd-urgency--today)    { border-color: oklch(0.637 0.208 25.331) !important; }
+  :global(.cd-urgency--tomorrow) { border-color: oklch(0.769 0.165 70.08) !important; }
+  :global(.cd-urgency--soon)     { border-color: color-mix(in srgb, oklch(0.769 0.165 70.08) 40%, var(--border)) !important; }
 
   /* ── Event list ── */
   .cd-list-card { border-color: color-mix(in srgb, var(--border) 70%, transparent); }
@@ -1556,7 +1556,7 @@
     cursor: default; transition: background 120ms, color 120ms;
   }
   .cd-icon-btn:hover { background: color-mix(in srgb, var(--foreground) 8%, transparent); color: var(--foreground); }
-  .cd-icon-btn--del:hover { background: color-mix(in srgb, #ef4444 14%, transparent); color: #ef4444; }
+  .cd-icon-btn--del:hover { background: color-mix(in srgb, oklch(0.637 0.208 25.331) 14%, transparent); color: oklch(0.637 0.208 25.331); }
 
   /* ── Since ── */
   .cd-since-block { display: flex; flex-direction: column; align-items: flex-end; }
@@ -1568,20 +1568,20 @@
   .cd-bday-hero {
     background: linear-gradient(
       135deg,
-      color-mix(in srgb, var(--cd-accent, #ec4899) 12%, var(--surface)),
-      color-mix(in srgb, var(--cd-accent, #ec4899) 4%, var(--background))
+      color-mix(in srgb, var(--cd-accent, oklch(0.656 0.212 354.308)) 12%, var(--surface)),
+      color-mix(in srgb, var(--cd-accent, oklch(0.656 0.212 354.308)) 4%, var(--background))
     );
-    border-color: color-mix(in srgb, var(--cd-accent, #ec4899) 25%, var(--border));
+    border-color: color-mix(in srgb, var(--cd-accent, oklch(0.656 0.212 354.308)) 25%, var(--border));
     transition: border-color 180ms ease;
   }
   .cd-bday-hero:hover {
-    border-color: color-mix(in srgb, var(--cd-accent, #ec4899) 55%, var(--border));
+    border-color: color-mix(in srgb, var(--cd-accent, oklch(0.656 0.212 354.308)) 55%, var(--border));
   }
   .cd-bday-hero__body { padding: 1.5rem !important; display: flex; flex-direction: column; gap: 0.4rem; align-items: flex-start; }
-  :global(.cd-bday-icon) { color: var(--cd-accent, #ec4899); margin-bottom: 0.25rem; }
+  :global(.cd-bday-icon) { color: var(--cd-accent, oklch(0.656 0.212 354.308)); margin-bottom: 0.25rem; }
   .cd-bday-hero__name { font-family: var(--font-heading); font-size: 1.6rem; letter-spacing: -0.04em; margin: 0; color: var(--foreground); }
   .cd-bday-days { margin: 0; font-size: 0.9rem; color: var(--muted); }
-  .cd-bday-days strong { font-size: 1.5rem; font-family: var(--font-number); letter-spacing: -0.04em; color: var(--cd-accent, #ec4899); font-variant-numeric: tabular-nums lining-nums; font-synthesis: none; }
+  .cd-bday-days strong { font-size: 1.5rem; font-family: var(--font-number); letter-spacing: -0.04em; color: var(--cd-accent, oklch(0.656 0.212 354.308)); font-variant-numeric: tabular-nums lining-nums; font-synthesis: none; }
   .cd-bday-hint { font-size: 0.82rem; color: var(--muted); margin: 0; }
 
   /* ── Milestones ── */
@@ -1692,11 +1692,11 @@
     font-size: 2rem;
     letter-spacing: -0.05em;
     line-height: 1;
-    color: #fff;
+    color: oklch(1 0 89.876);
     font-variant-numeric: tabular-nums lining-nums;
     font-synthesis: none;
   }
-  .tc-banner-text span { font-size: 0.75rem; color: rgba(255,255,255,0.7); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+  .tc-banner-text span { font-size: 0.75rem; color: oklch(1 0 89.876 / 0.7); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
   .tc-note { font-size: 0.78rem; color: var(--muted); font-style: italic; margin: 0 0 0.5rem; }
   .tc-body { font-size: 0.82rem; color: var(--muted); margin: 0 0 1rem; line-height: 1.5; }
   .tc-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
@@ -1706,7 +1706,7 @@
   }
   .tc-btn--ghost { background: color-mix(in srgb, var(--foreground) 8%, transparent); color: var(--foreground); }
   .tc-btn--ghost:hover { background: color-mix(in srgb, var(--foreground) 14%, transparent); }
-  .tc-btn--primary { color: #fff; }
+  .tc-btn--primary { color: oklch(1 0 89.876); }
   .tc-btn--primary:hover { filter: brightness(1.1); }
   .tc-hint { font-size: 0.65rem; color: var(--muted); opacity: 0.45; text-align: center; margin: 0.5rem 0 0; }
 
