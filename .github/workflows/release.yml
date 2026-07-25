@@ -91,7 +91,7 @@ jobs:
             target: x86_64-pc-windows-msvc
             bundles: nsis
             arch: x64
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             bundles: deb,appimage
             arch: amd64
@@ -153,7 +153,7 @@ jobs:
             libpipewire-0.3-dev \
             libgbm-dev \
             libsqlcipher-dev \
-            libfuse-dev \
+            fuse \
             pkg-config
 
       # ── Cargo registry cache ──
