@@ -12,7 +12,6 @@ import Nav from '../components/Nav';
 import Hero from '../components/Hero';
 import HowItWorks from '../components/HowItWorks';
 import AppShowcase from '../components/AppShowcase';
-import WhyBento from '../components/WhyBento';
 import SocialProof from '../components/SocialProof';
 import Pricing from '../components/Pricing';
 import { allFaqs } from '../lib/faq-data';
@@ -95,7 +94,6 @@ export default function HomePage() {
         <HowItWorks />
         <AppShowcase />
         <div className="section-divider" aria-hidden="true" />
-        <WhyBento />
         <SocialProof />
         <div className="section-divider" aria-hidden="true" />
         <Pricing />
