@@ -329,14 +329,6 @@ button {
   }
 }
 
-/* ── WhyBento section CTAs ── */
-.why-cta {
-  transition: opacity 160ms var(--ease-out);
-}
-.why-cta:hover {
-  opacity: 0.7;
-}
-
 /* ── Nav responsive ── */
 .nav-btn:hover {
   background: var(--color-highlight) !important;
