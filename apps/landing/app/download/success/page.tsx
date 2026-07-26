@@ -1,110 +1,315 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import React, { Suspense, useEffect } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 type Platform = 'windows' | 'macos' | 'linux';
 
-const instructions: Record<Platform, { title: string; subtitle: string; steps: string[]; note?: string; advanced?: { label: string; code: string } }> = {
+const platformData: Record<
+  Platform,
+  {
+    title: string;
+    subtitle: string;
+    steps: { label: string; detail?: string }[];
+    tip?: string;
+    advanced?: { label: string; code: string };
+  }
+> = {
   windows: {
-    title: 'Windows SmartScreen Warning',
-    subtitle: 'Get past SmartScreen in two clicks.',
+    title: "You're all set.",
+    subtitle: "Windows will show a warning — it's safe, just unsigned. Here's how to get past it.",
     steps: [
-      'When the SmartScreen dialog appears, click "More info".',
-      'Click "Run anyway".',
+      { label: 'Click "More info" when SmartScreen appears' },
+      { label: 'Click "Run anyway"' },
     ],
-    note: "It's safe — just unsigned.",
+    tip: "That's it. Bento is yours.",
   },
   macos: {
-    title: 'macOS Security Notice',
-    subtitle: 'First launch? macOS will block it. Here\u2019s how to open it.',
+    title: "You're all set.",
+    subtitle: "macOS will block the first launch — it's normal. Here's how to open it.",
     steps: [
-      'Locate Bento.app in Finder.',
-      'Right-click the app and click Open.',
-      'Confirm by clicking Open again.',
+      { label: 'Find Bento.app in Finder' },
+      { label: 'Right-click it, then click Open' },
+      { label: 'Click Open again to confirm' },
     ],
-    note: 'Alternatively, go to System Settings > Privacy & Security and click Open Anyway next to the Bento entry.',
+    tip: "That's it. Bento is yours.",
     advanced: {
-      label: 'Advanced — remove quarantine via terminal',
+      label: 'Or use Terminal',
       code: 'xattr -d com.apple.quarantine /Applications/Bento.app',
     },
   },
   linux: {
-    title: 'Linux Setup',
-    subtitle: 'Make the AppImage executable and run it.',
+    title: "You're all set.",
+    subtitle: "One quick terminal step and you're in.",
     steps: [
-      'Open a terminal in your Downloads folder.',
-      'Run: chmod +x Bento.AppImage',
-      'Run: ./Bento.AppImage',
+      { label: 'Open Terminal in your Downloads folder' },
+      { label: 'Run: chmod +x Bento.AppImage' },
+      { label: 'Run: ./Bento.AppImage' },
     ],
-    note: 'For .deb packages, run: sudo dpkg -i bento.deb',
+    tip: "That's it. Bento is yours.",
   },
-};
-
-const platformIcons: Record<Platform, React.JSX.Element> = {
-  windows: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-      <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M3 12h18M12 3v18" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
-  ),
-  macos: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-      <path
-        d="M8 7v6a3 3 0 003 3h2a3 3 0 003-3V7"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <path d="M8 4v3M16 4v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  ),
-  linux: (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M12 2a3 3 0 00-3 3v1.5a3 3 0 003 3 3 3 0 003-3V5a3 3 0 00-3-3z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-      <path
-        d="M8.5 16.5L12 22l3.5-5.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M12 9.5v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  ),
 };
 
 function SuccessContent() {
   const searchParams = useSearchParams();
   const platform = (searchParams.get('platform') as Platform) || 'windows';
-  const downloadUrl = searchParams.get('dl') || '';
-  const info = instructions[platform] || instructions.windows;
-  const icon = platformIcons[platform] || platformIcons.windows;
+  const info = platformData[platform] || platformData.windows;
+  const [show, setShow] = useState(false);
 
   useEffect(() => {
-    if (!downloadUrl) return;
-    const a = document.createElement('a');
-    a.href = downloadUrl;
-    a.download = '';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }, [downloadUrl]);
+    const t = setTimeout(() => setShow(true), 100);
+    return () => clearTimeout(t);
+  }, []);
 
   return (
-    <main className="success-page">
-      <div className="success-page__inner">
-        <Link href="/download" className="success-page__back">
+    <main
+      style={{
+        minHeight: '100dvh',
+        background: 'var(--color-bg)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '80px 28px 60px',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: '480px',
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '32px',
+        }}
+      >
+        {/* Logo + checkmark */}
+        <div
+          style={{
+            position: 'relative',
+            width: '72px',
+            height: '72px',
+            opacity: show ? 1 : 0,
+            transform: show ? 'translateY(0) scale(1)' : 'translateY(12px) scale(0.9)',
+            transition: 'all 500ms cubic-bezier(0.23, 1, 0.32, 1)',
+          }}
+        >
+          <Image
+            src="/bento-icon.png"
+            alt="Bento"
+            width={72}
+            height={72}
+            style={{ borderRadius: '18px' }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '-4px',
+              right: '-4px',
+              width: '26px',
+              height: '26px',
+              borderRadius: '50%',
+              background: '#22c55e',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(34, 197, 94, 0.3)',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path
+                d="M4 8l3 3 5-5"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        </div>
+
+        {/* Heading */}
+        <div
+          style={{
+            textAlign: 'center',
+            opacity: show ? 1 : 0,
+            transform: show ? 'translateY(0)' : 'translateY(12px)',
+            transition: 'all 500ms cubic-bezier(0.23, 1, 0.32, 1) 100ms',
+          }}
+        >
+          <h1
+            style={{
+              fontFamily: "'Inter Display', var(--font-inter), system-ui, sans-serif",
+              fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
+              fontWeight: 700,
+              letterSpacing: '-0.04em',
+              lineHeight: 1.1,
+              color: 'var(--color-ink)',
+              margin: '0 0 12px',
+            }}
+          >
+            {info.title}
+          </h1>
+          <p
+            style={{
+              fontSize: '1rem',
+              lineHeight: 1.6,
+              color: 'var(--color-ink-muted)',
+              maxWidth: '380px',
+              margin: '0 auto',
+            }}
+          >
+            {info.subtitle}
+          </p>
+        </div>
+
+        {/* Steps card */}
+        <div
+          style={{
+            width: '100%',
+            background: 'var(--color-surface)',
+            borderRadius: '1.25rem',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            opacity: show ? 1 : 0,
+            transform: show ? 'translateY(0)' : 'translateY(12px)',
+            transition: 'all 500ms cubic-bezier(0.23, 1, 0.32, 1) 200ms',
+          }}
+        >
+          {info.steps.map((step, i) => (
+            <div
+              key={i}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '14px',
+              }}
+            >
+              <span
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  background: 'var(--color-accent)',
+                  color: 'var(--color-bg)',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  marginTop: '1px',
+                }}
+              >
+                {i + 1}
+              </span>
+              <div>
+                <p
+                  style={{
+                    fontSize: '0.95rem',
+                    fontWeight: 500,
+                    color: 'var(--color-ink)',
+                    lineHeight: 1.5,
+                    margin: 0,
+                  }}
+                >
+                  {step.label}
+                </p>
+                {step.detail && (
+                  <p
+                    style={{
+                      fontSize: '0.85rem',
+                      color: 'var(--color-ink-muted)',
+                      margin: '4px 0 0',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {step.detail}
+                  </p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Tip */}
+        {info.tip && (
+          <p
+            style={{
+              fontSize: '0.9rem',
+              fontWeight: 500,
+              color: 'var(--color-ink-faint)',
+              textAlign: 'center',
+              opacity: show ? 1 : 0,
+              transform: show ? 'translateY(0)' : 'translateY(8px)',
+              transition: 'all 500ms cubic-bezier(0.23, 1, 0.32, 1) 350ms',
+            }}
+          >
+            {info.tip}
+          </p>
+        )}
+
+        {/* Advanced (macOS only) */}
+        {info.advanced && (
+          <details
+            style={{
+              width: '100%',
+              opacity: show ? 1 : 0,
+              transform: show ? 'translateY(0)' : 'translateY(8px)',
+              transition: 'all 500ms cubic-bezier(0.23, 1, 0.32, 1) 400ms',
+            }}
+          >
+            <summary
+              style={{
+                fontSize: '0.8rem',
+                color: 'var(--color-ink-faint)',
+                cursor: 'pointer',
+                userSelect: 'none',
+                listStyle: 'none',
+              }}
+            >
+              {info.advanced.label}
+            </summary>
+            <code
+              style={{
+                display: 'block',
+                marginTop: '10px',
+                padding: '12px 16px',
+                borderRadius: '0.75rem',
+                background: 'var(--color-elevated)',
+                fontFamily: "'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace",
+                fontSize: '0.8rem',
+                color: 'var(--color-ink)',
+                overflowX: 'auto',
+                wordBreak: 'break-all',
+              }}
+            >
+              {info.advanced.code}
+            </code>
+          </details>
+        )}
+
+        {/* Back link */}
+        <Link
+          href="/"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '0.85rem',
+            fontWeight: 500,
+            color: 'var(--color-ink-muted)',
+            textDecoration: 'none',
+            transition: 'color 160ms ease',
+            opacity: show ? 1 : 0,
+            transform: show ? 'translateY(0)' : 'translateY(8px)',
+            marginTop: '8px',
+          }}
+        >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path
               d="M10 3L5 8l5 5"
@@ -114,34 +319,9 @@ function SuccessContent() {
               strokeLinejoin="round"
             />
           </svg>
-          Back to downloads
+          Back to home
         </Link>
-
-        <div className="success-page__card">
-          <div className="success-page__icon">{icon}</div>
-          <h1 className="success-page__title">{info.title}</h1>
-          <p className="success-page__subtitle">{info.subtitle}</p>
-
-          <ol className="success-page__steps">
-            {info.steps.map((step, i) => (
-              <li key={i} className="success-page__step">
-                <span className="success-page__step-num">{i + 1}</span>
-                <span className="success-page__step-text">{step}</span>
-              </li>
-            ))}
-          </ol>
-
-          {info.note && <p className="success-page__note">{info.note}</p>}
-
-          {info.advanced && (
-            <details className="success-page__advanced">
-              <summary>{info.advanced.label}</summary>
-              <code className="success-page__code">{info.advanced.code}</code>
-            </details>
-          )}
-        </div>
       </div>
-      <style>{successStyles}</style>
     </main>
   );
 }
@@ -153,122 +333,3 @@ export default function SuccessPage() {
     </Suspense>
   );
 }
-
-const successStyles = `
-  .success-page {
-    min-height: 100vh;
-    background: var(--color-bg);
-    color: var(--color-ink);
-  }
-  .success-page__inner {
-    max-width: 520px;
-    margin: 0 auto;
-    padding: 4rem 1.5rem 4rem;
-    display: grid;
-    gap: 1.5rem;
-  }
-  .success-page__back {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.85rem;
-    color: var(--color-ink-muted);
-    text-decoration: none;
-    transition: color 0.15s ease;
-  }
-  .success-page__back:hover {
-    color: var(--color-ink);
-  }
-  .success-page__card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 1.25rem;
-    padding: 2.5rem 2rem;
-    display: grid;
-    gap: 0.5rem;
-  }
-  .success-page__icon {
-    width: 3rem;
-    height: 3rem;
-    display: grid;
-    place-items: center;
-    border-radius: 0.75rem;
-    background: var(--color-highlight);
-    color: var(--color-accent);
-    margin-bottom: 0.5rem;
-  }
-  .success-page__title {
-    margin: 0;
-    font-size: 1.5rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-  }
-  .success-page__subtitle {
-    margin: 0;
-    font-size: 0.95rem;
-    color: var(--color-ink-muted);
-    line-height: 1.5;
-  }
-  .success-page__steps {
-    margin: 1.5rem 0 0;
-    padding: 0;
-    list-style: none;
-    display: grid;
-    gap: 1rem;
-  }
-  .success-page__step {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-  .success-page__step-num {
-    width: 1.5rem;
-    height: 1.5rem;
-    display: grid;
-    place-items: center;
-    border-radius: 50%;
-    background: var(--color-accent);
-    color: var(--color-bg);
-    font-size: 0.75rem;
-    font-weight: 700;
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
-  .success-page__step-text {
-    font-size: 0.95rem;
-    line-height: 1.6;
-    color: var(--color-ink);
-  }
-  .success-page__note {
-    margin: 1.5rem 0 0;
-    font-size: 0.85rem;
-    color: var(--color-ink-muted);
-    line-height: 1.6;
-    padding-top: 1rem;
-    border-top: 1px solid var(--color-border);
-  }
-  .success-page__advanced {
-    margin-top: 1rem;
-  }
-  .success-page__advanced summary {
-    font-size: 0.8rem;
-    color: var(--color-ink-muted);
-    cursor: pointer;
-    user-select: none;
-  }
-  .success-page__advanced summary:hover {
-    color: var(--color-ink);
-  }
-  .success-page__code {
-    display: block;
-    margin-top: 0.75rem;
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-    background: var(--color-elevated);
-    font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
-    font-size: 0.8rem;
-    color: var(--color-ink);
-    overflow-x: auto;
-    word-break: break-all;
-  }
-`;
