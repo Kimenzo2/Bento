@@ -62,7 +62,6 @@
   </button>
 
   <AgentDock
-    agentName="Bento"
     avatarSrc="/assets/characters/demo-agent-avatar.jpeg"
     onMessageSubmit={handleMessageSubmit}
     onComposerStateChange={handleComposerStateChange}

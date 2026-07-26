@@ -63,11 +63,11 @@
 
   // ── Custom confirm dialog ────────────────────────────────────────────────
   let confirmAction: (() => void) | null = null;
-  let confirmMessage = "";
-  let confirmInput = "";
-  let confirmRequiredText = "";
+  let confirmMessage = $state("");
+  let confirmInput = $state("");
+  let confirmRequiredText = $state("");
   let confirmOpen = $state(false);
-  let confirmType: "confirm" | "prompt" = "confirm";
+  let confirmType: "confirm" | "prompt" = $state("confirm");
 
   function openConfirm(message: string, action: () => void) {
     confirmMessage = message;

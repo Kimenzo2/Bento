@@ -728,7 +728,7 @@
                     {msg.content}
                   {:else}
                     <StreamingMarkdown content={msg.content} />
-                    {#if msg.toolCalls?.length > 0}
+                    {#if (msg.toolCalls?.length ?? 0) > 0}
                       {#each msg.toolCalls as tc (tc.id)}
                         <Tool.Root>
                           <Tool.Header type={tc.name} state={tc.state === "completed" ? "output-available" : tc.state === "error" ? "output-error" : tc.state === "running" ? "input-available" : "input-streaming"} />
@@ -741,7 +741,7 @@
                         </Tool.Root>
                       {/each}
                     {/if}
-                    {#if msg.uiUpdates?.length > 0}
+                    {#if (msg.uiUpdates?.length ?? 0) > 0}
                       <div class="flex flex-col gap-2 px-4 py-2">
                         {#each msg.uiUpdates as ui, i}
                           <GenerativeUiRenderer ui={ui} />

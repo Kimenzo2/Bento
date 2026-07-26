@@ -82,6 +82,6 @@
   </div>
 {:else}
   <div class="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
-    <p class="text-xs text-[var(--muted-foreground)]">Unsupported UI type: {ui.type}</p>
+    <p class="text-xs text-[var(--muted-foreground)]">Unsupported UI type: {(ui as { type: string }).type}</p>
   </div>
 {/if}
