@@ -93,7 +93,7 @@ function SuccessContent() {
             height: '72px',
             opacity: show ? 1 : 0,
             transform: show ? 'translateY(0) scale(1)' : 'translateY(12px) scale(0.9)',
-            transition: 'all 500ms cubic-bezier(0.23, 1, 0.32, 1)',
+            transition: 'opacity 500ms cubic-bezier(0.23, 1, 0.32, 1), transform 500ms cubic-bezier(0.23, 1, 0.32, 1)',
           }}
         >
           <Image
@@ -101,7 +101,11 @@ function SuccessContent() {
             alt="Bento"
             width={72}
             height={72}
-            style={{ borderRadius: '18px' }}
+            style={{
+              borderRadius: '18px',
+              outline: '1px solid oklch(0 0 0 / 0.1)',
+              outlineOffset: '-1px',
+            }}
           />
           <div
             style={{
@@ -115,7 +119,6 @@ function SuccessContent() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 2px 8px rgba(34, 197, 94, 0.3)',
             }}
           >
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -136,7 +139,7 @@ function SuccessContent() {
             textAlign: 'center',
             opacity: show ? 1 : 0,
             transform: show ? 'translateY(0)' : 'translateY(12px)',
-            transition: 'all 500ms cubic-bezier(0.23, 1, 0.32, 1) 100ms',
+            transition: 'opacity 500ms cubic-bezier(0.23, 1, 0.32, 1) 80ms, transform 500ms cubic-bezier(0.23, 1, 0.32, 1) 80ms',
           }}
         >
           <h1
@@ -148,6 +151,7 @@ function SuccessContent() {
               lineHeight: 1.1,
               color: 'var(--color-ink)',
               margin: '0 0 12px',
+              textWrap: 'balance',
             }}
           >
             {info.title}
@@ -177,7 +181,7 @@ function SuccessContent() {
             gap: '16px',
             opacity: show ? 1 : 0,
             transform: show ? 'translateY(0)' : 'translateY(12px)',
-            transition: 'all 500ms cubic-bezier(0.23, 1, 0.32, 1) 200ms',
+            transition: 'opacity 500ms cubic-bezier(0.23, 1, 0.32, 1) 160ms, transform 500ms cubic-bezier(0.23, 1, 0.32, 1) 160ms',
           }}
         >
           {info.steps.map((step, i) => (
@@ -246,7 +250,7 @@ function SuccessContent() {
               textAlign: 'center',
               opacity: show ? 1 : 0,
               transform: show ? 'translateY(0)' : 'translateY(8px)',
-              transition: 'all 500ms cubic-bezier(0.23, 1, 0.32, 1) 350ms',
+              transition: 'opacity 500ms cubic-bezier(0.23, 1, 0.32, 1) 280ms, transform 500ms cubic-bezier(0.23, 1, 0.32, 1) 280ms',
             }}
           >
             {info.tip}
@@ -260,7 +264,7 @@ function SuccessContent() {
               width: '100%',
               opacity: show ? 1 : 0,
               transform: show ? 'translateY(0)' : 'translateY(8px)',
-              transition: 'all 500ms cubic-bezier(0.23, 1, 0.32, 1) 400ms',
+              transition: 'opacity 500ms cubic-bezier(0.23, 1, 0.32, 1) 340ms, transform 500ms cubic-bezier(0.23, 1, 0.32, 1) 340ms',
             }}
           >
             <summary
@@ -304,10 +308,24 @@ function SuccessContent() {
             fontWeight: 500,
             color: 'var(--color-ink-muted)',
             textDecoration: 'none',
-            transition: 'color 160ms ease',
+            transition: 'color 160ms ease, transform 150ms ease',
             opacity: show ? 1 : 0,
-            transform: show ? 'translateY(0)' : 'translateY(8px)',
+            transform: show ? 'translateY(0) scale(1)' : 'translateY(8px) scale(1)',
             marginTop: '8px',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = 'var(--color-ink)';
+            e.currentTarget.style.textDecoration = 'underline';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = 'var(--color-ink-muted)';
+            e.currentTarget.style.textDecoration = 'none';
+          }}
+          onMouseDown={(e) => {
+            e.currentTarget.style.transform = 'scale(0.96)';
+          }}
+          onMouseUp={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
           }}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
