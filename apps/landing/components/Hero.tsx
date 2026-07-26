@@ -153,7 +153,7 @@ export default function Hero({
               <a
                 data-slot="button"
                 className="btn-accent hero-btn"
-                href={active?.href ?? platforms.windows.href}
+                href={`/download/success?platform=${platform || 'windows'}&dl=${encodeURIComponent(active?.href ?? platforms.windows.href)}`}
                 aria-disabled={detecting}
                 style={{
                   display: 'inline-flex',
@@ -248,7 +248,7 @@ export default function Hero({
               <a
                 data-slot="button"
                 className="hero-btn"
-                href={active?.href ?? platforms.windows.href}
+                href={`/download/success?platform=${platform || 'windows'}&dl=${encodeURIComponent(active?.href ?? platforms.windows.href)}`}
                 aria-disabled={detecting}
                 style={{
                   display: 'inline-flex',
@@ -321,7 +321,7 @@ export default function Hero({
             <a
               data-slot="button"
               key={key}
-              href={p.href}
+              href={`/download/success?platform=${key}&dl=${encodeURIComponent(p.href)}`}
               className={platform === key ? 'btn-accent hero-btn' : 'hero-btn'}
               style={{
                 fontSize: '0.72rem',

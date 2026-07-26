@@ -36,7 +36,7 @@ const btn = {
 } as const;
 
 export default function Nav({ platforms }: { platforms: Record<Platform, PlatformInfo> }) {
-  const { detecting, downloadHref, scrollToDownload } = useDownload(platforms);
+  const { platform, detecting, downloadHref, scrollToDownload } = useDownload(platforms);
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -221,7 +221,7 @@ export default function Nav({ platforms }: { platforms: Record<Platform, Platfor
               type="button"
               disabled={detecting}
               onClick={() => {
-                if (downloadHref) window.location.href = downloadHref;
+                if (downloadHref) window.location.href = `/download/success?platform=${platform || 'windows'}&dl=${encodeURIComponent(downloadHref)}`;
                 else scrollToDownload();
               }}
               style={{
@@ -374,7 +374,7 @@ export default function Nav({ platforms }: { platforms: Record<Platform, Platfor
               type="button"
               disabled={detecting}
               onClick={() => {
-                if (downloadHref) window.location.href = downloadHref;
+                if (downloadHref) window.location.href = `/download/success?platform=${platform || 'windows'}&dl=${encodeURIComponent(downloadHref)}`;
                 else scrollToDownload();
               }}
               style={{

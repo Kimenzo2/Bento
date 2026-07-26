@@ -63,15 +63,15 @@ export default function DownloadSection({ version }: { version: string }) {
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {[
-              { label: 'Windows', href: CDN + '/nsis-x86_64' },
-              { label: 'macOS', href: CDN + '/dmg-universal' },
-              { label: 'Linux', href: CDN + '/appimage-x86_64' },
+              { key: 'windows', label: 'Windows', href: CDN + '/nsis-x86_64' },
+              { key: 'macos', label: 'macOS', href: CDN + '/dmg-universal' },
+              { key: 'linux', label: 'Linux', href: CDN + '/appimage-x86_64' },
             ].map((p) => (
               <a
                 key={p.label}
                 data-slot="button"
                 className="btn-accent"
-                href={p.href}
+                href={`/download/success?platform=${p.key}&dl=${encodeURIComponent(p.href)}`}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
