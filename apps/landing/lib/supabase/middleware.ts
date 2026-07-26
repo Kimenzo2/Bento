@@ -32,29 +32,25 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
-  const supabase = createServerClient(
-    resolveUrl(),
-    resolveKey(),
-    {
-      auth: {
-        flowType: 'pkce',
+  const supabase = createServerClient(resolveUrl(), resolveKey(), {
+    auth: {
+      flowType: 'pkce',
+    },
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
       },
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          supabaseResponse = NextResponse.next({
-            request,
-          });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
-        },
+      setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        supabaseResponse = NextResponse.next({
+          request,
+        });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          supabaseResponse.cookies.set(name, value, options)
+        );
       },
-    }
-  );
+    },
+  });
 
   // IMPORTANT: Do NOT use getSession() here.
   // getUser() validates the JWT and triggers token refresh if needed.

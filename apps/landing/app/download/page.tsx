@@ -76,10 +76,8 @@ export default function DownloadPage() {
           {platforms.map((p) => (
             <a
               key={p.key}
-              href={p.href}
+              href={`/download/success?platform=${p.key}&dl=${encodeURIComponent(p.href)}`}
               className="download-page__card"
-              target="_blank"
-              rel="noopener noreferrer"
             >
               <div className="download-page__card-icon">
                 {p.key === 'windows' && (

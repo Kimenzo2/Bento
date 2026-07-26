@@ -25,7 +25,10 @@ function resolveKey(fallback: string): string {
 }
 
 export function createClient() {
-  return createBrowserClient(resolveUrl(FALLBACK_SUPABASE_URL), resolveKey(FALLBACK_SUPABASE_ANON_KEY), {
+  return createBrowserClient(
+    resolveUrl(FALLBACK_SUPABASE_URL),
+    resolveKey(FALLBACK_SUPABASE_ANON_KEY),
+    {
       auth: {
         // Use PKCE flow for server-side rendering compatibility
         flowType: 'pkce',
