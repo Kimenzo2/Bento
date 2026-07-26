@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -55,8 +55,23 @@ const platformData: Record<
 function SuccessContent() {
   const searchParams = useSearchParams();
   const platform = (searchParams.get('platform') as Platform) || 'windows';
+  const downloadUrl = searchParams.get('dl') || '';
   const info = platformData[platform] || platformData.windows;
   const [show, setShow] = useState(false);
+
+  const triggerDownload = useCallback(() => {
+    if (!downloadUrl) return;
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = '';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }, [downloadUrl]);
+
+  useEffect(() => {
+    triggerDownload();
+  }, [triggerDownload]);
 
   useEffect(() => {
     const t = setTimeout(() => setShow(true), 100);
