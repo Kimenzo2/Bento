@@ -39,6 +39,7 @@
 
 <style>
   .dock-btn {
+    position: relative;
     display: flex;
     height: 36px;
     align-items: center;
@@ -56,6 +57,13 @@
     outline: none;
   }
 
+  .dock-btn::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: 10px;
+  }
+
   .dock-btn:hover {
     background: oklch(1 0 89.876 / 0.1);
   }
@@ -66,7 +74,7 @@
   }
 
   .dock-btn:active {
-    transform: scale(0.95);
+    transform: scale(0.96);
   }
 
   .dock-btn__icon {

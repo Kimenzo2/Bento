@@ -70,6 +70,16 @@
       <p class="mt-2 text-xs text-red-500">{confirmError}</p>
     {/if}
   </div>
+{:else if ui.type === "note_draft"}
+  <div class="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
+    <p class="text-sm font-medium">{ui.title ?? "Note Draft"}</p>
+    <p class="mt-1 text-xs text-[var(--muted-foreground)]">{ui.blocks?.length ?? 0} block(s)</p>
+  </div>
+{:else if ui.type === "chart"}
+  <div class="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
+    <p class="text-sm font-medium">Chart: {ui.variant}</p>
+    <p class="mt-1 text-xs text-[var(--muted-foreground)]">{ui.data?.length ?? 0} data point(s)</p>
+  </div>
 {:else}
   <div class="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
     <p class="text-xs text-[var(--muted-foreground)]">Unsupported UI type: {ui.type}</p>

@@ -14,14 +14,13 @@ class AgentMorphStore {
   state = $state<MorphState>("closed");
   activeId = $state<string | null>(null);
   renderedId = $state<string | null>(null);
-  inputBottom = $state(116);
+  inputBottom = $state(0);
 
   _closeTimer: ReturnType<typeof setTimeout> | null = null;
   _collapseTimer: ReturnType<typeof setTimeout> | null = null;
-
   _clear = () => {
-    if (this._closeTimer) clearTimeout(this._closeTimer);
-    if (this._collapseTimer) clearTimeout(this._collapseTimer);
+    if (this._closeTimer) { clearTimeout(this._closeTimer); this._closeTimer = null; }
+    if (this._collapseTimer) { clearTimeout(this._collapseTimer); this._collapseTimer = null; }
   };
 
   toggleMenu = () => {
@@ -60,8 +59,12 @@ class AgentMorphStore {
     }, CLEANUP_MS);
   };
 
-  destroy = () => {
+  reset = () => {
     this._clear();
+    this.mounted = false;
+    this.state = "closed";
+    this.activeId = null;
+    this.renderedId = null;
   };
 }
 

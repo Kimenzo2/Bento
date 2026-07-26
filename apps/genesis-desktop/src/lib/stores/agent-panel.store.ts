@@ -5,6 +5,8 @@ const PANEL_MAX = 560;
 const PANEL_DEFAULT = 420;
 const STORAGE_KEY = "bento-agent-panel-width";
 
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
+
 function loadWidth(): number {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -16,6 +18,18 @@ function loadWidth(): number {
     console.warn("[agent-panel] Failed to read stored width:", e);
   }
   return PANEL_DEFAULT;
+}
+
+function persistWidth(w: number) {
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = setTimeout(() => {
+    persistTimer = null;
+    try {
+      localStorage.setItem(STORAGE_KEY, String(w));
+    } catch (e) {
+      console.warn("[agent-panel] Failed to persist width:", e);
+    }
+  }, 300);
 }
 
 export const agentPanelOpen = writable(false);
@@ -36,15 +50,13 @@ export function closeAgentPanel() {
 export function setAgentPanelWidth(w: number) {
   const clamped = Math.max(PANEL_MIN, Math.min(PANEL_MAX, w));
   agentPanelWidth.set(clamped);
-  try {
-    localStorage.setItem(STORAGE_KEY, String(clamped));
-  } catch (e) {
-    console.warn("[agent-panel] Failed to persist width:", e);
-  }
+  persistWidth(clamped);
 }
 
 export function resetAgentPanelWidth() {
   agentPanelWidth.set(PANEL_DEFAULT);
+  if (persistTimer) clearTimeout(persistTimer);
+  persistTimer = null;
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch (e) {

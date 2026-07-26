@@ -29,7 +29,6 @@
     saveApiKey,
     deleteApiKey,
     testConnection,
-    toggleByok,
     setActiveProvider,
     setActiveModel,
     dismissOnboarding,
@@ -190,10 +189,6 @@
     }
   }
 
-  async function handleToggle(enabled: boolean) {
-    await toggleByok(enabled);
-  }
-
   async function handleDismissOnboarding() {
     await dismissOnboarding();
   }
@@ -293,32 +288,7 @@
   {:else}
     <!-- ── Main BYOK Panel ──────────────────────────────── -->
     <div class="byok-panel">
-      <!-- ── Enable/Disable Toggle ───────────────────────── -->
-      <div class="byok-toggle-row">
-        <div class="byok-toggle-row__info">
-          <h4>BYOK Mode</h4>
-          <p>
-            {#if $byokSettings.enabled}
-              Active — using your configured provider for AI features.
-            {:else}
-              Disabled — using built-in AI channels.
-            {/if}
-          </p>
-        </div>
-        <label class="byok-toggle" aria-label="Toggle BYOK mode">
-          <input
-            type="checkbox"
-            checked={$byokSettings.enabled}
-            onchange={(e) => void handleToggle(e.currentTarget.checked)}
-          />
-          <span class="byok-toggle__track">
-            <span class="byok-toggle__thumb"></span>
-          </span>
-        </label>
-      </div>
-
-      {#if $byokSettings.enabled}
-        <!-- ── Active Provider Selector ────────────────────── -->
+      <!-- ── Active Provider Selector ────────────────────── -->
         <div class="byok-section">
           <div class="byok-section__header">
             <h4>Active AI Provider</h4>
@@ -648,7 +618,6 @@
             </p>
           </div>
         </div>
-      {/if}
     </div>
   {/if}
 </div>
@@ -808,78 +777,6 @@
   .byok-panel {
     display: grid;
     gap: 1.25rem;
-  }
-
-  /* ── Toggle Row ──────────────────────────────────────────────────────────── */
-  .byok-toggle-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.85rem 1rem;
-    border-radius: 14px;
-    border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
-    box-shadow: none;
-    background:
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--surface) 96%, var(--background)) 98%,
-        color-mix(in srgb, var(--surface) 96%, var(--background)) 86%
-      );
-  }
-  .byok-toggle-row__info {
-    display: grid;
-    gap: 0.15rem;
-    min-width: 0;
-  }
-  .byok-toggle-row__info h4 {
-    margin: 0;
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--foreground);
-  }
-  .byok-toggle-row__info p {
-    margin: 0;
-    color: var(--muted);
-  }
-
-  .byok-toggle {
-    display: inline-flex;
-    align-items: center;
-    cursor: pointer;
-    flex-shrink: 0;
-  }
-  .byok-toggle input {
-    position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
-    pointer-events: none;
-  }
-  .byok-toggle__track {
-    position: relative;
-    width: 2.75rem;
-    height: 1.55rem;
-    border-radius: 9999px;
-    background: color-mix(in srgb, var(--foreground) 15%, var(--background));
-    transition: background 0.2s ease;
-  }
-  .byok-toggle input:checked + .byok-toggle__track {
-    background: var(--primary);
-  }
-  .byok-toggle__thumb {
-    position: absolute;
-    top: 0.15rem;
-    left: 0.15rem;
-    width: 1.25rem;
-    height: 1.25rem;
-    border-radius: 9999px;
-    background: white;
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-    box-shadow: none;
-  }
-  .byok-toggle input:checked + .byok-toggle__track .byok-toggle__thumb {
-    transform: translateX(1.2rem);
   }
 
   /* ── Sections ────────────────────────────────────────────────────────────── */

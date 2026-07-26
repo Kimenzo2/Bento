@@ -10,7 +10,7 @@
   import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
   import PanelLeftCloseIcon from "@lucide/svelte/icons/panel-left-close";
   import PaperclipIcon from "@lucide/svelte/icons/paperclip";
-  import PenIcon from "@lucide/svelte/icons/pen";
+  import SquareIcon from "@lucide/svelte/icons/square";
   import ArrowUpIcon from "@lucide/svelte/icons/arrow-up";
   import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
   import SparklesIcon from "@lucide/svelte/icons/sparkles";
@@ -41,7 +41,6 @@
     clearConversationId,
   } from "$lib/stores/agent-conversation.store";
   import PlusIcon from "@lucide/svelte/icons/plus";
-  import HistoryIcon from "@lucide/svelte/icons/history";
   import { goto } from "@mateothegreat/svelte5-router";
   import { chatgptSession, loadChatGptSession } from "$lib/stores/chatgpt-auth.store";
 
@@ -62,12 +61,15 @@
     });
   }
 
-  // Load ChatGPT session on mount
   let chatgptLoaded = $state(false);
   $effect(() => {
-    if (!chatgptLoaded) {
-      chatgptLoaded = true;
-      loadChatGptSession();
+    if (!chatgptLoaded && !$chatgptSession) {
+      loadChatGptSession()
+        .then(() => { chatgptLoaded = true; })
+        .catch((e) => {
+          console.warn("[agent-panel] chatgpt session load failed:", e);
+          chatgptLoaded = true;
+        });
     }
   });
 
@@ -99,24 +101,32 @@
   let convTitle = $state("");
   let loadingConversation = $state(false);
   let initialLoadDone = $state(false);
+  let loadedConversationId = $state<string | null>(null);
 
   // Load the persisted conversation when a valid ID exists.
   // Uses initialLoadDone guard to avoid re-loading from DB after every save
   // (save sets the conversation ID, which would otherwise trigger a reload).
+  // When the ID changes to a different conversation, allow re-loading.
   $effect(() => {
     const id = $currentConversationId;
     if (!id) {
       loadingConversation = false;
       return;
     }
-    if (initialLoadDone) return;
+    if (initialLoadDone && id === loadedConversationId) return;
     initialLoadDone = true;
+    loadedConversationId = id;
     loadingConversation = true;
     conversations.get(id).then((conv) => {
       if (conv) {
         messages = conv.messages.map((m) => ({
           role: m.role as "user" | "assistant",
           content: m.content,
+          toolCalls: m.toolCalls?.map(tc => ({
+            ...tc,
+            autoExecute: true,
+            state: "completed" as const,
+          })),
         }));
         convTitle = conv.title || "";
       }
@@ -143,6 +153,11 @@
       await conversations.save(id, messages.map((m) => ({
         role: m.role,
         content: m.content,
+        toolCalls: m.toolCalls?.map(tc => ({
+          id: tc.id,
+          name: tc.name,
+          args: tc.args,
+        })),
       })));
       setConversationId(id);
     } catch (e) {
@@ -162,11 +177,14 @@
     messages = [];
     streamingText = "";
     streamingError = null;
+    attachError = null;
+    if (attachErrorTimer) { clearTimeout(attachErrorTimer); attachErrorTimer = null; }
     toolCalls = [];
     uiUpdates = [];
     convTitle = "";
     loadingConversation = false;
     initialLoadDone = false;
+    attachCounter = 0;
     clearConversationId();
   }
 
@@ -181,6 +199,8 @@
   type PanelChatMessage = {
     role: "user" | "assistant";
     content: string;
+    toolCalls?: ToolCallInfo[];
+    uiUpdates?: UiVocabulary[];
   };
 
   let messages = $state.raw<PanelChatMessage[]>([]);
@@ -247,8 +267,9 @@
 
     document.body.classList.add("col-resize");
 
-    window.addEventListener("mousemove", onResizeMove);
-    window.addEventListener("mouseup", onResizeEnd);
+    document.addEventListener("mousemove", onResizeMove);
+    document.addEventListener("mouseup", onResizeEnd);
+    document.addEventListener("pointercancel", onResizeEnd);
   }
 
   function onResizeMove(e: MouseEvent) {
@@ -262,8 +283,9 @@
 
   function onResizeEnd() {
     resizeActive = false;
-    window.removeEventListener("mousemove", onResizeMove);
-    window.removeEventListener("mouseup", onResizeEnd);
+    document.removeEventListener("mousemove", onResizeMove);
+    document.removeEventListener("mouseup", onResizeEnd);
+    document.removeEventListener("pointercancel", onResizeEnd);
     document.body.classList.remove("col-resize");
     if (rafId) {
       cancelAnimationFrame(rafId);
@@ -301,7 +323,9 @@
   $effect(() => {
     if (!$agentPanelOpen) {
       if (messages.length > 0) {
-        saveConversation();
+        saveConversation().catch((e) =>
+          console.warn("[agent-panel] save on close failed:", e)
+        );
       }
       if (agentMorph.state !== "closed") {
         agentMorph.close();
@@ -324,8 +348,9 @@
   // ── Cleanup on unmount ──────────────────────────────────────────
   $effect(() => {
     return () => {
-      window.removeEventListener("mousemove", onResizeMove);
-      window.removeEventListener("mouseup", onResizeEnd);
+      document.removeEventListener("mousemove", onResizeMove);
+      document.removeEventListener("mouseup", onResizeEnd);
+      document.removeEventListener("pointercancel", onResizeEnd);
       document.body.classList.remove("col-resize");
       if (rafId) cancelAnimationFrame(rafId);
     };
@@ -381,7 +406,7 @@
       }
 
       if (streamingText.trim()) {
-        messages = [...messages, { role: "assistant", content: streamingText }];
+        messages = [...messages, { role: "assistant", content: streamingText, toolCalls, uiUpdates }];
       }
       streamingText = "";
       toolCalls = [];
@@ -402,6 +427,8 @@
               ? "Authentication error. Your API key may be invalid or expired."
               : msg;
       streamingText = "";
+      toolCalls = [];
+      uiUpdates = [];
     } finally {
       submitBusy = false;
       activeStream = null;
@@ -411,21 +438,26 @@
   // ── Retry last message ─────────────────────────────────────────
   async function retryLastMessage() {
     if (!lastSentMessage || submitBusy) return;
+    streamingError = null;
     const msg = lastSentMessage;
     const prevMessages = messages;
-    messages = messages.slice(0, -1);
+    if (messages.length > 0 && messages[messages.length - 1].role === "assistant") {
+      messages = messages.slice(0, -1);
+    }
     lastSentMessage = "";
     await sendAndStream(msg);
     if (streamingError) {
       messages = prevMessages;
       lastSentMessage = msg;
+    } else {
+      requestAnimationFrame(() => scrollToBottom("smooth"));
     }
   }
 
   // ── Submit handler ─────────────────────────────────────────────
   async function handleSubmit(e: Event) {
     e.preventDefault();
-    if (!message.trim() || submitBusy) return;
+    if ((!message.trim() && attachments.length === 0) || submitBusy) return;
 
     const text = message.trim();
     // Build rich content with attachments
@@ -451,7 +483,7 @@
     // Scroll to bottom after user message is appended
     requestAnimationFrame(() => scrollToBottom("instant"));
 
-    await sendAndStream(text);
+    await sendAndStream(content);
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -461,11 +493,26 @@
     }
   }
 
-  function autoResize() {
-    if (textareaRef) {
-      textareaRef.style.height = "auto";
-      textareaRef.style.height = Math.min(textareaRef.scrollHeight, 200) + "px";
+  const MAX_ATTACHMENT_SIZE = 20 * 1024 * 1024;
+
+  function bytesToBase64(bytes: Uint8Array): string {
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
     }
+    return btoa(binary);
+  }
+
+  let resizeRaf = 0;
+  function autoResize() {
+    if (!textareaRef) return;
+    cancelAnimationFrame(resizeRaf);
+    resizeRaf = requestAnimationFrame(() => {
+      if (!textareaRef) return;
+      textareaRef.style.height = "0px";
+      textareaRef.style.height = Math.min(textareaRef.scrollHeight, 200) + "px";
+    });
   }
 
   // ── Cancel active stream on unmount ────────────────────────────
@@ -489,13 +536,17 @@
   // ── Attachments ──────────────────────────────────────────────────
   let attachments: Attachment[] = $state([]);
   let attachCounter = $state(0);
+  let captureBusy = $state(false);
+  let attachError = $state<string | null>(null);
+  let attachErrorTimer: ReturnType<typeof setTimeout> | null = null;
 
-  function addAttachment(kind: "image" | "doc", name?: string) {
-    const id = `attach-${attachCounter++}`;
-    attachments = [
-      ...attachments,
-      { id, kind, name },
-    ];
+  function showAttachError(msg: string) {
+    attachError = msg;
+    if (attachErrorTimer) clearTimeout(attachErrorTimer);
+    attachErrorTimer = setTimeout(() => {
+      attachError = null;
+      attachErrorTimer = null;
+    }, 4000);
   }
 
   function removeAttachment(id: string) {
@@ -506,9 +557,13 @@
     agentMorph.close();
     try {
       if (id === "camera") {
-        // Capture screen using Tauri
-        const dataUri = await invoke<string>("capture_screen");
-        attachments = [...attachments, { id: `attach-${attachCounter++}`, kind: "image", uri: dataUri, name: "Screen Capture" }];
+        captureBusy = true;
+        try {
+          const dataUri = await invoke<string>("capture_screen");
+          attachments = [...attachments, { id: `attach-${attachCounter++}`, kind: "image", uri: dataUri, name: "Screen Capture" }];
+        } finally {
+          captureBusy = false;
+        }
       } else if (id === "photos") {
         // Open file picker for images
         const { open } = await import("@tauri-apps/plugin-dialog");
@@ -519,10 +574,13 @@
         if (selected) {
           const files = Array.isArray(selected) ? selected : [selected];
           for (const file of files) {
-            // Read file as base64 data URI
             const { readFile } = await import("@tauri-apps/plugin-fs");
             const bytes = await readFile(file);
-            const base64 = btoa(String.fromCharCode(...bytes));
+            if (bytes.length > MAX_ATTACHMENT_SIZE) {
+              showAttachError(`Image too large (max 20MB): ${file.split(/[/\\]/).pop()}`);
+              continue;
+            }
+            const base64 = bytesToBase64(bytes);
             const ext = file.split(".").pop()?.toLowerCase() || "png";
             const mime = ext === "jpg" ? "image/jpeg" : `image/${ext}`;
             attachments = [...attachments, { id: `attach-${attachCounter++}`, kind: "image", uri: `data:${mime};base64,${base64}`, name: file.split(/[/\\]/).pop() || "Image" }];
@@ -541,19 +599,23 @@
             const { readTextFile, readFile } = await import("@tauri-apps/plugin-fs");
             const ext = file.split(".").pop()?.toLowerCase() || "txt";
             if (["txt", "md"].includes(ext)) {
-              // Read text files as content
               const content = await readTextFile(file);
-              attachments = [...attachments, { id: `attach-${attachCounter++}`, kind: "doc", uri: `data:text/plain;base64,${btoa(content)}`, name: file.split(/[/\\]/).pop() || "Document" }];
+              const encoded = new TextEncoder().encode(content);
+              const base64 = bytesToBase64(encoded);
+              attachments = [...attachments, { id: `attach-${attachCounter++}`, kind: "doc", uri: `data:text/plain;base64,${base64}`, name: file.split(/[/\\]/).pop() || "Document" }];
             } else {
-              // Read binary files as base64
               const bytes = await readFile(file);
-              const base64 = btoa(String.fromCharCode(...bytes));
+              if (bytes.length > MAX_ATTACHMENT_SIZE) {
+                showAttachError(`File too large (max 20MB): ${file.split(/[/\\]/).pop()}`);
+                continue;
+              }
+              const base64 = bytesToBase64(bytes);
               attachments = [...attachments, { id: `attach-${attachCounter++}`, kind: "doc", uri: `data:application/${ext};base64,${base64}`, name: file.split(/[/\\]/).pop() || "Document" }];
             }
           }
         }
       } else if (id === "plugins") {
-        // Plugins not yet implemented
+        console.warn("[agent-panel] plugins not yet implemented");
         return;
       }
     } catch (err) {
@@ -563,7 +625,7 @@
 
   // ── Cleanup morph timers on unmount ──────────────────────────────
   $effect(() => {
-    return () => agentMorph.destroy();
+    return () => agentMorph.reset();
   });
 </script>
 
@@ -603,8 +665,8 @@
           type="button"
           class="agent-panel__header-btn"
           onclick={handleNewConversation}
-          aria-label="New conversation"
-          title="New conversation"
+          aria-label="Start new conversation"
+          title="Start new conversation"
         >
           <PlusIcon size={16} />
         </button>
@@ -622,16 +684,16 @@
 
     <div class="agent-panel__auth-bar">
       {#if $chatgptSession}
-        <svg class="agent-panel__auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg class="agent-panel__auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
         <span class="agent-panel__auth-label">ChatGPT</span>
-        <span class="agent-panel__auth-dot"></span>
+        <span class="agent-panel__auth-dot" role="status" aria-label="Connected"></span>
       {:else}
         <button
           type="button"
           class="agent-panel__auth-btn"
           onclick={() => goto("/settings")}
         >
-          <svg class="agent-panel__auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
+          <svg class="agent-panel__auth-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
           Sign in with ChatGPT
         </button>
       {/if}
@@ -641,10 +703,22 @@
       <div class="agent-panel__fade-top"></div>
       <div class="agent-panel__messages" bind:this={scrollContainerRef} onscroll={handleScroll}>
         <div class="agent-panel__msg-list" role="log" aria-live="polite" aria-label="Conversation">
-          {#if messages.length === 0 && !streamingText && !streamingError}
+          {#if loadingConversation}
+            <div class="agent-panel__loading-skeleton">
+              <div class="agent-panel__skeleton-row agent-panel__skeleton-row--user">
+                <div class="agent-panel__skeleton-bubble agent-panel__skeleton-bubble--user"></div>
+              </div>
+              <div class="agent-panel__skeleton-row agent-panel__skeleton-row--assistant">
+                <div class="agent-panel__skeleton-bubble agent-panel__skeleton-bubble--assistant"></div>
+              </div>
+              <div class="agent-panel__skeleton-row agent-panel__skeleton-row--assistant">
+                <div class="agent-panel__skeleton-bubble agent-panel__skeleton-bubble--assistant"></div>
+              </div>
+            </div>
+          {:else if messages.length === 0 && !streamingText && !streamingError}
             <div class="agent-panel__empty">
               <SparklesIcon size={20} class="agent-panel__empty-icon" />
-              <p class="agent-panel__empty-text">Start a conversation</p>
+              <p class="agent-panel__empty-text">Start a conversation — ask Bento about your tasks, habits, and notes</p>
             </div>
           {:else}
             {#each messages as msg}
@@ -654,12 +728,32 @@
                     {msg.content}
                   {:else}
                     <StreamingMarkdown content={msg.content} />
+                    {#if msg.toolCalls?.length > 0}
+                      {#each msg.toolCalls as tc (tc.id)}
+                        <Tool.Root>
+                          <Tool.Header type={tc.name} state={tc.state === "completed" ? "output-available" : tc.state === "error" ? "output-error" : tc.state === "running" ? "input-available" : "input-streaming"} />
+                          <Tool.Content>
+                            <Tool.Input input={tc.args} />
+                            {#if tc.result !== undefined}
+                              <Tool.Output output={tc.result} errorText={tc.isError ? String(tc.result) : undefined} />
+                            {/if}
+                          </Tool.Content>
+                        </Tool.Root>
+                      {/each}
+                    {/if}
+                    {#if msg.uiUpdates?.length > 0}
+                      <div class="flex flex-col gap-2 px-4 py-2">
+                        {#each msg.uiUpdates as ui, i}
+                          <GenerativeUiRenderer ui={ui} />
+                        {/each}
+                      </div>
+                    {/if}
                   {/if}
                 </MessageContent>
               </Message>
             {/each}
             {#if streamingText}
-              <Message from="assistant">
+              <Message from="assistant" class="agent-panel__msg--streaming">
                 <MessageContent>
                   <StreamingMarkdown content={streamingText} />
                 </MessageContent>
@@ -679,7 +773,7 @@
                 </MessageContent>
               </Message>
             {/if}
-            {#if toolCalls.length > 0}
+            {#if streamingText && toolCalls.length > 0}
               {#each toolCalls as tc (tc.id)}
                 <Tool.Root>
                   <Tool.Header type={tc.name} state={tc.state === "completed" ? "output-available" : tc.state === "error" ? "output-error" : tc.state === "running" ? "input-available" : "input-streaming"} />
@@ -692,7 +786,7 @@
                 </Tool.Root>
               {/each}
             {/if}
-            {#if uiUpdates.length > 0}
+            {#if streamingText && uiUpdates.length > 0}
               <div class="flex flex-col gap-2 px-4 py-2">
                 {#each uiUpdates as ui, i}
                   <GenerativeUiRenderer ui={ui} />
@@ -700,11 +794,13 @@
               </div>
             {/if}
             {#if streamingError}
-              <div class="agent-panel__msg--error">
-                <p class="agent-panel__msg-text">
-                  {streamingError}
-                  <button class="agent-panel__msg-retry" onclick={retryLastMessage}>Retry</button>
-                </p>
+              <div role="alert" aria-live="assertive">
+                <div class="agent-panel__msg--error">
+                  <p class="agent-panel__msg-text">
+                    {streamingError}
+                    <button class="agent-panel__msg-retry" onclick={retryLastMessage}>Retry</button>
+                  </p>
+                </div>
               </div>
             {/if}
           {/if}
@@ -714,6 +810,10 @@
     </div>
 
     <AgentMorphSurface items={morphItems} onitemclick={onMorphItemClick} />
+
+    {#if attachError}
+      <div class="agent-panel__attach-error" role="alert" aria-live="assertive">{attachError}</div>
+    {/if}
 
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div class="agent-panel__input-wrap" bind:this={inputWrapEl}>
@@ -730,7 +830,9 @@
                 {/each}
               </AgentMorphAttachments>
             {/if}
+            <label for="agent-textarea" class="sr-only">Message</label>
             <textarea
+              id="agent-textarea"
               bind:this={textareaRef}
               bind:value={message}
               onkeydown={handleKeydown}
@@ -745,37 +847,42 @@
               <button
                 type="button"
                 class="agent-panel__tool-btn"
+                class:agent-panel__tool-btn--busy={captureBusy}
                 onclick={agentMorph.toggleMenu}
-                aria-label="Attach files"
-                use:tooltip={{ text: "Attach files" }}
+                aria-label="Attach"
+                aria-expanded={agentMorph.state !== "closed"}
+                disabled={captureBusy}
+                use:tooltip={{ text: captureBusy ? "Capturing..." : "Attach" }}
               >
                 <PaperclipIcon size={16} />
               </button>
-              <div class="agent-panel__mode-select">
-                <button type="button" class="agent-panel__mode-btn" aria-label="Writing mode">
-                  <PenIcon size={14} />
-                  <span>Write</span>
-                  <ChevronDownIcon size={12} />
-                </button>
-              </div>
-              <div class="agent-panel__connectors">
-                <button type="button" class="agent-panel__connectors-btn" aria-label="Connectors">
-                  <span>Connectors</span>
-                  <span class="agent-panel__connector-icons">
-                    <svg class="agent-panel__connector-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-                    <svg class="agent-panel__connector-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M4.098 1C3.048 1 2 2.048 2 3.098v9.804c0 1.05.948 1.998 2.098 1.998h7.804c1.05 0 1.998-.948 1.998-1.998V3.098C15.998 2.048 15.05 1 14.002 1H4.098zM3.5 3.5v9h9v-9h-9z"/></svg>
-                  </span>
-                </button>
-              </div>
+
             </div>
-            <button
-              type="submit"
-              class="agent-panel__send-btn"
-              aria-label="Send message"
-              disabled={!message.trim() || submitBusy}
-            >
-              <ArrowUpIcon size={16} />
-            </button>
+            {#if submitBusy}
+              <button
+                type="button"
+                class="agent-panel__stop-btn"
+                aria-label="Stop generating"
+                onclick={() => {
+                  activeStream?.cancel();
+                  // Don't set submitBusy here — the finally block in
+                  // sendAndStream handles it after the for-await loop
+                  // settles. Setting it synchronously would let the user
+                  // submit a new message mid-cleanup.
+                }}
+              >
+                <SquareIcon size={14} />
+              </button>
+            {:else}
+              <button
+                type="submit"
+                class="agent-panel__send-btn"
+                aria-label="Send message"
+                disabled={(!message.trim() && attachments.length === 0) || submitBusy}
+              >
+                <ArrowUpIcon size={16} />
+              </button>
+            {/if}
           </div>
         </div>
       </form>
@@ -792,9 +899,6 @@
   style:left="{$agentPanelWidth}px"
   role="separator"
   aria-orientation="vertical"
-  aria-valuenow={$agentPanelWidth}
-  aria-valuemin={PANEL_MIN}
-  aria-valuemax={PANEL_MAX}
   aria-label="Resize agent panel"
   tabindex="0"
   onmousedown={onResizeStart}
@@ -856,7 +960,7 @@
   .agent-panel__header-actions {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
   }
 
   .agent-panel__conv-title {
@@ -880,6 +984,7 @@
   }
 
   .agent-panel__header-btn {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -897,6 +1002,18 @@
   .agent-panel__header-btn:hover {
     color: var(--foreground);
     background: color-mix(in srgb, var(--foreground) 10%, transparent);
+  }
+
+  .agent-panel__header-btn:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .agent-panel__header-btn::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 10px;
   }
 
   .agent-panel__messages-wrap {
@@ -975,55 +1092,66 @@
     color: var(--muted);
   }
 
-  /* ── Chat messages ─────────────────────────────────────────────── */
-  .agent-panel__msg {
-    max-width: 85%;
-    padding: 10px 14px;
+  /* ── Loading skeleton ──────────────────────────────────────────── */
+  .agent-panel__loading-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    animation: panel-skeleton-fade 0.8s ease-in-out infinite alternate;
+  }
+
+  @keyframes panel-skeleton-fade {
+    from { opacity: 0.4; }
+    to { opacity: 0.8; }
+  }
+
+  .agent-panel__skeleton-row {
+    display: flex;
+  }
+
+  .agent-panel__skeleton-row--user {
+    justify-content: flex-end;
+  }
+
+  .agent-panel__skeleton-row--assistant {
+    justify-content: flex-start;
+  }
+
+  .agent-panel__skeleton-bubble {
+    height: 32px;
     border-radius: 12px;
-    font-size: 13px;
-    line-height: 1.5;
-    word-break: break-word;
-    animation: panel-msg-in 0.15s ease both;
+    background: color-mix(in srgb, var(--foreground) 12%, transparent);
   }
 
-  @keyframes panel-msg-in {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .agent-panel__msg { animation: none; }
-  }
-
-  .agent-panel__msg--user {
-    align-self: flex-end;
-    background: var(--foreground);
-    color: var(--background);
+  .agent-panel__skeleton-bubble--user {
+    width: 60%;
     border-bottom-right-radius: 4px;
   }
 
-  .agent-panel__msg--assistant {
-    align-self: flex-start;
-    background: color-mix(in srgb, var(--foreground) 8%, transparent);
-    color: var(--foreground);
+  .agent-panel__skeleton-bubble--assistant {
+    width: 45%;
     border-bottom-left-radius: 4px;
   }
 
+  /* ── Chat messages ─────────────────────────────────────────────── */
   .agent-panel__msg--streaming {
     border-left: 2px solid color-mix(in srgb, var(--foreground) 50%, transparent);
   }
 
-  .agent-panel__msg--loading {
-    align-self: flex-start;
-    background: transparent;
-    padding: 8px 12px;
+  .agent-panel :global([data-role="assistant"] .streaming-markdown) {
+    color: color-mix(in srgb, CanvasText 75%, Canvas);
+    font-size: 0.97rem;
+    line-height: 1.55;
+    text-wrap: pretty;
   }
 
   .agent-panel__msg--error {
+    --agent-error: var(--destructive, oklch(0.637 0.208 25.331));
     align-self: center;
-    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 12%, transparent);
-    border: 1px solid color-mix(in srgb, oklch(0.637 0.208 25.331) 25%, transparent);
-    color: oklch(0.637 0.208 25.331);
+    background: color-mix(in srgb, var(--agent-error) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--agent-error) 25%, transparent);
+    color: var(--agent-error);
     max-width: 100%;
   }
 
@@ -1032,42 +1160,17 @@
     white-space: pre-wrap;
   }
 
-  .agent-panel__msg-dots {
-    display: flex;
-    gap: 4px;
-    padding: 4px 0;
-  }
-
-  .agent-panel__msg-dots span {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: color-mix(in srgb, var(--foreground) 40%, transparent);
-    animation: panel-dot-bounce 1.2s ease-in-out infinite;
-  }
-
-  .agent-panel__msg-dots span:nth-child(2) { animation-delay: 0.2s; }
-  .agent-panel__msg-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-  @keyframes panel-dot-bounce {
-    0%, 80%, 100% { transform: scale(0.8); opacity: 0.4; }
-    40% { transform: scale(1.1); opacity: 0.9; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .agent-panel__msg-dots span { animation: none; opacity: 0.6; }
-  }
-
   .agent-panel__msg-retry {
+    --agent-error: var(--destructive, oklch(0.637 0.208 25.331));
     display: inline-flex;
     align-items: center;
     gap: 4px;
     margin-left: 8px;
     padding: 2px 8px;
     border-radius: 4px;
-    border: 1px solid color-mix(in srgb, oklch(0.637 0.208 25.331) 35%, transparent);
-    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 12%, transparent);
-    color: oklch(0.637 0.208 25.331);
+    border: 1px solid color-mix(in srgb, var(--agent-error) 35%, transparent);
+    background: color-mix(in srgb, var(--agent-error) 12%, transparent);
+    color: var(--agent-error);
     font-size: 11px;
     font-family: inherit;
     font-weight: 500;
@@ -1077,12 +1180,23 @@
   }
 
   .agent-panel__msg-retry:hover {
-    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 25%, transparent);
+    background: color-mix(in srgb, var(--agent-error) 25%, transparent);
   }
 
   .agent-panel__msg-retry:focus-visible {
-    outline: 2px solid color-mix(in srgb, oklch(0.637 0.208 25.331) 50%, transparent);
+    outline: 2px solid color-mix(in srgb, var(--agent-error) 50%, transparent);
     outline-offset: 2px;
+  }
+
+  .agent-panel__attach-error {
+    padding: 6px 16px;
+    font-size: 12px;
+    color: var(--destructive, oklch(0.637 0.208 25.331));
+    background: color-mix(in srgb, var(--destructive, oklch(0.637 0.208 25.331)) 10%, transparent);
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .agent-panel__input-wrap {
@@ -1094,12 +1208,12 @@
 
   .agent-panel__input-shell {
     padding: 4px;
-    background: color-mix(in srgb, var(--foreground) 10%, var(--background));
+    background: color-mix(in oklch, var(--background) 88%, oklch(0 0 0));
     border-radius: 24px;
   }
 
   .agent-panel__input-field {
-    background: color-mix(in srgb, var(--foreground) 3%, var(--background));
+    background: color-mix(in oklch, var(--background) 94%, oklch(0 0 0));
     border: 0.5px solid color-mix(in srgb, var(--foreground) 18%, transparent);
     border-radius: 20px;
     padding: 12px 16px 6px;
@@ -1107,7 +1221,7 @@
   }
 
   .agent-panel__input-field:has(.attach-clip) {
-    border-radius: 20px 20px 20px 20px;
+    border-radius: 20px 20px 12px 12px;
   }
 
   .agent-panel__textarea {
@@ -1126,6 +1240,8 @@
     overflow-y: auto;
     scrollbar-width: thin;
   }
+
+
 
   .agent-panel__textarea::placeholder {
     color: var(--muted);
@@ -1164,74 +1280,37 @@
     background: color-mix(in srgb, var(--foreground) 10%, transparent);
   }
 
+  .agent-panel__tool-btn:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
   .agent-panel__tool-btn:active {
     transform: scale(0.96);
   }
 
-  .agent-panel__mode-btn {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    height: 32px;
-    padding: 0 10px;
-    border: 1px solid color-mix(in srgb, var(--foreground) 18%, transparent);
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--foreground) 3%, var(--background));
-    color: var(--foreground);
-    font-size: 12px;
-    font-weight: 500;
-    font-family: inherit;
-    cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  .agent-panel__tool-btn::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 10px;
   }
 
-  .agent-panel__mode-btn:hover {
-    background: color-mix(in srgb, var(--foreground) 10%, transparent);
+  .agent-panel__tool-btn:disabled {
+    cursor: default;
+    opacity: 0.5;
   }
 
-  .agent-panel__mode-btn:active {
-    transform: scale(0.96);
+  .agent-panel__tool-btn--busy {
+    animation: panel-tool-pulse 1s ease-in-out infinite;
   }
 
-  .agent-panel__connectors-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 28px;
-    padding: 0 8px;
-    border: none;
-    border-radius: 8px;
-    background: transparent;
-    color: var(--muted);
-    font-size: 12px;
-    font-weight: 500;
-    font-family: inherit;
-    cursor: pointer;
-    transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+  @keyframes panel-tool-pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 0.3; }
   }
 
-  .agent-panel__connectors-btn:hover {
-    color: var(--foreground);
-    background: color-mix(in srgb, var(--foreground) 8%, transparent);
-  }
 
-  .agent-panel__connectors-btn:active {
-    transform: scale(0.96);
-  }
-
-  .agent-panel__connector-icons {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-  }
-
-  .agent-panel__connector-icon {
-    width: 14px;
-    height: 14px;
-    object-fit: contain;
-    opacity: 0.6;
-  }
 
   .agent-panel__send-btn {
     position: relative;
@@ -1248,6 +1327,13 @@
     transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
   }
 
+  .agent-panel__send-btn::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 10px;
+  }
+
   .agent-panel__send-btn:not(:disabled) {
     background: var(--foreground);
     color: var(--background);
@@ -1259,6 +1345,36 @@
   }
 
   .agent-panel__send-btn:not(:disabled):active {
+    transform: scale(0.96);
+  }
+
+  .agent-panel__stop-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    background: oklch(0.637 0.208 25.331);
+    color: white;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+
+  .agent-panel__stop-btn::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 10px;
+  }
+
+  .agent-panel__stop-btn:hover {
+    background: oklch(0.711 0.166 22.216);
+  }
+
+  .agent-panel__stop-btn:active {
     transform: scale(0.96);
   }
 
@@ -1289,7 +1405,9 @@
 
   .agent-panel__resize:focus-visible {
     outline: 2px solid var(--ring);
-    outline-offset: 2px;
+    outline-offset: -2px;
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .agent-panel__resize-bar {
@@ -1364,6 +1482,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
+    background: #22c55e;
     background: oklch(0.696 0.149 162.48);
     flex-shrink: 0;
   }
@@ -1377,11 +1496,16 @@
     font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
-    padding: 0.2rem 0.35rem;
-    border-radius: 4px;
+    padding: 0.4rem 0.6rem;
+    min-height: 28px;
+    border-radius: 6px;
     transition: background 0.12s ease;
   }
   .agent-panel__auth-btn:hover {
     background: color-mix(in srgb, var(--primary) 10%, transparent);
+  }
+  .agent-panel__auth-btn:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 </style>

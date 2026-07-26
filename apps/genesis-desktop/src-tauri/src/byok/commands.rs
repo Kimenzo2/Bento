@@ -90,19 +90,16 @@ pub async fn byok_save_key(app: AppHandle, provider: String, key: String) -> Res
         validate_key_format(&byok_provider, &key)?;
     }
 
-    // Store in fallback + best-effort OS keyring, and refresh provider list
+    // Store in fallback + best-effort OS keyring, and refresh provider list.
+    // Auto-set active_provider + active_model so the key is immediately
+    // usable in the AgentPanel without requiring a separate selection step.
     settings::update_desktop_settings(&app, |next| {
         super::save_api_key(&provider, key.trim(), &mut next.byok);
         next.byok.refresh_configured_providers();
 
-        // Auto-set active_provider + active_model if none is configured yet,
-        // and flip enabled=true so BYOK is immediately active.
-        // This ensures that saving a key is immediately usable in the AgentPanel
-        // without requiring a separate "toggle ON" step.
         if next.byok.active_provider.is_none() {
             let default_model = byok_provider.known_models().first().map(|m| m.to_string());
             next.byok.active_provider = Some(provider.clone());
-            next.byok.enabled = true;
             if let Some(model) = default_model {
                 next.byok.active_model = Some(model);
             }
@@ -210,21 +207,6 @@ pub async fn byok_update_settings(
 ) -> Result<ByokSettings, String> {
     settings::update_desktop_settings(&app, |next| {
         next.byok.apply_patch(patch);
-    })?;
-
-    let current = settings::current_settings(&app);
-    Ok(current.byok.clone())
-}
-
-/// Toggle BYOK mode on/off.
-#[tauri::command]
-pub async fn byok_toggle_enabled(app: AppHandle, enabled: bool) -> Result<ByokSettings, String> {
-    settings::update_desktop_settings(&app, |next| {
-        next.byok.enabled = enabled;
-        if !enabled {
-            next.byok.active_provider = None;
-            next.byok.active_model = None;
-        }
     })?;
 
     let current = settings::current_settings(&app);

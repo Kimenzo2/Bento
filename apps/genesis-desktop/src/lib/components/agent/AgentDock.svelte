@@ -32,7 +32,6 @@
   };
 
   type AgentDockProps = {
-    agentName?: string;
     avatarSrc?: string;
     class?: string;
     idleStatus?: string;
@@ -49,7 +48,6 @@
   };
 
   let {
-    agentName = "Bento",
     avatarSrc = "/assets/characters/demo-agent-avatar.jpeg",
     class: className = "",
     idleStatus = "Ready",
@@ -77,6 +75,7 @@
   let submitBusy = $state(false);
   let userNearBottom = $state(true);
   let lastSentMessage = $state("");
+  let activeStream: { cancel: () => void } | null = null;
   let dockRootRef = $state<HTMLDivElement | null>(null);
 
   // ResizeObserver state
@@ -119,21 +118,33 @@
     (!!((window as any).SpeechRecognition) || !!((window as any).webkitSpeechRecognition))
   );
 
-  // ── Safe timeout utility — cleans up the timer on completion ──────────────
   const ASYNC_TIMEOUT_MS = 30_000;
 
   function withTimeout<T>(promise: Promise<T>, ms: number = ASYNC_TIMEOUT_MS): Promise<T> {
     let timerId: ReturnType<typeof setTimeout> | null = null;
+    let settled = false;
+
+    function cleanup() {
+      if (timerId !== null) {
+        clearTimeout(timerId);
+        timerId = null;
+      }
+    }
+
     const result = Promise.race([
-      promise,
+      promise.then(
+        (val) => { settled = true; cleanup(); return val; },
+        (err) => { settled = true; cleanup(); throw err; }
+      ),
       new Promise<T>((_, reject) => {
-        timerId = setTimeout(() => reject(new Error(`[agent-dock] timed out after ${ms}ms`)), ms);
+        timerId = setTimeout(() => {
+          if (!settled) {
+            reject(new Error(`[agent-dock] timed out after ${ms}ms`));
+          }
+        }, ms);
       }),
     ]);
-    // Clean up timer when promise settles
-    result.finally(() => {
-      if (timerId !== null) clearTimeout(timerId);
-    }).catch(() => {});
+
     return result;
   }
 
@@ -150,7 +161,6 @@
       if (voiceEngine.status === "paused") return "Paused";
       if (voiceEngine.status === "processing") return "Processing...";
       if (voiceEngine.status === "summarizing") return "Summarizing...";
-      if (voiceEngine.status === "completed") return "Done";
       if (voiceEngine.status === "error") return voiceEngine.session?.error || "Error";
       return idleStatus;
     }
@@ -226,11 +236,11 @@
     streamingText = "";
     trackEvent("agent", "ai_stream_start", { textLength: text.length });
     try {
-      await withTimeout(
-        streamAiResponse(text, (token) => {
-          streamingText += token;
-        })
-      );
+      const { promise: streamPromise, cancel: cancelStream } = streamAiResponse(text, (token) => {
+        streamingText += token;
+      });
+      activeStream = { cancel: cancelStream };
+      await withTimeout(streamPromise);
 
       if (streamingText.trim()) {
         messages = [...messages, { role: "assistant", content: streamingText }];
@@ -246,10 +256,6 @@
       streamingError = categorizeError(err);
       streamingText = "";
       mode = "idle";
-      toast.error("AI response failed", {
-        description: err instanceof Error ? err.message : "Unknown error",
-        duration: 5000,
-      });
     } finally {
       submitBusy = false;
     }
@@ -279,15 +285,20 @@
     if (!lastSentMessage || submitBusy) return;
     trackEvent("agent", "retry_message");
     const msg = lastSentMessage;
-    // Remove the last user message — will be restored if retry fails
     const prevMessages = messages;
-    messages = messages.slice(0, -1);
+    // Only remove the failed assistant message if one exists.
+    // The user message stays — sendAndStream only adds the assistant response,
+    // so removing the user message would permanently lose it.
+    if (messages.length > 0 && messages[messages.length - 1].role === "assistant") {
+      messages = messages.slice(0, -1);
+    }
     lastSentMessage = "";
     await sendAndStream(msg);
-    // If the stream failed, restore the user message so they can retry again
     if (streamingError) {
       messages = prevMessages;
       lastSentMessage = msg;
+    } else {
+      tick().then(() => scrollToBottom());
     }
   }
 
@@ -361,8 +372,6 @@
 
   /** Toggle voice recording (tap mic button). */
   async function toggleVoice() {
-    console.log("[agent-dock] toggleVoice called, isActive:", voiceEngine.isActive, "hasSpeech:", hasSpeech);
-    console.log("[agent-dock] navigator.mediaDevices:", !!navigator.mediaDevices, "getUserMedia:", !!navigator.mediaDevices?.getUserMedia);
     if (voiceEngine.isActive) {
       trackEvent("agent", "voice_stop");
       await voiceEngine.stop();
@@ -489,6 +498,7 @@
     c.width = bitmap.width;
     c.height = bitmap.height;
     c.getContext("2d")!.drawImage(bitmap, 0, 0);
+    bitmap.close();
     return c.toDataURL("image/jpeg", 0.7);
   }
 
@@ -650,13 +660,26 @@
             class={voiceEngine.isActive ? "dock-btn--listening" : ""}
             onclick={hasSpeech || isTauri() ? toggleVoice : undefined}
           />
-          <DockButton
-            icon={mode === "composing" ? SendIcon : ChatIcon}
-            label={mode === "composing" ? "Send" : "Chat"}
-            class={mode === "composing" ? "dock-btn--send" : ""}
-            type="submit"
-            disabled={voiceEngine.isRecording}
-          />
+          {#if submitBusy}
+            <DockButton
+              icon={SquareIcon}
+              label="Stop"
+              class="dock-btn--stop"
+              onclick={() => {
+                activeStream?.cancel();
+                // Don't set submitBusy/mode here — sendAndStream's finally
+                // block handles cleanup after the stream settles.
+              }}
+            />
+          {:else}
+            <DockButton
+              icon={mode === "composing" ? SendIcon : ChatIcon}
+              label={mode === "composing" ? "Send" : "Chat"}
+              class={mode === "composing" ? "dock-btn--send" : ""}
+              type="submit"
+              disabled={voiceEngine.isRecording}
+            />
+          {/if}
         </div>
       </div>
     {/if}
@@ -924,7 +947,7 @@
   }
 
   .pill-btn:active {
-    transform: scale(0.92);
+    transform: scale(0.96);
   }
 
   .pill-btn--pause {
@@ -1059,6 +1082,10 @@
     color: oklch(0.623 0.188 259.815) !important;
   }
 
+  :global(.dock-btn--stop) {
+    color: oklch(0.637 0.208 25.331) !important;
+  }
+
   @keyframes dock-pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
@@ -1074,6 +1101,7 @@
     border-radius: 8px;
     overflow: hidden;
     border: 1px solid oklch(1 0 89.876 / 0.08);
+    box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.1);
   }
 
   .dock-capture-img {

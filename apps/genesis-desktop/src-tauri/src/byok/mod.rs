@@ -240,13 +240,15 @@ pub fn mask_api_key(key: &str) -> String {
 /// Primary key storage: OS keyring (Windows Credential Manager, macOS Keychain,
 /// Linux Secret Service). Fallback: `fallback_keys` in this JSON file (base64
 /// encoded) — used when the OS keyring is unavailable or fails.
+///
+/// There is no master "enabled" toggle — BYOK is always available. Users
+/// configure keys for individual providers. If a key exists, the provider is
+/// ready. If not, it's unconfigured. This matches the pattern used by Warp
+/// (keys in OS keychain, no mode swit
+/// ) and Continue.dev (providers in config, no disable switch).
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ByokSettings {
-    /// Whether BYOK mode is enabled (only meaningful for Power plan users).
-    #[serde(default)]
-    pub enabled: bool,
-
     /// The currently active provider (for AI features).
     #[serde(default)]
     pub active_provider: Option<String>,
@@ -280,7 +282,6 @@ pub struct ByokSettings {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct ByokSettingsPatch {
-    pub enabled: Option<bool>,
     pub active_provider: Option<String>,
     pub active_model: Option<String>,
     pub base_url_overrides: HashMap<String, String>,
@@ -291,9 +292,6 @@ pub struct ByokSettingsPatch {
 impl ByokSettings {
     /// Apply a partial patch to these settings.
     pub fn apply_patch(&mut self, patch: ByokSettingsPatch) {
-        if let Some(v) = patch.enabled {
-            self.enabled = v;
-        }
         if patch.active_provider.is_some() {
             self.active_provider = patch.active_provider;
         }

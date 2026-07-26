@@ -686,19 +686,8 @@ pub fn load_desktop_settings(app: &AppHandle) -> DesktopSettings {
         return defaults;
     };
 
-    let mut settings = settings;
-
-    // BYOK sanity check: if an active provider or configured providers exist,
-    // ensure enabled=true. This catches the edge case where keys were saved
-    // before auto-enable was implemented, or settings were partially reset.
-    let needs_enable = !settings.byok.enabled
-        && (settings.byok.active_provider.is_some() || !settings.byok.configured_providers.is_empty());
-    if needs_enable {
-        settings.byok.enabled = true;
-    }
-
     let normalized = normalize_settings(&settings);
-    if normalized != settings || needs_enable {
+    if normalized != settings {
         let _ = save_desktop_settings(app, &normalized);
         return normalized;
     }

@@ -39,10 +39,37 @@
 
   let prevMounted = $state(false);
   let morphKey = $state(0);
+  let menuRef = $state<HTMLDivElement | null>(null);
+  let focusIndex = $state(0);
+
+  function handleMenuKeydown(e: KeyboardEvent) {
+    if (agentMorph.state !== "menu") return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      focusIndex = (focusIndex + 1) % items.length;
+      focusMenuItem(focusIndex);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      focusIndex = (focusIndex - 1 + items.length) % items.length;
+      focusMenuItem(focusIndex);
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onitemclick?.(items[focusIndex]?.id ?? "");
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      agentMorph.close();
+    }
+  }
+
+  function focusMenuItem(index: number) {
+    const btn = menuRef?.querySelectorAll<HTMLButtonElement>(".morph-item")[index];
+    btn?.focus();
+  }
 
   $effect(() => {
     if (agentMorph.mounted && !prevMounted) {
       morphKey += 1;
+      focusIndex = 0;
     }
     prevMounted = agentMorph.mounted;
   });
@@ -59,11 +86,13 @@
 
   {#key morphKey}
     <div
+      bind:this={menuRef}
       class="morph-surface"
       class:morph-surface--menu={agentMorph.state === "menu"}
       class:morph-surface--extended={agentMorph.state === "extended"}
       role="menu"
       aria-label="Attachment options"
+      onkeydown={handleMenuKeydown}
       style={agentMorph.state === "extended"
         ? `bottom: ${agentMorph.inputBottom}px;`
         : `width: ${MENU_WIDTH}px; height: ${menuHeight}px; bottom: ${agentMorph.inputBottom}px;`}
@@ -142,11 +171,10 @@
     background: color-mix(in srgb, var(--background) 96%, var(--foreground));
     border: 1px solid color-mix(in srgb, var(--foreground) 14%, transparent);
     border-radius: 14px;
-    transform: scale(0);
+    transform: translateY(6px);
     opacity: 0;
-    transform-origin: bottom left;
     transition:
-      transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
       opacity 0.25s ease;
     will-change: transform, opacity;
   }
@@ -306,6 +334,11 @@
 
   .morph-back-btn:active {
     transform: scale(0.96);
+  }
+
+  .morph-back-btn:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 
   @media (prefers-reduced-motion: reduce) {

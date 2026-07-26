@@ -21,7 +21,7 @@
   {...props}
   data-code-overflow
   data-collapsed={collapsed}
-  class={cn("relative overflow-y-hidden data-[collapsed=true]:max-h-[300px]", className)}
+  class={cn("relative data-[collapsed=true]:max-h-[300px]", collapsed ? "overflow-y-hidden" : "overflow-y-auto", className)}
 >
   {@render children?.()}
   {#if collapsed}

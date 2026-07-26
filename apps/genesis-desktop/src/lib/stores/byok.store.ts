@@ -16,7 +16,6 @@ export interface ProviderKeyStatus {
 }
 
 export interface ByokSettings {
-  enabled: boolean;
   activeProvider: string | null;
   activeModel: string | null;
   configuredProviders: string[];
@@ -40,7 +39,6 @@ export interface ConnectionTestResult {
 // ── Defaults ────────────────────────────────────────────────────────────────
 
 const defaultSettings: ByokSettings = {
-  enabled: false,
   activeProvider: null,
   activeModel: null,
   configuredProviders: [],
@@ -153,13 +151,6 @@ export async function loadByokSettings(): Promise<ByokSettings> {
 export async function updateByokSettings(patch: Partial<ByokSettings>): Promise<ByokSettings> {
   if (!isAvailable()) return get(byokSettings);
   const updated = await invoke<ByokSettings>("byok_update_settings", { patch });
-  byokSettings.set(updated);
-  return updated;
-}
-
-export async function toggleByok(enabled: boolean): Promise<ByokSettings> {
-  if (!isAvailable()) return get(byokSettings);
-  const updated = await invoke<ByokSettings>("byok_toggle_enabled", { enabled });
   byokSettings.set(updated);
   return updated;
 }

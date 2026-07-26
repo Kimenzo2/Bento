@@ -20,6 +20,7 @@ pub use commands::load_server_url;
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use tauri_plugin_shell::process::CommandChild;
+use tracing::info;
 
 // ── API response types (Codex `createChatGPTHandler` shapes) ──────────
 
@@ -133,10 +134,38 @@ impl ChatGptProxyChild {
 
 impl Drop for ChatGptProxyChild {
     fn drop(&mut self) {
-        if let Ok(mut guard) = self.0.lock() {
-            if let Some(child) = guard.take() {
-                let _ = child.kill();
-            }
+        let Ok(mut guard) = self.0.lock() else {
+            return;
+        };
+        let Some(child) = guard.take() else {
+            return;
+        };
+
+        // Phase 1: kill parent via Tauri's API
+        let pid = child.pid();
+        let _ = child.kill();
+
+        // Phase 2: kill the entire process tree so Bun-compiled child
+        // processes are also cleaned up (they hold the real file handles).
+        #[cfg(windows)]
+        {
+            let _ = std::process::Command::new("taskkill")
+                .args(["/F", "/T", "/PID", &pid.to_string()])
+                .output();
         }
+        #[cfg(not(windows))]
+        {
+            // Negative PID = send signal to entire process group (POSIX)
+            let _ = std::process::Command::new("kill")
+                .args(["-TERM", &format!("-{pid}")])
+                .output();
+            // Wait briefly for children to terminate
+            std::thread::sleep(std::time::Duration::from_millis(200));
+            let _ = std::process::Command::new("kill")
+                .args(["-KILL", &format!("-{pid}")])
+                .output();
+        }
+
+        info!("[chatgpt] killed proxy process tree PID={pid}");
     }
 }

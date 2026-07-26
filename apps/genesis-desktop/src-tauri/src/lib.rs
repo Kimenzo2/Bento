@@ -91,7 +91,9 @@ use crate::notes::NoteFullCache;
 use crate::runtime::DesktopRuntime;
 use crate::search::SearchService;
 use crate::session::ManagedTabSession;
-use sysinfo::System;
+use sysinfo::{ProcessesToUpdate, System};
+#[cfg(not(windows))]
+use sysinfo::Signal;
 use tracing::{error, info, warn};
 
 /// Set by `recover_from_startup_crash()` when it performs a WebView2
@@ -449,24 +451,62 @@ fn clear_startup_sentinel() {
 /// Kill any stale bento-desktop processes from previous sessions that
 /// were left running but invisible (zombie instances). Prevents the
 /// single-instance plugin from silently blocking new launches.
+///
+/// NOTE: We do NOT kill `chatgpt-proxy` here — doing so would destroy its
+/// in-memory ChatGPT session cookie, forcing the user to re-authenticate
+/// on every app launch.  The NSIS installer has its own pre-install hook
+/// (`nsis/installer-hooks.nsh`) that kills the proxy before file replacement,
+/// which is the only scenario where the locked-file error occurs.
 fn cleanup_stale_processes() {
     let current_pid = std::process::id();
-    let system = System::new_all();
+    let mut system = System::new();
+    system.refresh_processes(ProcessesToUpdate::All, true);
+
+    #[cfg(windows)]
+    let targets = ["bento-desktop.exe", "bento_desktop.exe"];
+    #[cfg(not(windows))]
+    let targets = ["bento-desktop", "bento_desktop"];
+
     for (pid, process) in system.processes() {
-        let pid_u32 = pid.as_u32();
-        if pid_u32 == current_pid {
+        if pid.as_u32() == current_pid {
             continue;
         }
         let name = process.name().to_string_lossy().to_lowercase();
-        if name.contains("bento-desktop") || name.contains("bento_desktop") {
-            info!("[startup] killing stale process PID={pid_u32} name={name}");
-                write_startup_log(&format!("killing stale process PID={pid_u32}"));
-            process.kill();
+        if !targets.iter().any(|t| name.contains(t)) {
+            continue;
+        }
+        info!("[startup] killing stale process PID={} name={name}", pid.as_u32());
+        write_startup_log(&format!("killing stale PID={}", pid.as_u32()));
+        #[cfg(windows)]
+        {
+            let _ = process.kill();
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = process.kill_with(Signal::Kill);
+            let _ = process.wait();
         }
     }
 }
 
 const CHATGPT_PROXY_PORT: u16 = 3001;
+
+/// Check whether a process listening on the given port is actually our
+/// Express proxy (not a random service).  The proxy's `/api/health`
+/// returns `{"status":"ok","version":"2.0.0"}`.
+async fn is_proxy_healthy(port: u16) -> bool {
+    let Ok(resp) = reqwest::get(&format!("http://127.0.0.1:{port}/api/health")).await else {
+        return false;
+    };
+    if !resp.status().is_success() {
+        return false;
+    }
+    // Defence in depth: verify the response body is genuinely from our proxy
+    matches!(
+        resp.json::<serde_json::Value>().await.ok(),
+        Some(body) if body.get("status").and_then(|s| s.as_str()) == Some("ok")
+    )
+}
 
 /// Spawn the ChatGPT proxy sidecar (compiled Express server) and wait
 /// for it to become healthy using exponential backoff.
@@ -478,14 +518,12 @@ async fn spawn_chatgpt_proxy(app: AppHandle) -> Result<u16, String> {
     let port = CHATGPT_PROXY_PORT;
 
     // ── Step 1: Check if port is already in use (stale proxy) ─────────
-    if let Ok(resp) = reqwest::get(&format!("http://127.0.0.1:{port}/api/health")).await {
-        if resp.status().is_success() {
-            info!("[chatgpt] proxy already running on port {port}, reusing");
-            let state = app.state::<crate::chatgpt_auth::ChatGptClient>();
-            *state.server_url.lock().map_err(|e| format!("Lock: {e}"))? =
-                Some(format!("http://127.0.0.1:{port}"));
-            return Ok(port);
-        }
+    if is_proxy_healthy(port).await {
+        info!("[chatgpt] proxy already running on port {port}, reusing");
+        let state = app.state::<crate::chatgpt_auth::ChatGptClient>();
+        *state.server_url.lock().map_err(|e| format!("Lock: {e}"))? =
+            Some(format!("http://127.0.0.1:{port}"));
+        return Ok(port);
     }
 
     // ── Step 2: Spawn the sidecar ───────────────────────────────────
@@ -527,11 +565,7 @@ async fn spawn_chatgpt_proxy(app: AppHandle) -> Result<u16, String> {
             }
         }
 
-        let ok = reqwest::get(&format!("http://127.0.0.1:{port}/api/health"))
-            .await
-            .ok()
-            .map_or(false, |r| r.status().is_success());
-        if ok {
+        if is_proxy_healthy(port).await {
             let state = app.state::<crate::chatgpt_auth::ChatGptClient>();
             *state.server_url.lock().map_err(|e| format!("Lock: {e}"))? =
                 Some(format!("http://127.0.0.1:{port}"));
@@ -1233,7 +1267,6 @@ pub fn run() {
             crate::byok::commands::byok_test_connection,
             crate::byok::commands::byok_get_settings,
             crate::byok::commands::byok_update_settings,
-            crate::byok::commands::byok_toggle_enabled,
             crate::byok::commands::byok_dismiss_onboarding,
             crate::byok::commands::byok_validate_key,
             // ChatGPT — Sign in with ChatGPT

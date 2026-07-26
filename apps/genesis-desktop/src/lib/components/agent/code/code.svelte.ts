@@ -78,14 +78,37 @@ class CodeRootState {
   }
 
   highlighted = $derived.by(() => {
-    const html = this.highlight(this.code) ?? "";
-
-    if (DOMPurify) {
-      return DOMPurify.sanitize(html);
+    if (!this.highlighter) {
+      return `<pre class="shiki-fallback"><code>${this.escapeHtml(this.code)}</code></pre>`;
     }
 
-    return html;
+    const html = this.highlight(this.code);
+
+    if (html) {
+      if (DOMPurify) {
+        return DOMPurify.sanitize(html, {
+          ADD_ATTR: ["style", "class"],
+          ALLOWED_TAGS: [
+            "pre", "code", "span", "div", "br",
+            "shiki", "shiki-dark", "shiki-light",
+            "line", "line--highlighted",
+          ],
+        });
+      }
+      return html;
+    }
+
+    return `<pre class="shiki-fallback"><code>${this.escapeHtml(this.code)}</code></pre>`;
   });
+
+  escapeHtml(str: string): string {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
 }
 
 function within(num: number, range: CodeRootProps["highlight"]) {
