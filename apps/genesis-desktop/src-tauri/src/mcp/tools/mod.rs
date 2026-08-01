@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 //! MCP tool implementations using rmcp's #[tool] macro with struct-based parameters.
 //!
 //! Each tool is a method on `BentoMcpServer` with typed parameters using
@@ -1396,6 +1398,19 @@ impl BentoMcpServer {
             .execute(&mut *conn)
             .await
             .map_err(|e| format!("Transaction error: {e}"))?;
+
+        // Insert into objects table first (blocks FK references objects.id)
+        sqlx::query(
+            r#"INSERT OR IGNORE INTO objects (id, type, layout, name, icon, is_archived, is_deleted, created_at, updated_at)
+               VALUES (?, 'note', 'note', ?, NULL, 0, 0, ?, ?)"#,
+        )
+        .bind(&object_id)
+        .bind(&title)
+        .bind(now_ms)
+        .bind(now_ms)
+        .execute(&mut *conn)
+        .await
+        .map_err(|e| format!("Failed to create object: {e}"))?;
 
         sqlx::query(
             r#"INSERT INTO note_objects (id, title, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?)"#,

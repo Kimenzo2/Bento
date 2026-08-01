@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 pub mod commands;
 
 use std::{fs, path::PathBuf};
@@ -10,7 +12,7 @@ use tauri_plugin_global_shortcut::{
 
 use crate::{
     byok::ByokSettings, payments::PaymentReceipt, runtime::DesktopRuntime,
-    window_bounds::restore_main_window,
+    spectrum::SocialAgentsSettings, window_bounds::restore_main_window,
 };
 
 use std::collections::HashMap;
@@ -58,6 +60,10 @@ pub struct DesktopSettings {
     pub agent_dock_enabled: bool,
     #[serde(default)]
     pub voice: VoiceSettings,
+    #[serde(default)]
+    pub social_agents: SocialAgentsSettings,
+    #[serde(default)]
+    pub integrations: IntegrationSettings,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
@@ -81,6 +87,31 @@ pub struct VoiceSettings {
     /// Enable wake word detection ("Hey Bento").
     #[serde(default = "default_wake_word")]
     pub wake_word_enabled: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct IntegrationSettings {
+    #[serde(default)]
+    pub composio_api_key_set: bool,
+    #[serde(default)]
+    pub onboarding_dismissed: bool,
+    #[serde(default = "default_composio_user_id")]
+    pub composio_user_id: String,
+}
+
+fn default_composio_user_id() -> String {
+    "bento_user".to_string()
+}
+
+impl Default for IntegrationSettings {
+    fn default() -> Self {
+        Self {
+            composio_api_key_set: false,
+            onboarding_dismissed: false,
+            composio_user_id: default_composio_user_id(),
+        }
+    }
 }
 
 fn default_ptt_shortcut() -> String {
@@ -286,10 +317,7 @@ fn default_ai_enabled() -> bool {
 }
 
 fn default_ai_system_prompt() -> String {
-    "You are Bento, a helpful AI assistant integrated into a personal productivity app. \
-Be concise, practical, and warm. Use the user's data context when available to provide \
-personalized suggestions."
-        .to_string()
+    crate::ai::default_agent_system_prompt()
 }
 
 /// Populate the AI features map with defaults if it's empty.
@@ -667,6 +695,8 @@ pub fn default_settings() -> DesktopSettings {
         dynamic_island_enabled: default_dynamic_island_enabled(),
         agent_dock_enabled: default_agent_dock_enabled(),
         voice: VoiceSettings::default(),
+        social_agents: SocialAgentsSettings::default(),
+        integrations: IntegrationSettings::default(),
     }
 }
 
@@ -739,6 +769,21 @@ pub fn normalize_settings(settings: &DesktopSettings) -> DesktopSettings {
     normalized.appearance.font_pairing_id =
         normalize_font_pairing_id(&normalized.appearance.font_pairing_id);
     normalized.shortcuts.reopen_id = normalize_shortcut_id(&normalized.shortcuts.reopen_id);
+
+    // Migrate old short system prompt → rich Bento prompt
+    let rich = crate::ai::default_agent_system_prompt();
+    if normalized.ai.system_prompt != rich {
+        // Replace any old/default prompt with the current rich version
+        let old_short = "You are Bento, a helpful AI assistant integrated into a personal productivity app. \
+            Be concise, practical, and warm. Use the user's data context when available to provide \
+            personalized suggestions.";
+        if normalized.ai.system_prompt.trim() == old_short.trim()
+            || normalized.ai.system_prompt.is_empty()
+        {
+            normalized.ai.system_prompt = rich;
+        }
+    }
+
     normalized
 }
 

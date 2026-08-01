@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 pub mod actors;
 pub mod agent;
 pub mod agent_core;
@@ -16,6 +18,7 @@ pub mod db;
 pub mod goals;
 pub mod habits;
 pub mod health;
+pub mod integrations;
 pub mod ipc_util;
 pub mod island;
 pub mod local_store;
@@ -34,6 +37,7 @@ pub mod session;
 pub mod settings;
 pub mod share;
 pub mod sleep;
+pub mod spectrum;
 pub mod util;
 pub mod window_bounds;
 pub mod window_effects;
@@ -593,7 +597,10 @@ pub fn run() {
         .manage(ManagedTabSession::new())
         .manage(StartupDegraded::new())
         .manage(crate::chatgpt_auth::ChatGptClient::new())
-        .manage(crate::chatgpt_auth::ChatGptProxyChild::new());
+        .manage(crate::chatgpt_auth::ChatGptProxyChild::new())
+        .manage(crate::spectrum::SpectrumSidecarChild::new())
+        .manage(crate::spectrum::SpectrumStdinWriter::new())
+        .manage(crate::spectrum::SpectrumConversationMap::new());
 
     #[cfg(not(debug_assertions))]
     {
@@ -684,13 +691,19 @@ pub fn run() {
 
         // ── Phase 3: Load desktop settings + register shortcuts ────────
         t0 = Instant::now();
-        let settings = settings::load_desktop_settings(app.handle());
+        let mut settings = settings::load_desktop_settings(app.handle());
+        // Preload BYOK provider keys from keychain so configured_providers
+        // reflects actual key availability immediately on every startup.
+        settings.byok.refresh_configured_providers();
         app.manage(DesktopRuntime::new(settings.clone()));
         if let Err(e) = settings::apply_configured_shortcuts(app.handle(), &settings) {
             warn!("[init] apply_configured_shortcuts failed: {e}");
                 write_startup_log(&format!("apply_configured_shortcuts failed: {e}"));
         }
-        log_phase("phase=3 load_desktop_settings", &format!("{:.2}", t0.elapsed().as_secs_f64() * 1000.0));
+        let configured = settings.byok.configured_providers.join(",");
+        let elapsed = t0.elapsed().as_secs_f64() * 1000.0;
+        write_startup_log(&format!("byok_configured_providers={}", configured));
+        log_phase("phase=3 load_desktop_settings", &format!("{:.2}", elapsed));
 
         // ── Show main window early (before DB init, for perceived speed) ─
         // Uses set_resizable toggle as Tauri #11856 workaround for Windows
@@ -854,6 +867,43 @@ pub fn run() {
             let pool = app.state::<BentoAppState>().inner().db();
             if let Err(e) = tauri::async_runtime::block_on(crate::health::ensure_health_tables(&pool)) {
                 warn!("[health] failed to create health tables: {e}");
+            }
+        }
+
+        // ── Integrations table (non-fatal) ─────────────────────────
+        {
+            let pool = app.state::<BentoAppState>().inner().db();
+            if let Err(e) = tauri::async_runtime::block_on(crate::integrations::store::init_table(&pool)) {
+                warn!("[integrations] failed to create integrations table: {e}");
+            }
+        }
+
+        // ── Integrations state ─────────────────────────────────────
+        {
+            let state = std::sync::Arc::new(crate::integrations::commands::IntegrationState {
+                auth: crate::integrations::auth::IntegrationAuthManager::new(),
+                native: crate::integrations::native::NativeAuthManager::new(),
+            });
+            app.manage(state);
+            app.manage(crate::integrations::native::commands::TelegramPollerState::new());
+
+            // Auto-start Telegram poller if already connected
+            {
+                let app_handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    let pool = app_handle.state::<crate::db::BentoAppState>().db();
+                    // Ensure telegram_chats memory table exists
+                    if let Err(e) = crate::integrations::native::telegram_poller::ensure_telegram_memory(&pool).await {
+                        eprintln!("[startup] Failed to create telegram_chats table: {e}");
+                    }
+                    match crate::integrations::store::connected_app_keys(&pool).await {
+                        Ok(keys) if keys.contains(&"telegram".to_string()) => {
+                            eprintln!("[startup] Telegram is connected, auto-starting poller...");
+                            crate::integrations::native::commands::start_telegram_poller(&app_handle).await;
+                        }
+                        _ => {}
+                    }
+                });
             }
         }
 
@@ -1074,6 +1124,16 @@ pub fn run() {
                 match spawn_chatgpt_proxy(app_handle).await {
                     Ok(port) => info!("[chatgpt] proxy sidecar running on port {port}"),
                     Err(e) => warn!("[chatgpt] failed to start proxy sidecar: {e}"),
+                }
+            });
+        }
+        // ── Spawn Spectrum social agents sidecar ──────────────────────
+        {
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                match crate::spectrum::sidecar::spawn_spectrum_sidecar(app_handle).await {
+                    Ok(_) => info!("[spectrum] sidecar running"),
+                    Err(e) => warn!("[spectrum] failed to start sidecar: {e}"),
                 }
             });
         }
@@ -1595,6 +1655,25 @@ pub fn run() {
             crate::agent_core::action_gate::confirm_agent_action,
             crate::agent_core::action_gate::cancel_agent_action,
             crate::agent_core::action_gate::get_agent_action_log,
+            // Spectrum — Social Agents sidecar
+            crate::spectrum::commands::apply_social_agent_config,
+            // Integrations — Composio-powered Cortana layer
+            crate::integrations::commands::list_integration_apps,
+            crate::integrations::commands::get_integration_connections,
+            crate::integrations::commands::connect_integration,
+            crate::integrations::commands::disconnect_integration,
+            crate::integrations::commands::save_composio_api_key,
+            crate::integrations::commands::get_composio_api_key_status,
+            crate::integrations::commands::delete_composio_api_key,
+            crate::integrations::commands::test_composio_connection,
+            crate::integrations::commands::cancel_integration_flow,
+            crate::integrations::commands::execute_integration_action,
+            crate::integrations::commands::list_integration_actions,
+            crate::integrations::commands::get_integration_categories,
+            // Telegram real-time poller
+            crate::integrations::native::commands::start_telegram_poller_cmd,
+            crate::integrations::native::commands::stop_telegram_poller_cmd,
+            crate::integrations::native::commands::get_telegram_poller_status,
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|error| {

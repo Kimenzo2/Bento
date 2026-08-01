@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 //! Agent memory — conversation persistence via SQLite.
 //!
 //! Provides CRUD for conversations and their messages, enabling the agent
@@ -157,8 +159,8 @@ pub async fn get_conversation(
         None => return Ok(None),
     };
 
-    let rows = sqlx::query_as::<_, (String, String, Option<String>, Option<String>, i64)>(
-        "SELECT role, content, tool_calls, tool_call_id, position FROM agent_messages WHERE conversation_id = ? ORDER BY position",
+    let rows = sqlx::query_as::<_, (String, String, Option<String>, Option<String>, i64, i64)>(
+        "SELECT role, content, tool_calls, tool_call_id, position, created_at FROM agent_messages WHERE conversation_id = ? ORDER BY position",
     )
     .bind(id)
     .fetch_all(pool)
@@ -167,15 +169,17 @@ pub async fn get_conversation(
 
     let messages: Vec<ChatMessage> = rows
         .into_iter()
-        .map(|(role, content, tool_calls_json, tool_call_id, _pos)| {
-            let tool_calls = tool_calls_json
-                .and_then(|json| serde_json::from_str::<Vec<ToolCall>>(&json).ok());
+        .map(|(role, content, tool_calls_json, tool_call_id, _pos, created_at)| {
+        let tool_calls = tool_calls_json
+            .and_then(|json| serde_json::from_str::<Vec<ToolCall>>(&json).ok())
+            .filter(|v| !v.is_empty());
             ChatMessage {
                 role,
                 content,
                 tool_calls,
                 tool_call_id,
                 tool_call_name: None,
+                created_at: Some(created_at),
             }
         })
         .collect();
@@ -300,6 +304,7 @@ async fn insert_messages_internal(
         let tool_calls_json = msg
             .tool_calls
             .as_ref()
+            .filter(|tc| !tc.is_empty())
             .map(|tc| serde_json::to_string(tc).unwrap_or_default());
 
         sqlx::query(
@@ -312,7 +317,7 @@ async fn insert_messages_internal(
         .bind(tool_calls_json)
         .bind(&msg.tool_call_id)
         .bind(start_position + i as i64)
-        .bind(now)
+        .bind(msg.created_at.unwrap_or(now))
         .execute(pool)
         .await
         .map_err(|e| format!("Failed to save message: {e}"))?;

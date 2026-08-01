@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 //! Agent chat engine — multi-turn streaming with tool calling support.
 //!
 //! Orchestrates provider-specific API requests, parses streaming responses
@@ -7,11 +9,11 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sqlx::SqlitePool;
+use tauri::AppHandle;
 use tokio::sync::mpsc::UnboundedSender;
 use uuid::Uuid;
 
 use crate::agent_core::ui_schema::UiVocabulary;
-use crate::util::time;
 
 // ── Public types ──────────────────────────────────────────────────────────────
 
@@ -30,6 +32,9 @@ pub struct ChatMessage {
     /// Function name for the tool result (required by Gemini for functionResponse).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tool_call_name: Option<String>,
+    /// Epoch ms timestamp when this message was created.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<i64>,
 }
 
 impl ChatMessage {
@@ -62,13 +67,29 @@ pub enum ChatEvent {
     #[serde(rename = "token")]
     Token { content: String },
     #[serde(rename = "tool_call")]
-    ToolCall { id: String, name: String, args: Value, auto_execute: bool },
+    ToolCall {
+        id: String,
+        name: String,
+        args: Value,
+        #[serde(rename = "autoExecute")]
+        auto_execute: bool,
+    },
     #[serde(rename = "tool_result")]
-    ToolResult { id: String, name: String, result: Value, is_error: bool },
+    ToolResult {
+        id: String,
+        name: String,
+        result: Value,
+        #[serde(rename = "isError")]
+        is_error: bool,
+    },
     #[serde(rename = "error")]
     Error { message: String },
     #[serde(rename = "done")]
-    Done { finish_reason: Option<String>, usage: Option<UsageInfo> },
+    Done {
+        #[serde(rename = "finishReason")]
+        finish_reason: Option<String>,
+        usage: Option<UsageInfo>,
+    },
     #[serde(rename = "ui_update")]
     UiUpdate { ui: UiVocabulary },
 }
@@ -112,172 +133,93 @@ pub struct ChatParams {
     /// Raw `Cookie` header value for ChatGPT cookie-based auth.
     /// Set by the ChatGPT auth commands; used in `send_codex_stream`.
     pub cookie: Option<String>,
+    /// Extra tools injected by the caller on top of the internal registry —
+    /// currently the integration tools for connected communication apps.
+    #[serde(default)]
+    pub extra_tools: Option<Vec<ToolDefinition>>,
 }
 
-// ── Built-in tools ──────────────────────────────────────────────────────────
+// ── Tool definitions (delegated to the tools registry) ───────────────────────
 
-static DEFAULT_TOOLS: LazyLock<Vec<ToolDefinition>> = LazyLock::new(|| {
-    vec![
-        ToolDefinition {
-            name: "create_task".into(),
-            description: "Create a new task with a title (required), optional due date (ISO 8601), priority level (low/medium/high), and project name. Returns the created task ID.".into(),
-            input_schema: json!({
-                "type": "object",
-                "properties": {
-                    "title": {"type": "string", "description": "Task title (required)"},
-                    "due_at": {"type": "string", "description": "Optional ISO 8601 due date string"},
-                    "priority": {"type": "string", "enum": ["low", "medium", "high"], "description": "Priority level, defaults to medium"},
-                    "project": {"type": "string", "description": "Optional project/category name"}
-                },
-                "required": ["title"]
-            }),
-            auto_execute: true,
-        },
-        ToolDefinition {
-            name: "get_tasks".into(),
-            description: "Retrieve tasks with optional filters: status (pending/completed/all), due_before (ISO 8601), project name. Returns task objects with id, title, priority, due date, and status.".into(),
-            input_schema: json!({
-                "type": "object",
-                "properties": {
-                    "status": {"type": "string", "enum": ["pending", "completed", "all"], "description": "Filter by completion status, defaults to pending"},
-                    "due_before": {"type": "string", "description": "Optional ISO 8601 cutoff — only tasks due before this"},
-                    "project": {"type": "string", "description": "Optional project name filter"},
-                    "limit": {"type": "integer", "description": "Max results (1-100), defaults to 20"}
-                }
-            }),
-            auto_execute: true,
-        },
-        ToolDefinition {
-            name: "complete_task".into(),
-            description: "Mark a task as completed by its ID. Returns a confirmation with the task title.".into(),
-            input_schema: json!({
-                "type": "object",
-                "properties": {
-                    "task_id": {"type": "string", "description": "The unique ID of the task to complete"}
-                },
-                "required": ["task_id"]
-            }),
-            auto_execute: true,
-        },
-        ToolDefinition {
-            name: "update_task".into(),
-            description: "Modify an existing task's title, priority, project, due date, or notes. Any field can be omitted to leave it unchanged.".into(),
-            input_schema: json!({
-                "type": "object",
-                "properties": {
-                    "task_id": {"type": "string", "description": "The unique ID of the task to update"},
-                    "title": {"type": "string", "description": "New title"},
-                    "priority": {"type": "string", "enum": ["low", "medium", "high"]},
-                    "project": {"type": "string", "description": "New project name"},
-                    "due_at": {"type": "string", "description": "ISO 8601 due date, empty string to clear"},
-                    "notes": {"type": "string", "description": "Notes or description"}
-                },
-                "required": ["task_id"]
-            }),
-            auto_execute: true,
-        },
-        ToolDefinition {
-            name: "delete_task".into(),
-            description: "Permanently delete a task by its ID. This action cannot be undone.".into(),
-            input_schema: json!({
-                "type": "object",
-                "properties": {
-                    "task_id": {"type": "string", "description": "The unique ID of the task to delete"}
-                },
-                "required": ["task_id"]
-            }),
-            auto_execute: false,
-        },
-        ToolDefinition {
-            name: "save_note".into(),
-            description: "Save a new note with a title, content (plain text or markdown), and optional tags. Returns the note ID.".into(),
-            input_schema: json!({
-                "type": "object",
-                "properties": {
-                    "title": {"type": "string", "description": "Note title (required)"},
-                    "content": {"type": "string", "description": "Note body content (required)"},
-                    "tags": {"type": "array", "items": {"type": "string"}, "description": "Optional tags"}
-                },
-                "required": ["title", "content"]
-            }),
-            auto_execute: true,
-        },
-        ToolDefinition {
-            name: "search_notes".into(),
-            description: "Search notes by keyword, matching against titles and body content. Returns matching notes with id, title, excerpt, and updated_at.".into(),
-            input_schema: json!({
-                "type": "object",
-                "properties": {
-                    "query": {"type": "string", "description": "Search keyword (required)"},
-                    "limit": {"type": "integer", "description": "Max results (1-100), defaults to 10"}
-                },
-                "required": ["query"]
-            }),
-            auto_execute: true,
-        },
-        ToolDefinition {
-            name: "update_note".into(),
-            description: "Modify an existing note's title, content, or tags. Any field can be omitted to leave it unchanged.".into(),
-            input_schema: json!({
-                "type": "object",
-                "properties": {
-                    "note_id": {"type": "string", "description": "The unique ID of the note to update"},
-                    "title": {"type": "string", "description": "New title"},
-                    "content": {"type": "string", "description": "New content body"},
-                    "tags": {"type": "array", "items": {"type": "string"}, "description": "New tags array"}
-                },
-                "required": ["note_id"]
-            }),
-            auto_execute: true,
-        },
-        ToolDefinition {
-            name: "delete_note".into(),
-            description: "Permanently delete a note by its ID. This action cannot be undone.".into(),
-            input_schema: json!({
-                "type": "object",
-                "properties": {
-                    "note_id": {"type": "string", "description": "The unique ID of the note to delete"}
-                },
-                "required": ["note_id"]
-            }),
-            auto_execute: false,
-        },
-        ToolDefinition {
-            name: "log_habit".into(),
-            description: "Log a habit completion by habit name (case-insensitive, fuzzy matched). Returns the habit name and streak info.".into(),
-            input_schema: json!({
-                "type": "object",
-                "properties": {
-                    "habit_name": {"type": "string", "description": "Name of the habit to mark as completed"}
-                },
-                "required": ["habit_name"]
-            }),
-            auto_execute: true,
-        },
-        ToolDefinition {
-            name: "get_today_summary".into(),
-            description: "Get a summary of today's activity including tasks due, habits to complete, focus sessions, mood, and meals. Call this at the start of a conversation to ground the agent.".into(),
-            input_schema: json!({
-                "type": "object",
-                "properties": {}
-            }),
-            auto_execute: true,
-        },
-        ToolDefinition {
-            name: "get_current_time".into(),
-            description: "Get the current date and time. Use this whenever you need to know what time it is or what today's date is.".into(),
-            input_schema: json!({
-                "type": "object",
-                "properties": {}
-            }),
-            auto_execute: true,
-        },
-    ]
-});
+/// Return all tool definitions from the registry.
+pub fn default_tool_definitions() -> Vec<ToolDefinition> {
+    crate::ai::tools::all_definitions()
+}
 
-/// Return the default tool definitions (lazily constructed, shared reference).
-pub fn default_tool_definitions() -> &'static [ToolDefinition] {
-    &DEFAULT_TOOLS
+/// Max tool definitions supported by OpenAI-compatible providers (128).
+const MAX_TOOL_DEFS_OPENAI: usize = 128;
+/// Anthropic's Messages API caps the tools array at 64 — sending more is a 400.
+const MAX_TOOL_DEFS_ANTHROPIC: usize = 64;
+
+/// Provider-specific tool count limit.
+fn provider_tool_cap(provider: &str) -> usize {
+    if provider == "anthropic" {
+        MAX_TOOL_DEFS_ANTHROPIC
+    } else {
+        MAX_TOOL_DEFS_OPENAI
+    }
+}
+
+/// Max characters for a tool result before truncation — keeps the context
+/// window healthy when integrations return large payloads.
+const MAX_TOOL_RESULT_CHARS: usize = 12_000;
+
+/// Truncate a tool result string if it exceeds MAX_TOOL_RESULT_CHARS.
+fn truncate_tool_result(s: String) -> String {
+    let original = s.chars().count();
+    if original <= MAX_TOOL_RESULT_CHARS {
+        s
+    } else {
+        let mut truncated: String = s.chars().take(MAX_TOOL_RESULT_CHARS).collect();
+        truncated.push_str(&format!(
+            "\n\n[truncated — response was {original} chars, showing first {MAX_TOOL_RESULT_CHARS}]"
+        ));
+        truncated
+    }
+}
+
+/// Merge the internal tool registry with any caller-injected tools (e.g. the
+/// integration tools for connected apps). Used for building provider requests
+/// and resolving `auto_execute` during the tool-call loop.
+fn all_tool_definitions(params: &ChatParams) -> Vec<ToolDefinition> {
+    let max = provider_tool_cap(&params.provider);
+    let internal = default_tool_definitions();
+    let integration: Vec<ToolDefinition> = params.extra_tools.clone().unwrap_or_default();
+
+    // An integration tool that shadows an internal tool name would be sent
+    // twice and cause an ambiguous duplicate-tool error — keep the internal
+    // definition and drop the duplicate integration copy.
+    let internal_names: std::collections::HashSet<&str> =
+        internal.iter().map(|d| d.name.as_str()).collect();
+    let integration: Vec<ToolDefinition> = integration
+        .into_iter()
+        .filter(|d| !internal_names.contains(d.name.as_str()))
+        .collect();
+
+    let total = internal.len() + integration.len();
+
+    if total <= max {
+        let mut defs = internal;
+        defs.extend(integration);
+        return defs;
+    }
+
+    // Over the limit — prioritize integration tools (they're the connected apps
+    // the user specifically set up).  Fill remaining slots with internal tools.
+    let integration_cap = integration.len().min(max);
+    let internal_cap = max - integration_cap;
+
+    eprintln!(
+        "[ai] tool count {total} exceeds provider limit {max} — \
+         keeping all {integration_cap} integration tools + {internal_cap}/{} internal tools \
+         (dropping {} internal tools)",
+        internal.len(),
+        internal.len() - internal_cap,
+    );
+
+    let mut defs: Vec<ToolDefinition> = internal.into_iter().take(internal_cap).collect();
+    defs.extend(integration.into_iter().take(integration_cap));
+    defs
 }
 
 /// Check if a provider supports tool calling.
@@ -287,314 +229,19 @@ fn provider_supports_tools(provider: &str) -> bool {
 
 // ── Tool execution ──────────────────────────────────────────────────────────
 
-/// Execute a tool by name with the given arguments.
+/// Execute a tool by name with the given arguments — delegates to the tools
+/// registry. Integration tools are dispatched first (by slug), then the
+/// internal life-OS tools.
 async fn execute_tool(
     pool: &SqlitePool,
+    app: &AppHandle,
     name: &str,
     args: &Value,
 ) -> Result<Value, String> {
-    match name {
-        "get_current_time" => {
-            let now = time::now_ms();
-            let formatted = time::format_rfc3339(now);
-            Ok(json!({
-                "datetime": formatted,
-                "timestamp_ms": now,
-                "timezone": "UTC",
-                "date": time::date_key(now),
-                "time": time::time_key(now),
-            }))
-        }
-        "create_task" => {
-            let title = args["title"].as_str().ok_or("title is required")?;
-            let cleaned = title.trim();
-            if cleaned.is_empty() {
-                return Err("Task title cannot be empty.".to_string());
-            }
-            let id = Uuid::new_v4().to_string();
-            let now_ms = time::now_ms();
-            let priority = args["priority"].as_str().unwrap_or("medium");
-            let due_at_ms = args["due_at"].as_str()
-                .and_then(|iso| chrono::DateTime::parse_from_rfc3339(iso).ok())
-                .map(|dt| dt.timestamp_millis());
-            let project = args["project"].as_str().unwrap_or("");
-
-            sqlx::query(
-                "INSERT INTO tasks (id, title, done, priority, project, due_at, created_at, updated_at) VALUES (?, ?, 0, ?, ?, ?, ?, ?)",
-            )
-            .bind(&id)
-            .bind(cleaned)
-            .bind(priority)
-            .bind(project)
-            .bind(due_at_ms)
-            .bind(now_ms)
-            .bind(now_ms)
-            .execute(pool)
-            .await
-            .map_err(|e| format!("Failed to create task: {e}"))?;
-
-            Ok(json!({
-                "id": id,
-                "title": cleaned,
-                "data_coverage": 1.0,
-                "message": format!("Task \"{cleaned}\" created.")
-            }))
-        }
-        "get_tasks" => {
-            let status_filter = args["status"].as_str().unwrap_or("pending");
-            let max_results = args["limit"].as_i64().unwrap_or(20).min(100);
-            let now_ms = time::now_ms();
-
-            let mut sql = String::from("SELECT id, title, due_at, priority, done, project FROM tasks WHERE 1=1");
-            match status_filter {
-                "pending" => sql.push_str(" AND done = 0 AND (due_at IS NULL OR due_at > ?)"),
-                "completed" => sql.push_str(" AND done = 1"),
-                _ => {}
-            }
-
-            if let Some(proj) = args["project"].as_str() {
-                if !proj.is_empty() {
-                    sql.push_str(" AND project = ?");
-                }
-            }
-
-            sql.push_str(" ORDER BY created_at DESC LIMIT ?");
-
-            let mut query = sqlx::query_as::<_, (String, String, Option<i64>, String, i64, Option<String>)>(&sql);
-            if status_filter == "pending" {
-                query = query.bind(now_ms);
-            }
-            if let Some(proj) = args["project"].as_str() {
-                if !proj.is_empty() {
-                    query = query.bind(proj);
-                }
-            }
-            query = query.bind(max_results);
-
-            let rows = query.fetch_all(pool).await.map_err(|e| format!("Failed to query tasks: {e}"))?;
-
-            let tasks: Vec<Value> = rows.into_iter().map(|(id, title, due_at, priority, done, project)| {
-                json!({
-                    "id": id, "title": title, "dueAt": due_at,
-                    "priority": priority,
-                    "status": if done == 1 { "completed" } else { "pending" },
-                    "project": project,
-                })
-            }).collect();
-
-            Ok(json!({ "tasks": tasks, "count": tasks.len() }))
-        }
-        "complete_task" => {
-            let task_id = args["task_id"].as_str().ok_or("task_id is required")?;
-            let now_ms = time::now_ms();
-            let result = sqlx::query("UPDATE tasks SET done = 1, completed_at = ?, updated_at = ? WHERE id = ? AND done = 0")
-                .bind(now_ms).bind(now_ms).bind(task_id)
-                .execute(pool).await.map_err(|e| format!("Failed to complete task: {e}"))?;
-
-            if result.rows_affected() == 0 {
-                return Err(format!("Task \"{task_id}\" not found or already completed."));
-            }
-
-            let title: String = sqlx::query_scalar("SELECT title FROM tasks WHERE id = ?")
-                .bind(task_id).fetch_one(pool).await.map_err(|e| format!("Failed to get task: {e}"))?;
-
-            Ok(json!({ "id": task_id, "title": title, "data_coverage": 1.0, "message": format!("Task \"{title}\" completed.") }))
-        }
-        "update_task" => {
-            let task_id = args["task_id"].as_str().ok_or("task_id is required")?;
-            let now_ms = time::now_ms();
-            let mut cols: Vec<&str> = Vec::new();
-
-            if let Some(t) = args["title"].as_str() {
-                if !t.trim().is_empty() { cols.push("title = ?"); }
-            }
-            if args.get("priority").is_some() { cols.push("priority = ?"); }
-            if args.get("project").is_some() { cols.push("project = ?"); }
-            if args.get("due_at").is_some() { cols.push("due_at = ?"); }
-            if args.get("notes").is_some() { cols.push("notes = ?"); }
-            if cols.is_empty() { return Err("No fields to update.".to_string()); }
-
-            cols.push("updated_at = ?");
-            let sql = format!("UPDATE tasks SET {} WHERE id = ?", cols.join(", "));
-            let mut query = sqlx::query(&sql);
-
-            if let Some(t) = args["title"].as_str() { if !t.trim().is_empty() { query = query.bind(t.trim()); } }
-            if let Some(p) = args["priority"].as_str() { query = query.bind(p); }
-            if let Some(p) = args["project"].as_str() { query = query.bind(p); }
-            if let Some(d) = args["due_at"].as_str() {
-                query = query.bind(if d.is_empty() { None } else { chrono::DateTime::parse_from_rfc3339(d).ok().map(|dt| dt.timestamp_millis()) });
-            } else { query = query.bind(None::<i64>); }
-            if let Some(n) = args["notes"].as_str() { query = query.bind(n); }
-
-            query = query.bind(now_ms).bind(task_id);
-            let result = query.execute(pool).await.map_err(|e| format!("Failed to update task: {e}"))?;
-            if result.rows_affected() == 0 { return Err(format!("Task \"{task_id}\" not found.")); }
-
-            let title: String = sqlx::query_scalar("SELECT title FROM tasks WHERE id = ?")
-                .bind(task_id).fetch_one(pool).await.map_err(|e| format!("Failed to get task: {e}"))?;
-
-            Ok(json!({ "id": task_id, "title": title, "data_coverage": 1.0, "message": format!("Task \"{title}\" updated.") }))
-        }
-        "delete_task" => {
-            let task_id = args["task_id"].as_str().ok_or("task_id is required")?;
-            let title: Option<String> = sqlx::query_scalar("SELECT title FROM tasks WHERE id = ?")
-                .bind(task_id).fetch_optional(pool).await.map_err(|e| format!("DB error: {e}"))?;
-            let title = title.ok_or_else(|| format!("Task \"{task_id}\" not found."))?;
-
-            sqlx::query("DELETE FROM tasks WHERE parent_id = ?").bind(task_id).execute(pool).await.ok();
-            sqlx::query("DELETE FROM tasks WHERE id = ?").bind(task_id).execute(pool).await.map_err(|e| format!("Failed to delete: {e}"))?;
-
-            Ok(json!({ "id": task_id, "title": title, "data_coverage": 1.0, "message": format!("Task \"{title}\" deleted.") }))
-        }
-        "save_note" => {
-            let title = args["title"].as_str().ok_or("title is required")?;
-            let content = args["content"].as_str().ok_or("content is required")?;
-            if title.trim().is_empty() || content.trim().is_empty() {
-                return Err("Title and content are required.".to_string());
-            }
-            let object_id = Uuid::new_v4().to_string();
-            let block_id = Uuid::new_v4().to_string();
-            let now_ms = time::now_ms();
-            let tags = args["tags"].as_array().map(|a| serde_json::to_string(a).unwrap_or_else(|_| "[]".to_string())).unwrap_or_else(|| "[]".to_string());
-
-            let mut tx = pool.begin().await.map_err(|e| format!("Transaction error: {e}"))?;
-            sqlx::query("INSERT INTO note_objects (id, title, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
-                .bind(&object_id).bind(title.trim()).bind(&tags).bind(now_ms).bind(now_ms)
-                .execute(&mut *tx).await.map_err(|e| format!("Failed to create note: {e}"))?;
-
-            let block_content = json!({"text": content.trim()}).to_string();
-            sqlx::query("INSERT INTO blocks (id, object_id, type, content, position, created_at, updated_at) VALUES (?, ?, 'text', ?, 0, ?, ?)")
-                .bind(&block_id).bind(&object_id).bind(&block_content).bind(now_ms).bind(now_ms)
-                .execute(&mut *tx).await.map_err(|e| format!("Failed to create block: {e}"))?;
-
-            tx.commit().await.map_err(|e| format!("Commit error: {e}"))?;
-
-            Ok(json!({ "id": object_id, "title": title.trim(), "data_coverage": 1.0, "message": format!("Note \"{}\" saved.", title.trim()) }))
-        }
-        "search_notes" => {
-            let query_str = args["query"].as_str().ok_or("query is required")?;
-            let limit = args["limit"].as_i64().unwrap_or(10).min(100);
-            let pattern = format!("%{}%", query_str);
-
-            let rows = sqlx::query_as::<_, (String, String, String, i64)>(
-                r#"SELECT DISTINCT n.id, n.title,
-                    COALESCE(substr(json_extract(b.content, '$.text'), 1, 200), '') as excerpt,
-                    n.updated_at
-                   FROM note_objects n
-                   LEFT JOIN blocks b ON b.object_id = n.id
-                   WHERE n.title LIKE ? OR json_extract(b.content, '$.text') LIKE ?
-                   ORDER BY n.updated_at DESC
-                   LIMIT ?"#,
-            )
-            .bind(&pattern).bind(&pattern).bind(limit)
-            .fetch_all(pool).await.map_err(|e| format!("Search failed: {e}"))?;
-
-            let notes: Vec<Value> = rows.into_iter().map(|(id, title, excerpt, updated_at)| {
-                json!({ "id": id, "title": title, "excerpt": excerpt, "updatedAt": updated_at })
-            }).collect();
-
-            Ok(json!({ "notes": notes, "count": notes.len() }))
-        }
-        "update_note" => {
-            let note_id = args["note_id"].as_str().ok_or("note_id is required")?;
-            let now_ms = time::now_ms();
-            let mut cols: Vec<&str> = Vec::new();
-
-            if args.get("title").is_some() { cols.push("title = ?"); }
-            if args.get("content").is_some() { cols.push("content = ?"); }
-            if args.get("tags").is_some() { cols.push("tags = ?"); }
-            if cols.is_empty() { return Err("No fields to update.".to_string()); }
-
-            cols.push("updated_at = ?");
-            let sql = format!("UPDATE note_objects SET {} WHERE id = ?", cols.join(", "));
-            let mut query = sqlx::query(&sql);
-
-            if let Some(t) = args["title"].as_str() { query = query.bind(t.trim()); }
-            if let Some(c) = args["content"].as_str() { query = query.bind(c); }
-            if let Some(t) = args["tags"].as_array() {
-                query = query.bind(serde_json::to_string(t).unwrap_or_else(|_| "[]".to_string()));
-            }
-            query = query.bind(now_ms).bind(note_id);
-
-            let result = query.execute(pool).await.map_err(|e| format!("Failed to update note: {e}"))?;
-            if result.rows_affected() == 0 { return Err(format!("Note \"{note_id}\" not found.")); }
-
-            Ok(json!({ "id": note_id, "data_coverage": 1.0, "message": "Note updated." }))
-        }
-        "delete_note" => {
-            let note_id = args["note_id"].as_str().ok_or("note_id is required")?;
-            sqlx::query("DELETE FROM blocks WHERE object_id = ?").bind(note_id).execute(pool).await.ok();
-            let result = sqlx::query("DELETE FROM note_objects WHERE id = ?").bind(note_id)
-                .execute(pool).await.map_err(|e| format!("Failed to delete note: {e}"))?;
-            if result.rows_affected() == 0 { return Err(format!("Note \"{note_id}\" not found.")); }
-            Ok(json!({ "id": note_id, "data_coverage": 1.0, "message": "Note deleted." }))
-        }
-        "log_habit" => {
-            let habit_name = args["habit_name"].as_str().ok_or("habit_name is required")?;
-            let habit: Option<(String, String)> = sqlx::query_as(
-                "SELECT id, name FROM habits WHERE LOWER(name) = LOWER(?) OR LOWER(name) LIKE LOWER(?) LIMIT 1"
-            )
-            .bind(habit_name).bind(format!("%{}%", habit_name))
-            .fetch_optional(pool).await.map_err(|e| format!("DB error: {e}"))?;
-
-            let (habit_id, name) = habit.ok_or_else(|| format!("Habit \"{habit_name}\" not found."))?;
-            let today = time::date_key(time::now_ms());
-
-            let existing: Option<String> = sqlx::query_scalar("SELECT id FROM habit_completions WHERE habit_id = ? AND date_key = ?")
-                .bind(&habit_id).bind(&today).fetch_optional(pool).await.map_err(|e| format!("DB error: {e}"))?;
-
-            if existing.is_some() {
-                return Ok(json!({ "habit": name, "data_coverage": 1.0, "message": format!("Habit \"{name}\" already completed today.") }));
-            }
-
-            let id = Uuid::new_v4().to_string();
-            let now_ms = time::now_ms();
-            sqlx::query("INSERT INTO habit_completions (id, habit_id, date_key, created_at) VALUES (?, ?, ?, ?)")
-                .bind(&id).bind(&habit_id).bind(&today).bind(now_ms)
-                .execute(pool).await.map_err(|e| format!("Failed to log habit: {e}"))?;
-
-            Ok(json!({ "habit": name, "data_coverage": 1.0, "message": format!("Habit \"{name}\" logged for today.") }))
-        }
-        "get_today_summary" => {
-            let today = time::date_key(time::now_ms());
-            let today_ms = time::start_of_today();
-            let tomorrow_ms = today_ms + 86_400_000;
-
-            let pending_tasks: Vec<Value> = sqlx::query_as::<_, (String, String, Option<i64>, String)>(
-                "SELECT id, title, due_at, priority FROM tasks WHERE done = 0 AND (due_at IS NULL OR due_at <= ?) ORDER BY due_at ASC LIMIT 10"
-            )
-            .bind(tomorrow_ms).fetch_all(pool).await.unwrap_or_default()
-            .into_iter().map(|(id, title, due_at, priority)| json!({"id": id, "title": title, "dueAt": due_at, "priority": priority}))
-            .collect();
-
-            let habits_today: Vec<String> = sqlx::query_scalar(
-                "SELECT h.name FROM habits h LEFT JOIN habit_completions hc ON hc.habit_id = h.id AND hc.date_key = ? WHERE hc.id IS NULL AND h.archived = 0"
-            )
-            .bind(&today).fetch_all(pool).await.unwrap_or_default();
-
-            let focus_minutes: Option<i64> = sqlx::query_scalar(
-                "SELECT COALESCE(SUM(duration_minutes), 0) FROM focus_sessions WHERE date_key = ?"
-            )
-            .bind(&today).fetch_one(pool).await.unwrap_or(Some(0));
-
-            let meals: Vec<Value> = sqlx::query_as::<_, (String, String, Option<i64>)>(
-                "SELECT name, meal_type, total_kcal FROM meals WHERE date(logged_at / 1000, 'unixepoch') = ? ORDER BY logged_at"
-            )
-            .bind(&today).fetch_all(pool).await.unwrap_or_default()
-            .into_iter().map(|(name, meal_type, kcal)| json!({"name": name, "mealType": meal_type, "calories": kcal}))
-            .collect();
-
-            Ok(json!({
-                "date": today,
-                "pendingTasks": pending_tasks,
-                "habitsToComplete": habits_today,
-                "focusMinutes": focus_minutes.unwrap_or(0),
-                "mealsLogged": meals,
-                "data_coverage": 1.0
-            }))
-        }
-        _ => Err(format!("Unknown tool: {name}")),
+    if crate::ai::tools::integrations::is_integration_tool(name) {
+        return crate::ai::tools::integrations::execute_tool(app, name, args).await;
     }
+    crate::ai::tools::execute_tool(pool, name, args).await
 }
 
 // ── Provider request builders ──────────────────────────────────────────────
@@ -619,13 +266,13 @@ fn build_openai_request(
     if let Some(s) = &params.stop_sequences { body["stop"] = json!(s); }
 
     if include_tools {
-        let defs = default_tool_definitions();
+        let defs = all_tool_definitions(params);
         let tools: Vec<Value> = defs.iter().map(|t| json!({
             "type": "function",
             "function": {
                 "name": t.name,
                 "description": t.description,
-                "parameters": t.input_schema,
+                "parameters": gemini_parameters(&t.input_schema),
             }
         })).collect();
         body["tools"] = json!(tools);
@@ -635,28 +282,112 @@ fn build_openai_request(
     body
 }
 
+/// Remove incomplete tool-calling sequences from conversation history.
+///
+/// The tool loop runs inside `stream_chat` but only the final text response is
+/// saved to memory. If the history contains assistant messages with tool_calls
+/// but no matching tool response messages, the provider rejects the request.
+/// This function strips ALL orphaned sequences from the entire history.
+fn sanitize_history(messages: &[ChatMessage]) -> Vec<ChatMessage> {
+    use std::collections::HashSet;
+
+    // Phase 1: collect all tool_call_ids that have a matching tool response
+    let responded_ids: HashSet<String> = messages
+        .iter()
+        .filter(|m| m.role == "tool")
+        .filter_map(|m| m.tool_call_id.clone())
+        .collect();
+
+    // Phase 2: build a set of "bad" indices — assistant messages with
+    // unresponded tool_calls, and orphaned tool messages
+    let mut bad_indices = HashSet::new();
+    for (i, msg) in messages.iter().enumerate() {
+        if msg.role == "assistant" {
+            if let Some(tcs) = &msg.tool_calls {
+                if !tcs.is_empty() {
+                    let all_responded = tcs.iter().all(|tc| responded_ids.contains(&tc.id));
+                    if !all_responded {
+                        bad_indices.insert(i);
+                    }
+                }
+            }
+        } else if msg.role == "tool" {
+            // Orphaned tool message — no matching assistant tool_call
+            let caller_exists = messages.iter().enumerate().any(|(j, m)| {
+                j < i
+                    && m.role == "assistant"
+                    && m.tool_calls
+                        .as_ref()
+                        .is_some_and(|tcs| {
+                            tcs.iter().any(|tc| {
+                                tc.id == msg.tool_call_id.as_deref().unwrap_or("")
+                            })
+                        })
+            });
+            if !caller_exists {
+                bad_indices.insert(i);
+            }
+        }
+    }
+
+    // Phase 3: also strip tool messages that reference bad assistant indices
+    // (an assistant with unresponded calls → its tool responses are also bad)
+    for (i, msg) in messages.iter().enumerate() {
+        if msg.role == "tool" {
+            if let Some(ref tcid) = msg.tool_call_id {
+                let caller_is_bad = messages.iter().enumerate().any(|(j, m)| {
+                    j < i
+                        && m.role == "assistant"
+                        && m.tool_calls
+                            .as_ref()
+                            .is_some_and(|tcs| tcs.iter().any(|tc| &tc.id == tcid))
+                        && bad_indices.contains(&j)
+                });
+                if caller_is_bad {
+                    bad_indices.insert(i);
+                }
+            }
+        }
+    }
+
+    messages
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| !bad_indices.contains(i))
+        .map(|(_, m)| m.clone())
+        .collect()
+}
+
 fn build_openai_messages(params: &ChatParams) -> Vec<Value> {
+    let sanitized = sanitize_history(&params.messages);
     let mut msgs = Vec::new();
     if let Some(sys) = &params.system {
         if !sys.is_empty() {
             msgs.push(json!({"role": "system", "content": sys}));
         }
     }
-    for msg in &params.messages {
+    for msg in &sanitized {
         let mut m = json!({"role": msg.role, "content": msg.content});
         if let Some(tcs) = &msg.tool_calls {
-            let calls: Vec<Value> = tcs.iter().map(|tc| json!({
-                "id": tc.id,
-                "type": "function",
-                "function": {
-                    "name": tc.name,
-                    "arguments": tc.args.to_string(),
-                }
-            })).collect();
-            m["tool_calls"] = json!(calls);
+            if !tcs.is_empty() {
+                let calls: Vec<Value> = tcs.iter().map(|tc| json!({
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {
+                        "name": tc.name,
+                        "arguments": tc.args.to_string(),
+                    }
+                })).collect();
+                m["tool_calls"] = json!(calls);
+            }
         }
         if let Some(ref tid) = msg.tool_call_id {
             m["tool_call_id"] = json!(tid);
+        }
+        // OpenAI requires tool-role messages to carry a tool_call_id — a
+        // malformed one would be rejected as a 400.
+        if msg.role == "tool" && m.get("tool_call_id").is_none() {
+            continue;
         }
         msgs.push(m);
     }
@@ -686,11 +417,11 @@ fn build_anthropic_request(
     if let Some(s) = &params.stop_sequences { body["stop_sequences"] = json!(s); }
 
     if include_tools {
-        let defs = default_tool_definitions();
+        let defs = all_tool_definitions(params);
         let tools: Vec<Value> = defs.iter().map(|t| json!({
             "name": t.name,
             "description": t.description,
-            "input_schema": t.input_schema,
+            "input_schema": gemini_parameters(&t.input_schema),
         })).collect();
         body["tools"] = json!(tools);
     }
@@ -699,17 +430,24 @@ fn build_anthropic_request(
 }
 
 fn build_anthropic_messages(params: &ChatParams) -> Vec<Value> {
+    let sanitized = sanitize_history(&params.messages);
     let mut msgs = Vec::new();
-    for msg in &params.messages {
+    for msg in &sanitized {
         if msg.role == "system" { continue; }
         if msg.role == "tool" {
+            // A tool_result must reference a tool_use block by id — skip
+            // malformed messages instead of sending `tool_use_id: null`.
+            let Some(tool_use_id) = msg.tool_call_id.as_deref() else { continue; };
             msgs.push(json!({
                 "role": "user",
-                "content": [{"type": "tool_result", "tool_use_id": msg.tool_call_id, "content": msg.content}]
+                "content": [{"type": "tool_result", "tool_use_id": tool_use_id, "content": msg.content}]
             }));
             continue;
         }
-        let mut content: Vec<Value> = vec![json!({"type": "text", "text": msg.content})];
+        let mut content: Vec<Value> = Vec::new();
+        if !msg.content.is_empty() {
+            content.push(json!({"type": "text", "text": msg.content}));
+        }
         if let Some(tcs) = &msg.tool_calls {
             for tc in tcs {
                 content.push(json!({
@@ -720,6 +458,9 @@ fn build_anthropic_messages(params: &ChatParams) -> Vec<Value> {
                 }));
             }
         }
+        // Anthropic rejects empty content arrays — drop messages with neither
+        // text nor tool_use blocks.
+        if content.is_empty() { continue; }
         msgs.push(json!({"role": msg.role, "content": content}));
     }
     msgs
@@ -750,11 +491,11 @@ fn build_gemini_request(
     }
 
     if include_tools {
-        let defs = default_tool_definitions();
+        let defs = all_tool_definitions(params);
         let funcs: Vec<Value> = defs.iter().map(|t| json!({
             "name": t.name,
             "description": t.description,
-            "parameters": t.input_schema,
+            "parameters": gemini_parameters(&t.input_schema),
         })).collect();
         body["tools"] = json!([{"function_declarations": funcs}]);
     }
@@ -762,9 +503,29 @@ fn build_gemini_request(
     body
 }
 
+/// Normalize a tool input schema into the JSON-Schema shape Gemini requires.
+/// Gemini rejects function declarations whose `parameters` is an empty object,
+/// lacks a `type`, or has a `properties` that isn't an object.
+fn gemini_parameters(schema: &Value) -> Value {
+    let Some(obj) = schema.as_object() else {
+        return json!({"type": "object", "properties": {}});
+    };
+    let mut out = obj.clone();
+    if out.get("type").and_then(|t| t.as_str()).is_none() {
+        out.insert("type".into(), json!("object"));
+    }
+    if !out.contains_key("properties") {
+        out.insert("properties".into(), json!({}));
+    } else if !out.get("properties").unwrap().is_object() {
+        out.insert("properties".into(), json!({}));
+    }
+    Value::Object(out)
+}
+
 fn build_gemini_contents(params: &ChatParams) -> Vec<Value> {
+    let sanitized = sanitize_history(&params.messages);
     let mut contents = Vec::new();
-    for (idx, msg) in params.messages.iter().enumerate() {
+    for (idx, msg) in sanitized.iter().enumerate() {
         if msg.role == "system" { continue; }
         let gemini_role = match msg.role.as_str() {
             "assistant" => "model",
@@ -802,9 +563,17 @@ fn build_gemini_contents(params: &ChatParams) -> Vec<Value> {
                     .map(|tc| tc.name.as_str())
                     .unwrap_or_default()
             });
-            parts.push(json!({
-                "functionResponse": {"name": name, "response": {"result": msg.content}}
-            }));
+            if name.is_empty() {
+                // An empty functionResponse name is rejected by Gemini. If the
+                // function name can't be resolved (e.g. the originating tool
+                // call was pruned from history), degrade to plain text instead
+                // of failing the whole request.
+                parts.push(json!({"text": msg.content}));
+            } else {
+                parts.push(json!({
+                    "functionResponse": {"name": name, "response": {"result": msg.content}}
+                }));
+            }
         }
 
         contents.push(json!({"role": gemini_role, "parts": parts}));
@@ -822,7 +591,19 @@ fn parse_openai_sse_line(
     if data == "[DONE]" {
         return None;
     }
-    let json: Value = serde_json::from_str(data).ok()?;
+    let json: Value = match serde_json::from_str(data) {
+        Ok(v) => v,
+        Err(_) => return None,
+    };
+
+    // OpenAI/Grok may return API errors as SSE events (HTTP 200 with an
+    // `error` object in the body). Surface them instead of dropping the line.
+    if let Some(err) = json["error"].as_object() {
+        let message = err.get("message").and_then(|v| v.as_str())
+            .unwrap_or("Unknown OpenAI API error");
+        return Some(ChatEvent::Error { message: format!("OpenAI API error: {message}") });
+    }
+
     let choice = json["choices"].as_array()?.first()?;
 
     let delta = &choice["delta"];
@@ -846,12 +627,21 @@ fn parse_openai_sse_line(
     None
 }
 
+/// Intermediate accumulator for streaming tool call deltas.
+/// Arguments arrive as partial JSON fragments across multiple SSE deltas
+/// and must be concatenated before parsing.
+struct ToolCallDelta {
+    id: String,
+    name: String,
+    args_buf: String,
+}
+
 /// Parse and accumulate tool call deltas from an OpenAI/Grok SSE line.
 /// OpenAI sends tool calls across multiple deltas (index-based), so the
 /// caller must accumulate partial JSON arguments by index.
 fn parse_openai_tool_deltas(
     data: &str,
-    accumulator: &mut Vec<ToolCall>,
+    accumulator: &mut Vec<ToolCallDelta>,
 ) {
     let json: Value = match serde_json::from_str(data) {
         Ok(v) => v,
@@ -874,7 +664,6 @@ fn parse_openai_tool_deltas(
         let args_str = tc["function"]["arguments"].as_str().unwrap_or("");
 
         if idx < accumulator.len() {
-            // Merge with existing: update id/name if present, accumulate arguments
             if !id.is_empty() {
                 accumulator[idx].id = id;
             }
@@ -882,21 +671,14 @@ fn parse_openai_tool_deltas(
                 accumulator[idx].name = name;
             }
             if !args_str.is_empty() {
-                let partial_args: Value = serde_json::from_str(args_str).unwrap_or(json!({}));
-                // Merge partial JSON into accumulator
-                if let (Some(target), Some(source)) = (
-                    accumulator[idx].args.as_object_mut(),
-                    partial_args.as_object(),
-                ) {
-                    for (k, v) in source {
-                        target.insert(k.clone(), v.clone());
-                    }
-                }
+                accumulator[idx].args_buf.push_str(args_str);
             }
         } else {
-            // New tool call
-            let args: Value = serde_json::from_str(args_str).unwrap_or(json!({}));
-            accumulator.push(ToolCall { id, name, args });
+            accumulator.push(ToolCallDelta {
+                id,
+                name,
+                args_buf: args_str.to_string(),
+            });
         }
     }
 }
@@ -949,7 +731,16 @@ fn parse_anthropic_sse_line(
             let idx = json["index"].as_i64().unwrap_or(0) as usize;
             if let Some(pos) = tool_accumulator.iter().position(|(i, _, _, _)| *i == idx) {
                 let (_, id, name, args_str) = tool_accumulator.remove(pos);
-                let args: Value = serde_json::from_str(&args_str).unwrap_or(json!({}));
+                let args: Value = match serde_json::from_str(&args_str) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        return Some(ChatEvent::Error {
+                            message: format!(
+                                "Anthropic returned malformed tool arguments for '{name}': {e}"
+                            ),
+                        });
+                    }
+                };
                 return Some(ChatEvent::ToolCall {
                     id,
                     name,
@@ -986,6 +777,14 @@ fn parse_gemini_sse_line(
 ) -> Option<ChatEvent> {
     if data == "[DONE]" { return None; }
     let json: Value = serde_json::from_str(data).ok()?;
+
+    // Gemini may return API errors as SSE events (HTTP 200 with error in body).
+    // Surface them instead of silently dropping the SSE line.
+    if let Some(error_obj) = json["error"].as_object() {
+        let message = error_obj.get("message").and_then(|v| v.as_str()).unwrap_or("Unknown Gemini API error");
+        return Some(ChatEvent::Error { message: format!("Gemini API error: {message}") });
+    }
+
     let candidate = json["candidates"].as_array()?.first()?;
 
     // Check finish reason
@@ -1052,6 +851,7 @@ fn http_client() -> &'static reqwest::Client {
 pub async fn stream_chat(
     params: ChatParams,
     pool: SqlitePool,
+    app: AppHandle,
     tx: UnboundedSender<ChatEvent>,
 ) -> Result<(), String> {
     let provider = params.provider.to_lowercase();
@@ -1069,6 +869,10 @@ pub async fn stream_chat(
     let max_rounds = 10;
 
     for round in 0..max_rounds {
+        // Sanitize history before every API call — strip orphaned tool_calls
+        // and tool messages that the memory system didn't save correctly.
+        current_messages = sanitize_history(&current_messages);
+
         let chat_params = ChatParams {
             messages: current_messages.clone(),
             enable_tools: Some(enable_tools && round < max_rounds - 1),
@@ -1107,31 +911,29 @@ pub async fn stream_chat(
         // Check if there was a tool call to process
         match response {
             StreamResult::Done => return Ok(()),
-            StreamResult::ToolCalls(tool_calls) => {
-                let defs = default_tool_definitions();
-                for tc in &tool_calls {
+            StreamResult::ToolCalls { text, calls } => {
+                let defs = all_tool_definitions(&chat_params);
+                let mut executed: Vec<(ToolCall, Result<Value, String>)> = Vec::new();
+                let mut any_auto = false;
+
+                for tc in &calls {
                     let def = defs.iter().find(|d| d.name == tc.name);
                     let auto_execute = def.map(|d| d.auto_execute).unwrap_or(true);
-
-                    if !auto_execute {
-                        tx.send(ChatEvent::ToolCall {
-                            id: tc.id.clone(),
-                            name: tc.name.clone(),
-                            args: tc.args.clone(),
-                            auto_execute: false,
-                        }).ok();
-                        continue;
-                    }
+                    if auto_execute { any_auto = true; }
 
                     tx.send(ChatEvent::ToolCall {
                         id: tc.id.clone(),
                         name: tc.name.clone(),
                         args: tc.args.clone(),
-                        auto_execute: true,
+                        auto_execute,
                     }).ok();
 
-                    let result = execute_tool(&pool, &tc.name, &tc.args).await;
-                    match result {
+                    if !auto_execute {
+                        continue;
+                    }
+
+                    let result = execute_tool(&pool, &app, &tc.name, &tc.args).await;
+                    match &result {
                         Ok(value) => {
                             tx.send(ChatEvent::ToolResult {
                                 id: tc.id.clone(),
@@ -1139,21 +941,6 @@ pub async fn stream_chat(
                                 result: value.clone(),
                                 is_error: false,
                             }).ok();
-
-                            current_messages.push(ChatMessage {
-                                role: "assistant".into(),
-                                content: "".into(),
-                                tool_calls: Some(vec![tc.clone()]),
-                                tool_call_id: None,
-                                tool_call_name: None,
-                            });
-                            current_messages.push(ChatMessage {
-                                role: "tool".into(),
-                                content: value.to_string(),
-                                tool_calls: None,
-                                tool_call_id: Some(tc.id.clone()),
-                                tool_call_name: Some(tc.name.clone()),
-                            });
                         }
                         Err(e) => {
                             tx.send(ChatEvent::ToolResult {
@@ -1162,35 +949,71 @@ pub async fn stream_chat(
                                 result: json!({"error": e}),
                                 is_error: true,
                             }).ok();
+                        }
+                    }
+                    executed.push((tc.clone(), result));
+                }
 
-                            current_messages.push(ChatMessage {
-                                role: "assistant".into(),
-                                content: "".into(),
-                                tool_calls: Some(vec![tc.clone()]),
-                                tool_call_id: None,
-                                tool_call_name: None,
-                            });
+                // All calls require user approval — surface them and stop this
+                // round; a follow-up request (after approval) continues.
+                if !any_auto {
+                    // Still add the assistant message + placeholder tool responses
+                    // so the message history stays valid for the next API call.
+                    if !calls.is_empty() {
+                        current_messages.push(ChatMessage {
+                            role: "assistant".into(),
+                            content: text,
+                            tool_calls: Some(calls.clone()),
+                            tool_call_id: None,
+                            tool_call_name: None,
+                            created_at: None,
+                        });
+                        for tc in &calls {
                             current_messages.push(ChatMessage {
                                 role: "tool".into(),
-                                content: format!("Error: {e}"),
+                                content: "Tool requires user approval and has not been executed yet. Call this tool again after approval.".into(),
                                 tool_calls: None,
                                 tool_call_id: Some(tc.id.clone()),
                                 tool_call_name: Some(tc.name.clone()),
+                                created_at: None,
                             });
                         }
                     }
+                    tx.send(ChatEvent::Done { finish_reason: Some("tool_use".into()), usage: None }).ok();
+                    return Ok(());
                 }
-                if !tool_calls.is_empty() {
-                    let all_waiting = tool_calls.iter().all(|tc| {
-                        defs.iter().find(|d| d.name == tc.name).map(|d| !d.auto_execute).unwrap_or(false)
+
+                if !executed.is_empty() {
+                    // Persist ONE assistant message carrying the text the model
+                    // emitted this round plus all its tool calls, followed by
+                    // one tool message per result. Grouping keeps the message
+                    // history valid for every provider (assistant tool_calls
+                    // must pair with the tool results that follow).
+                    current_messages.push(ChatMessage {
+                        role: "assistant".into(),
+                        content: text,
+                        tool_calls: Some(executed.iter().map(|(tc, _)| tc.clone()).collect()),
+                        tool_call_id: None,
+                        tool_call_name: None,
+                        created_at: None,
                     });
-                    if all_waiting {
-                        tx.send(ChatEvent::Done { finish_reason: Some("tool_use".into()), usage: None }).ok();
-                        return Ok(());
+                    for (tc, result) in executed {
+                        let content = match result {
+                            Ok(value) => truncate_tool_result(value.to_string()),
+                            Err(e) => format!("Error: {e}"),
+                        };
+                        current_messages.push(ChatMessage {
+                            role: "tool".into(),
+                            content,
+                            tool_calls: None,
+                            tool_call_id: Some(tc.id.clone()),
+                            tool_call_name: Some(tc.name.clone()),
+                            created_at: None,
+                        });
                     }
-                    continue;
                 }
-                return Ok(());
+
+                continue;
             }
             // Error events are sent through the channel directly; no StreamResult::Error variant needed.
         }
@@ -1202,7 +1025,7 @@ pub async fn stream_chat(
 
 enum StreamResult {
     Done,
-    ToolCalls(Vec<ToolCall>),
+    ToolCalls { text: String, calls: Vec<ToolCall> },
 }
 
 async fn send_openai_stream(
@@ -1232,9 +1055,10 @@ async fn send_openai_stream(
 
     let mut stream = resp.bytes_stream();
     let mut buffer = String::new();
-    let mut tool_calls: Vec<ToolCall> = Vec::new();
+    let mut tool_call_deltas: Vec<ToolCallDelta> = Vec::new();
+    let mut emitted_text = String::new();
 
-    while let Some(chunk_result) = futures::StreamExt::next(&mut stream).await {
+    'stream: while let Some(chunk_result) = futures::StreamExt::next(&mut stream).await {
         let chunk = chunk_result.map_err(|e| format!("Stream error: {e}"))?;
         buffer.push_str(&String::from_utf8_lossy(&chunk));
 
@@ -1246,19 +1070,26 @@ async fn send_openai_stream(
             if !line.starts_with("data: ") { continue; }
 
             let data = &line[6..];
-            if data == "[DONE]" { break; }
+            if data == "[DONE]" { break 'stream; }
 
             // Accumulate tool call deltas by index (OpenAI sends partial arguments across chunks)
-            parse_openai_tool_deltas(data, &mut tool_calls);
+            parse_openai_tool_deltas(data, &mut tool_call_deltas);
 
             if let Some(event) = parse_openai_sse_line(data) {
                 match event {
-                    ChatEvent::Token { .. } => { tx.send(event).ok(); }
+                    ChatEvent::Token { content } => {
+                        emitted_text.push_str(&content);
+                        tx.send(ChatEvent::Token { content }).ok();
+                    }
                     ChatEvent::Done { .. } => {
-                        if tool_calls.is_empty() {
+                        if tool_call_deltas.is_empty() {
                             tx.send(event).ok();
                             return Ok(StreamResult::Done);
                         }
+                    }
+                    ChatEvent::Error { .. } => {
+                        tx.send(event).ok();
+                        return Err("OpenAI stream aborted by API error".to_string());
                     }
                     _ => {}
                 }
@@ -1266,8 +1097,22 @@ async fn send_openai_stream(
         }
     }
 
-    if !tool_calls.is_empty() {
-        Ok(StreamResult::ToolCalls(tool_calls))
+    if !tool_call_deltas.is_empty() {
+        // Parse complete arguments from accumulated raw strings
+        let mut tool_calls: Vec<ToolCall> = Vec::with_capacity(tool_call_deltas.len());
+        for d in tool_call_deltas {
+            let args: Value = match serde_json::from_str(&d.args_buf) {
+                Ok(v) => v,
+                Err(e) => {
+                    return Err(format!(
+                        "OpenAI returned malformed tool call arguments for '{}': {e}",
+                        d.name
+                    ));
+                }
+            };
+            tool_calls.push(ToolCall { id: d.id, name: d.name, args });
+        }
+        Ok(StreamResult::ToolCalls { text: emitted_text, calls: tool_calls })
     } else {
         tx.send(ChatEvent::Done { finish_reason: Some("stop".into()), usage: None }).ok();
         Ok(StreamResult::Done)
@@ -1304,6 +1149,7 @@ async fn send_anthropic_stream(
     let mut buffer = String::new();
     let mut current_event = String::new();
     let mut tool_calls: Vec<ToolCall> = Vec::new();
+    let mut emitted_text = String::new();
     // Anthropic sends tool_use input as structured JSON across content_block_start → input_json_delta → content_block_stop
     let mut tool_accumulator: Vec<(usize, String, String, String)> = Vec::new();
 
@@ -1323,7 +1169,10 @@ async fn send_anthropic_stream(
                 let data = &line[6..];
                 if let Some(event) = parse_anthropic_sse_line(&current_event, data, &mut tool_accumulator) {
                     match event {
-                        ChatEvent::Token { .. } => { tx.send(event).ok(); }
+                        ChatEvent::Token { content } => {
+                            emitted_text.push_str(&content);
+                            tx.send(ChatEvent::Token { content }).ok();
+                        }
                         ChatEvent::ToolCall { id, name, args, .. } => {
                             tool_calls.push(ToolCall { id, name, args });
                         }
@@ -1333,6 +1182,10 @@ async fn send_anthropic_stream(
                                 return Ok(StreamResult::Done);
                             }
                         }
+                        ChatEvent::Error { .. } => {
+                            tx.send(event).ok();
+                            return Err("Anthropic stream aborted by API error".to_string());
+                        }
                         _ => {}
                     }
                 }
@@ -1341,7 +1194,7 @@ async fn send_anthropic_stream(
     }
 
     if !tool_calls.is_empty() {
-        Ok(StreamResult::ToolCalls(tool_calls))
+        Ok(StreamResult::ToolCalls { text: emitted_text, calls: tool_calls })
     } else {
         tx.send(ChatEvent::Done { finish_reason: Some("stop".into()), usage: None }).ok();
         Ok(StreamResult::Done)
@@ -1376,8 +1229,9 @@ async fn send_gemini_stream(
     let mut stream = resp.bytes_stream();
     let mut buffer = String::new();
     let mut tool_calls: Vec<ToolCall> = Vec::new();
+    let mut emitted_text = String::new();
 
-    while let Some(chunk_result) = futures::StreamExt::next(&mut stream).await {
+    'stream: while let Some(chunk_result) = futures::StreamExt::next(&mut stream).await {
         let chunk = chunk_result.map_err(|e| format!("Stream error: {e}"))?;
         buffer.push_str(&String::from_utf8_lossy(&chunk));
 
@@ -1389,11 +1243,14 @@ async fn send_gemini_stream(
             if !line.starts_with("data: ") { continue; }
 
             let data = &line[6..];
-            if data == "[DONE]" { break; }
+            if data == "[DONE]" { break 'stream; }
 
             if let Some(event) = parse_gemini_sse_line(data) {
                 match event {
-                    ChatEvent::Token { .. } => { tx.send(event).ok(); }
+                    ChatEvent::Token { content } => {
+                        emitted_text.push_str(&content);
+                        tx.send(ChatEvent::Token { content }).ok();
+                    }
                     ChatEvent::ToolCall { id, name, args, .. } => {
                         tool_calls.push(ToolCall { id, name, args });
                     }
@@ -1403,6 +1260,10 @@ async fn send_gemini_stream(
                             return Ok(StreamResult::Done);
                         }
                     }
+                    ChatEvent::Error { .. } => {
+                        tx.send(event).ok();
+                        return Err("Gemini stream aborted by API error".to_string());
+                    }
                     _ => {}
                 }
             }
@@ -1410,7 +1271,7 @@ async fn send_gemini_stream(
     }
 
     if !tool_calls.is_empty() {
-        Ok(StreamResult::ToolCalls(tool_calls))
+        Ok(StreamResult::ToolCalls { text: emitted_text, calls: tool_calls })
     } else {
         tx.send(ChatEvent::Done { finish_reason: Some("stop".into()), usage: None }).ok();
         Ok(StreamResult::Done)
@@ -1441,6 +1302,7 @@ async fn send_ollama_stream(
 
     let mut stream = resp.bytes_stream();
     let mut buffer = String::new();
+    let mut emitted_text = String::new();
 
     while let Some(chunk_result) = futures::StreamExt::next(&mut stream).await {
         let chunk = chunk_result.map_err(|e| format!("Stream error: {e}"))?;
@@ -1454,6 +1316,7 @@ async fn send_ollama_stream(
             if let Ok(json) = serde_json::from_str::<Value>(&line) {
                 if let Some(token) = json["message"]["content"].as_str() {
                     if !token.is_empty() {
+                        emitted_text.push_str(token);
                         tx.send(ChatEvent::Token { content: token.to_string() }).ok();
                     }
                 }
@@ -1490,26 +1353,46 @@ fn build_codex_request(
     }
 
     for msg in &params.messages {
-        let mut item = json!({
-            "type": "message",
-            "role": msg.role,
-            "content": msg.content,
-        });
-        if let Some(tcs) = &msg.tool_calls {
-            let calls: Vec<Value> = tcs.iter().map(|tc| json!({
-                "id": tc.id,
-                "type": "function",
-                "function": {
-                    "name": tc.name,
-                    "arguments": tc.args.to_string(),
+        // The Responses API has no "tool" role — tool outputs are standalone
+        // `function_call_output` items and tool calls are standalone
+        // `function_call` items, each keyed by call id.
+        match msg.role.as_str() {
+            "tool" => {
+                let call_id = msg.tool_call_id.clone().unwrap_or_default();
+                if call_id.is_empty() {
+                    continue;
                 }
-            })).collect();
-            item["tool_calls"] = json!(calls);
+                input.push(json!({
+                    "type": "function_call_output",
+                    "call_id": call_id,
+                    "output": msg.content,
+                }));
+            }
+            "assistant" => {
+                input.push(json!({
+                    "type": "message",
+                    "role": "assistant",
+                    "content": msg.content,
+                }));
+                if let Some(tcs) = &msg.tool_calls {
+                    for tc in tcs {
+                        input.push(json!({
+                            "type": "function_call",
+                            "id": tc.id,
+                            "name": tc.name,
+                            "arguments": tc.args.to_string(),
+                        }));
+                    }
+                }
+            }
+            _ => {
+                input.push(json!({
+                    "type": "message",
+                    "role": msg.role,
+                    "content": msg.content,
+                }));
+            }
         }
-        if let Some(ref tid) = msg.tool_call_id {
-            item["tool_call_id"] = json!(tid);
-        }
-        input.push(item);
     }
 
     let mut body = json!({
@@ -1523,13 +1406,13 @@ fn build_codex_request(
     if let Some(p) = params.top_p { body["top_p"] = json!(p); }
 
     if include_tools {
-        let defs = default_tool_definitions();
+        let defs = all_tool_definitions(params);
         let tools: Vec<Value> = defs.iter().map(|t| json!({
             "type": "function",
             "function": {
                 "name": t.name,
                 "description": t.description,
-                "parameters": t.input_schema,
+                "parameters": gemini_parameters(&t.input_schema),
             }
         })).collect();
         body["tools"] = json!(tools);
@@ -1581,6 +1464,7 @@ async fn send_codex_stream(
     let mut buffer = String::new();
     let mut current_event = String::new();
     let mut tool_calls: Vec<ToolCall> = Vec::new();
+    let mut emitted_text = String::new();
     // Track partial tool call arguments across deltas
     let mut partial_tool_args: std::collections::HashMap<String, (String, String)> = std::collections::HashMap::new();
 
@@ -1610,6 +1494,7 @@ async fn send_codex_stream(
                     "response.text.delta" => {
                         if let Some(delta) = json["data"]["delta"].as_str() {
                             if !delta.is_empty() {
+                                emitted_text.push_str(delta);
                                 tx.send(ChatEvent::Token { content: delta.to_string() }).ok();
                             }
                         }
@@ -1665,7 +1550,7 @@ async fn send_codex_stream(
                     "response.done" => {
                         // Check the done event for tool calls in the output
                         if !tool_calls.is_empty() {
-                            return Ok(StreamResult::ToolCalls(tool_calls));
+                            return Ok(StreamResult::ToolCalls { text: emitted_text, calls: tool_calls });
                         }
                         // Also check output for tool calls
                         if let Some(output) = json["data"]["output"].as_array() {
@@ -1674,12 +1559,19 @@ async fn send_codex_stream(
                                     let id = item["id"].as_str().unwrap_or("").to_string();
                                     let name = item["name"].as_str().unwrap_or("").to_string();
                                     let args_str = item["arguments"].as_str().unwrap_or("{}");
-                                    let args = serde_json::from_str(args_str).unwrap_or(json!({}));
+                                    let args = match serde_json::from_str(args_str) {
+                                        Ok(v) => v,
+                                        Err(e) => {
+                                            return Err(format!(
+                                                "Codex returned malformed tool arguments for '{name}': {e}"
+                                            ));
+                                        }
+                                    };
                                     tool_calls.push(ToolCall { id, name, args });
                                 }
                             }
                             if !tool_calls.is_empty() {
-                                return Ok(StreamResult::ToolCalls(tool_calls));
+                                return Ok(StreamResult::ToolCalls { text: emitted_text, calls: tool_calls });
                             }
                         }
                         tx.send(ChatEvent::Done { finish_reason: Some("stop".into()), usage: None }).ok();
@@ -1699,7 +1591,7 @@ async fn send_codex_stream(
 
     // Stream ended without a response.done event
     if !tool_calls.is_empty() {
-        Ok(StreamResult::ToolCalls(tool_calls))
+        Ok(StreamResult::ToolCalls { text: emitted_text, calls: tool_calls })
     } else {
         tx.send(ChatEvent::Done { finish_reason: Some("stop".into()), usage: None }).ok();
         Ok(StreamResult::Done)
@@ -1711,6 +1603,7 @@ async fn send_codex_stream(
 pub async fn complete_chat(
     params: ChatParams,
     pool: SqlitePool,
+    app: AppHandle,
 ) -> Result<String, String> {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<ChatEvent>();
 
@@ -1721,7 +1614,7 @@ pub async fn complete_chat(
 
     let error_tx = tx.clone();
     tokio::spawn(async move {
-        if let Err(e) = stream_chat(stream_params, pool, tx).await {
+        if let Err(e) = stream_chat(stream_params, pool, app, tx).await {
             eprintln!("[ai] complete_chat error: {e}");
             let _ = error_tx.send(ChatEvent::Error { message: e });
         }
@@ -1754,6 +1647,7 @@ mod tests {
                 tool_calls: None,
                 tool_call_id: None,
                 tool_call_name: None,
+                created_at: None,
             };
             assert!(msg.validate().is_ok());
         }
@@ -1768,6 +1662,7 @@ mod tests {
                 tool_calls: None,
                 tool_call_id: None,
                 tool_call_name: None,
+                created_at: None,
             };
             assert!(msg.validate().is_err());
         }
@@ -1781,6 +1676,7 @@ mod tests {
             tool_calls: None,
             tool_call_id: None,
             tool_call_name: None,
+            created_at: None,
         };
         assert!(msg.validate().is_ok());
     }

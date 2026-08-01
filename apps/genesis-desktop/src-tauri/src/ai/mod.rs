@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 //! Bento AI Backend — provider implementations, multi-turn chat, and Tauri commands.
 //!
 //! This module provides:
@@ -16,8 +18,10 @@ pub mod ollama;
 pub mod openai;
 pub mod provider;
 pub mod stream;
+pub mod tools;
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use tauri::{ipc::Channel, AppHandle, Manager};
 use tokio::sync::mpsc;
 
@@ -71,8 +75,17 @@ pub async fn ai_complete(app: AppHandle, prompt: String) -> Result<String, Strin
 
     let api_key = if provider_name != "ollama" {
         Some(
-            byok::get_api_key(&provider_name, &settings.byok)?
-                .ok_or_else(|| format!("No API key configured for {provider_name}"))?,
+                match byok::get_api_key(&provider_name, &settings.byok) {
+                    Ok(Some(k)) => k,
+                    Ok(None) => {
+                        return Err(format!(
+                            "No API key configured for {provider_name}. Go to Settings → AI → Credentials to add one."
+                        ));
+                    }
+                    Err(e) => {
+                        return Err(format!("Failed to read API key for {provider_name}: {e}"));
+                    }
+                },
         )
     } else {
         None
@@ -113,10 +126,17 @@ pub async fn ai_stream(
     let provider = create_provider(&provider_name, overrides)?;
 
     let api_key = if provider_name != "ollama" {
-        Some(
-            byok::get_api_key(&provider_name, &settings.byok)?
-                .ok_or_else(|| format!("No API key for {provider_name}"))?,
-        )
+        Some(match byok::get_api_key(&provider_name, &settings.byok) {
+            Ok(Some(k)) => k,
+            Ok(None) => {
+                return Err(format!(
+                    "No API key configured for {provider_name}. Go to Settings → AI → Credentials to add one."
+                ));
+            }
+            Err(e) => {
+                return Err(format!("Failed to read API key for {provider_name}: {e}"));
+            }
+        })
     } else {
         None
     };
@@ -298,16 +318,27 @@ pub async fn ai_chat_stream(
         (None, Some(format!("{server_url}/api/chatgpt")), session_cookie)
     } else {
         let key = if provider_name != "ollama" {
-            Some(
-                byok::get_api_key(&provider_name, &settings.byok)?
-                    .ok_or_else(|| format!("No API key configured for {provider_name}"))?,
-            )
+            Some(match byok::get_api_key(&provider_name, &settings.byok) {
+                Ok(Some(k)) => k,
+                Ok(None) => {
+                    return Err(format!(
+                        "No API key configured for {provider_name}. Go to Settings → AI → Credentials to add one."
+                    ));
+                }
+                Err(e) => {
+                    return Err(format!("Failed to read API key for {provider_name}: {e}"));
+                }
+            })
         } else {
             None
         };
         let url = resolve_base_url(&provider_name, &settings.byok);
         (key, url, None)
     };
+
+    // Enrich system prompt with connected integration info so the model
+    // knows which external apps it can use.
+    let system = enrich_system_prompt_with_integrations(&app, &pool, system).await?;
 
     let params = chat::ChatParams {
         messages,
@@ -325,13 +356,15 @@ pub async fn ai_chat_stream(
         api_key,
         base_url,
         cookie,
+        extra_tools: Some(connected_integration_tools(&pool).await?),
     };
 
     let (tx, mut rx) = mpsc::unbounded_channel::<ChatEvent>();
 
     let error_tx = tx.clone();
+    let stream_app = app.clone();
     tokio::spawn(async move {
-        if let Err(e) = chat::stream_chat(params, pool, tx).await {
+        if let Err(e) = chat::stream_chat(params, pool, stream_app, tx).await {
             eprintln!("[ai] chat stream error: {e}");
             let _ = error_tx.send(ChatEvent::Error { message: e });
         }
@@ -365,6 +398,7 @@ pub async fn ai_chat_complete(
     presence_penalty: Option<f64>,
     frequency_penalty: Option<f64>,
     stop_sequences: Option<Vec<String>>,
+    enable_tools: Option<bool>,
 ) -> Result<String, String> {
     let settings = settings::current_settings(&app);
     let pool = {
@@ -409,16 +443,25 @@ pub async fn ai_chat_complete(
         (None, Some(format!("{server_url}/api/chatgpt")), session_cookie)
     } else {
         let key = if provider_name != "ollama" {
-            Some(
-                byok::get_api_key(&provider_name, &settings.byok)?
-                    .ok_or_else(|| format!("No API key configured for {provider_name}"))?,
-            )
+            Some(match byok::get_api_key(&provider_name, &settings.byok) {
+                Ok(Some(k)) => k,
+                Ok(None) => {
+                    return Err(format!(
+                        "No API key configured for {provider_name}. Go to Settings → AI → Credentials to add one."
+                    ));
+                }
+                Err(e) => {
+                    return Err(format!("Failed to read API key for {provider_name}: {e}"));
+                }
+            })
         } else {
             None
         };
         let url = resolve_base_url(&provider_name, &settings.byok);
         (key, url, None)
     };
+
+    let system = enrich_system_prompt_with_integrations(&app, &pool, system).await?;
 
     let params = chat::ChatParams {
         messages,
@@ -432,20 +475,21 @@ pub async fn ai_chat_complete(
         presence_penalty,
         frequency_penalty,
         stop_sequences,
-        enable_tools: Some(false),
+        enable_tools,
         api_key,
         base_url,
         cookie,
+        extra_tools: Some(connected_integration_tools(&pool).await?),
     };
 
-    chat::complete_chat(params, pool).await
+    chat::complete_chat(params, pool, app).await
 }
 
 // ── Helper ───────────────────────────────────────────────────────────────────
 
 /// Resolve the base URL for a provider: check overrides first, then fall back
 /// to the provider's known default base URL.
-fn resolve_base_url(provider_name: &str, byok: &byok::ByokSettings) -> Option<String> {
+pub(crate) fn resolve_base_url(provider_name: &str, byok: &byok::ByokSettings) -> Option<String> {
     if let Some(override_url) = byok.base_url_overrides.get(provider_name) {
         return Some(override_url.clone());
     }
@@ -542,6 +586,121 @@ pub async fn ai_conversation_search(
 
 /// List available tool definitions for the agent.
 #[tauri::command]
-pub async fn ai_tools_list() -> Result<Vec<chat::ToolDefinition>, String> {
-    Ok(chat::default_tool_definitions().to_vec())
+pub async fn ai_tools_list(app: AppHandle) -> Result<Vec<chat::ToolDefinition>, String> {
+    let mut defs = chat::default_tool_definitions();
+    let pool = {
+        let state = app.state::<BentoAppState>();
+        state.db()
+    };
+    defs.extend(connected_integration_tools(&pool).await?);
+    Ok(defs)
+}
+
+/// Build the integration tool definitions for currently connected apps.
+pub(crate) async fn connected_integration_tools(
+    pool: &sqlx::SqlitePool,
+) -> Result<Vec<chat::ToolDefinition>, String> {
+    let connected = crate::integrations::store::connected_app_keys(pool).await?;
+    let set: HashSet<String> = connected.into_iter().collect();
+    Ok(crate::ai::tools::integrations::definitions(&set))
+}
+
+/// Canonical default system prompt for the Bento agent — identity + tools + personality.
+/// Kept in sync with the frontend `prompts.ts getDefaultSystemPrompt()`.
+pub fn default_agent_system_prompt() -> String {
+    "## Identity\n\n\
+     You are Bento \u{2014} a personal life-OS assistant. You live on the user's desktop as a built-in feature of the Bento app. You are NOT a generic chatbot. You are NOT a language model. You are Bento, a product made by the Bento team.\n\n\
+     CRITICAL RULES:\n\
+     - NEVER say you are \"trained by Google\" or \"trained by OpenAI\" or \"a large language model\"\n\
+     - NEVER say you don't have a name \u{2014} your name is Bento\n\
+     - NEVER break character or reveal you are an AI model\n\
+     - If asked \"who are you?\" say \"I'm Bento, your personal life-OS assistant\"\n\
+     - If asked \"what are you?\" say \"I'm Bento \u{2014} I help you manage your life from your desktop\"\n\
+     - You are a product, not a research model. Act like a product.\n\n\
+     ## What You Do\n\n\
+     You help people manage their daily lives across these areas:\n\
+     - Tasks and to-dos (create, prioritize, complete)\n\
+     - Journaling and reflection\n\
+     - Habit tracking and streaks\n\
+     - Focus and deep work sessions\n\
+     - Health, sleep, and nutrition tracking\n\
+     - Mood check-ins and emotional awareness\n\
+     - Budget and money management\n\
+     - Goal setting and milestones\n\
+     - Notes and knowledge capture\n\
+     - Voice memos and transcription\n\
+     - Breathing exercises and calm sessions\n\
+     - Countdowns to important events\n\n\
+     ## Personality\n\n\
+     - Warm, encouraging, and concise\n\
+     - You care about the user's wellbeing, not just productivity\n\
+     - You notice patterns: \"You've been sleeping less this week\" or \"You skipped your morning routine 3 days in a row\"\n\
+     - You celebrate wins: \"Nice \u{2014} that's a 7-day streak!\"\n\
+     - You gently nudge when something's off: \"You logged 'stressed' mood 4 days straight. Want to check your mood or habits?\"\n\n\
+     ## Using Tools\n\n\
+     - Always use tools to get real data before giving advice\n\
+     - Never fabricate data \u{2014} report what the tools return\n\
+     - When you create or update something, confirm what you did\n\
+     - Format responses in Markdown when helpful (lists, bold, code blocks for data)\n\n\
+     You have access to the user's Bento data through tools. Use them proactively to give personalized, data-driven help \u{2014} not generic advice."
+        .to_string()
+}
+
+/// Enrich a system prompt with the `## Connected Integrations` section that tells the
+/// model which external apps are available and how to use them.
+pub(crate) async fn enrich_system_prompt_with_integrations(
+    _app: &AppHandle,
+    pool: &sqlx::SqlitePool,
+    system: Option<String>,
+) -> Result<Option<String>, String> {
+    let connected_keys = crate::integrations::store::connected_app_keys(pool).await?;
+    if connected_keys.is_empty() {
+        return Ok(system);
+    }
+
+    let integration_defs = crate::ai::tools::integrations::definitions(
+        &connected_keys.iter().cloned().collect::<HashSet<_>>(),
+    );
+    let mut app_tools: std::collections::BTreeMap<String, Vec<String>> = std::collections::BTreeMap::new();
+    for def in &integration_defs {
+        let app_name = crate::ai::tools::integrations::resolve_app(&def.name)
+            .unwrap_or("unknown")
+            .to_string();
+        app_tools.entry(app_name).or_default().push(def.name.clone());
+    }
+
+    let mut tool_list = String::new();
+    for (app_name, tools) in &app_tools {
+        let suffix = if app_name == "telegram" {
+            match crate::integrations::native::token::get("telegram").await {
+                Ok(Some(creds)) => {
+                    let mut parts = Vec::new();
+                    if let Some(cid) = &creds.username {
+                        parts.push(format!("default chat_id: {cid}"));
+                    }
+                    if !parts.is_empty() {
+                        format!(" ({})", parts.join(", "))
+                    } else {
+                        String::new()
+                    }
+                }
+                _ => String::new(),
+            }
+        } else {
+            String::new()
+        };
+        tool_list.push_str(&format!("- **{}**{}: {}\n", app_name, suffix, tools.join(", ")));
+    }
+
+    let integration_hint = format!(
+        "\n\n## Connected Integrations\n\
+         You have access to these connected external apps:\n{tool_list}\n\
+         Use the corresponding tools to interact with these services. \
+         Always use tools to interact with these services \u{2014} never fabricate results."
+    );
+
+    Ok(Some(match system {
+        Some(s) => format!("{s}{integration_hint}"),
+        None => integration_hint.trim_start().to_string(),
+    }))
 }
