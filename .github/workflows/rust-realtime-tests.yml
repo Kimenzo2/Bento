@@ -71,6 +71,21 @@ jobs:
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles(format('{0}/src-tauri/Cargo.lock', env.APP_DIR)) }}
           restore-keys: ${{ runner.os }}-cargo-registry-
 
+      - name: Platform sidecar stubs (Linux runner)
+        # tauri.conf.json declares externalBin for chatgpt-proxy + bento-spectrum,
+        # but only Windows .exe binaries are committed. tauri-build needs a file
+        # matching the runner's target-triple name to exist; the realtime_hub lib
+        # test never executes the sidecars, so minimal placeholder binaries with a
+        # correct ELF header are sufficient to satisfy the build.
+        shell: bash
+        run: |
+          for name in chatgpt-proxy bento-spectrum; do
+            f="binaries/${name}-x86_64-unknown-linux-gnu"
+            printf '\x7fELF' > "$f"   # 4-byte ELF magic
+            head -c 64 /dev/zero >> "$f"
+          done
+          ls -la binaries/
+
       - name: Run realtime_hub integration tests
         env:
           RUSTC_WRAPPER: sccache
