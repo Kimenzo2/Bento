@@ -17,7 +17,7 @@ use bento_desktop_lib::realtime::{
 };
 use serde_json::{json, Value};
 use std::time::Duration;
-use tauri::{Emitter, Listener, Manager};
+use tauri::Listener;
 use tokio::sync::mpsc;
 use tokio_tungstenite::tungstenite::protocol::Message;
 
@@ -216,12 +216,25 @@ async fn unsubscribe_stops_delivery_for_that_connection() {
     hub.publish("tasks/list", "created", json!({ "id": 1 })).await;
 
     assert_eq!(next_frame(&mut rx2).await["data"], json!({ "id": 1 }));
+    // A connection that unsubscribed must NOT receive the event. Two outcomes
+    // are both correct: (a) the channel stays open but times out, or (b) the
+    // hub dropped its only sender, closing the channel (recv -> None, i.e. an
+    // Ok(None) from timeout, not Err). Either way a message must not arrive.
     assert!(
-        tokio::time::timeout(Duration::from_millis(50), rx1.recv())
-            .await
-            .is_err(),
+        no_frame(&mut rx1).await,
         "unsubscribed connection must not receive the event"
     );
+}
+
+/// Return true (assert-safe) if `rx` does NOT deliver a text frame within
+/// 50 ms. Accepts both a timeout (channel still open) and a closed channel
+/// (`Ok(None)`), because unsubscribing drops the hub's only sender.
+async fn no_frame(rx: &mut mpsc::Receiver<Message>) -> bool {
+    match tokio::time::timeout(Duration::from_millis(50), rx.recv()).await {
+        Err(_) => true,                    // timed out, nothing arrived
+        Ok(None) => true,                  // sender dropped, channel closed
+        Ok(Some(_)) => false,              // a frame arrived — not "no frame"
+    }
 }
 
 #[tokio::test]
@@ -235,16 +248,8 @@ async fn unsubscribe_all_removes_a_connection_from_every_topic() {
     hub.publish("tasks/list", "created", json!({ "id": 1 })).await;
     hub.publish("notes/list", "created", json!({ "id": 2 })).await;
 
-    assert!(
-        tokio::time::timeout(Duration::from_millis(50), rx_a.recv())
-            .await
-            .is_err()
-    );
-    assert!(
-        tokio::time::timeout(Duration::from_millis(50), rx_b.recv())
-            .await
-            .is_err()
-    );
+    assert!(no_frame(&mut rx_a).await);
+    assert!(no_frame(&mut rx_b).await);
 }
 
 #[tokio::test]

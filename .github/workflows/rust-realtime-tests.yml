@@ -54,6 +54,7 @@ jobs:
             libpipewire-0.3-dev \
             libgbm-dev \
             libsqlcipher-dev \
+            xvfb \
             pkg-config
 
       - name: Install Rust toolchain
@@ -87,6 +88,10 @@ jobs:
           ls -la binaries/
 
       - name: Run realtime_hub integration tests
+        # xvfb-run provides a virtual X display so tauri-build's GTK/Wry App
+        # can initialize on the headless runner. --test-threads=1 serializes the
+        # GTK emit_change tests (glib's main context is process-global and cannot
+        # be acquired by two threads at once).
         env:
           RUSTC_WRAPPER: sccache
-        run: cargo test --test realtime_hub -- --nocapture
+        run: xvfb-run -a cargo test --test realtime_hub -- --test-threads=1 --nocapture
