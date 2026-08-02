@@ -23,7 +23,7 @@ pub enum AuthInjection {
 }
 
 /// User-facing auth flow the connect button runs.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(specta::Type, Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum NativeFlow {
     /// Browser-based OAuth2 authorization-code flow (public client).

@@ -39,7 +39,7 @@ fn journal_search_document(entry: &JournalEntry) -> SearchDocument {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct JournalEntry {
     pub id: String,
@@ -52,7 +52,7 @@ pub struct JournalEntry {
     pub updated_at: i64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SaveEntryParams {
     pub id: String,
@@ -65,6 +65,7 @@ pub struct SaveEntryParams {
 
 /// Create a new blank journal entry for the given date.
 /// Returns the new entry with empty blocks.
+#[specta::specta]
 #[tauri::command]
 pub async fn create_journal_entry(
     auth: State<'_, crate::auth::AuthManager>,
@@ -116,6 +117,7 @@ pub async fn create_journal_entry(
 
 /// Save (update) a journal entry by ID.
 /// If the ID doesn't exist, inserts a new row.
+#[specta::specta]
 #[tauri::command]
 pub async fn save_journal_entry(
     auth: State<'_, crate::auth::AuthManager>,
@@ -198,6 +200,7 @@ pub async fn save_journal_entry(
 }
 
 /// Get a journal entry by its ID.
+#[specta::specta]
 #[tauri::command]
 pub async fn get_journal_entry(
     auth: State<'_, crate::auth::AuthManager>,
@@ -232,6 +235,7 @@ pub async fn get_journal_entry(
 }
 
 /// Delete a journal entry by ID.
+#[specta::specta]
 #[tauri::command]
 pub async fn delete_journal_entry(
     auth: State<'_, crate::auth::AuthManager>,
@@ -256,6 +260,7 @@ pub async fn delete_journal_entry(
 }
 
 /// List recent journal entries (newest first, by created_at).
+#[specta::specta]
 #[tauri::command]
 pub async fn list_journal_entries(
     auth: State<'_, crate::auth::AuthManager>,

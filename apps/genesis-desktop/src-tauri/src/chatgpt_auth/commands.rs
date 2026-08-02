@@ -83,6 +83,7 @@ fn set_session_cookie(app: &AppHandle, cookie: String) {
 // ── Tauri Commands ─────────────────────────────────────────────────────
 
 /// Start the Codex device-code login flow.
+#[specta::specta]
 #[tauri::command]
 pub async fn chatgpt_start_device_flow(
     app: AppHandle,
@@ -134,6 +135,7 @@ pub async fn chatgpt_start_device_flow(
 }
 
 /// Poll the device code status (uses cookie for session).
+#[specta::specta]
 #[tauri::command]
 pub async fn chatgpt_check_device_flow(app: AppHandle) -> Result<StatusResponse, String> {
     let server_url = with_server_url(&app, |u| u.clone())
@@ -158,6 +160,7 @@ pub async fn chatgpt_check_device_flow(app: AppHandle) -> Result<StatusResponse,
 }
 
 /// Get the current ChatGPT session status.
+#[specta::specta]
 #[tauri::command]
 pub async fn chatgpt_get_session(app: AppHandle) -> Result<Option<ChatGptSession>, String> {
     let server_url = with_server_url(&app, |u| u.clone())
@@ -197,6 +200,7 @@ pub async fn chatgpt_get_session(app: AppHandle) -> Result<Option<ChatGptSession
 }
 
 /// Sign out: tell server to revoke session, clear local state.
+#[specta::specta]
 #[tauri::command]
 pub async fn chatgpt_sign_out(app: AppHandle) -> Result<(), String> {
     if let Some(server_url) = with_server_url(&app, |u| u.clone())
@@ -219,6 +223,7 @@ pub async fn chatgpt_sign_out(app: AppHandle) -> Result<(), String> {
 }
 
 /// Test connection to the app-server.
+#[specta::specta]
 #[tauri::command]
 pub async fn chatgpt_test_connection(
     app: AppHandle,

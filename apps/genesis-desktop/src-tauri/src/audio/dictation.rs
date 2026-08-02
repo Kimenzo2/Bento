@@ -334,7 +334,7 @@ fn ensure_sentence_punctuation(text: &str) -> String {
 // ─── Agent Trigger Detection ─────────────────────────────────────────
 
 /// Result of agent trigger detection in dictation text.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentTriggerResult {
     /// Whether an agent trigger was detected.
@@ -411,7 +411,7 @@ pub fn detect_agent_trigger(text: &str) -> AgentTriggerResult {
 // ─── Full Post-Processing Pipeline ───────────────────────────────────
 
 /// Result of the full dictation post-processing pipeline.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DictationProcessResult {
     /// The final processed text (fillers stripped + style applied).

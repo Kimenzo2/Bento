@@ -43,7 +43,7 @@ fn generate_tab_id() -> String {
 // ---------------------------------------------------------------------------
 
 /// Visible state a tab can be in.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub enum TabState {
     Idle,

@@ -26,7 +26,7 @@ use crate::db::BentoAppState;
 use crate::realtime::RealtimeHub;
 
 /// Result of a dictation paste operation.
-#[derive(Debug, Clone, Serialize)]
+#[derive(specta::Type, Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DictationResult {
     pub success: bool,
@@ -35,7 +35,7 @@ pub struct DictationResult {
 }
 
 /// Result of a voice note creation.
-#[derive(Debug, Clone, Serialize)]
+#[derive(specta::Type, Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VoiceNoteResult {
     pub success: bool,
@@ -52,6 +52,7 @@ pub struct VoiceNoteResult {
 ///   3. Return the pasted text
 ///
 /// This avoids needing platform-specific text injection APIs.
+#[specta::specta]
 #[tauri::command]
 pub async fn voice_paste_dictation(
     app: AppHandle,
@@ -92,6 +93,7 @@ pub async fn voice_paste_dictation(
 ///   - "Voice Note" tag
 ///
 /// Returns the note ID and generated title.
+#[specta::specta]
 #[tauri::command]
 pub async fn voice_save_note(
     state: tauri::State<'_, BentoAppState>,
@@ -215,6 +217,7 @@ pub async fn voice_save_note(
 }
 
 /// Get a voice note by ID (redirects to notes service).
+#[specta::specta]
 #[tauri::command]
 pub async fn voice_get_note(
     state: tauri::State<'_, BentoAppState>,

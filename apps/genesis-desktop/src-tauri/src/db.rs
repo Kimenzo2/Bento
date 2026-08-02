@@ -214,7 +214,7 @@ impl FromStr for ModuleId {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(specta::Type, Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModuleContext {
     #[serde(default)]

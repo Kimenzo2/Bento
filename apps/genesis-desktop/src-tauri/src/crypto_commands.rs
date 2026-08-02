@@ -11,14 +11,14 @@ use crate::db::BentoAppState;
 
 // ── Response types ─────────────────────────────────────────────────────────
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CryptoStatusResponse {
     pub status: CryptoStatus,
     pub is_configured: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BackupInfo {
     pub path: String,
@@ -29,6 +29,7 @@ pub struct BackupInfo {
 
 /// Returns the current crypto status (NotConfigured / Locked / Unlocked).
 /// Safe to call at startup to decide which UI to show.
+#[specta::specta]
 #[tauri::command]
 pub async fn crypto_get_status(
     crypto: State<'_, CryptoService>,
@@ -62,6 +63,7 @@ async fn crypto_placeholder_pair() -> Result<(sqlx::SqlitePool, sqlx::SqlitePool
 
 /// First-time setup: set master password and encrypt all databases.
 /// Must only be called when status == NotConfigured.
+#[specta::specta]
 #[tauri::command]
 pub async fn crypto_setup_master_password(
     app: AppHandle,
@@ -111,6 +113,7 @@ pub async fn crypto_setup_master_password(
 
 /// Unlock an encrypted database with the master password.
 /// Must only be called when status == Locked.
+#[specta::specta]
 #[tauri::command]
 pub async fn crypto_unlock_database(
     app: AppHandle,
@@ -140,6 +143,7 @@ pub async fn crypto_unlock_database(
 }
 
 /// Lock the database (close pools, drop key from memory).
+#[specta::specta]
 #[tauri::command]
 pub async fn crypto_lock_database(
     crypto: State<'_, CryptoService>,
@@ -152,6 +156,7 @@ pub async fn crypto_lock_database(
 }
 
 /// Change master password. Creates a backup first, re-encrypts atomically.
+#[specta::specta]
 #[tauri::command]
 pub async fn crypto_change_master_password(
     app: AppHandle,
@@ -180,6 +185,7 @@ pub async fn crypto_change_master_password(
 
 /// Migrate a legacy unencrypted database to encrypted storage.
 /// The frontend should call this after setup_master_password if old plain DBs exist.
+#[specta::specta]
 #[tauri::command]
 pub async fn crypto_migrate_unencrypted_db(
     app: AppHandle,
@@ -203,6 +209,7 @@ pub async fn crypto_migrate_unencrypted_db(
 }
 
 /// Create a manual backup of all encrypted databases (e.g. before export/share).
+#[specta::specta]
 #[tauri::command]
 pub async fn crypto_create_backup(app: AppHandle) -> Result<BackupInfo, String> {
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;

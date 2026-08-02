@@ -91,7 +91,7 @@ impl DerivedKey {
 
 // ── Encryption service ────────────────────────────────────────────────────────
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum CryptoStatus {
     /// No master password has been configured yet.

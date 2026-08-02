@@ -6,7 +6,7 @@ use tracing::{info, warn};
 
 use super::{try_get_stdin_writer, SpectrumSidecarChild};
 
-#[derive(Serialize, Deserialize)]
+#[derive(specta::Type, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SocialAgentApplyResult {
     pub success: bool,
@@ -14,6 +14,7 @@ pub struct SocialAgentApplyResult {
     pub message: String,
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn apply_social_agent_config(app: AppHandle) -> Result<SocialAgentApplyResult, String> {
     let settings = crate::settings::current_settings(&app);

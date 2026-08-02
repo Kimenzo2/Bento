@@ -248,7 +248,7 @@ pub fn mask_api_key(key: &str) -> String {
 /// ready. If not, it's unconfigured. This matches the pattern used by Warp
 /// (keys in OS keychain, no mode swit
 /// ) and Continue.dev (providers in config, no disable switch).
-#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+#[derive(specta::Type, Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ByokSettings {
     /// The currently active provider (for AI features).
@@ -281,7 +281,7 @@ pub struct ByokSettings {
 
 /// Partial patch for updating BYOK settings.
 /// All fields are optional — only provided fields are applied.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct ByokSettingsPatch {
     pub active_provider: Option<String>,
@@ -342,7 +342,7 @@ use std::sync::OnceLock;
 use std::time::Duration;
 
 /// Structured error code for test connection failures.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 pub enum ConnectionErrorCode {
     NoKey,
     KeyringError,
@@ -360,7 +360,7 @@ pub enum ConnectionErrorCode {
 }
 
 /// Structured connection error with a machine-readable code and human message.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConnectionError {
     pub code: ConnectionErrorCode,
@@ -375,7 +375,7 @@ impl std::fmt::Display for ConnectionError {
 }
 
 /// Result of testing a connection to an AI provider.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConnectionTestResult {
     pub ok: bool,

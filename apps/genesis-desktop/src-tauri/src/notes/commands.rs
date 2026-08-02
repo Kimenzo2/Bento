@@ -40,6 +40,7 @@ fn db(state: &BentoAppState) -> sqlx::SqlitePool {
 
 /// Create a new note object with an initial title block and empty paragraph.
 /// Go source: objectcreator.CreateObject(ctx, spaceID, CreateObjectRequest{ObjectTypeKey: TypeKeyNote})
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_object_create(
     state: State<'_, BentoAppState>,
@@ -64,6 +65,7 @@ pub async fn notes_object_create(
 
 /// Get a note object by ID (metadata only, no blocks).
 /// Go source: cache.Do(s, id, func(b SmartBlock) { b.NewState().Details() })
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_object_get(
     state: State<'_, BentoAppState>,
@@ -76,6 +78,7 @@ pub async fn notes_object_get(
 
 /// Get a note with its full block tree.
 /// Go source: cache.Do(s, id, …) + store/block.getBlocks(rootId)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_object_full(
     state: State<'_, BentoAppState>,
@@ -89,6 +92,7 @@ pub async fn notes_object_full(
 
 /// List note summaries with optional archived filter and pagination.
 /// Go source: objectstore.SpaceIndex.QueryObjectIds + GetDetails batch
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_list(
     state: State<'_, BentoAppState>,
@@ -108,6 +112,7 @@ pub async fn notes_list(
 
 /// Update note metadata (title, icon, cover, tags, pinned, archived).
 /// Go source: block/details.go SetDetails(ctx, objectId, details, true)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_object_update(
     state: State<'_, BentoAppState>,
@@ -124,6 +129,7 @@ pub async fn notes_object_update(
 
 /// Delete a note object and all its blocks.
 /// Go source: block/delete.go DeleteObject(objectId) → DeleteObjectByFullID → spc.DeleteTree
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_object_delete(
     state: State<'_, BentoAppState>,
@@ -148,6 +154,7 @@ pub async fn notes_object_delete(
 
 /// Duplicate a note object (all blocks copied).
 /// Go source: block/create.go ObjectDuplicate(ctx, id)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_object_duplicate(
     state: State<'_, BentoAppState>,
@@ -174,6 +181,7 @@ pub async fn notes_object_duplicate(
 
 /// Create a new block at a position inside a note.
 /// Go source: editor.go CreateBlock(ctx, pb.RpcBlockCreateRequest)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_block_create(
     state: State<'_, BentoAppState>,
@@ -187,6 +195,7 @@ pub async fn notes_block_create(
 
 /// Unlink (delete) one or more blocks from a note.
 /// Go source: editor.go UnlinkBlock(ctx, pb.RpcBlockListDeleteRequest)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_block_unlink(
     state: State<'_, BentoAppState>,
@@ -201,6 +210,7 @@ pub async fn notes_block_unlink(
 
 /// Split a text block at the given character offset.
 /// Go source: editor.go SplitBlock(ctx, pb.RpcBlockSplitRequest)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_block_split(
     state: State<'_, BentoAppState>,
@@ -222,6 +232,7 @@ pub async fn notes_block_split(
 
 /// Merge two adjacent text blocks (Backspace at block start).
 /// Go source: editor.go MergeBlock(ctx, pb.RpcBlockMergeRequest)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_block_merge(
     state: State<'_, BentoAppState>,
@@ -237,6 +248,7 @@ pub async fn notes_block_merge(
 
 /// Replace a block's type and content entirely.
 /// Go source: editor.go ReplaceBlock(ctx, pb.RpcBlockReplaceRequest)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_block_replace(
     state: State<'_, BentoAppState>,
@@ -260,6 +272,7 @@ pub async fn notes_block_replace(
 
 /// Duplicate one or more blocks within a note.
 /// Go source: editor.go DuplicateBlocks(sctx, pb.RpcBlockListDuplicateRequest)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_block_duplicate(
     state: State<'_, BentoAppState>,
@@ -273,6 +286,7 @@ pub async fn notes_block_duplicate(
 
 /// Move blocks to a new parent/position within a note.
 /// Go source: editor.go MoveBlocks(ctx, pb.RpcBlockListMoveToExistingObjectRequest)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_block_move(
     state: State<'_, BentoAppState>,
@@ -288,6 +302,7 @@ pub async fn notes_block_move(
 
 /// Set text content of a block.
 /// Go source: editor.go SetTextText(ctx, pb.RpcBlockTextSetTextRequest)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_set_text_content(
     state: State<'_, BentoAppState>,
@@ -304,6 +319,7 @@ pub async fn notes_set_text_content(
 
 /// Set text style on one or more blocks.
 /// Go source: editor.go SetTextStyle(ctx, contextId, style, blockIds…)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_set_text_style(
     state: State<'_, BentoAppState>,
@@ -319,6 +335,7 @@ pub async fn notes_set_text_style(
 
 /// Toggle checkbox checked state.
 /// Go source: editor.go SetTextChecked(ctx, pb.RpcBlockTextSetCheckedRequest)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_set_text_checked(
     state: State<'_, BentoAppState>,
@@ -334,6 +351,7 @@ pub async fn notes_set_text_checked(
 
 /// Set text color on one or more blocks.
 /// Go source: editor.go SetTextColor(ctx, contextId, color, blockIds…)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_set_text_color(
     state: State<'_, BentoAppState>,
@@ -350,6 +368,7 @@ pub async fn notes_set_text_color(
 /// Apply a text formatting mark to one or more blocks.
 /// Go source: editor.go SetTextMark(ctx, contextId, mark, blockIds…)
 /// Go source: stext.SetMark — toggles marks if all blocks already have it (reverse logic)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_set_text_mark(
     state: State<'_, BentoAppState>,
@@ -364,6 +383,7 @@ pub async fn notes_set_text_mark(
 /// Clear all text formatting from blocks (style→Paragraph, marks removed, color cleared).
 /// Go source: editor.go ClearTextStyle(ctx, contextId, blockIds…)
 ///   Clears: Strike, Keyboard, Italic, Bold, Underscored, TextColor, BgColor marks
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_clear_text_style(
     state: State<'_, BentoAppState>,
@@ -378,6 +398,7 @@ pub async fn notes_clear_text_style(
 
 /// Clear text content of blocks (text→"", marks→[]).
 /// Go source: editor.go ClearTextContent(ctx, contextId, blockIds…)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_clear_text_content(
     state: State<'_, BentoAppState>,
@@ -392,6 +413,7 @@ pub async fn notes_clear_text_content(
 
 /// Set background color on blocks.
 /// Go source: editor.go SetBackgroundColor(ctx, contextId, color, blockIds…)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_set_background_color(
     state: State<'_, BentoAppState>,
@@ -408,6 +430,7 @@ pub async fn notes_set_background_color(
 /// Set horizontal alignment on blocks.
 /// Go source: editor.go SetAlign(ctx, contextId, align, blockIds…)
 ///   align: 0=Left, 1=Center, 2=Right, 3=Justify (model.BlockAlign)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_set_align(
     state: State<'_, BentoAppState>,
@@ -425,6 +448,7 @@ pub async fn notes_set_align(
 /// Go source: editor.go TurnInto(ctx, contextId, style, ids…)
 ///   Also ported: stext.TurnInto — moves children for Header/Code, resets color for Code,
 ///   resets align for Checkbox/Marked/Numbered/Callout/Toggle
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_turn_into(
     state: State<'_, BentoAppState>,
@@ -440,6 +464,7 @@ pub async fn notes_turn_into(
 
 /// Set the layout of a note object.
 /// Go source: editor.go SetLayout(ctx, contextId, layout model.ObjectTypeLayout)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_set_layout(
     state: State<'_, BentoAppState>,
@@ -455,6 +480,7 @@ pub async fn notes_set_layout(
 
 /// Undo the most recent change on a note.
 /// Go source: editor.go Undo(ctx, pb.RpcObjectUndoRequest)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_undo(
     state: State<'_, BentoAppState>,
@@ -471,6 +497,7 @@ pub async fn notes_undo(
 
 /// Redo the most recently undone change.
 /// Go source: editor.go Redo(ctx, pb.RpcObjectRedoRequest)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_redo(
     state: State<'_, BentoAppState>,
@@ -487,6 +514,7 @@ pub async fn notes_redo(
 
 /// Set a callout icon on one or more text blocks.
 /// Go source: stext.SetIcon(ctx, image, emoji, blockIds…)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_set_icon(
     state: State<'_, BentoAppState>,
@@ -531,6 +559,7 @@ pub async fn notes_set_icon(
 
 /// Get all blocks for a note.
 /// Go source: store/block.ts — getBlocks(rootId)
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_get_blocks(
     state: State<'_, BentoAppState>,
@@ -542,6 +571,7 @@ pub async fn notes_get_blocks(
 }
 
 /// Get all backlinks (wiki links that point to this note).
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_get_backlinks(
     state: State<'_, BentoAppState>,
@@ -579,6 +609,7 @@ pub async fn notes_get_backlinks(
 }
 
 /// Find a note by exact title match (for wiki link resolution).
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_find_by_title(
     state: State<'_, BentoAppState>,
@@ -609,6 +640,7 @@ pub async fn notes_find_by_title(
 }
 
 /// Search notes by title prefix (for wiki link autocomplete).
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_search_by_title(
     state: State<'_, BentoAppState>,
@@ -653,6 +685,7 @@ pub async fn notes_search_by_title(
 }
 
 /// Index wiki links found in a note's blocks (call after saving).
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_index_wikilinks(
     state: State<'_, BentoAppState>,
@@ -722,6 +755,7 @@ pub async fn notes_index_wikilinks(
 }
 
 /// Get or create today's daily note.
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_daily_note(
     state: State<'_, BentoAppState>,
@@ -772,6 +806,7 @@ pub async fn notes_daily_note(
 }
 
 /// List all note templates.
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_templates_list(
     state: State<'_, BentoAppState>,
@@ -799,6 +834,7 @@ pub async fn notes_templates_list(
 }
 
 /// Create a note template from an existing note's blocks.
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_template_create(
     state: State<'_, BentoAppState>,
@@ -857,6 +893,7 @@ pub async fn notes_template_create(
 }
 
 /// Create a note from a template.
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_create_from_template(
     state: State<'_, BentoAppState>,
@@ -976,6 +1013,7 @@ pub async fn notes_create_from_template(
 
 /// Search notes by title and content.
 /// Go source: objectstore.SpaceIndex.QueryObjectIds + FTS
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_search(
     state: State<'_, BentoAppState>,
@@ -1033,6 +1071,7 @@ pub async fn notes_search(
 }
 
 /// List all tags with note counts, sorted by count descending.
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_tags_list(
     state: State<'_, BentoAppState>,
@@ -1064,6 +1103,7 @@ pub async fn notes_tags_list(
 }
 
 /// Rename a tag across all notes.
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_tags_rename(
     state: State<'_, BentoAppState>,
@@ -1096,6 +1136,7 @@ pub async fn notes_tags_rename(
 }
 
 /// Delete a tag from all notes.
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_tags_delete(
     state: State<'_, BentoAppState>,
@@ -1124,6 +1165,7 @@ pub async fn notes_tags_delete(
     Ok(())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_set_block_fields(
     state: State<'_, BentoAppState>,
@@ -1137,6 +1179,7 @@ pub async fn notes_set_block_fields(
         .map_err(|e| e.message)
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn notes_set_block_content(
     state: State<'_, BentoAppState>,

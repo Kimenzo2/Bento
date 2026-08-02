@@ -45,7 +45,7 @@ async fn ensure_passwords_table(pool: &sqlx::SqlitePool) -> Result<(), String> {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VaultEntry {
     pub id: String,
@@ -62,6 +62,7 @@ pub struct VaultEntry {
 /// List all password vault entries from the encrypted DB, newest-first.
 ///
 /// Returns an error if the crypto service is locked or not configured.
+#[specta::specta]
 #[tauri::command]
 pub async fn passwords_list(
     auth: State<'_, crate::auth::AuthManager>,
@@ -103,6 +104,7 @@ pub async fn passwords_list(
 }
 
 /// Save (create or update) a password vault entry in the encrypted DB.
+#[specta::specta]
 #[tauri::command]
 pub async fn passwords_save(
     auth: State<'_, crate::auth::AuthManager>,
@@ -151,6 +153,7 @@ pub async fn passwords_save(
 }
 
 /// Search password vault entries by site or username.
+#[specta::specta]
 #[tauri::command]
 pub async fn passwords_search(
     auth: State<'_, crate::auth::AuthManager>,
@@ -197,6 +200,7 @@ pub async fn passwords_search(
 }
 
 /// Delete a password vault entry by ID.
+#[specta::specta]
 #[tauri::command]
 pub async fn passwords_delete(
     auth: State<'_, crate::auth::AuthManager>,
@@ -223,4 +227,3 @@ pub async fn passwords_delete(
 
     Ok(())
 }
-

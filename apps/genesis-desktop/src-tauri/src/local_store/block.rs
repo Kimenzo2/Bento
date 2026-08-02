@@ -505,7 +505,7 @@ pub enum BlockContent {
 // Maps to the `blocks` table in SQLite.
 // Source: interface/block/index.ts — interface Block (flat, non-MobX)
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize, FromRow)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockRow {
     pub id: String,

@@ -46,7 +46,7 @@ fn days_in_month(month: i32) -> i32 {
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CountdownEvent {
     pub id: String,
@@ -60,7 +60,7 @@ pub struct CountdownEvent {
     pub updated_at: i64,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CountdownEventSave {
     pub name: String,
@@ -73,7 +73,7 @@ pub struct CountdownEventSave {
     pub note: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CountdownMilestone {
     pub id: String,
@@ -87,7 +87,7 @@ pub struct CountdownMilestone {
     pub updated_at: i64,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CountdownMilestoneSave {
     pub name: String,
@@ -100,7 +100,7 @@ pub struct CountdownMilestoneSave {
     pub note: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CountdownBirthday {
     pub id: String,
@@ -112,7 +112,7 @@ pub struct CountdownBirthday {
     pub updated_at: i64,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CountdownBirthdaySave {
     pub name: String,
@@ -126,6 +126,7 @@ pub struct CountdownBirthdaySave {
 // EVENTS
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[specta::specta]
 #[tauri::command]
 pub async fn countdown_list_events(
     auth: State<'_, crate::auth::AuthManager>,
@@ -156,6 +157,7 @@ pub async fn countdown_list_events(
         .collect())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn countdown_save_event(
     auth: State<'_, crate::auth::AuthManager>,
@@ -209,6 +211,7 @@ pub async fn countdown_save_event(
     Ok(event)
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn countdown_update_event(
     auth: State<'_, crate::auth::AuthManager>,
@@ -264,6 +267,7 @@ pub async fn countdown_update_event(
     Ok(event)
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn countdown_delete_event(
     auth: State<'_, crate::auth::AuthManager>,
@@ -289,6 +293,7 @@ pub async fn countdown_delete_event(
 // MILESTONES
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[specta::specta]
 #[tauri::command]
 pub async fn countdown_list_milestones(
     auth: State<'_, crate::auth::AuthManager>,
@@ -319,6 +324,7 @@ pub async fn countdown_list_milestones(
         .collect())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn countdown_save_milestone(
     auth: State<'_, crate::auth::AuthManager>,
@@ -372,6 +378,7 @@ pub async fn countdown_save_milestone(
     Ok(milestone)
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn countdown_update_milestone_progress(
     auth: State<'_, crate::auth::AuthManager>,
@@ -397,6 +404,7 @@ pub async fn countdown_update_milestone_progress(
     Ok(())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn countdown_delete_milestone(
     auth: State<'_, crate::auth::AuthManager>,
@@ -422,6 +430,7 @@ pub async fn countdown_delete_milestone(
 // BIRTHDAYS
 // ═══════════════════════════════════════════════════════════════════════════
 
+#[specta::specta]
 #[tauri::command]
 pub async fn countdown_list_birthdays(
     auth: State<'_, crate::auth::AuthManager>,
@@ -451,6 +460,7 @@ pub async fn countdown_list_birthdays(
         .collect())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn countdown_save_birthday(
     auth: State<'_, crate::auth::AuthManager>,
@@ -502,6 +512,7 @@ pub async fn countdown_save_birthday(
     Ok(birthday)
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn countdown_update_birthday(
     auth: State<'_, crate::auth::AuthManager>,
@@ -554,6 +565,7 @@ pub async fn countdown_update_birthday(
     Ok(birthday)
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn countdown_delete_birthday(
     auth: State<'_, crate::auth::AuthManager>,

@@ -10,7 +10,7 @@ use crate::auth::AuthManager;
 const VALID_SEVERITIES: &[&str] = &["critical", "high", "medium", "low"];
 const VALID_CATEGORIES: &[&str] = &["ui", "performance", "new_feature", "integration", "other"];
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(specta::Type, Debug, Serialize, Deserialize, Clone)]
 pub struct SubmitFeedbackParams {
     #[serde(rename = "type")]
     pub feedback_type: String,
@@ -21,7 +21,7 @@ pub struct SubmitFeedbackParams {
     pub active_module: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(specta::Type, Debug, Serialize, Deserialize, Clone)]
 pub struct FeedbackReport {
     pub id: String,
     pub user_id: String,
@@ -42,7 +42,7 @@ pub struct FeedbackReport {
     pub updated_at: String,
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(specta::Type, Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedbackRealtimeConfig {
     pub supabase_url: String,
@@ -96,6 +96,7 @@ fn auth_headers(manager: &AuthManager, access_token: &str) -> (String, String, S
     )
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn submit_feedback(
     app: AppHandle,
@@ -208,6 +209,7 @@ pub async fn submit_feedback(
         .ok_or_else(|| "Feedback was inserted, but Supabase returned no id.".to_string())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn get_my_feedback(auth: State<'_, AuthManager>) -> Result<Vec<FeedbackReport>, String> {
     let session = auth
@@ -246,6 +248,7 @@ pub async fn get_my_feedback(auth: State<'_, AuthManager>) -> Result<Vec<Feedbac
         .map_err(|error| format!("Failed to parse feedback: {error}"))
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn get_feedback_by_id(
     auth: State<'_, AuthManager>,
@@ -295,6 +298,7 @@ pub async fn get_feedback_by_id(
         .ok_or_else(|| "Feedback not found.".to_string())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn get_feedback_realtime_config(
     auth: State<'_, AuthManager>,

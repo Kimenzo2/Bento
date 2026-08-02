@@ -238,7 +238,7 @@ async fn copy_block_tree_into(
 
 /// Full note object with its block tree.
 /// Go source: SmartBlock + store/block.getBlocks() combined response.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NoteObject {
     pub id: String,
@@ -256,7 +256,7 @@ pub struct NoteObject {
 
 /// Note listing item (lightweight — no blocks).
 /// Go source: objectstore.SpaceIndex.GetDetails() → ObjectSummary pattern.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NoteSummary {
     pub id: String,
@@ -272,7 +272,7 @@ pub struct NoteSummary {
 }
 
 /// Note with full block tree, returned by get_note_full().
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NoteWithBlocks {
     pub note: NoteObject,
@@ -345,7 +345,7 @@ impl NoteFullCache {
 
 /// Params for creating a new note.
 /// Go source: objectcreator.CreateObjectRequest { Details, ObjectTypeKey: TypeKeyNote }
-#[derive(Debug, Clone, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateNoteParams {
     #[serde(default)]
@@ -360,7 +360,7 @@ pub struct CreateNoteParams {
 
 /// Params for updating note metadata (not blocks).
 /// Go source: block/details.go — SetDetails (top-level object fields)
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Default, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct UpdateNoteParams {
     pub id: String,
@@ -375,7 +375,7 @@ pub struct UpdateNoteParams {
 
 /// Result of Undo/Redo.
 /// Go source: basic.HistoryInfo { PreviousText, NextText, Group }
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HistoryInfo {
     pub can_undo: bool,
@@ -385,7 +385,7 @@ pub struct HistoryInfo {
 
 /// SetTextMark request params.
 /// Go source: editor.go — SetTextMark(ctx, contextId, mark *model.BlockContentTextMark, blockIds…)
-#[derive(Debug, Clone, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SetMarkParams {
     pub note_id: String,
@@ -398,7 +398,7 @@ pub struct SetMarkParams {
 
 /// Block-create request params.
 /// Go source: pb.RpcBlockCreateRequest { ContextId, TargetId, Block, Position }
-#[derive(Debug, Clone, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockCreateParams {
     pub note_id: String,
@@ -418,7 +418,7 @@ pub struct BlockCreateParams {
 
 /// DuplicateBlocks request params.
 /// Go source: pb.RpcBlockListDuplicateRequest { ContextId, TargetId, BlockIds, Position }
-#[derive(Debug, Clone, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DuplicateBlocksParams {
     pub note_id: String,
@@ -429,7 +429,7 @@ pub struct DuplicateBlocksParams {
 
 /// MoveBlocks request params.
 /// Go source: pb.RpcBlockListMoveToExistingObjectRequest
-#[derive(Debug, Clone, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MoveBlocksParams {
     pub note_id: String,

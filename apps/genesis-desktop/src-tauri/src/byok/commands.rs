@@ -13,7 +13,7 @@ use super::{ByokProvider, ByokSettings, ByokSettingsPatch, ConnectionTestResult}
 use crate::settings;
 
 /// Full status of BYOK key configuration for a provider.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProviderKeyStatus {
     pub provider: String,
@@ -79,6 +79,7 @@ fn validate_key_format(provider: &ByokProvider, key: &str) -> Result<(), String>
 
 /// Save an API key for a provider in the OS keyring.
 /// Validates the key format before saving.
+#[specta::specta]
 #[tauri::command]
 pub async fn byok_save_key(app: AppHandle, provider: String, key: String) -> Result<(), String> {
     let byok_provider =
@@ -113,6 +114,7 @@ pub async fn byok_save_key(app: AppHandle, provider: String, key: String) -> Res
 
 /// Get the masked preview of a stored API key.
 /// Never returns the full key — only a masked version for UI display.
+#[specta::specta]
 #[tauri::command]
 pub async fn byok_get_key_preview(
     app: AppHandle,
@@ -129,6 +131,7 @@ pub async fn byok_get_key_preview(
 }
 
 /// List all providers with their key status.
+#[specta::specta]
 #[tauri::command]
 pub async fn byok_list_providers(app: AppHandle) -> Result<Vec<ProviderKeyStatus>, String> {
     let settings = settings::current_settings(&app);
@@ -163,6 +166,7 @@ pub async fn byok_list_providers(app: AppHandle) -> Result<Vec<ProviderKeyStatus
 }
 
 /// Delete an API key from the OS keyring and fallback storage.
+#[specta::specta]
 #[tauri::command]
 pub async fn byok_delete_key(app: AppHandle, provider: String) -> Result<(), String> {
     ByokProvider::from_str(&provider).map_err(|_| format!("Unknown provider: {provider}"))?;
@@ -181,6 +185,7 @@ pub async fn byok_delete_key(app: AppHandle, provider: String) -> Result<(), Str
 
 /// Test a connection to an AI provider using the stored key.
 /// Returns available models on success, or an error message on failure.
+#[specta::specta]
 #[tauri::command]
 pub async fn byok_test_connection(
     app: AppHandle,
@@ -195,6 +200,7 @@ pub async fn byok_test_connection(
 }
 
 /// Get the current BYOK settings.
+#[specta::specta]
 #[tauri::command]
 pub async fn byok_get_settings(app: AppHandle) -> Result<ByokSettings, String> {
     let settings = settings::current_settings(&app);
@@ -202,6 +208,7 @@ pub async fn byok_get_settings(app: AppHandle) -> Result<ByokSettings, String> {
 }
 
 /// Update BYOK settings (enable/disable, set active provider/model, etc.).
+#[specta::specta]
 #[tauri::command]
 pub async fn byok_update_settings(
     app: AppHandle,
@@ -218,6 +225,7 @@ pub async fn byok_update_settings(
 /// Validate an API key by calling the provider's validation endpoint.
 /// Does NOT save the key — only checks if it's valid.
 /// Returns the latency in ms on success, or an error on failure.
+#[specta::specta]
 #[tauri::command]
 pub async fn byok_validate_key(
     app: AppHandle,
@@ -249,6 +257,7 @@ pub async fn byok_validate_key(
 }
 
 /// Dismiss the onboarding notice permanently.
+#[specta::specta]
 #[tauri::command]
 pub async fn byok_dismiss_onboarding(app: AppHandle) -> Result<(), String> {
     settings::update_desktop_settings(&app, |next| {

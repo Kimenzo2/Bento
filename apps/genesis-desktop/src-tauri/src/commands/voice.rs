@@ -22,7 +22,7 @@ use serde_json::json;
 use uuid::Uuid;
 
 /// Response returned by voice_start / voice_stop.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VoiceSessionDto {
     pub id: String,
@@ -35,6 +35,7 @@ pub struct VoiceSessionDto {
 /// Start a voice recording session.
 /// Uses the mode string as the module_id so the frontend can tag sessions
 /// (e.g., "dictation", "voice_note", "meeting", "agent_conversation").
+#[specta::specta]
 #[tauri::command]
 pub async fn voice_start(
     state: tauri::State<'_, AudioState>,
@@ -53,6 +54,7 @@ pub async fn voice_start(
 }
 
 /// Stop the current voice recording.
+#[specta::specta]
 #[tauri::command]
 pub async fn voice_stop(state: tauri::State<'_, AudioState>) -> Result<VoiceSessionDto, String> {
     let session = state.engine.stop_recording().await?;
@@ -67,6 +69,7 @@ pub async fn voice_stop(state: tauri::State<'_, AudioState>) -> Result<VoiceSess
 }
 
 /// Pause the current voice recording.
+#[specta::specta]
 #[tauri::command]
 pub async fn voice_pause(state: tauri::State<'_, AudioState>) -> Result<VoiceSessionDto, String> {
     let session = state.engine.pause_recording()?;
@@ -81,6 +84,7 @@ pub async fn voice_pause(state: tauri::State<'_, AudioState>) -> Result<VoiceSes
 }
 
 /// Resume a paused voice recording.
+#[specta::specta]
 #[tauri::command]
 pub async fn voice_resume(state: tauri::State<'_, AudioState>) -> Result<VoiceSessionDto, String> {
     let session = state.engine.resume_recording()?;
@@ -95,6 +99,7 @@ pub async fn voice_resume(state: tauri::State<'_, AudioState>) -> Result<VoiceSe
 }
 
 /// Cancel the current voice recording — discards without saving.
+#[specta::specta]
 #[tauri::command]
 pub async fn voice_cancel(state: tauri::State<'_, AudioState>) -> Result<(), String> {
     state.engine.cancel_recording().await
@@ -105,7 +110,7 @@ pub async fn voice_cancel(state: tauri::State<'_, AudioState>) -> Result<(), Str
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Result of saving a voice memo.
-#[derive(Debug, Clone, Serialize)]
+#[derive(specta::Type, Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VoiceMemoResult {
     pub success: bool,
@@ -121,6 +126,7 @@ pub struct VoiceMemoResult {
 ///
 /// For text-only dictation (no audio file), `file_path` is an empty string.
 /// For Rust recording modes, pass the existing `file_path` to link the audio.
+#[specta::specta]
 #[tauri::command]
 pub async fn voice_save_memo(
     state: tauri::State<'_, BentoAppState>,
@@ -220,6 +226,7 @@ pub async fn voice_save_memo(
 // ═══════════════════════════════════════════════════════════════════════
 
 /// Post-process raw dictation text: strip fillers, apply style, detect agent triggers.
+#[specta::specta]
 #[tauri::command]
 pub fn dictation_process(text: String, style: String) -> Result<DictationProcessResult, String> {
     let dictation_style = match style.to_lowercase().as_str() {
@@ -231,6 +238,7 @@ pub fn dictation_process(text: String, style: String) -> Result<DictationProcess
 }
 
 /// Check if text contains an agent trigger ("hey bento", "ask bento", "bento ").
+#[specta::specta]
 #[tauri::command]
 pub fn dictation_detect_agent(text: String) -> Result<AgentTriggerResult, String> {
     Ok(detect_agent_trigger(&text))

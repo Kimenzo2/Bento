@@ -294,7 +294,7 @@ fn default_freeze_tokens() -> i32 {
 
 // ── AI Features Prefs ────────────────────────────────────────────────────────
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+#[derive(specta::Type, Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct AiFeaturesPrefs {
     /// Master toggle for AI features.
@@ -332,7 +332,7 @@ pub fn default_ai_features() -> HashMap<String, bool> {
     m
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AiFeaturesPrefsPatch {
     pub enabled: Option<bool>,

@@ -41,7 +41,7 @@ fn today_end_ms() -> i64 {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WaterEntry {
     pub id: String,
@@ -49,7 +49,7 @@ pub struct WaterEntry {
     pub logged_at: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TodayWater {
     pub total_ml: i64,
@@ -58,7 +58,7 @@ pub struct TodayWater {
     pub entries: Vec<WaterEntry>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WeeklyWaterDay {
     pub date: String,      // "YYYY-MM-DD"
@@ -67,7 +67,7 @@ pub struct WeeklyWaterDay {
     pub goal_ml: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FoodItem {
     pub id: String,
@@ -82,7 +82,7 @@ pub struct FoodItem {
     pub created_at: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MealEntry {
     pub id: String,
@@ -94,7 +94,7 @@ pub struct MealEntry {
     pub foods: Vec<FoodItem>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NutritionGoals {
     pub water_goal_ml: i64,
@@ -104,7 +104,7 @@ pub struct NutritionGoals {
     pub fat_goal_g: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MacroTotals {
     pub calories_kcal: i64,
@@ -113,7 +113,7 @@ pub struct MacroTotals {
     pub fat_g: f64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TodaySummary {
     pub water: TodayWater,
@@ -125,7 +125,7 @@ pub struct TodaySummary {
     pub next_cue: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NutritionReminder {
     pub id: String,
@@ -138,13 +138,13 @@ pub struct NutritionReminder {
     pub updated_at: i64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(specta::Type, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LogWaterParams {
     pub amount_ml: i64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(specta::Type, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LogMealParams {
     pub name: String,
@@ -155,7 +155,7 @@ pub struct LogMealParams {
     pub foods: Option<Vec<LogFoodParams>>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(specta::Type, Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct LogFoodParams {
     pub name: String,
@@ -167,7 +167,7 @@ pub struct LogFoodParams {
     pub fat_g: Option<f64>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(specta::Type, Debug, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct UpdateGoalsParams {
     pub water_goal_ml: Option<i64>,
@@ -189,7 +189,7 @@ impl Default for UpdateGoalsParams {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(specta::Type, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SaveReminderParams {
     pub id: Option<String>,
@@ -204,6 +204,7 @@ pub struct SaveReminderParams {
 
 /// Log a water intake entry.
 /// Negative amount_ml = remove water (up to 0 floor enforced on query side).
+#[specta::specta]
 #[tauri::command]
 pub async fn nutrition_log_water(
     auth: State<'_, crate::auth::AuthManager>,
@@ -238,6 +239,7 @@ pub async fn nutrition_log_water(
 }
 
 /// Get today's hydration: total, goal, percentage, and individual entries.
+#[specta::specta]
 #[tauri::command]
 pub async fn nutrition_get_today_water(
     auth: State<'_, crate::auth::AuthManager>,
@@ -283,6 +285,7 @@ pub async fn nutrition_get_today_water(
 }
 
 /// Delete all of today's water logs (reset button).
+#[specta::specta]
 #[tauri::command]
 pub async fn nutrition_reset_water(
     auth: State<'_, crate::auth::AuthManager>,
@@ -303,6 +306,7 @@ pub async fn nutrition_reset_water(
 }
 
 /// Get water totals for the past 7 days (for the Water section chart).
+#[specta::specta]
 #[tauri::command]
 pub async fn nutrition_get_weekly_water(
     auth: State<'_, crate::auth::AuthManager>,
@@ -365,6 +369,7 @@ pub async fn nutrition_get_weekly_water(
 // ─── Meals commands ───────────────────────────────────────────────────────────
 
 /// Log a meal (with optional food items).
+#[specta::specta]
 #[tauri::command]
 pub async fn nutrition_log_meal(
     auth: State<'_, crate::auth::AuthManager>,
@@ -450,6 +455,7 @@ pub async fn nutrition_log_meal(
 }
 
 /// Get all meals logged today with their food items.
+#[specta::specta]
 #[tauri::command]
 pub async fn nutrition_get_today_meals(
     auth: State<'_, crate::auth::AuthManager>,
@@ -462,6 +468,7 @@ pub async fn nutrition_get_today_meals(
 }
 
 /// Get meals for a specific ISO date (YYYY-MM-DD).
+#[specta::specta]
 #[tauri::command]
 pub async fn nutrition_get_meals_for_date(
     auth: State<'_, crate::auth::AuthManager>,
@@ -548,6 +555,7 @@ async fn fetch_foods_for_meal(
 }
 
 /// Delete a meal and all its food items.
+#[specta::specta]
 #[tauri::command]
 pub async fn nutrition_delete_meal(
     auth: State<'_, crate::auth::AuthManager>,
@@ -568,6 +576,7 @@ pub async fn nutrition_delete_meal(
 }
 
 /// Add a food item to an existing meal (and update meal total_kcal).
+#[specta::specta]
 #[tauri::command]
 pub async fn nutrition_add_food_to_meal(
     auth: State<'_, crate::auth::AuthManager>,
@@ -646,6 +655,7 @@ async fn fetch_goals(db: &sqlx::SqlitePool) -> Result<NutritionGoals, String> {
 }
 
 /// Get the user's daily nutrition goals.
+#[specta::specta]
 #[tauri::command]
 pub async fn nutrition_get_goals(
     auth: State<'_, crate::auth::AuthManager>,
@@ -657,6 +667,7 @@ pub async fn nutrition_get_goals(
 }
 
 /// Update any combination of daily goals.
+#[specta::specta]
 #[tauri::command]
 pub async fn nutrition_update_goals(
     auth: State<'_, crate::auth::AuthManager>,
@@ -698,6 +709,7 @@ pub async fn nutrition_update_goals(
 // ─── Today summary (combines water + meals + macros) ─────────────────────────
 
 /// Full today snapshot: water, meals, macro totals, goals, next reminder cue.
+#[specta::specta]
 #[tauri::command]
 pub async fn nutrition_get_today_summary(
     auth: State<'_, crate::auth::AuthManager>,
@@ -806,6 +818,7 @@ pub async fn nutrition_get_today_summary(
 // ─── Macros commands ──────────────────────────────────────────────────────────
 
 /// Get macro totals for a specific date (or today if None).
+#[specta::specta]
 #[tauri::command]
 pub async fn nutrition_get_macro_totals(
     auth: State<'_, crate::auth::AuthManager>,
@@ -870,6 +883,7 @@ pub async fn nutrition_get_macro_totals(
 // ─── Reminders commands ───────────────────────────────────────────────────────
 
 /// List all nutrition reminders.
+#[specta::specta]
 #[tauri::command]
 pub async fn nutrition_get_reminders(
     auth: State<'_, crate::auth::AuthManager>,
@@ -899,6 +913,7 @@ pub async fn nutrition_get_reminders(
 }
 
 /// Create or update a reminder.
+#[specta::specta]
 #[tauri::command]
 pub async fn nutrition_save_reminder(
     auth: State<'_, crate::auth::AuthManager>,
@@ -948,6 +963,7 @@ pub async fn nutrition_save_reminder(
 }
 
 /// Delete a reminder.
+#[specta::specta]
 #[tauri::command]
 pub async fn nutrition_delete_reminder(
     auth: State<'_, crate::auth::AuthManager>,
@@ -967,6 +983,7 @@ pub async fn nutrition_delete_reminder(
 }
 
 /// Toggle a reminder's enabled state.
+#[specta::specta]
 #[tauri::command]
 pub async fn nutrition_toggle_reminder(
     auth: State<'_, crate::auth::AuthManager>,
@@ -990,7 +1007,7 @@ pub async fn nutrition_toggle_reminder(
 
 // ─── Hydration history stats ──────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HydrationStats {
     pub streak_days: i64,
@@ -1000,6 +1017,7 @@ pub struct HydrationStats {
 }
 
 /// Hydration streak + averages for the Water section stats card.
+#[specta::specta]
 #[tauri::command]
 pub async fn nutrition_get_hydration_stats(
     auth: State<'_, crate::auth::AuthManager>,
@@ -1086,7 +1104,7 @@ pub async fn nutrition_get_hydration_stats(
 
 // ─── Export ───────────────────────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NutritionExportRow {
     pub date: String,
@@ -1099,6 +1117,7 @@ pub struct NutritionExportRow {
 }
 
 /// Export nutrition data as a structured array (frontend converts to CSV/PDF).
+#[specta::specta]
 #[tauri::command]
 pub async fn nutrition_export_data(
     auth: State<'_, crate::auth::AuthManager>,

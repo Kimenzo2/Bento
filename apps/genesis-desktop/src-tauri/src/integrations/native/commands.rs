@@ -157,6 +157,7 @@ pub async fn disconnect_native(app: &AppHandle, app_key: &str) -> Result<(), Str
 }
 
 /// Tauri command: manually start the Telegram poller.
+#[specta::specta]
 #[tauri::command]
 pub async fn start_telegram_poller_cmd(app: AppHandle) -> Result<String, String> {
     start_telegram_poller(&app).await;
@@ -164,6 +165,7 @@ pub async fn start_telegram_poller_cmd(app: AppHandle) -> Result<String, String>
 }
 
 /// Tauri command: manually stop the Telegram poller.
+#[specta::specta]
 #[tauri::command]
 pub async fn stop_telegram_poller_cmd(app: AppHandle) -> Result<String, String> {
     stop_telegram_poller(&app).await;
@@ -171,6 +173,7 @@ pub async fn stop_telegram_poller_cmd(app: AppHandle) -> Result<String, String> 
 }
 
 /// Tauri command: check if the Telegram poller is running.
+#[specta::specta]
 #[tauri::command]
 pub async fn get_telegram_poller_status(app: AppHandle) -> Result<bool, String> {
     if let Some(state) = app.try_state::<TelegramPollerState>() {

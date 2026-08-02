@@ -14,19 +14,19 @@ pub struct IntegrationState {
     pub native: Arc<crate::integrations::native::NativeAuthManager>,
 }
 
-#[derive(Serialize)]
+#[derive(specta::Type, Serialize)]
 pub struct IntegrationAppEntry {
     pub app: AppDefinition,
     pub connected: bool,
 }
 
-#[derive(Serialize)]
+#[derive(specta::Type, Serialize)]
 pub struct IntegrationApiKeyStatus {
     pub has_key: bool,
     pub key_preview: Option<String>,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(specta::Type, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExecuteActionInput {
     pub app_key: String,
@@ -34,6 +34,7 @@ pub struct ExecuteActionInput {
     pub input: serde_json::Value,
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn list_integration_apps(
     category: Option<String>,
@@ -63,6 +64,7 @@ pub async fn list_integration_apps(
     Ok(apps)
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn get_integration_connections(
     app: AppHandle,
@@ -71,6 +73,7 @@ pub async fn get_integration_connections(
     store::get_connections(&pool).await
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn connect_integration(
     app_key: String,
@@ -225,6 +228,7 @@ fn composio_toolkit_slug(app_key: &str) -> String {
     }
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn disconnect_integration(app_key: String, app: AppHandle) -> Result<(), String> {
     let pool = app.state::<BentoAppState>().db();
@@ -281,6 +285,7 @@ pub async fn disconnect_integration(app_key: String, app: AppHandle) -> Result<(
     store::delete_connection(&pool, &app_key).await
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn save_composio_api_key(api_key: String, app: AppHandle) -> Result<(), String> {
     if api_key.trim().is_empty() {
@@ -293,6 +298,7 @@ pub async fn save_composio_api_key(api_key: String, app: AppHandle) -> Result<()
     Ok(())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn get_composio_api_key_status() -> Result<IntegrationApiKeyStatus, String> {
     // `has_key` reflects whether any usable key exists (user-set keyring entry
@@ -320,6 +326,7 @@ fn preview_key(k: &str) -> String {
     }
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn delete_composio_api_key(app: AppHandle) -> Result<(), String> {
     store::delete_api_key_async().await?;
@@ -329,6 +336,7 @@ pub async fn delete_composio_api_key(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn cancel_integration_flow(
     state: State<'_, Arc<crate::integrations::commands::IntegrationState>>,
@@ -337,6 +345,7 @@ pub async fn cancel_integration_flow(
     Ok(())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn test_composio_connection() -> Result<bool, String> {
     let api_key = store::get_api_key_async().await?.ok_or_else(|| "No API key configured".to_string())?;
@@ -344,6 +353,7 @@ pub async fn test_composio_connection() -> Result<bool, String> {
     client.test_connection().await
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn execute_integration_action(
     params: ExecuteActionInput,
@@ -427,6 +437,7 @@ pub async fn execute_integration(
     client.execute_tool(action_name, &conn.id, &entity_id, input).await
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn list_integration_actions(
     app_key: String,
@@ -461,6 +472,7 @@ pub async fn list_integration_actions(
     client.list_tools(&app_key).await
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn get_integration_categories() -> Vec<CategoryEntry> {
     let all_apps = curated_apps();
@@ -481,7 +493,7 @@ fn matches_category(a: &IntegrationCategory, b: &IntegrationCategory) -> bool {
     a == b
 }
 
-#[derive(Serialize)]
+#[derive(specta::Type, Serialize)]
 pub struct CategoryEntry {
     pub id: String,
     pub label: String,

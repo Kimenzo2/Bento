@@ -11,7 +11,7 @@ use crate::db::BentoAppState;
 use crate::realtime::RealtimeHub;
 use crate::util::time;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskEntry {
     pub id: String,
@@ -35,14 +35,14 @@ pub struct TaskEntry {
     pub sort_order: f64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ReorderItem {
     pub id: String,
     pub sort_order: f64,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SaveTaskParams {
     pub title: String,
@@ -58,7 +58,7 @@ pub struct SaveTaskParams {
     pub parent_id: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateTaskParams {
     pub id: String,
@@ -79,14 +79,14 @@ pub struct UpdateTaskParams {
     pub completed_at: Option<Option<i64>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct LogActivityParams {
     pub task_id: String,
     pub text: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ActivityEntry {
     pub id: String,
@@ -124,6 +124,7 @@ fn row_to_task(row: sqlx::sqlite::SqliteRow) -> TaskEntry {
 }
 
 /// Save (insert) a new task.
+#[specta::specta]
 #[tauri::command]
 pub async fn save_task(
     auth: State<'_, crate::auth::AuthManager>,
@@ -198,6 +199,7 @@ pub async fn save_task(
 }
 
 /// Update an existing task (partial update — only provided fields change).
+#[specta::specta]
 #[tauri::command]
 pub async fn update_task(
     auth: State<'_, crate::auth::AuthManager>,
@@ -306,6 +308,7 @@ pub async fn update_task(
 
 /// Toggle a task's done state. If the task has a recurrence rule,
 /// auto-generate the next instance on completion.
+#[specta::specta]
 #[tauri::command]
 pub async fn toggle_task(
     auth: State<'_, crate::auth::AuthManager>,
@@ -427,6 +430,7 @@ fn advance_recurrence(rule: &str, current_due: Option<i64>) -> Option<i64> {
 }
 
 /// Get a task by ID.
+#[specta::specta]
 #[tauri::command]
 pub async fn get_task(
     auth: State<'_, crate::auth::AuthManager>,
@@ -447,6 +451,7 @@ pub async fn get_task(
 }
 
 /// Delete a task by ID.
+#[specta::specta]
 #[tauri::command]
 pub async fn delete_task(
     auth: State<'_, crate::auth::AuthManager>,
@@ -470,6 +475,7 @@ pub async fn delete_task(
 
 /// List tasks with optional filters.
 #[allow(clippy::too_many_arguments)]
+#[specta::specta]
 #[tauri::command]
 pub async fn list_tasks(
     auth: State<'_, crate::auth::AuthManager>,
@@ -535,6 +541,7 @@ pub async fn list_tasks(
 
 /// Lightweight task count for the notification badge.
 /// No auth required — just counts non-archived, non-done tasks.
+#[specta::specta]
 #[tauri::command]
 pub async fn get_task_count(state: State<'_, BentoAppState>) -> Result<i64, String> {
     let db = state.db();
@@ -549,6 +556,7 @@ pub async fn get_task_count(state: State<'_, BentoAppState>) -> Result<i64, Stri
 }
 
 /// Log an activity entry for a task.
+#[specta::specta]
 #[tauri::command]
 pub async fn log_activity_entry(
     auth: State<'_, crate::auth::AuthManager>,
@@ -595,6 +603,7 @@ pub async fn log_activity_entry(
 }
 
 /// Archive a task (set archived = true).
+#[specta::specta]
 #[tauri::command]
 pub async fn archive_task(
     auth: State<'_, crate::auth::AuthManager>,
@@ -634,6 +643,7 @@ pub async fn archive_task(
 }
 
 /// Duplicate a task (copy with new ID).
+#[specta::specta]
 #[tauri::command]
 pub async fn duplicate_task(
     auth: State<'_, crate::auth::AuthManager>,
@@ -694,7 +704,7 @@ pub async fn duplicate_task(
 
 // ─── Subtask types ───────────────────────────────────────────────────
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SubtaskEntry {
     pub id: String,
@@ -705,7 +715,7 @@ pub struct SubtaskEntry {
     pub updated_at: i64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SaveSubtaskParams {
     pub task_id: String,
@@ -713,6 +723,7 @@ pub struct SaveSubtaskParams {
 }
 
 /// Save (insert) a new subtask.
+#[specta::specta]
 #[tauri::command]
 pub async fn save_subtask(
     auth: State<'_, crate::auth::AuthManager>,
@@ -756,6 +767,7 @@ pub async fn save_subtask(
 }
 
 /// Delete a subtask by ID.
+#[specta::specta]
 #[tauri::command]
 pub async fn delete_subtask(
     auth: State<'_, crate::auth::AuthManager>,
@@ -800,6 +812,7 @@ async fn publish_task_updated(db: &sqlx::SqlitePool, hub: &RealtimeHub, task_id:
 }
 
 /// List all subtasks for a given task.
+#[specta::specta]
 #[tauri::command]
 pub async fn list_subtasks_for_task(
     auth: State<'_, crate::auth::AuthManager>,
@@ -831,6 +844,7 @@ pub async fn list_subtasks_for_task(
 }
 
 /// Update a subtask's done status.
+#[specta::specta]
 #[tauri::command]
 pub async fn update_subtask_status(
     auth: State<'_, crate::auth::AuthManager>,
@@ -881,6 +895,7 @@ pub async fn update_subtask_status(
 }
 
 /// Reorder tasks in bulk (set sort_order for each).
+#[specta::specta]
 #[tauri::command]
 pub async fn reorder_tasks(
     auth: State<'_, crate::auth::AuthManager>,
@@ -939,6 +954,7 @@ pub async fn reorder_tasks(
 }
 
 /// List activity entries for a task.
+#[specta::specta]
 #[tauri::command]
 pub async fn list_activity_for_task(
     auth: State<'_, crate::auth::AuthManager>,

@@ -38,7 +38,7 @@ pub struct LoginResponse {
 }
 
 /// Public ChatGPT user profile from the server.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatGptUserInfo {
     pub account_id: String,
@@ -51,7 +51,7 @@ pub struct ChatGptUserInfo {
 }
 
 /// Response from GET /api/chatgpt/session or /api/chatgpt/status.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StatusResponse {
     pub status: String,
@@ -68,7 +68,7 @@ pub struct ModelsResponse {
 
 /// ChatGPT session info returned to the frontend.
 /// No tokens — auth is cookie-based.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatGptSession {
     pub server_url: String,
@@ -77,7 +77,7 @@ pub struct ChatGptSession {
 }
 
 /// Connection test result.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConnectionTestResult {
     pub ok: bool,
@@ -87,7 +87,7 @@ pub struct ConnectionTestResult {
 
 // ── Device flow info (returned to frontend for display) ───────────────
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceFlowInfo {
     pub user_code: String,

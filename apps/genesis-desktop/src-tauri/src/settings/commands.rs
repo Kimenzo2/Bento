@@ -17,7 +17,7 @@ use crate::settings;
 // Shared types for all settings commands
 // ──────────────────────────────────────────────────────────
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AccountInfo {
     pub name: String,
@@ -28,7 +28,7 @@ pub struct AccountInfo {
     pub devices: Vec<DeviceInfo>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceInfo {
     pub id: String,
@@ -38,7 +38,7 @@ pub struct DeviceInfo {
     pub is_current: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppearancePatch {
     pub theme_id: Option<String>,
@@ -51,7 +51,7 @@ pub struct AppearancePatch {
     pub font_scale: Option<f64>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PrivacySettings {
     pub analytics: bool,
@@ -60,7 +60,7 @@ pub struct PrivacySettings {
     pub biometric_unlock: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InstalledModuleEntry {
     pub id: String,
@@ -70,7 +70,7 @@ pub struct InstalledModuleEntry {
     pub order: u32,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AvailableModuleEntry {
     pub id: String,
@@ -81,7 +81,7 @@ pub struct AvailableModuleEntry {
     pub accent: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SyncStatus {
     pub last_synced: Option<String>,
@@ -90,14 +90,14 @@ pub struct SyncStatus {
     pub status: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StorageBreakdownEntry {
     pub module: String,
     pub bytes_used: u64,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AiConfig {
     pub enabled: bool,
@@ -108,13 +108,13 @@ pub struct AiConfig {
     pub ollama_url: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ApiKeyStatus {
     pub is_set: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NotificationConfig {
     pub enabled: bool,
@@ -125,7 +125,7 @@ pub struct NotificationConfig {
     pub module_settings: HashMap<String, String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StartupConfig {
     pub launch_on_login: bool,
@@ -134,7 +134,7 @@ pub struct StartupConfig {
     pub hardware_acceleration: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AccessibilityConfig {
     pub reduce_motion: bool,
@@ -144,7 +144,7 @@ pub struct AccessibilityConfig {
     pub text_size_override: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LocaleConfig {
     pub language: String,
@@ -156,7 +156,7 @@ pub struct LocaleConfig {
     pub number_format: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateInfo {
     pub current_version: String,
@@ -165,7 +165,7 @@ pub struct UpdateInfo {
     pub download_size: Option<u64>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SystemInfo {
     pub os_name: String,
@@ -176,7 +176,7 @@ pub struct SystemInfo {
     pub build_target: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ShortcutEntry {
     pub action: String,
@@ -185,21 +185,21 @@ pub struct ShortcutEntry {
     pub default_combo: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ShortcutConflict {
     pub action: String,
     pub current_combo: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KeyShortcutResult {
     pub success: bool,
     pub conflict: Option<ShortcutConflict>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModuleFonts {
     pub primary: Option<String>,
@@ -267,6 +267,7 @@ fn privacy_from_settings(settings: &settings::DesktopSettings) -> PrivacySetting
 // SECTION 1 — ACCOUNT
 // ──────────────────────────────────────────────────────────
 
+#[specta::specta]
 #[tauri::command]
 pub async fn get_account_info(
     app: AppHandle,
@@ -345,6 +346,7 @@ pub async fn get_account_info(
     })
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn update_display_name(
     app: AppHandle,
@@ -369,6 +371,7 @@ pub async fn update_display_name(
     Ok(())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn revoke_device(auth: State<'_, AuthManager>, device_id: String) -> Result<(), String> {
     let session = auth
@@ -384,11 +387,13 @@ pub async fn revoke_device(auth: State<'_, AuthManager>, device_id: String) -> R
     Err(unsupported("Revoking other devices"))
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn sign_out_backend(auth: State<'_, AuthManager>) -> Result<(), String> {
     auth.sign_out().await
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn delete_account_backend(auth: State<'_, AuthManager>) -> Result<(), String> {
     auth.delete_account().await
@@ -398,6 +403,7 @@ pub async fn delete_account_backend(auth: State<'_, AuthManager>) -> Result<(), 
 // SECTION 2 — APPEARANCE
 // ──────────────────────────────────────────────────────────
 
+#[specta::specta]
 #[tauri::command]
 pub async fn set_theme(app: AppHandle, theme: String) -> Result<(), String> {
     let trimmed = theme.trim();
@@ -411,6 +417,7 @@ pub async fn set_theme(app: AppHandle, theme: String) -> Result<(), String> {
     Ok(())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn set_appearance(app: AppHandle, patch: AppearancePatch) -> Result<(), String> {
     if patch.accent_color.is_some()
@@ -442,11 +449,13 @@ pub async fn set_appearance(app: AppHandle, patch: AppearancePatch) -> Result<()
 // SECTION 9 — PRIVACY & SECURITY
 // ──────────────────────────────────────────────────────────
 
+#[specta::specta]
 #[tauri::command]
 pub async fn get_privacy_settings(app: AppHandle) -> Result<PrivacySettings, String> {
     Ok(privacy_from_settings(&settings::current_settings(&app)))
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn set_privacy_settings(app: AppHandle, patch: PrivacySettings) -> Result<(), String> {
     if patch.session_lock_timeout.is_some() || patch.biometric_unlock {
@@ -460,12 +469,14 @@ pub async fn set_privacy_settings(app: AppHandle, patch: PrivacySettings) -> Res
     Ok(())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn lock_now(app: AppHandle) -> Result<(), String> {
     let _ = app.emit("app:locked", ());
     Ok(())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn check_biometric_support() -> Result<serde_json::Value, String> {
     // Stub: return OS-specific result
@@ -487,6 +498,7 @@ pub async fn check_biometric_support() -> Result<serde_json::Value, String> {
 // SECTION 4 — MODULES & APPS
 // ──────────────────────────────────────────────────────────
 
+#[specta::specta]
 #[tauri::command]
 pub async fn get_installed_modules_list(
     state: State<'_, BentoAppState>,
@@ -532,6 +544,7 @@ pub async fn get_installed_modules_list(
         .collect())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn get_available_modules(
     state: State<'_, BentoAppState>,
@@ -550,6 +563,7 @@ pub async fn get_available_modules(
         .collect())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn install_module_v2(
     app: AppHandle,
@@ -567,6 +581,7 @@ pub async fn install_module_v2(
     Ok(())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn uninstall_module_v2(
     app: AppHandle,
@@ -580,12 +595,14 @@ pub async fn uninstall_module_v2(
     Ok(())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn reorder_modules(order: Vec<String>) -> Result<(), String> {
     let _ = order;
     Err(unsupported("Module reordering"))
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn set_default_launch_module(module_id: String) -> Result<(), String> {
     let _ = module_id;
@@ -596,6 +613,7 @@ pub async fn set_default_launch_module(module_id: String) -> Result<(), String> 
 // SECTION 5 — SYNC & STORAGE
 // ──────────────────────────────────────────────────────────
 
+#[specta::specta]
 #[tauri::command]
 pub async fn get_sync_status(auth: State<'_, AuthManager>) -> Result<SyncStatus, String> {
     let session = auth.current_session().await;
@@ -615,6 +633,7 @@ pub async fn get_sync_status(auth: State<'_, AuthManager>) -> Result<SyncStatus,
     })
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn sync_now(app: AppHandle, auth: State<'_, AuthManager>) -> Result<(), String> {
     app.emit("sync:progress", serde_json::json!({"status": "syncing"}))
@@ -625,28 +644,33 @@ pub async fn sync_now(app: AppHandle, auth: State<'_, AuthManager>) -> Result<()
     Ok(())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn set_sync_enabled(enabled: bool) -> Result<(), String> {
     let _ = enabled;
     Err(unsupported("Sync enablement"))
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn get_storage_breakdown() -> Result<Vec<StorageBreakdownEntry>, String> {
     Err(unsupported("Storage breakdown reporting"))
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn export_all_data() -> Result<Option<String>, String> {
     Err(unsupported("Full data export"))
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn import_data(file_path: String) -> Result<(), String> {
     let _ = file_path;
     Err(unsupported("Data import"))
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn clear_local_data() -> Result<(), String> {
     Err(unsupported("Clearing local data"))
@@ -656,6 +680,7 @@ pub async fn clear_local_data() -> Result<(), String> {
 // SECTION 6 — AI & INTELLIGENCE
 // ──────────────────────────────────────────────────────────
 
+#[specta::specta]
 #[tauri::command]
 pub async fn save_api_key(app: AppHandle, provider: String, key: String) -> Result<(), String> {
     ByokProvider::from_str(&provider).map_err(|_| format!("Unknown provider: {provider}"))?;
@@ -664,6 +689,7 @@ pub async fn save_api_key(app: AppHandle, provider: String, key: String) -> Resu
     })
     .map(|_| ())
 }
+#[specta::specta]
 #[tauri::command]
 pub async fn get_api_key_status(app: AppHandle, provider: String) -> Result<ApiKeyStatus, String> {
     let parsed =
@@ -673,6 +699,7 @@ pub async fn get_api_key_status(app: AppHandle, provider: String) -> Result<ApiK
     Ok(ApiKeyStatus { is_set })
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn test_ai_connection(
     app: AppHandle,
@@ -685,6 +712,7 @@ pub async fn test_ai_connection(
     Ok(result)
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn set_ai_config(patch: AiConfig) -> Result<(), String> {
     let _ = patch;
@@ -694,6 +722,7 @@ pub async fn set_ai_config(patch: AiConfig) -> Result<(), String> {
 // ── AI Features Prefs ─────────────────────────────────────────────────────────
 
 /// Load the current AI features preferences from settings.
+#[specta::specta]
 #[tauri::command]
 pub async fn load_ai_features_prefs(app: AppHandle) -> Result<settings::AiFeaturesPrefs, String> {
     let settings = settings::current_settings(&app);
@@ -709,6 +738,7 @@ pub async fn load_ai_features_prefs(app: AppHandle) -> Result<settings::AiFeatur
 
 /// Save AI features preferences (partial patch allowed).
 /// Fields set to `None` are left unchanged.
+#[specta::specta]
 #[tauri::command]
 pub async fn save_ai_features_prefs(
     app: AppHandle,
@@ -736,6 +766,7 @@ pub async fn save_ai_features_prefs(
 // SECTION 3 — TYPOGRAPHY
 // ──────────────────────────────────────────────────────────
 
+#[specta::specta]
 #[tauri::command]
 pub async fn get_system_fonts() -> Result<Vec<String>, String> {
     // Stub: return common system fonts
@@ -751,6 +782,7 @@ pub async fn get_system_fonts() -> Result<Vec<String>, String> {
     ])
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn download_font(font_id: String) -> Result<String, String> {
     // Stub: pretend to download font
@@ -761,6 +793,7 @@ pub async fn download_font(font_id: String) -> Result<String, String> {
     Ok(path.to_string_lossy().to_string())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn set_module_fonts_v2(module: String, fonts: ModuleFonts) -> Result<(), String> {
     let _ = module;
@@ -772,12 +805,14 @@ pub async fn set_module_fonts_v2(module: String, fonts: ModuleFonts) -> Result<(
 // SECTION 7 — NOTIFICATIONS
 // ──────────────────────────────────────────────────────────
 
+#[specta::specta]
 #[tauri::command]
 pub async fn set_notification_config(config: NotificationConfig) -> Result<(), String> {
     let _ = config;
     Ok(())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub fn send_test_notification(app: AppHandle) -> Result<(), String> {
     crate::notifications::dispatch_notification(&app, "Bento", "This is a test notification from your settings.")
@@ -787,6 +822,7 @@ pub fn send_test_notification(app: AppHandle) -> Result<(), String> {
 // SECTION 10 — SYSTEM & STARTUP
 // ──────────────────────────────────────────────────────────
 
+#[specta::specta]
 #[tauri::command]
 pub async fn set_launch_on_login(enabled: bool) -> Result<(), String> {
     let _ = enabled;
@@ -794,6 +830,7 @@ pub async fn set_launch_on_login(enabled: bool) -> Result<(), String> {
     Ok(())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn set_startup_config(config: StartupConfig) -> Result<(), String> {
     let _ = config;
@@ -804,6 +841,7 @@ pub async fn set_startup_config(config: StartupConfig) -> Result<(), String> {
 // SECTION 12 — LANGUAGE & REGION
 // ──────────────────────────────────────────────────────────
 
+#[specta::specta]
 #[tauri::command]
 pub async fn set_locale_config(app: AppHandle, config: LocaleConfig) -> Result<(), String> {
     let normalized_lang = settings::normalize_language_code(&config.language);
@@ -836,6 +874,7 @@ pub async fn set_locale_config(app: AppHandle, config: LocaleConfig) -> Result<(
 // SECTION 13 — UPDATES
 // ──────────────────────────────────────────────────────────
 
+#[specta::specta]
 #[tauri::command]
 pub async fn check_for_updates() -> Result<UpdateInfo, String> {
     // Stub: return current version only (no update available)
@@ -847,11 +886,13 @@ pub async fn check_for_updates() -> Result<UpdateInfo, String> {
     })
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn download_and_install_update(_on_progress: Channel<f32>) -> Result<(), String> {
     Ok(())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn set_update_channel(channel: String) -> Result<(), String> {
     let supported = ["stable", "beta"];
@@ -865,6 +906,7 @@ pub async fn set_update_channel(channel: String) -> Result<(), String> {
 // SECTION 14 — ABOUT
 // ──────────────────────────────────────────────────────────
 
+#[specta::specta]
 #[tauri::command]
 pub async fn get_system_info() -> Result<SystemInfo, String> {
     Ok(SystemInfo {
@@ -881,6 +923,7 @@ pub async fn get_system_info() -> Result<SystemInfo, String> {
 // SECTION 8 — KEYBOARD SHORTCUTS
 // ──────────────────────────────────────────────────────────
 
+#[specta::specta]
 #[tauri::command]
 pub async fn get_keyboard_shortcuts() -> Result<Vec<ShortcutEntry>, String> {
     Ok(vec![
@@ -929,6 +972,7 @@ pub async fn get_keyboard_shortcuts() -> Result<Vec<ShortcutEntry>, String> {
     ])
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn set_keyboard_shortcut(
     _action: String,
@@ -941,6 +985,7 @@ pub async fn set_keyboard_shortcut(
     })
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn reset_all_shortcuts() -> Result<(), String> {
     Ok(())
@@ -950,6 +995,7 @@ pub async fn reset_all_shortcuts() -> Result<(), String> {
 // SECTION 11 — ACCESSIBILITY
 // ──────────────────────────────────────────────────────────
 
+#[specta::specta]
 #[tauri::command]
 pub async fn set_accessibility_config(config: AccessibilityConfig) -> Result<(), String> {
     let _ = config;
@@ -963,7 +1009,7 @@ pub async fn set_accessibility_config(config: AccessibilityConfig) -> Result<(),
 // Rust is responsible for validation and persistence only.
 // ──────────────────────────────────────────────────────────
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LanguageInfo {
     pub code: String,
@@ -975,6 +1021,7 @@ pub struct LanguageInfo {
 
 /// Returns metadata for the currently active interface language.
 /// Matches Anytype's S.Common.interfaceLang getter.
+#[specta::specta]
 #[tauri::command]
 pub async fn get_active_language(app: AppHandle) -> Result<LanguageInfo, String> {
     let settings = settings::current_settings(&app);
@@ -997,6 +1044,7 @@ pub async fn get_active_language(app: AppHandle) -> Result<LanguageInfo, String>
 
 /// Persist the chosen interface language code.
 /// Mirrors Anytype's Action.setInterfaceLang (Renderer.send side).
+#[specta::specta]
 #[tauri::command]
 pub async fn set_interface_language(app: AppHandle, code: String) -> Result<LanguageInfo, String> {
     let normalized = settings::normalize_language_code(&code);
@@ -1021,6 +1069,7 @@ pub async fn set_interface_language(app: AppHandle, code: String) -> Result<Lang
 
 /// Returns the full list of supported interface languages.
 /// Matches Anytype's U.Menu.getInterfaceLanguages().
+#[specta::specta]
 #[tauri::command]
 pub async fn get_supported_languages() -> Result<Vec<LanguageInfo>, String> {
     use settings::LanguageCode;

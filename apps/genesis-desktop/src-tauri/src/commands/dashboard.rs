@@ -96,7 +96,7 @@ impl DashboardCache {
 // Response structs (unchanged schema — frontend relies on these shapes)
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DashboardPayload {
     pub greeting: String,
@@ -109,7 +109,7 @@ pub struct DashboardPayload {
     pub gradient_colors: [String; 2],
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FeaturedModule {
     pub id: String,
@@ -122,7 +122,7 @@ pub struct FeaturedModule {
     pub items: Vec<DashboardItem>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DashboardItem {
     pub text: String,
@@ -131,7 +131,7 @@ pub struct DashboardItem {
     pub completed: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActivityEntry {
     pub module_id: String,
@@ -143,7 +143,7 @@ pub struct ActivityEntry {
     pub timestamp_ms: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StreakInfo {
     pub count: i32,
@@ -151,7 +151,7 @@ pub struct StreakInfo {
     pub module_name: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MetricInfo {
     pub label: String,
@@ -160,14 +160,14 @@ pub struct MetricInfo {
     pub trend: Option<TrendInfo>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TrendInfo {
     pub direction: String,
     pub percentage: f32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(specta::Type, Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RecentModule {
     pub id: String,
@@ -1041,6 +1041,7 @@ fn fallback_payload() -> DashboardPayload {
     }
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn get_dashboard_data(
     app: tauri::AppHandle,
@@ -1140,4 +1141,3 @@ pub async fn get_dashboard_data(
         }
     }
 }
-

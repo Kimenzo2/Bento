@@ -9,7 +9,7 @@ use tauri::State;
 use crate::db::BentoAppState;
 use crate::util::time;
 
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct FocusPreset {
     pub label: String,
@@ -17,7 +17,7 @@ pub struct FocusPreset {
     pub minutes: Option<i64>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct FocusCardItem {
     pub title: String,
@@ -25,14 +25,14 @@ pub struct FocusCardItem {
     pub status: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct FocusReviewNote {
     pub title: String,
     pub note: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct FocusSessionEntry {
     pub id: String,
@@ -44,7 +44,7 @@ pub struct FocusSessionEntry {
     pub logged_at: i64,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct FocusHistoryEntry {
     pub day: String,
@@ -67,7 +67,7 @@ pub struct FocusSettings {
     pub blocking_profile: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+#[derive(specta::Type, Clone, Debug, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct FocusDashboardData {
     pub timer_presets: Vec<FocusPreset>,
@@ -82,7 +82,7 @@ pub struct FocusDashboardData {
     pub blocking_profile: Option<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(specta::Type, Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RecordFocusSessionParams {
     pub label: String,
@@ -165,6 +165,7 @@ fn load_focus_settings(value: Option<String>) -> FocusSettings {
     serde_json::from_str::<FocusSettings>(&raw).unwrap_or_default()
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn get_focus_dashboard(
     auth: State<'_, crate::auth::AuthManager>,
@@ -304,6 +305,7 @@ pub async fn get_focus_dashboard(
     })
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn record_focus_session(
     auth: State<'_, crate::auth::AuthManager>,
@@ -353,6 +355,7 @@ pub async fn record_focus_session(
     Ok(())
 }
 
+#[specta::specta]
 #[tauri::command]
 pub async fn export_focus_sessions(
     auth: State<'_, crate::auth::AuthManager>,

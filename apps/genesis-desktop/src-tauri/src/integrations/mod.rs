@@ -24,7 +24,7 @@ const TOOLKITS_PAGE_SIZE: u32 = 200;
 
 pub use native::NativeFlow;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(specta::Type, Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AuthType {
     ManagedOAuth,
@@ -50,7 +50,7 @@ impl AuthType {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(specta::Type, Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum IntegrationCategory {
     Communication,
     Calendar,
@@ -100,7 +100,7 @@ impl IntegrationCategory {
     ];
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(specta::Type, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AppDefinition {
     pub key: String,
     pub name: String,
@@ -120,7 +120,7 @@ impl AppDefinition {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(specta::Type, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct IntegrationConnection {
     pub id: String,
     pub app_key: String,
@@ -128,7 +128,7 @@ pub struct IntegrationConnection {
     pub created_at_ms: i64,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(specta::Type, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum ConnectionStatus {
     Connected,
     Connecting,
@@ -671,7 +671,7 @@ pub struct ComposioToolkit {
     pub categories: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(specta::Type, Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ComposioTool {
     pub slug: String,
     #[serde(default)]
