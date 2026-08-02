@@ -386,6 +386,27 @@ async fn topics_with_nested_namespace_are_distinct() {
 /// `AppHandle<MockRuntime>` is a different type than `RealtimeHub`'s Wry
 /// `AppHandle`. Building the default (Wry) runtime is the documented way to
 /// exercise the real emit path (see tauri::test docs).
+// ═══════════════════════════════════════════════════════════════════════
+// emit_change → bento://data-changed (consumption bridge)
+//
+// THESE MUST LIVE IN ONE `#[test]`: building a real Wry/GTK `tauri::App`
+// seeds glib's process-global main context, which is never fully released
+// when the App drops. A SECOND `mock_wry_app()` in the same process then
+// panics at init ("Failed to acquire ownership of main context, already
+// acquired by another thread"). See GH Actions on the headless ubuntu
+// runner. One App, all assertions; split into multiple GTK-app tests ONLY
+// if they are moved to separate processes.
+// ═══════════════════════════════════════════════════════════════════════
+
+/// Build a real Wry-runtime App (no windows) so `RealtimeHub::new` gets the
+/// concrete `AppHandle` it stores. `any_thread()` lets the event loop be
+/// created on the test's worker thread; `mock_context(noop_assets())` avoids
+/// needing a full `generate_context!`/frontend build.
+///
+/// NOTE: `mock_app()` is NOT used here — it produces a `MockRuntime` app whose
+/// `AppHandle<MockRuntime>` is a different type than `RealtimeHub`'s Wry
+/// `AppHandle`. Building the default (Wry) runtime is the documented way to
+/// exercise the real emit path (see tauri::test docs).
 fn mock_wry_app() -> tauri::App {
     tauri::Builder::default()
         .any_thread()
@@ -393,6 +414,11 @@ fn mock_wry_app() -> tauri::App {
         .expect("failed to build mock Wry app")
 }
 
+/// Combine the previous two emit_change tests into a single process so only
+/// ONE GTK/Wry app is ever built. Verifies:
+///   - hub fan-out delivers the exact wire frame bridge.ts routes on;
+///   - a `bento://data-changed` event fires with EXACTLY `{ topic, event }`
+///     (the payload `initDataChangedListener` parses) — no `data` leak.
 #[tokio::test]
 async fn emit_change_fans_out_to_hub_and_emits_data_changed_event() {
     let app = mock_wry_app();
@@ -430,26 +456,25 @@ async fn emit_change_fans_out_to_hub_and_emits_data_changed_event() {
         json!({ "topic": "tasks/list", "event": "created" }),
         "data-changed payload must be {{ topic, event }} for the TS bridge"
     );
-}
 
-#[tokio::test]
-async fn emit_change_reports_original_topic_and_event_in_data_changed() {
-    let app = mock_wry_app();
-    let app_handle = app.handle().clone();
-    let hub = RealtimeHub::new(app_handle.clone());
-
-    let (tx, mut rx_event) = mpsc::channel::<String>(4);
+    // 3) A different topic/event flows through the SAME app + hub: the reported
+    //    topic/event must round-trip exactly, and -- critically -- the full CRUD
+    //    `data` payload must NOT be part of the data-changed event (modules
+    //    re-fetch rather than consume the mutation payload). This assertion
+    //    previously lived in a second test whose second `mock_wry_app()` could
+    //    not init (glib main-context ownership).
+    let (tx2, mut rx_event2) = mpsc::channel::<String>(4);
     app_handle.listen("bento://data-changed", move |event| {
-        let _ = tx.try_send(event.payload().to_string());
+        let _ = tx2.try_send(event.payload().to_string());
     });
 
     hub.emit_change("sleep/routine-status", "created", json!({ "routineId": "r1" }))
         .await;
 
-    let payload = rx_event.recv().await.expect("expected a data-changed event");
-    let v: Value = serde_json::from_str(&payload).unwrap();
-    assert_eq!(v["topic"], "sleep/routine-status");
-    assert_eq!(v["event"], "created");
+    let payload2 = rx_event2.recv().await.expect("expected a data-changed event");
+    let v2: Value = serde_json::from_str(&payload2).unwrap();
+    assert_eq!(v2["topic"], "sleep/routine-status");
+    assert_eq!(v2["event"], "created");
     // The data payload is NOT part of the data-changed event — modules re-fetch.
-    assert_eq!(v.get("data"), None);
+    assert_eq!(v2.get("data"), None);
 }
