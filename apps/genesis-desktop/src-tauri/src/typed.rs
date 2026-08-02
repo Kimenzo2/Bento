@@ -289,6 +289,9 @@ pub fn builder() -> Builder<tauri::Wry> {
             crate::typed::AppLockedEvent,
             crate::typed::StartupDegradedEvent,
         ])
+        // Epoch-ms timestamps and id counters (i64/u64) fit within JS's Number
+        // (2^53), so export them as `number` to keep the frontend contract.
+        .dangerously_cast_bigints_to_number()
 }
 
 /// Regenerate `src/lib/bindings.ts`. Gated behind `BENTO_GEN_BINDINGS=1`
