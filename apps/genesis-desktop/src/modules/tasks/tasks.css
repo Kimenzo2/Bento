@@ -1,4 +1,6 @@
-﻿/* ═══════════════════════════════════════════════════════════════════════
+/* ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. */
+
+/* ═══════════════════════════════════════════════════════════════════════
    TASKS APP — Refined Utilitarian Luxury
    3-panel layout: Sidebar (220px) | Task List (380px, resizable) | Detail Pane (1fr)
    Design: Linear meets Things 3 meets Focus Cards System

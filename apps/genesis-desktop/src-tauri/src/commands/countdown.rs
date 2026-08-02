@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 // ── Countdown — Events, Milestones, Birthdays ────────────────────────────
 //
 // Tables (in db.rs):
@@ -6,11 +8,13 @@
 //   countdown_birthdays  — id, name, month, day, accent, created_at, updated_at
 
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sqlx::Row;
 use tauri::State;
 use uuid::Uuid;
 
 use crate::db::BentoAppState;
+use crate::realtime::RealtimeHub;
 use crate::util::time;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -156,6 +160,7 @@ pub async fn countdown_list_events(
 pub async fn countdown_save_event(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     params: CountdownEventSave,
 ) -> Result<CountdownEvent, String> {
     crate::auth::require_billing_tier(&auth, "countdown").await?;
@@ -190,7 +195,7 @@ pub async fn countdown_save_event(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(CountdownEvent {
+    let event = CountdownEvent {
         id,
         name: params.name,
         target_ms: params.target_ms,
@@ -199,13 +204,16 @@ pub async fn countdown_save_event(
         note,
         created_at: now,
         updated_at: now,
-    })
+    };
+    hub.emit_change("countdown/events", "created", json!(&event)).await;
+    Ok(event)
 }
 
 #[tauri::command]
 pub async fn countdown_update_event(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
     params: CountdownEventSave,
 ) -> Result<CountdownEvent, String> {
@@ -242,8 +250,8 @@ pub async fn countdown_update_event(
         return Err("Event not found".to_string());
     }
 
-    Ok(CountdownEvent {
-        id,
+    let event = CountdownEvent {
+        id: id.clone(),
         name: params.name,
         target_ms: params.target_ms,
         category: params.category,
@@ -251,13 +259,16 @@ pub async fn countdown_update_event(
         note,
         created_at: 0,
         updated_at: now,
-    })
+    };
+    hub.emit_change("countdown/events", "updated", json!(&event)).await;
+    Ok(event)
 }
 
 #[tauri::command]
 pub async fn countdown_delete_event(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "countdown").await?;
@@ -270,6 +281,7 @@ pub async fn countdown_delete_event(
     if result.rows_affected() == 0 {
         return Err("Event not found".to_string());
     }
+    hub.emit_change("countdown/events", "deleted", json!({ "id": &id })).await;
     Ok(())
 }
 
@@ -311,6 +323,7 @@ pub async fn countdown_list_milestones(
 pub async fn countdown_save_milestone(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     params: CountdownMilestoneSave,
 ) -> Result<CountdownMilestone, String> {
     crate::auth::require_billing_tier(&auth, "countdown").await?;
@@ -345,7 +358,7 @@ pub async fn countdown_save_milestone(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(CountdownMilestone {
+    let milestone = CountdownMilestone {
         id,
         name: params.name,
         target_ms: params.target_ms,
@@ -354,13 +367,16 @@ pub async fn countdown_save_milestone(
         note,
         created_at: now,
         updated_at: now,
-    })
+    };
+    hub.emit_change("countdown/milestones", "created", json!(&milestone)).await;
+    Ok(milestone)
 }
 
 #[tauri::command]
 pub async fn countdown_update_milestone_progress(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
     progress: i32,
 ) -> Result<(), String> {
@@ -377,6 +393,7 @@ pub async fn countdown_update_milestone_progress(
     if result.rows_affected() == 0 {
         return Err("Milestone not found".to_string());
     }
+    hub.emit_change("countdown/milestones", "updated", json!({ "id": &id, "progress": progress.clamp(0, 100) })).await;
     Ok(())
 }
 
@@ -384,6 +401,7 @@ pub async fn countdown_update_milestone_progress(
 pub async fn countdown_delete_milestone(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "countdown").await?;
@@ -396,6 +414,7 @@ pub async fn countdown_delete_milestone(
     if result.rows_affected() == 0 {
         return Err("Milestone not found".to_string());
     }
+    hub.emit_change("countdown/milestones", "deleted", json!({ "id": &id })).await;
     Ok(())
 }
 
@@ -436,6 +455,7 @@ pub async fn countdown_list_birthdays(
 pub async fn countdown_save_birthday(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     params: CountdownBirthdaySave,
 ) -> Result<CountdownBirthday, String> {
     crate::auth::require_billing_tier(&auth, "countdown").await?;
@@ -469,7 +489,7 @@ pub async fn countdown_save_birthday(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(CountdownBirthday {
+    let birthday = CountdownBirthday {
         id,
         name: params.name,
         month,
@@ -477,13 +497,16 @@ pub async fn countdown_save_birthday(
         accent: params.accent,
         created_at: now,
         updated_at: now,
-    })
+    };
+    hub.emit_change("countdown/birthdays", "created", json!(&birthday)).await;
+    Ok(birthday)
 }
 
 #[tauri::command]
 pub async fn countdown_update_birthday(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
     params: CountdownBirthdaySave,
 ) -> Result<CountdownBirthday, String> {
@@ -518,21 +541,24 @@ pub async fn countdown_update_birthday(
         return Err("Birthday not found".to_string());
     }
 
-    Ok(CountdownBirthday {
-        id,
+    let birthday = CountdownBirthday {
+        id: id.clone(),
         name: params.name,
         month,
         day,
         accent: params.accent,
         created_at: 0,
         updated_at: now,
-    })
+    };
+    hub.emit_change("countdown/birthdays", "updated", json!(&birthday)).await;
+    Ok(birthday)
 }
 
 #[tauri::command]
 pub async fn countdown_delete_birthday(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "countdown").await?;
@@ -545,5 +571,6 @@ pub async fn countdown_delete_birthday(
     if result.rows_affected() == 0 {
         return Err("Birthday not found".to_string());
     }
+    hub.emit_change("countdown/birthdays", "deleted", json!({ "id": &id })).await;
     Ok(())
 }

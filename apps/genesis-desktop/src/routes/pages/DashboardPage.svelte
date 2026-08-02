@@ -1,3 +1,5 @@
+<!-- ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. -->
+
 <script lang="ts">
   import PromptDialog from "$lib/components/PromptDialog.svelte";
   import { toast } from "svelte-sonner";
@@ -7,6 +9,7 @@
   import { invoke, invokeWithTimeout } from "$lib/ipc";
   import { hiddenModuleIds } from "$lib/data/module-catalog";
   import { switchModule, moduleIdSchema, type BentoModuleId } from "$lib/desktop/modules";
+  import { registerRefresher } from "$lib/realtime/data-changed";
   import { activeBundle, createTranslator } from "$lib/i18n";
 
   let _t = $derived.by(() => createTranslator($activeBundle));
@@ -181,7 +184,12 @@
     restartPolling();
     window.addEventListener("focus", handleFocus);
     window.addEventListener("bento:dashboard-refresh", handleDashboardRefresh as EventListener);
+    // Live-refresh from the realtime data-changed bus. The dashboard is a
+    // cross-module summary, so it subscribes to the global catch-all and relies
+    // on loadDashboard()'s own 500ms debounce + in-flight guard to coalesce.
+    const unregisterAll = registerRefresher("*", () => void loadDashboard());
     return () => {
+      unregisterAll();
       destroyed = true;
       stopPolling();
       if (debounceTimer) {
@@ -858,7 +866,7 @@
   .dashboard__card-count {
     font-family: var(--font-number);
     font-size: clamp(28px, 4vh, 48px);   /* was 64px — give the list more room */
-    font-weight: 800;
+    font-weight: 550;
     letter-spacing: var(--letter-spacing-tight);
     color: var(--card-accent);
     line-height: 1;

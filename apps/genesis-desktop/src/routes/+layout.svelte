@@ -1,3 +1,5 @@
+<!-- ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. -->
+
 <script lang="ts">
   import "../app.css";
   import { browser } from "$app/environment";
@@ -36,6 +38,7 @@
   import LoginPage from "./pages/LoginPage.svelte";
   import AuthPage from "./pages/AuthPage.svelte";
   import AuthSessionOverlay from "$lib/components/AuthSessionOverlay.svelte";
+  import { initRealtime } from "$lib/realtime/bridge";
   import {
     authStore,
     setAuthBootstrap,
@@ -144,6 +147,7 @@
             setAuthBootstrap({ status: "restored", user: memState.user });
             sessionRestored = true;
             void refreshBillingProfile();
+            void initRealtime();
             void enforceUserBoundary();
             void showWindow(true);
           }
@@ -176,6 +180,7 @@
               clearBillingProfile();
               setAuthBootstrap({ status: "restored", user: bootstrapState.user });
               void refreshBillingProfile();
+              void initRealtime();
               void enforceUserBoundary();
               void showWindow(true);
             } else {

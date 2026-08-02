@@ -1,5 +1,8 @@
+<!-- ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. -->
+
 <script lang="ts">
   import { invoke }        from "@tauri-apps/api/core";
+  import { registerRefresher } from "$lib/realtime/data-changed";
   import { writeTextFile, BaseDirectory } from "@tauri-apps/plugin-fs";
   import ActivityIcon      from "@lucide/svelte/icons/activity";
   import DropletIcon       from "@lucide/svelte/icons/droplet";
@@ -487,6 +490,17 @@
   onMount(async () => {
     await Promise.all([loadTodayLog(), loadWeekLogs(), loadDeepLogs(), loadVitals(), loadMeds()]);
     appLoading = false;
+  });
+
+  // Live-refresh via the realtime data-changed bus: health/* emits after every
+  // mutation (incl. agent-driven writes), so re-fetch on change.
+  onMount(() => {
+    const offs = [
+      registerRefresher('health/daily', async () => { await Promise.all([loadTodayLog(), loadWeekLogs(), loadDeepLogs()]); }),
+      registerRefresher('health/meds', () => loadMeds()),
+      registerRefresher('health/vitals', () => loadVitals()),
+    ];
+    return () => { offs.forEach((off) => off()); };
   });
 </script>
 

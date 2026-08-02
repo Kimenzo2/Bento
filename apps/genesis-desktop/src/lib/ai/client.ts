@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 /**
  * TypeScript client for the Rust-native AI backend.
  *
@@ -31,6 +33,7 @@ export interface ChatMessage {
   content: string;
   toolCalls?: ToolCall[];
   toolCallId?: string;
+  createdAt?: number;
 }
 
 export interface ToolCall {
@@ -179,7 +182,10 @@ export function chatStream(params: ChatParams): {
   let cancelled = false;
 
   channel.onmessage = (event: ChatEvent) => {
-    if (cancelled) return;
+    // Once the stream has settled (done/error) or been cancelled, drop any
+    // straggler events the backend may still emit — yielding them after the
+    // terminal event would corrupt ordering for the consumer.
+    if (cancelled || done) return;
     if (resolveNext) {
       const r = resolveNext;
       resolveNext = null;
@@ -207,6 +213,7 @@ export function chatStream(params: ChatParams): {
     enableTools: enableTools ?? null,
     onEvent: channel,
   }).catch((err) => {
+    console.warn("[chat-stream] invoke failed:", err);
     invokeError = err;
     done = true;
     if (resolveNext) {
@@ -218,13 +225,18 @@ export function chatStream(params: ChatParams): {
 
   async function* stream(): AsyncGenerator<ChatEvent> {
     try {
-      while (!done) {
+      while (true) {
+        // Check error FIRST — if invoke rejected before we started iterating,
+        // done is already true and the old while(!done) would exit silently.
+        if (invokeError) {
+          throw invokeError;
+        }
+        if (done) {
+          break;
+        }
         if (buffer.length > 0) {
           yield buffer.shift()!;
           continue;
-        }
-        if (invokeError) {
-          throw invokeError;
         }
         const event = await new Promise<IteratorResult<ChatEvent>>((resolve) => {
           resolveNext = resolve;
@@ -236,7 +248,13 @@ export function chatStream(params: ChatParams): {
         yield buffer.shift()!;
       }
     } finally {
-      await promise.catch(() => {});
+      // On cancel, don't wait for the backend invoke to settle — it may keep
+      // running tool rounds for a while, and blocking here would make the
+      // Stop button appear dead. The invoke's own .catch() already absorbs
+      // any late rejection.
+      if (!cancelled) {
+        await promise.catch(() => {});
+      }
     }
   }
 

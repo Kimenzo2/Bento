@@ -1,9 +1,12 @@
+<!-- ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. -->
+
 <script lang="ts">
 
   import { fade, slide } from "svelte/transition";
   import { activeBundle, createTranslator } from "$lib/i18n";
   import { tooltip } from "$lib/components/Tooltip.svelte";
   import { isTauri, convertFileSrc } from "@tauri-apps/api/core";
+  import { registerRefresher } from "$lib/realtime/data-changed";
   import { listen } from "@tauri-apps/api/event";
   import * as AudioService from "$lib/services/audio-recording";
   import { listVoiceMemoEntries, saveVoiceMemoEntry, deleteVoiceMemoEntry, isIndexedDBAvailable, createBlobUrl, revokeBlobUrl } from "$lib/services/voice-memos-storage";
@@ -329,30 +332,80 @@
     currentTitle = "";
   }
 
-  function playMemo(id: string) {
+  let playStartTime = 0;
+
+  async function playMemo(id: string) {
     const memo = memos.find((m) => m.id === id);
     if (!memo) {
       toast.error(_t("moduleVoiceMemosPlaybackFail", "Could not find memo to play"));
       return;
     }
-    if (!memo.blobUrl) {
-      toast.error(_t("moduleVoiceMemosPlaybackFail", "Recording data unavailable"));
-      return;
-    }
+
+    // Toggle off if same memo is playing
     if (playingId === id) {
-      currentAudio?.pause();
-      currentAudio = null;
+      if (useRust && memo.filePath) {
+        await AudioService.stopPlayback().catch(() => {});
+      } else {
+        currentAudio?.pause();
+        currentAudio = null;
+      }
       playingId = null;
       clearInterval(progressInterval);
       return;
     }
-    currentAudio?.pause();
+
+    // Stop any currently playing audio
+    if (useRust) {
+      await AudioService.stopPlayback().catch(() => {});
+    } else {
+      currentAudio?.pause();
+      currentAudio = null;
+    }
     clearInterval(progressInterval);
+
     playingId = id;
-    const audio = new Audio(memo.blobUrl);
-    currentAudio = audio;
     playProgress = 0;
     playDuration = memo.duration;
+
+    // Rust recordings: use rodio PlaybackEngine via IPC
+    if (useRust && memo.filePath) {
+      try {
+        await AudioService.startPlayback(memo.filePath);
+        playStartTime = Date.now();
+        progressInterval = setInterval(() => {
+          if (document.hidden) return;
+          playProgress = Math.floor((Date.now() - playStartTime) / 1000);
+        }, 200);
+        // Poll for playback end
+        const pollEnd = setInterval(async () => {
+          try {
+            const playing = await AudioService.isPlaying();
+            if (!playing && playingId === id) {
+              clearInterval(pollEnd);
+              clearInterval(progressInterval);
+              playProgress = playDuration;
+              playingId = null;
+            }
+          } catch {
+            clearInterval(pollEnd);
+          }
+        }, 300);
+      } catch (err) {
+        toast.error(_t("moduleVoiceMemosPlaybackFail", "Could not start playback"));
+        playingId = null;
+      }
+      return;
+    }
+
+    // Browser recordings (IndexedDB blobs): use HTMLAudioElement
+    if (!memo.blobUrl) {
+      toast.error(_t("moduleVoiceMemosPlaybackFail", "Recording data unavailable"));
+      playingId = null;
+      return;
+    }
+
+    const audio = new Audio(memo.blobUrl);
+    currentAudio = audio;
     audio.addEventListener("loadedmetadata", () => {
       if (currentAudio === audio && audio.duration && isFinite(audio.duration)) {
         playDuration = Math.floor(audio.duration);
@@ -568,6 +621,9 @@
   $effect(() => {
     load();
     document.addEventListener("keydown", onKeydown);
+    // Live-refresh via the realtime data-changed bus: voice/memos emits after
+    // every mutation (incl. agent-driven writes), so re-fetch on change.
+    const unregister = registerRefresher('voice/memos', () => load());
     if (useRust) {
       listen<{ level: number; rms: number; peak: number }>("voice:audio-level", (event) => {
         audioLevel = event.payload.level;
@@ -580,6 +636,7 @@
       }).then((u) => { unlistenRustError = u; });
     }
     return () => {
+      unregister();
       document.removeEventListener("keydown", onKeydown);
       unlistenAudioLevel?.();
       unlistenAudioLevel = null;

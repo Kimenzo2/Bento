@@ -1,6 +1,10 @@
 # Logs
 logs
 *.log
+
+# Large local sidecar binaries (over GitHub's 100MB/file push limit).
+# chatgpt-proxy is intentionally committed (smaller); these must never be staged.
+apps/genesis-desktop/src-tauri/binaries/bento-spectrum-*
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -191,3 +195,7 @@ tmp-clicky/
 # Removed from Genesis — kept outside repo
 expo-morphing-menu/
 openNook
+.env*
+
+# Vendored integration reference repos (cloned, not committed)
+references/

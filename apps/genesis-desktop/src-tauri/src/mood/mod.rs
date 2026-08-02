@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Mood Tauri Commands — SQLite-backed, zero stubs
 // Tables:
@@ -6,11 +8,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sqlx::Row;
 use tauri::State;
 use uuid::Uuid;
 
 use crate::db::BentoAppState;
+use crate::realtime::RealtimeHub;
 use crate::util::time;
 
 fn today_key() -> String {
@@ -76,6 +80,7 @@ pub struct MoodPattern {
 pub async fn mood_checkin_save(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     entry: CheckinEntry,
 ) -> Result<CheckinRow, String> {
     crate::auth::require_billing_tier(&auth, "mood").await?;
@@ -107,7 +112,7 @@ pub async fn mood_checkin_save(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(CheckinRow {
+    let row = CheckinRow {
         id,
         mood: entry.mood,
         intensity,
@@ -115,7 +120,9 @@ pub async fn mood_checkin_save(
         activities: entry.activities,
         logged_at: now,
         date_key: date,
-    })
+    };
+    hub.emit_change("mood/list", "created", json!(&row)).await;
+    Ok(row)
 }
 
 #[tauri::command]
@@ -198,6 +205,7 @@ pub async fn mood_checkins_recent(
 pub async fn mood_checkin_delete(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "mood").await?;
@@ -211,6 +219,7 @@ pub async fn mood_checkin_delete(
     if result.rows_affected() == 0 {
         return Err(format!("Check-in {} not found.", id));
     }
+    hub.emit_change("mood/list", "deleted", json!({ "id": &id })).await;
     Ok(())
 }
 
@@ -317,6 +326,7 @@ pub async fn mood_activity_library(
 pub async fn mood_activity_add(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     name: String,
 ) -> Result<ActivityRow, String> {
     crate::auth::require_billing_tier(&auth, "mood").await?;
@@ -358,17 +368,20 @@ pub async fn mood_activity_add(
         .await
         .map_err(|e| e.to_string())?;
 
-    Ok(ActivityRow {
+    let row = ActivityRow {
         id,
         name: trimmed,
         created_at: now,
-    })
+    };
+    hub.emit_change("mood/activities", "created", json!(&row)).await;
+    Ok(row)
 }
 
 #[tauri::command]
 pub async fn mood_activity_delete(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "mood").await?;
@@ -405,6 +418,7 @@ pub async fn mood_activity_delete(
     if result.rows_affected() == 0 {
         return Err(format!("Activity {} not found.", id));
     }
+    hub.emit_change("mood/activities", "deleted", json!({ "id": &id })).await;
     Ok(())
 }
 

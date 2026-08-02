@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 //! ChatGPT (Codex) provider.
 //!
 //! Routes through the self-hosted Express proxy which uses real Codex OAuth.
@@ -107,6 +109,7 @@ impl ChatGptProvider {
             tool_calls: None,
             tool_call_id: None,
             tool_call_name: None,
+            created_at: None,
         };
         let body = Self::build_codex_request(model, None, &[msg], None, false, None, None, None);
 
@@ -153,6 +156,7 @@ impl ChatGptProvider {
             tool_calls: None,
             tool_call_id: None,
             tool_call_name: None,
+            created_at: None,
         };
         let body = Self::build_codex_request(model, None, &[msg], None, true, None, None, None);
 

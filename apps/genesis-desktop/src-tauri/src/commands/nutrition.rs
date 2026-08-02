@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 // ══════════════════════════════════════════════════════════════════════════
 // NUTRITION BACKEND — Rust commands for the Nutrition frontend module.
 //
@@ -13,11 +15,13 @@
 
 use chrono::Datelike;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sqlx::Row;
 use tauri::State;
 use uuid::Uuid;
 
 use crate::db::BentoAppState;
+use crate::realtime::RealtimeHub;
 use crate::util::time;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -204,6 +208,7 @@ pub struct SaveReminderParams {
 pub async fn nutrition_log_water(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     params: LogWaterParams,
 ) -> Result<WaterEntry, String> {
     crate::auth::require_billing_tier(&auth, "nutrition").await?;
@@ -223,11 +228,13 @@ pub async fn nutrition_log_water(
         .await
         .map_err(|e| e.to_string())?;
 
-    Ok(WaterEntry {
+    let entry = WaterEntry {
         id,
         amount_ml: params.amount_ml,
         logged_at,
-    })
+    };
+    hub.emit_change("nutrition/water", "created", json!(&entry)).await;
+    Ok(entry)
 }
 
 /// Get today's hydration: total, goal, percentage, and individual entries.
@@ -280,6 +287,7 @@ pub async fn nutrition_get_today_water(
 pub async fn nutrition_reset_water(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "nutrition").await?;
 
@@ -290,6 +298,7 @@ pub async fn nutrition_reset_water(
         .execute(&db)
         .await
         .map_err(|e| e.to_string())?;
+    hub.emit_change("nutrition/water", "refreshed", json!([])).await;
     Ok(())
 }
 
@@ -360,6 +369,7 @@ pub async fn nutrition_get_weekly_water(
 pub async fn nutrition_log_meal(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     params: LogMealParams,
 ) -> Result<MealEntry, String> {
     crate::auth::require_billing_tier(&auth, "nutrition").await?;
@@ -426,7 +436,7 @@ pub async fn nutrition_log_meal(
         });
     }
 
-    Ok(MealEntry {
+    let entry = MealEntry {
         id,
         name: params.name,
         meal_type,
@@ -434,7 +444,9 @@ pub async fn nutrition_log_meal(
         total_kcal,
         logged_at,
         foods: food_entries,
-    })
+    };
+    hub.emit_change("nutrition/meals", "created", json!(&entry)).await;
+    Ok(entry)
 }
 
 /// Get all meals logged today with their food items.
@@ -540,6 +552,7 @@ async fn fetch_foods_for_meal(
 pub async fn nutrition_delete_meal(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "nutrition").await?;
@@ -550,6 +563,7 @@ pub async fn nutrition_delete_meal(
         .execute(&db)
         .await
         .map_err(|e| e.to_string())?;
+    hub.emit_change("nutrition/meals", "deleted", json!({ "id": &id })).await;
     Ok(())
 }
 
@@ -558,6 +572,7 @@ pub async fn nutrition_delete_meal(
 pub async fn nutrition_add_food_to_meal(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     meal_id: String,
     food: LogFoodParams,
 ) -> Result<FoodItem, String> {
@@ -595,9 +610,9 @@ pub async fn nutrition_add_food_to_meal(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(FoodItem {
+    let item = FoodItem {
         id,
-        meal_id,
+        meal_id: meal_id.clone(),
         name: food.name,
         quantity: food.quantity.unwrap_or(1.0),
         unit: food.unit.unwrap_or_else(|| "serving".to_string()),
@@ -606,7 +621,9 @@ pub async fn nutrition_add_food_to_meal(
         carbs_g: food.carbs_g.unwrap_or(0.0),
         fat_g: food.fat_g.unwrap_or(0.0),
         created_at: now,
-    })
+    };
+    hub.emit_change("nutrition/meals", "updated", json!({ "id": &meal_id, "food": &item })).await;
+    Ok(item)
 }
 
 // ─── Goals commands ───────────────────────────────────────────────────────────
@@ -644,6 +661,7 @@ pub async fn nutrition_get_goals(
 pub async fn nutrition_update_goals(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     params: UpdateGoalsParams,
 ) -> Result<NutritionGoals, String> {
     crate::auth::require_billing_tier(&auth, "nutrition").await?;
@@ -666,13 +684,15 @@ pub async fn nutrition_update_goals(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(NutritionGoals {
+    let goals = NutritionGoals {
         water_goal_ml: water,
         calorie_goal: cal,
         protein_goal_g: prot,
         carbs_goal_g: carbs,
         fat_goal_g: fat,
-    })
+    };
+    hub.emit_change("nutrition/goals", "updated", json!(&goals)).await;
+    Ok(goals)
 }
 
 // ─── Today summary (combines water + meals + macros) ─────────────────────────
@@ -883,12 +903,14 @@ pub async fn nutrition_get_reminders(
 pub async fn nutrition_save_reminder(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     params: SaveReminderParams,
 ) -> Result<NutritionReminder, String> {
     crate::auth::require_billing_tier(&auth, "nutrition").await?;
 
     let db = state.db();
     let now = now_ms();
+    let is_new = params.id.is_none();
     let id = params.id.unwrap_or_else(|| Uuid::new_v4().to_string());
     let detail = params.detail.unwrap_or_default();
     let mode = params.mode.unwrap_or_else(|| "Active".to_string());
@@ -910,7 +932,7 @@ pub async fn nutrition_save_reminder(
     .bind(now).bind(now)
     .execute(&db).await.map_err(|e| e.to_string())?;
 
-    Ok(NutritionReminder {
+    let reminder = NutritionReminder {
         id,
         label: params.label,
         detail,
@@ -919,7 +941,10 @@ pub async fn nutrition_save_reminder(
         enabled,
         created_at: now,
         updated_at: now,
-    })
+    };
+    let event = if is_new { "created" } else { "updated" };
+    hub.emit_change("nutrition/reminders", event, json!(&reminder)).await;
+    Ok(reminder)
 }
 
 /// Delete a reminder.
@@ -927,6 +952,7 @@ pub async fn nutrition_save_reminder(
 pub async fn nutrition_delete_reminder(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "nutrition").await?;
@@ -936,6 +962,7 @@ pub async fn nutrition_delete_reminder(
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    hub.emit_change("nutrition/reminders", "deleted", json!({ "id": &id })).await;
     Ok(())
 }
 
@@ -944,6 +971,7 @@ pub async fn nutrition_delete_reminder(
 pub async fn nutrition_toggle_reminder(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
     enabled: bool,
 ) -> Result<(), String> {
@@ -956,6 +984,7 @@ pub async fn nutrition_toggle_reminder(
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    hub.emit_change("nutrition/reminders", "updated", json!({ "id": &id, "enabled": enabled })).await;
     Ok(())
 }
 

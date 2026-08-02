@@ -1,12 +1,16 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 use std::collections::HashMap;
 use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use tauri::{ipc::Channel, AppHandle, Emitter, State};
 
 use crate::auth::AuthManager;
 use crate::byok::{self, ByokProvider, ConnectionTestResult};
 use crate::db::BentoAppState;
+use crate::realtime::RealtimeHub;
 use crate::settings;
 
 // ──────────────────────────────────────────────────────────
@@ -548,15 +552,18 @@ pub async fn get_available_modules(
 
 #[tauri::command]
 pub async fn install_module_v2(
-    _app: AppHandle,
+    app: AppHandle,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     module_id: String,
     bundle_url: String,
     checksum: String,
     on_progress: Channel<f32>,
 ) -> Result<(), String> {
-    crate::modules::install_module(module_id, bundle_url, checksum, on_progress).await?;
+    crate::modules::install_module(module_id.clone(), bundle_url, checksum, on_progress).await?;
     let _ = state;
+    hub.emit_change("meta/modules", "created", json!({ "id": &module_id })).await;
+    let _ = app.emit("modules:changed", json!({ "id": &module_id }));
     Ok(())
 }
 
@@ -564,9 +571,13 @@ pub async fn install_module_v2(
 pub async fn uninstall_module_v2(
     app: AppHandle,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     module_id: String,
 ) -> Result<(), String> {
-    crate::modules::uninstall_module(app, state, module_id).await
+    crate::modules::uninstall_module(app.clone(), state, module_id.clone()).await?;
+    hub.emit_change("meta/modules", "deleted", json!({ "id": &module_id })).await;
+    let _ = app.emit("modules:changed", json!({ "id": &module_id }));
+    Ok(())
 }
 
 #[tauri::command]

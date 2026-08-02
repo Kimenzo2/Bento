@@ -1,5 +1,8 @@
-﻿<script lang="ts">
+<!-- ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. -->
+
+<script lang="ts">
   import { onMount } from 'svelte';
+  import { registerRefresher } from '$lib/realtime/data-changed';
   import { Plus, FileText, Trash2, PenLine, BookHeart, Search, X } from 'lucide-svelte';
   import JournalEditor from './JournalEditor.svelte';
   import { editorStore } from '$lib/local-store/store';
@@ -170,6 +173,13 @@
   onMount(() => {
     ensureModuleSection(moduleId, sectionLabels);
     void loadEntries();
+  });
+
+  // Live-refresh via the realtime data-changed bus: journal/list emits after
+  // every mutation (incl. agent-driven writes), so re-fetch on change.
+  onMount(() => {
+    const unregister = registerRefresher('journal/list', () => loadEntries());
+    return () => { unregister(); };
   });
 
   // â”€â”€ Create â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

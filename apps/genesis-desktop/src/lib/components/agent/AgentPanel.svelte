@@ -1,3 +1,5 @@
+<!-- ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. -->
+
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import {
@@ -32,8 +34,8 @@
     Message,
     MessageContent,
   } from "$lib/components/agent/message/index.js";
-  import * as ChainOfThought from "$lib/components/agent/chain-of-thought/index.js";
   import * as Tool from "$lib/components/agent/tool/index.js";
+  import ThinkingOrb from "$lib/components/agent/ThinkingOrb.svelte";
   import { tooltip } from "$lib/components/Tooltip.svelte";
   import {
     currentConversationId,
@@ -41,8 +43,15 @@
     clearConversationId,
   } from "$lib/stores/agent-conversation.store";
   import PlusIcon from "@lucide/svelte/icons/plus";
+  import PencilIcon from "@lucide/svelte/icons/pencil";
+  import RefreshCwIcon from "@lucide/svelte/icons/refresh-cw";
+  import MoreHorizontalIcon from "@lucide/svelte/icons/more-horizontal";
+  import DownloadIcon from "@lucide/svelte/icons/download";
+  import CopyIcon from "@lucide/svelte/icons/copy";
+  import CheckIcon from "@lucide/svelte/icons/check";
   import { goto } from "@mateothegreat/svelte5-router";
   import { chatgptSession, loadChatGptSession } from "$lib/stores/chatgpt-auth.store";
+  import { byokSettings, byokReady } from "$lib/stores/byok.store";
 
   let message = $state("");
   let textareaRef = $state<HTMLTextAreaElement | null>(null);
@@ -127,6 +136,7 @@
             autoExecute: true,
             state: "completed" as const,
           })),
+          createdAt: m.createdAt ?? Date.now(),
         }));
         convTitle = conv.title || "";
       }
@@ -143,6 +153,48 @@
     }
   });
 
+  // Build the provider-valid message history for a new chatStream request.
+  // Assistant turns that invoked tools contribute their tool_calls block plus
+  // one `tool` role message per result (matched by id). Re-loading a saved
+  // conversation sets toolCalls without results, so only attach tool messages
+  // when a result is actually present.
+  function buildHistory(msgs: PanelChatMessage[]) {
+    const history: Array<{
+      role: string;
+      content: string;
+      toolCalls?: { id: string; name: string; args: Record<string, unknown> }[];
+      toolCallId?: string;
+    }> = [];
+    for (const m of msgs) {
+      history.push({
+        role: m.role,
+        content: m.content,
+        toolCalls: m.toolCalls?.map(tc => ({
+          id: tc.id,
+          name: tc.name,
+          args: tc.args,
+        })),
+      });
+      if (m.role === "assistant" && m.toolCalls?.length) {
+        for (const tc of m.toolCalls) {
+          if (tc.result !== undefined) {
+            const content = tc.isError
+              ? formatToolError(tc.result)
+              : typeof tc.result === "string"
+                ? tc.result
+                : JSON.stringify(tc.result);
+            history.push({
+              role: "tool",
+              content,
+              toolCallId: tc.id,
+            });
+          }
+        }
+      }
+    }
+    return history;
+  }
+
   async function saveConversation() {
     if (messages.length === 0) return;
     try {
@@ -158,12 +210,121 @@
           name: tc.name,
           args: tc.args,
         })),
+        createdAt: m.createdAt,
       })));
       setConversationId(id);
     } catch (e) {
       console.warn("[agent-panel] Failed to save conversation:", e);
     }
   }
+
+  // ── Timestamp formatting ──────────────────────────────────────────
+  function formatMessageTime(ms: number): string {
+    return new Date(ms).toLocaleTimeString(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+
+  function formatMessageDate(ms: number): string {
+    return new Date(ms).toLocaleString(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+
+  // ── Message actions ───────────────────────────────────────────────
+  function startEdit(index: number) {
+    editingIndex = index;
+    editingText = messages[index].content;
+  }
+
+  function cancelEdit() {
+    editingIndex = null;
+    editingText = "";
+  }
+
+  function saveEdit() {
+    if (editingIndex === null) return;
+    const trimmed = editingText.trim();
+    if (!trimmed) return;
+    const idx = editingIndex;
+    messages[idx] = { ...messages[idx], content: trimmed, createdAt: Date.now() };
+    messages = messages.slice(0, idx + 1);
+    editingIndex = null;
+    editingText = "";
+    if (activeStream) {
+      activeStream.cancel();
+      activeStream = null;
+    }
+    sendAndStream(trimmed);
+  }
+
+  function reloadMessage(index: number) {
+    if (submitBusy || messages.length < 2) return;
+    streamingError = null;
+    const userMsg = messages[index - 1];
+    if (!userMsg || userMsg.role !== "user") return;
+    messages = messages.slice(0, index);
+    if (activeStream) {
+      activeStream.cancel();
+      activeStream = null;
+    }
+    sendAndStream(userMsg.content);
+  }
+
+  function toggleMenu(index: number) {
+    openMenuIndex = openMenuIndex === index ? null : index;
+  }
+
+  function closeMenu() {
+    openMenuIndex = null;
+  }
+
+  async function exportMarkdown(msg: PanelChatMessage) {
+    if (!msg.content.trim()) return;
+    const label = msg.role === "user" ? "You" : "Bento";
+    const md = `## ${label}\n\n${msg.content}`;
+    try {
+      const { save } = await import("@tauri-apps/plugin-dialog");
+      const { writeTextFile } = await import("@tauri-apps/plugin-fs");
+      const filePath = await save({
+        filters: [{ name: "Markdown", extensions: ["md"] }],
+        defaultPath: `bento-message-${Date.now()}.md`,
+      });
+      if (filePath) {
+        await writeTextFile(filePath, md);
+      }
+    } catch (e) {
+      console.warn("[agent-panel] Failed to export markdown:", e);
+    }
+  }
+
+  // ── Click-outside + Escape handler for More menu ──────────────────
+  $effect(() => {
+    if (openMenuIndex === null) return;
+    const timer = setTimeout(() => {
+      function clickHandler(e: MouseEvent) {
+        const target = e.target as HTMLElement;
+        if (!target.closest("[data-more-menu]")) {
+          openMenuIndex = null;
+        }
+      }
+      function keyHandler(e: KeyboardEvent) {
+        if (e.key === "Escape") openMenuIndex = null;
+      }
+      document.addEventListener("click", clickHandler);
+      document.addEventListener("keydown", keyHandler);
+      return () => {
+        document.removeEventListener("click", clickHandler);
+        document.removeEventListener("keydown", keyHandler);
+      };
+    }, 0);
+    return () => clearTimeout(timer);
+  });
 
   async function handleNewConversation() {
     // Cancel any in-flight stream
@@ -185,6 +346,10 @@
     loadingConversation = false;
     initialLoadDone = false;
     attachCounter = 0;
+    editingIndex = null;
+    editingText = "";
+    openMenuIndex = null;
+    copiedIndex = null;
     clearConversationId();
   }
 
@@ -201,6 +366,7 @@
     content: string;
     toolCalls?: ToolCallInfo[];
     uiUpdates?: UiVocabulary[];
+    createdAt: number;
   };
 
   let messages = $state.raw<PanelChatMessage[]>([]);
@@ -209,6 +375,12 @@
   let submitBusy = $state(false);
   let lastSentMessage = $state("");
   let activeStream: { cancel: () => void } | null = null;
+
+  // ── Edit state ───────────────────────────────────────────────────
+  let editingIndex = $state<number | null>(null);
+  let editingText = $state("");
+  let openMenuIndex = $state<number | null>(null);
+  let copiedIndex = $state<number | null>(null);
 
   // ── Tool call tracking ─────────────────────────────────────────
   type ToolCallInfo = {
@@ -223,8 +395,28 @@
   let toolCalls = $state<ToolCallInfo[]>([]);
   let uiUpdates = $state<UiVocabulary[]>([]);
 
+  let thinkingOrbState = $derived.by((): "working" | "searching" | "solving" | "listening" | "composing" | "shaping" => {
+    const running = toolCalls.filter(tc => tc.state === "running");
+    if (running.length > 0) {
+      const names = running.map(tc => tc.name.toLowerCase());
+      if (names.some(n => /search|find|lookup|query|retrieve|fetch|web|browse|scrape/.test(n))) return "searching";
+      if (names.some(n => /solve|calculate|compute|analyze|reason|math|summarize|evaluate/.test(n))) return "solving";
+      if (names.some(n => /write|create|compose|draft|edit|format|shap/.test(n))) return "shaping";
+      if (names.some(n => /listen|transcribe|record|audio|voice/.test(n))) return "listening";
+      return "working";
+    }
+    return "composing";
+  });
+
   // ── Focus management ────────────────────────────────────────────
   let previousFocus = $state<HTMLElement | null>(null);
+
+  function formatToolError(result: unknown): string {
+    if (result && typeof result === "object" && "error" in result) {
+      return String((result as Record<string, unknown>).error);
+    }
+    return String(result);
+  }
 
   $effect(() => {
     if ($agentPanelOpen) {
@@ -363,6 +555,8 @@
     streamingText = "";
     toolCalls = [];
     uiUpdates = [];
+    openMenuIndex = null;
+    copiedIndex = null;
 
     try {
       // Pass full conversation history so the AI has context from previous turns.
@@ -371,7 +565,13 @@
       // the active provider in Settings takes effect immediately on the
       // next message, without any stale frontend cache.
       const { stream, cancel } = chatStream({
-        messages: messages.map(m => ({ role: m.role, content: m.content })),
+        // Pass full conversation history so the AI has context from previous
+        // turns. Assistant turns that called tools must also carry their tool
+        // call blocks AND matching tool-result messages, or OpenAI/Anthropic/
+        // Gemini reject the request (tool_calls without a following tool
+        // message is a 400). Tool results are re-materialized from the results
+        // we captured during streaming.
+        messages: buildHistory(messages),
         system: getDefaultSystemPrompt(),
         enableTools: true,
       });
@@ -405,8 +605,11 @@
         }
       }
 
-      if (streamingText.trim()) {
-        messages = [...messages, { role: "assistant", content: streamingText, toolCalls, uiUpdates }];
+      // Persist the assistant turn even when the model produced no text but
+      // did invoke tools — dropping it would lose the tool call + result from
+      // history and break provider-valid message pairing on the next request.
+      if (streamingText.trim() || toolCalls.length > 0) {
+        messages = [...messages, { role: "assistant", content: streamingText, toolCalls, uiUpdates, createdAt: Date.now() }];
       }
       streamingText = "";
       toolCalls = [];
@@ -425,10 +628,21 @@
             ? "Rate limit reached. Please wait a moment."
             : msg.includes("auth") || msg.includes("api key") || msg.includes("401") || msg.includes("403")
               ? "Authentication error. Your API key may be invalid or expired."
-              : msg;
+              : msg.includes("402") || msg.includes("payment") || msg.includes("credits") || msg.includes("billing")
+                ? "Billing error. The provider rejected the request due to payment/credit limits."
+              : msg.includes("404")
+                ? "Model or endpoint not found. Check that the model name is correct and the provider supports it."
+              : msg.includes("500") || msg.includes("503") || msg.includes("service unavailable")
+                ? "Provider server error. Try again later."
+              : msg.includes("ollama") && msg.includes("connection")
+                ? "Ollama is not running. Start Ollama and try again."
+              : msg.length > 300
+                ? msg.slice(0, 300) + "..."
+                : msg;
       streamingText = "";
       toolCalls = [];
       uiUpdates = [];
+      scrollToBottom("smooth");
     } finally {
       submitBusy = false;
       activeStream = null;
@@ -438,6 +652,8 @@
   // ── Retry last message ─────────────────────────────────────────
   async function retryLastMessage() {
     if (!lastSentMessage || submitBusy) return;
+    editingIndex = null;
+    editingText = "";
     streamingError = null;
     const msg = lastSentMessage;
     const prevMessages = messages;
@@ -460,6 +676,10 @@
     if ((!message.trim() && attachments.length === 0) || submitBusy) return;
 
     const text = message.trim();
+    editingIndex = null;
+    editingText = "";
+    openMenuIndex = null;
+    copiedIndex = null;
     // Build rich content with attachments
     let content = text;
     if (attachments.length > 0) {
@@ -475,7 +695,7 @@
         content = `${text}\n\nAttachments: ${attachmentParts.join(", ")}`;
       }
     }
-    messages = [...messages, { role: "user", content }];
+    messages = [...messages, { role: "user", content, createdAt: Date.now() }];
     message = "";
     lastSentMessage = text;
     attachments = [];
@@ -701,6 +921,17 @@
 
     <div class="agent-panel__messages-wrap">
       <div class="agent-panel__fade-top"></div>
+      {#if $byokReady && $byokSettings.configuredProviders.length === 0 && !$chatgptSession}
+        <div class="agent-panel__setup-card">
+          <svg class="agent-panel__setup-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+          <div class="agent-panel__setup-body">
+            <p class="agent-panel__setup-text">No AI provider configured — add an API key in Settings to start using the assistant.</p>
+            <button class="agent-panel__setup-btn" onclick={() => goto("/settings")} type="button">
+              Go to Settings
+            </button>
+          </div>
+        </div>
+      {/if}
       <div class="agent-panel__messages" bind:this={scrollContainerRef} onscroll={handleScroll}>
         <div class="agent-panel__msg-list" role="log" aria-live="polite" aria-label="Conversation">
           {#if loadingConversation}
@@ -721,35 +952,143 @@
               <p class="agent-panel__empty-text">Start a conversation — ask Bento about your tasks, habits, and notes</p>
             </div>
           {:else}
-            {#each messages as msg}
+            {#each messages as msg, i}
+              {@const isLast = i === messages.length - 1}
               <Message from={msg.role}>
-                <MessageContent>
-                  {#if msg.role === "user"}
-                    {msg.content}
-                  {:else}
-                    <StreamingMarkdown content={msg.content} />
-                    {#if (msg.toolCalls?.length ?? 0) > 0}
-                      {#each msg.toolCalls as tc (tc.id)}
-                        <Tool.Root>
-                          <Tool.Header type={tc.name} state={tc.state === "completed" ? "output-available" : tc.state === "error" ? "output-error" : tc.state === "running" ? "input-available" : "input-streaming"} />
-                          <Tool.Content>
-                            <Tool.Input input={tc.args} />
-                            {#if tc.result !== undefined}
-                              <Tool.Output output={tc.result} errorText={tc.isError ? String(tc.result) : undefined} />
-                            {/if}
-                          </Tool.Content>
-                        </Tool.Root>
-                      {/each}
-                    {/if}
-                    {#if (msg.uiUpdates?.length ?? 0) > 0}
-                      <div class="flex flex-col gap-2 px-4 py-2">
-                        {#each msg.uiUpdates as ui, i}
-                          <GenerativeUiRenderer ui={ui} />
+                {#if editingIndex === i}
+                  <div class="agent-panel__edit-wrap">
+                    <!-- svelte-ignore a11y_autofocus -->
+                    <textarea
+                      bind:value={editingText}
+                      class="agent-panel__edit-input"
+                      autofocus
+                      onkeydown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveEdit(); }
+                        if (e.key === "Escape") { cancelEdit(); }
+                      }}
+                      aria-label="Edit message"
+                    ></textarea>
+                    <div class="agent-panel__edit-actions">
+                      <button type="button" class="agent-panel__edit-cancel" onclick={cancelEdit}>
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        class="agent-panel__edit-save"
+                        onclick={saveEdit}
+                        disabled={!editingText.trim()}
+                      >
+                        Update
+                      </button>
+                    </div>
+                  </div>
+                {:else}
+                  <MessageContent>
+                    {#if msg.role === "user"}
+                      {msg.content}
+                    {:else}
+                      <StreamingMarkdown content={msg.content} />
+                      {#if (msg.toolCalls?.length ?? 0) > 0}
+                        {#each msg.toolCalls as tc (tc.id)}
+                          <Tool.Root>
+                            <Tool.Header type={tc.name} state={tc.state === "completed" ? "output-available" : tc.state === "error" ? "output-error" : tc.state === "running" ? "input-available" : "input-streaming"} />
+                            <Tool.Content>
+                              <Tool.Input input={tc.args} />
+                              {#if tc.result !== undefined}
+                                <Tool.Output output={tc.result} errorText={tc.isError ? formatToolError(tc.result) : undefined} />
+                              {/if}
+                            </Tool.Content>
+                          </Tool.Root>
                         {/each}
-                      </div>
+                      {/if}
+                      {#if (msg.uiUpdates?.length ?? 0) > 0}
+                        <div class="flex flex-col gap-2 px-4 py-2">
+                          {#each msg.uiUpdates as ui, i}
+                            <GenerativeUiRenderer ui={ui} />
+                          {/each}
+                        </div>
+                      {/if}
                     {/if}
-                  {/if}
-                </MessageContent>
+                  </MessageContent>
+                  <div
+                    class="agent-panel__msg-footer"
+                    class:agent-panel__msg-footer--always={isLast}
+                    class:agent-panel__msg-footer--hidden={submitBusy}
+                  >
+                    <span
+                      class="agent-panel__msg-time"
+                      title={formatMessageDate(msg.createdAt)}
+                    >
+                      {formatMessageTime(msg.createdAt)}
+                    </span>
+                    <div class="agent-panel__msg-action-group">
+                      {#if msg.role === "assistant"}
+                        <button
+                          type="button"
+                          class="agent-panel__action-btn"
+                          onclick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(msg.content);
+                              copiedIndex = i;
+                              setTimeout(() => { if (copiedIndex === i) copiedIndex = null; }, 1200);
+                            } catch {}
+                          }}
+                          aria-label="Copy"
+                          use:tooltip={{ text: copiedIndex === i ? "Copied!" : "Copy" }}
+                        >
+                          {#if copiedIndex === i}
+                            <CheckIcon size={14} />
+                          {:else}
+                            <CopyIcon size={14} />
+                          {/if}
+                        </button>
+                        <button
+                          type="button"
+                          class="agent-panel__action-btn"
+                          onclick={() => reloadMessage(i)}
+                          aria-label="Regenerate"
+                          use:tooltip={{ text: "Regenerate" }}
+                        >
+                          <RefreshCwIcon size={14} />
+                        </button>
+                      {:else}
+                        <button
+                          type="button"
+                          class="agent-panel__action-btn"
+                          onclick={() => startEdit(i)}
+                          aria-label="Edit"
+                          use:tooltip={{ text: "Edit" }}
+                        >
+                          <PencilIcon size={14} />
+                        </button>
+                      {/if}
+                      <div class="agent-panel__more-wrap" data-more-menu>
+                        <button
+                          type="button"
+                          class="agent-panel__action-btn"
+                          onclick={() => toggleMenu(i)}
+                          aria-label="More"
+                          use:tooltip={{ text: "More" }}
+                        >
+                          <MoreHorizontalIcon size={14} />
+                        </button>
+                        {#if openMenuIndex === i}
+                          <div class="agent-panel__more-dropdown" role="menu">
+                            <button
+                              type="button"
+                              class="agent-panel__more-item"
+                              role="menuitem"
+                              onclick={() => { exportMarkdown(msg).catch(() => {}); closeMenu(); }}
+                            >
+                              <DownloadIcon size={14} />
+                              Export Markdown
+                            </button>
+                          </div>
+                        {/if}
+                      </div>
+                    </div>
+                  </div>
+                {/if}
               </Message>
             {/each}
             {#if streamingText}
@@ -761,15 +1100,10 @@
             {:else if submitBusy && !streamingText}
               <Message from="assistant">
                 <MessageContent>
-                  <ChainOfThought.Root defaultOpen>
-                    <ChainOfThought.Header />
-                    <ChainOfThought.Content>
-                      <ChainOfThought.Step
-                        label="Thinking..."
-                        status="active"
-                      />
-                    </ChainOfThought.Content>
-                  </ChainOfThought.Root>
+                  <div class="flex items-center gap-3 px-1 py-2">
+                    <ThinkingOrb orbState={thinkingOrbState} size={20} />
+                    <span class="text-sm [color:oklch(0.5_0_0)] dark:[color:oklch(0.7_0_0)]">{thinkingOrbState === "composing" ? "Thinking..." : "Working..."}</span>
+                  </div>
                 </MessageContent>
               </Message>
             {/if}
@@ -780,7 +1114,7 @@
                   <Tool.Content>
                     <Tool.Input input={tc.args} />
                     {#if tc.result !== undefined}
-                      <Tool.Output output={tc.result} errorText={tc.isError ? String(tc.result) : undefined} />
+                      <Tool.Output output={tc.result} errorText={tc.isError ? formatToolError(tc.result) : undefined} />
                     {/if}
                   </Tool.Content>
                 </Tool.Root>
@@ -1188,6 +1522,215 @@
     outline-offset: 2px;
   }
 
+  /* ── Message footer (timestamp + actions) ────────────────────────── */
+  :global(.agent-panel .group) {
+    overflow: visible;
+  }
+
+  .agent-panel__msg-footer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 4px 0;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+
+:global(.group):hover .agent-panel__msg-footer,
+.agent-panel__msg-footer--always {
+  opacity: 1;
+}
+
+  .agent-panel__msg-footer--hidden {
+    opacity: 0 !important;
+    pointer-events: none;
+  }
+
+  .agent-panel__msg-time {
+    font-size: 11px;
+    color: color-mix(in srgb, var(--muted) 65%, transparent);
+    user-select: none;
+    white-space: nowrap;
+  }
+
+  .agent-panel__msg-action-group {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    margin-left: auto;
+  }
+
+  .agent-panel__action-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: color-mix(in srgb, var(--muted) 75%, transparent);
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+
+  .agent-panel__action-btn:hover {
+    color: var(--muted);
+    background: color-mix(in srgb, var(--foreground) 8%, transparent);
+  }
+
+  .agent-panel__action-btn:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
+
+  .agent-panel__action-btn::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 8px;
+  }
+
+  /* ── More menu ──────────────────────────────────────────────────── */
+  .agent-panel__more-wrap {
+    position: relative;
+  }
+
+  .agent-panel__more-dropdown {
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    margin-bottom: 4px;
+    min-width: 170px;
+    padding: 4px;
+    border-radius: 8px;
+    border: 0.5px solid color-mix(in srgb, var(--foreground) 12%, transparent);
+    background: var(--background);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.06);
+    z-index: 10;
+    animation: menu-in 0.12s ease both;
+    transform-origin: bottom right;
+  }
+
+  @keyframes menu-in {
+    from { opacity: 0; transform: scale(0.95) translateY(4px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .agent-panel__more-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 10px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+    white-space: nowrap;
+  }
+
+  .agent-panel__more-item:hover {
+    background: color-mix(in srgb, var(--foreground) 8%, transparent);
+    color: var(--foreground);
+  }
+
+  .agent-panel__more-item:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+  }
+
+  .agent-panel__more-item svg {
+    flex-shrink: 0;
+  }
+
+  /* ── Edit composer ──────────────────────────────────────────────── */
+  .agent-panel__edit-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .agent-panel__edit-input {
+    width: 100%;
+    min-height: 80px;
+    max-height: 200px;
+    padding: 10px 12px;
+    border: 0.5px solid color-mix(in srgb, var(--foreground) 18%, transparent);
+    border-radius: 12px;
+    background: color-mix(in oklch, var(--background) 94%, oklch(0 0 0));
+    color: var(--foreground);
+    font-size: 13px;
+    font-family: inherit;
+    line-height: 1.5;
+    resize: vertical;
+    outline: none;
+  }
+
+  .agent-panel__edit-input:focus {
+    border-color: color-mix(in srgb, var(--ring) 50%, transparent);
+  }
+
+  .agent-panel__edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .agent-panel__edit-cancel {
+    padding: 4px 12px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+
+  .agent-panel__edit-cancel:hover {
+    background: color-mix(in srgb, var(--foreground) 8%, transparent);
+  }
+
+  .agent-panel__edit-cancel:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
+
+  .agent-panel__edit-save {
+    padding: 4px 14px;
+    border: none;
+    border-radius: 6px;
+    background: var(--foreground);
+    color: var(--background);
+    font-size: 12px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+
+  .agent-panel__edit-save:hover {
+    opacity: 0.85;
+  }
+
+  .agent-panel__edit-save:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .agent-panel__edit-save:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 1px;
+  }
+
   .agent-panel__attach-error {
     padding: 6px 16px;
     font-size: 12px;
@@ -1505,6 +2048,60 @@
     background: color-mix(in srgb, var(--primary) 10%, transparent);
   }
   .agent-panel__auth-btn:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .agent-panel__setup-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    margin: 0 14px 6px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--primary) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);
+    animation: agent-panel__setup-in 0.3s ease both;
+  }
+  @keyframes agent-panel__setup-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .agent-panel__setup-icon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    color: var(--primary);
+    opacity: 0.7;
+  }
+  .agent-panel__setup-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .agent-panel__setup-text {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--foreground);
+    opacity: 0.75;
+  }
+  .agent-panel__setup-btn {
+    align-self: flex-start;
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: none;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    cursor: pointer;
+    font-weight: 500;
+    transition: opacity 0.15s ease;
+  }
+  .agent-panel__setup-btn:hover {
+    opacity: 0.85;
+  }
+  .agent-panel__setup-btn:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }

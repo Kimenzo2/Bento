@@ -1,0 +1,16 @@
+{
+  "name": "bento-spectrum",
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "build:win": "bun build --compile --target=bun-windows-x64-modern ./src/index.ts --outfile ../genesis-desktop/src-tauri/binaries/bento-spectrum-x86_64-pc-windows-msvc",
+    "build:linux": "bun build --compile --target=bun-linux-x64-modern ./src/index.ts --outfile ../genesis-desktop/src-tauri/binaries/bento-spectrum-x86_64-unknown-linux-gnu",
+    "build:mac-x64": "bun build --compile --target=bun-darwin-x64-modern ./src/index.ts --outfile ../genesis-desktop/src-tauri/binaries/bento-spectrum-x86_64-apple-darwin",
+    "build:mac-arm64": "bun build --compile --target=bun-darwin-arm64-modern ./src/index.ts --outfile ../genesis-desktop/src-tauri/binaries/bento-spectrum-aarch64-apple-darwin"
+  },
+  "dependencies": {
+    "spectrum-ts": "latest",
+    "zod": "^3.23.0"
+  }
+}

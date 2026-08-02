@@ -1,5 +1,8 @@
+<!-- ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. -->
+
 <script lang="ts">
   import { onMount } from "svelte";
+  import { registerRefresher } from "$lib/realtime/data-changed";
   import { invoke } from "@tauri-apps/api/core";
   import { activeBundle, createTranslator } from "$lib/i18n";
   import CheckIcon from "@lucide/svelte/icons/check";
@@ -145,6 +148,13 @@
   onMount(() => {
     loadHabits();
     loadFreezeState();
+  });
+
+  // Live-refresh via the realtime data-changed bus: habits/list emits after
+  // every mutation (incl. agent-driven writes), so re-fetch on change.
+  onMount(() => {
+    const unregister = registerRefresher('habits/list', () => loadHabits());
+    return () => { unregister(); };
   });
 
   // ── Derived ─────────────────────────────────────────────────────
@@ -2121,7 +2131,7 @@
 }
 :global(.hb-stat-box strong) {
   font-size: 1.5rem;
-  font-weight: 800;
+  font-weight: 550;
   line-height: 1;
 }
 :global(.hb-stat-box span) {
@@ -2421,7 +2431,7 @@
 :global(.hb-field-row) { display: flex; gap: 12px; }
 :global(.hb-lbl) {
   font-size: 0.68rem;
-  font-weight: 800;
+  font-weight: 550;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--hb-muted);

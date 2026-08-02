@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 // ════════════════════════════════════════════════════════════════════════
 // NOTES COMMANDS — Tauri IPC layer for the Notes CRUD service
 // ════════════════════════════════════════════════════════════════════════
@@ -10,9 +12,11 @@
 // ════════════════════════════════════════════════════════════════════════
 
 use std::sync::Arc;
+use serde_json::json;
 use tauri::State;
 
 use crate::db::BentoAppState;
+use crate::realtime::RealtimeHub;
 use crate::search::SearchService;
 
 use super::service::{
@@ -42,9 +46,10 @@ pub async fn notes_object_create(
     history: State<'_, Arc<HistoryRegistry>>,
     search: State<'_, SearchService>,
     cache: State<'_, Arc<super::NoteFullCache>>,
+    hub: State<'_, RealtimeHub>,
     params: CreateNoteParams,
 ) -> Result<NoteWithBlocks, String> {
-    create_note_object(
+    let created = create_note_object(
         &db(&state),
         &history,
         &search,
@@ -52,7 +57,9 @@ pub async fn notes_object_create(
         params,
     )
     .await
-    .map_err(|e| e.message)
+    .map_err(|e| e.message)?;
+    hub.emit_change("notes/list", "created", json!({ "id": &created.note.id, "title": &created.note.title })).await;
+    Ok(created)
 }
 
 /// Get a note object by ID (metadata only, no blocks).
@@ -105,11 +112,14 @@ pub async fn notes_list(
 pub async fn notes_object_update(
     state: State<'_, BentoAppState>,
     search: State<'_, SearchService>,
+    hub: State<'_, RealtimeHub>,
     params: UpdateNoteParams,
 ) -> Result<NoteObject, String> {
-    update_note_object(&db(&state), &search, params)
+    let updated = update_note_object(&db(&state), &search, params)
         .await
-        .map_err(|e| e.message)
+        .map_err(|e| e.message)?;
+    hub.emit_change("notes/list", "updated", json!({ "id": &updated.id, "title": &updated.title })).await;
+    Ok(updated)
 }
 
 /// Delete a note object and all its blocks.
@@ -120,6 +130,7 @@ pub async fn notes_object_delete(
     history: State<'_, Arc<HistoryRegistry>>,
     search: State<'_, SearchService>,
     cache: State<'_, Arc<super::NoteFullCache>>,
+    hub: State<'_, RealtimeHub>,
     note_id: String,
 ) -> Result<(), String> {
     delete_note_object(
@@ -130,7 +141,9 @@ pub async fn notes_object_delete(
         &note_id,
     )
     .await
-    .map_err(|e| e.message)
+    .map_err(|e| e.message)?;
+    hub.emit_change("notes/list", "deleted", json!({ "id": &note_id })).await;
+    Ok(())
 }
 
 /// Duplicate a note object (all blocks copied).
@@ -141,9 +154,10 @@ pub async fn notes_object_duplicate(
     history: State<'_, Arc<HistoryRegistry>>,
     search: State<'_, SearchService>,
     cache: State<'_, Arc<super::NoteFullCache>>,
+    hub: State<'_, RealtimeHub>,
     source_id: String,
 ) -> Result<NoteWithBlocks, String> {
-    object_duplicate(
+    let created = object_duplicate(
         &db(&state),
         &history,
         &search,
@@ -151,7 +165,9 @@ pub async fn notes_object_duplicate(
         &source_id,
     )
     .await
-    .map_err(|e| e.message)
+    .map_err(|e| e.message)?;
+    hub.emit_change("notes/list", "created", json!({ "id": &created.note.id, "title": &created.note.title })).await;
+    Ok(created)
 }
 
 // ─── Block commands ───────────────────────────────────────────────────────────
@@ -443,11 +459,14 @@ pub async fn notes_set_layout(
 pub async fn notes_undo(
     state: State<'_, BentoAppState>,
     history: State<'_, Arc<HistoryRegistry>>,
+    hub: State<'_, RealtimeHub>,
     note_id: String,
 ) -> Result<HistoryInfo, String> {
-    undo(&db(&state), &history, &note_id)
+    let info = undo(&db(&state), &history, &note_id)
         .await
-        .map_err(|e| e.message)
+        .map_err(|e| e.message)?;
+    hub.emit_change("notes/list", "updated", json!({ "id": &note_id })).await;
+    Ok(info)
 }
 
 /// Redo the most recently undone change.
@@ -456,11 +475,14 @@ pub async fn notes_undo(
 pub async fn notes_redo(
     state: State<'_, BentoAppState>,
     history: State<'_, Arc<HistoryRegistry>>,
+    hub: State<'_, RealtimeHub>,
     note_id: String,
 ) -> Result<HistoryInfo, String> {
-    redo(&db(&state), &history, &note_id)
+    let info = redo(&db(&state), &history, &note_id)
         .await
-        .map_err(|e| e.message)
+        .map_err(|e| e.message)?;
+    hub.emit_change("notes/list", "updated", json!({ "id": &note_id })).await;
+    Ok(info)
 }
 
 /// Set a callout icon on one or more text blocks.
@@ -706,6 +728,7 @@ pub async fn notes_daily_note(
     history: State<'_, Arc<HistoryRegistry>>,
     search: State<'_, SearchService>,
     cache: State<'_, Arc<super::NoteFullCache>>,
+    hub: State<'_, RealtimeHub>,
 ) -> Result<NoteWithBlocks, String> {
     use sqlx::Row;
     let db = db(&state);
@@ -734,7 +757,7 @@ pub async fn notes_daily_note(
             tags: vec!["daily".to_string()],
             pinned: false,
         };
-        crate::notes::service::create_note_object(
+        let created = crate::notes::service::create_note_object(
             &db,
             &history,
             &search,
@@ -742,7 +765,9 @@ pub async fn notes_daily_note(
             params,
         )
         .await
-        .map_err(|e| e.message)
+        .map_err(|e| e.message)?;
+        hub.emit_change("notes/list", "created", json!({ "id": &created.note.id, "title": &created.note.title })).await;
+        Ok(created)
     }
 }
 
@@ -838,6 +863,7 @@ pub async fn notes_create_from_template(
     history: State<'_, Arc<HistoryRegistry>>,
     search: State<'_, SearchService>,
     cache: State<'_, Arc<super::NoteFullCache>>,
+    hub: State<'_, RealtimeHub>,
     template_id: String,
     title: String,
 ) -> Result<NoteWithBlocks, String> {
@@ -941,9 +967,11 @@ pub async fn notes_create_from_template(
     }
 
     // Return the created note
-    crate::notes::service::get_note_full_cached(&db, cache.inner().as_ref(), &created.note.id)
+    let full = crate::notes::service::get_note_full_cached(&db, cache.inner().as_ref(), &created.note.id)
         .await
-        .map_err(|e| e.message)
+        .map_err(|e| e.message)?;
+    hub.emit_change("notes/list", "created", json!({ "id": &created.note.id, "title": &created.note.title })).await;
+    Ok(full)
 }
 
 /// Search notes by title and content.

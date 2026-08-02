@@ -1706,7 +1706,7 @@ mod tests {
     #[test]
     fn test_openai_tool_delta_accumulation() {
         // Simulate two chunks for the same tool call at index 0
-        let mut acc: Vec<ToolCall> = Vec::new();
+        let mut acc: Vec<ToolCallDelta> = Vec::new();
 
         // Chunk 1: id + name + empty args
         parse_openai_tool_deltas(
@@ -1723,12 +1723,13 @@ mod tests {
             &mut acc,
         );
         assert_eq!(acc.len(), 1, "Should not add new entry for existing index");
-        assert_eq!(acc[0].args["status"], "pending");
+        let args: Value = serde_json::from_str(&acc[0].args_buf).unwrap();
+        assert_eq!(args["status"], "pending");
     }
 
     #[test]
     fn test_openai_tool_delta_multiple_calls() {
-        let mut acc: Vec<ToolCall> = Vec::new();
+        let mut acc: Vec<ToolCallDelta> = Vec::new();
 
         // Two tool calls in one chunk
         parse_openai_tool_deltas(
@@ -1741,7 +1742,8 @@ mod tests {
         assert_eq!(acc.len(), 2);
         assert_eq!(acc[0].name, "get_tasks");
         assert_eq!(acc[1].name, "create_task");
-        assert_eq!(acc[1].args["title"], "test");
+        let args: Value = serde_json::from_str(&acc[1].args_buf).unwrap();
+        assert_eq!(args["title"], "test");
     }
 
     #[test]

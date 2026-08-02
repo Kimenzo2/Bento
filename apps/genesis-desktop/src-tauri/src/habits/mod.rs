@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Habits Tauri Commands — SQLite-backed
 //
@@ -6,11 +8,13 @@
 
 use chrono::{Datelike, Local, TimeZone};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sqlx::Row;
 use tauri::{AppHandle, State};
 use uuid::Uuid;
 
 use crate::db::BentoAppState;
+use crate::realtime::RealtimeHub;
 use crate::settings;
 use crate::util::time;
 
@@ -251,6 +255,7 @@ pub async fn habits_list(
 pub async fn habits_save(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     input: HabitInput,
 ) -> Result<HabitRow, String> {
     crate::auth::require_billing_tier(&auth, "habits").await?;
@@ -298,7 +303,7 @@ pub async fn habits_save(
         .await
         .map_err(|e| e.to_string())?;
 
-        Ok(HabitRow {
+        let habit = HabitRow {
             id: row.get("id"),
             name: row.get("name"),
             emoji: row.get("emoji"),
@@ -316,7 +321,9 @@ pub async fn habits_save(
             sort_order: row.get::<i64, _>("sort_order") as i32,
             created_at: row.get("created_at"),
             updated_at: row.get("updated_at"),
-        })
+        };
+        hub.emit_change("habits/list", "updated", json!(&habit)).await;
+        Ok(habit)
     } else {
         // Insert new
         let id = Uuid::new_v4().to_string();
@@ -354,7 +361,7 @@ pub async fn habits_save(
         .await
         .map_err(|e| e.to_string())?;
 
-        Ok(HabitRow {
+        let habit = HabitRow {
             id,
             name: trimmed_name,
             emoji: input.emoji,
@@ -372,7 +379,9 @@ pub async fn habits_save(
             sort_order: (max_order + 1) as i32,
             created_at: now,
             updated_at: now,
-        })
+        };
+        hub.emit_change("habits/list", "created", json!(&habit)).await;
+        Ok(habit)
     }
 }
 
@@ -381,6 +390,7 @@ pub async fn habits_save(
 pub async fn habits_delete(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<bool, String> {
     crate::auth::require_billing_tier(&auth, "habits").await?;
@@ -393,7 +403,45 @@ pub async fn habits_delete(
         .await
         .map_err(|e| e.to_string())?;
 
-    Ok(result.rows_affected() > 0)
+    if result.rows_affected() > 0 {
+        hub.emit_change("habits/list", "deleted", json!({ "id": &id })).await;
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}
+
+/// Fetch a habit row and publish an `updated` event for it. Used by
+/// completion/streak mutations that change derived state, not the row itself.
+async fn publish_habit_updated(db: &sqlx::SqlitePool, hub: &RealtimeHub, habit_id: &str) {
+    if let Ok(Some(row)) = sqlx::query(
+        "SELECT id, name, emoji, color, kind, archived, completion_type, target_count, unit, frequency, time_of_day, why, stack_after_id, stack_after_name, sort_order, created_at, updated_at FROM habits WHERE id = ?",
+    )
+    .bind(habit_id)
+    .fetch_optional(db)
+    .await
+    {
+        let habit = HabitRow {
+            id: row.get("id"),
+            name: row.get("name"),
+            emoji: row.get("emoji"),
+            color: row.get("color"),
+            kind: row.get::<Option<String>, _>("kind").unwrap_or_default(),
+            archived: row.get::<i64, _>("archived") != 0,
+            completion_type: row.get("completion_type"),
+            target_count: row.get::<i64, _>("target_count") as i32,
+            unit: row.get("unit"),
+            frequency: row.get("frequency"),
+            time_of_day: row.get::<Option<String>, _>("time_of_day").unwrap_or_default(),
+            why: row.get("why"),
+            stack_after_id: row.get::<Option<String>, _>("stack_after_id"),
+            stack_after_name: row.get::<Option<String>, _>("stack_after_name").unwrap_or_default(),
+            sort_order: row.get::<i64, _>("sort_order") as i32,
+            created_at: row.get("created_at"),
+            updated_at: row.get("updated_at"),
+        };
+        hub.emit_change("habits/list", "updated", json!(&habit)).await;
+    }
 }
 
 /// Toggle today's completion for a binary habit.
@@ -403,6 +451,7 @@ pub async fn habits_delete(
 pub async fn habits_toggle_complete(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     habit_id: String,
 ) -> Result<bool, String> {
     crate::auth::require_billing_tier(&auth, "habits").await?;
@@ -438,6 +487,7 @@ pub async fn habits_toggle_complete(
             .execute(&state.db())
             .await
             .map_err(|e| e.to_string())?;
+        publish_habit_updated(&state.db(), &hub, &habit_id).await;
         Ok(false)
     } else {
         // Clear any existing skip sentinel
@@ -456,6 +506,7 @@ pub async fn habits_toggle_complete(
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+        publish_habit_updated(&state.db(), &hub, &habit_id).await;
         Ok(true)
     }
 }
@@ -465,6 +516,7 @@ pub async fn habits_toggle_complete(
 pub async fn habits_increment(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     habit_id: String,
 ) -> Result<i32, String> {
     crate::auth::require_billing_tier(&auth, "habits").await?;
@@ -491,6 +543,8 @@ pub async fn habits_increment(
     .fetch_one(&state.db())
     .await
     .map_err(|e| e.to_string())?;
+
+    publish_habit_updated(&state.db(), &hub, &habit_id).await;
 
     Ok(count as i32)
 }
@@ -695,6 +749,7 @@ pub async fn habits_save_freeze_state(
 pub async fn habits_skip_today(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     habit_id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "habits").await?;
@@ -705,6 +760,7 @@ pub async fn habits_skip_today(
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    publish_habit_updated(&state.db(), &hub, &habit_id).await;
     Ok(())
 }
 
@@ -713,6 +769,7 @@ pub async fn habits_skip_today(
 pub async fn habits_unskip_today(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     habit_id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "habits").await?;
@@ -722,6 +779,7 @@ pub async fn habits_unskip_today(
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    publish_habit_updated(&state.db(), &hub, &habit_id).await;
     Ok(())
 }
 
@@ -731,6 +789,7 @@ pub async fn habits_freeze_streak(
     auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     habit_id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "habits").await?;
@@ -748,6 +807,7 @@ pub async fn habits_freeze_streak(
             next.habits.used_freeze_tokens += 1;
         }
     })?;
+    publish_habit_updated(&state.db(), &hub, &habit_id).await;
     Ok(())
 }
 
@@ -757,6 +817,7 @@ pub async fn habits_unfreeze_streak(
     auth: State<'_, crate::auth::AuthManager>,
     app: AppHandle,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     habit_id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "habits").await?;
@@ -772,6 +833,7 @@ pub async fn habits_unfreeze_streak(
             next.habits.used_freeze_tokens -= 1;
         }
     })?;
+    publish_habit_updated(&state.db(), &hub, &habit_id).await;
     Ok(())
 }
 

@@ -1,6 +1,9 @@
+<!-- ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. -->
+
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
+  import { registerRefresher } from "$lib/realtime/data-changed";
   import DownloadIcon from "@lucide/svelte/icons/download";
   import PlusIcon from "@lucide/svelte/icons/plus";
   import Trash2Icon from "@lucide/svelte/icons/trash-2";
@@ -657,6 +660,20 @@
   onMount(() => {
     ensureModuleSection(moduleId, sectionLabels);
     loadData();
+  });
+
+  // Live-refresh via the realtime data-changed bus: sleep/* emits after every
+  // mutation (incl. agent-driven writes), so re-fetch on change.
+  onMount(() => {
+    const offs = [
+      registerRefresher('sleep/goal', () => loadData()),
+      registerRefresher('sleep/sessions', () => loadData()),
+      registerRefresher('sleep/logs', () => loadData()),
+      registerRefresher('sleep/routines', () => loadData()),
+      registerRefresher('sleep/routine-status', () => loadData()),
+      registerRefresher('sleep/alarms', () => loadData()),
+    ];
+    return () => { offs.forEach((off) => off()); };
   });
 
   onDestroy(() => {

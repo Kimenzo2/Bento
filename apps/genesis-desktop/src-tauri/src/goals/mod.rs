@@ -1,14 +1,18 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Goals — SQLite-backed goal tracking with weekly/monthly/yearly horizons
 // Tables: goals, goal_subtasks, goal_reviews, focus_areas
 // ─────────────────────────────────────────────────────────────────────────────
 
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sqlx::Row;
 use tauri::State;
 use uuid::Uuid;
 
 use crate::db::BentoAppState;
+use crate::realtime::RealtimeHub;
 use crate::util::time;
 
 // ═══ TYPES ═══════════════════════════════════════════════════════════════════
@@ -303,6 +307,7 @@ pub async fn goals_list(
 pub async fn goals_save(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     payload: GoalSavePayload,
 ) -> Result<GoalRow, String> {
     crate::auth::require_billing_tier(&auth, "goals").await?;
@@ -381,7 +386,7 @@ pub async fn goals_save(
         .await
         .map_err(|e| e.to_string())?;
 
-        Ok(GoalRow {
+        let goal = GoalRow {
             id,
             title,
             description,
@@ -396,7 +401,9 @@ pub async fn goals_save(
             focus_area_id,
             created_at,
             updated_at: now,
-        })
+        };
+        hub.emit_change("goals/list", "updated", json!(&goal)).await;
+        Ok(goal)
     } else {
         let created_at = now.clone();
         sqlx::query(
@@ -422,7 +429,7 @@ pub async fn goals_save(
         .await
         .map_err(|e| e.to_string())?;
 
-        Ok(GoalRow {
+        let goal = GoalRow {
             id,
             title,
             description,
@@ -437,7 +444,9 @@ pub async fn goals_save(
             focus_area_id,
             created_at,
             updated_at: now,
-        })
+        };
+        hub.emit_change("goals/list", "created", json!(&goal)).await;
+        Ok(goal)
     }
 }
 
@@ -478,6 +487,7 @@ pub async fn goals_list_light(
 pub async fn goals_delete(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "goals").await?;
@@ -491,6 +501,8 @@ pub async fn goals_delete(
         .await
         .map_err(|e| e.to_string())?;
 
+    hub.emit_change("goals/list", "deleted", json!({ "id": &id })).await;
+
     Ok(())
 }
 
@@ -500,6 +512,7 @@ pub async fn goals_delete(
 pub async fn goals_update_notes(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
     notes: String,
 ) -> Result<GoalRow, String> {
@@ -517,7 +530,9 @@ pub async fn goals_update_notes(
     if affected.rows_affected() == 0 {
         return Err(format!("Goal not found: {id}"));
     }
-    fetch_goal(&db, &id).await
+    let goal = fetch_goal(&db, &id).await?;
+    hub.emit_change("goals/list", "updated", json!(&goal)).await;
+    Ok(goal)
 }
 
 // ═══ GOALS_UPDATE_IMAGE ══════════════════════════════════════════════════
@@ -526,6 +541,7 @@ pub async fn goals_update_notes(
 pub async fn goals_update_image(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
     image_data: Option<String>,
 ) -> Result<GoalRow, String> {
@@ -543,7 +559,9 @@ pub async fn goals_update_image(
     if affected.rows_affected() == 0 {
         return Err(format!("Goal not found: {id}"));
     }
-    fetch_goal(&db, &id).await
+    let goal = fetch_goal(&db, &id).await?;
+    hub.emit_change("goals/list", "updated", json!(&goal)).await;
+    Ok(goal)
 }
 
 // ═══ GOALS_UPDATE_TITLE ═════════════════════════════════════════════════
@@ -552,6 +570,7 @@ pub async fn goals_update_image(
 pub async fn goals_update_title(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
     title: String,
 ) -> Result<GoalRow, String> {
@@ -573,7 +592,9 @@ pub async fn goals_update_title(
     if affected.rows_affected() == 0 {
         return Err(format!("Goal not found: {id}"));
     }
-    fetch_goal(&db, &id).await
+    let goal = fetch_goal(&db, &id).await?;
+    hub.emit_change("goals/list", "updated", json!(&goal)).await;
+    Ok(goal)
 }
 
 // ═══ GOALS_PROGRESS_UPDATE ═══════════════════════════════════════════════════
@@ -582,6 +603,7 @@ pub async fn goals_update_title(
 pub async fn goals_progress_update(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     payload: GoalProgressPayload,
 ) -> Result<GoalRow, String> {
     crate::auth::require_billing_tier(&auth, "goals").await?;
@@ -606,7 +628,9 @@ pub async fn goals_progress_update(
 
     append_update_history(&db, &payload.id, &now).await;
 
-    fetch_goal(&db, &payload.id).await
+    let goal = fetch_goal(&db, &payload.id).await?;
+    hub.emit_change("goals/list", "updated", json!(&goal)).await;
+    Ok(goal)
 }
 
 // ═══ GOAL_SUBTASKS_LIST ═════════════════════════════════════════════════════
@@ -649,6 +673,7 @@ pub async fn goal_subtasks_list(
 pub async fn goal_subtask_save(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     payload: GoalSubtaskSavePayload,
 ) -> Result<GoalSubtaskRow, String> {
     crate::auth::require_billing_tier(&auth, "goals").await?;
@@ -688,13 +713,15 @@ pub async fn goal_subtask_save(
         .await
         .map_err(|e| e.to_string())?;
 
-        Ok(GoalSubtaskRow {
+        let subtask = GoalSubtaskRow {
             id: row.try_get("id").unwrap_or_default(),
             goal_id: row.try_get("goal_id").unwrap_or_default(),
             title: row.try_get("title").unwrap_or_default(),
             completed: row.try_get::<i64, _>("completed").unwrap_or(0) == 1,
             position: row.try_get("position").unwrap_or(0),
-        })
+        };
+        hub.emit_change("goals/subtasks", "updated", json!(&subtask)).await;
+        Ok(subtask)
     } else {
         sqlx::query(
             "INSERT INTO goal_subtasks (id, goal_id, title, completed, position) VALUES (?, ?, ?, 0, ?)",
@@ -714,13 +741,15 @@ pub async fn goal_subtask_save(
             .execute(&db)
             .await;
 
-        Ok(GoalSubtaskRow {
+        let subtask = GoalSubtaskRow {
             id,
             goal_id: payload.goal_id,
             title,
             completed: false,
             position,
-        })
+        };
+        hub.emit_change("goals/subtasks", "created", json!(&subtask)).await;
+        Ok(subtask)
     }
 }
 
@@ -730,6 +759,7 @@ pub async fn goal_subtask_save(
 pub async fn goal_subtask_toggle(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<GoalSubtaskRow, String> {
     crate::auth::require_billing_tier(&auth, "goals").await?;
@@ -778,13 +808,15 @@ pub async fn goal_subtask_toggle(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(GoalSubtaskRow {
+    let subtask = GoalSubtaskRow {
         id: updated.try_get("id").unwrap_or_default(),
         goal_id: updated.try_get("goal_id").unwrap_or_default(),
         title: updated.try_get("title").unwrap_or_default(),
         completed: updated.try_get::<i64, _>("completed").unwrap_or(0) == 1,
         position: updated.try_get("position").unwrap_or(0),
-    })
+    };
+    hub.emit_change("goals/subtasks", "updated", json!(&subtask)).await;
+    Ok(subtask)
 }
 
 // ═══ GOAL_ADD_REVIEW ═══════════════════════════════════════════════════════
@@ -793,6 +825,7 @@ pub async fn goal_subtask_toggle(
 pub async fn goal_add_review(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     payload: GoalReviewPayload,
 ) -> Result<GoalReviewRow, String> {
     crate::auth::require_billing_tier(&auth, "goals").await?;
@@ -825,12 +858,14 @@ pub async fn goal_add_review(
         .execute(&db)
         .await;
 
-    Ok(GoalReviewRow {
+    let review = GoalReviewRow {
         id,
         goal_id: payload.goal_id,
         content,
         created_at: now,
-    })
+    };
+    hub.emit_change("goals/reviews", "created", json!(&review)).await;
+    Ok(review)
 }
 
 // ═══ GOAL_REVIEWS_LIST ═════════════════════════════════════════════════════
@@ -874,6 +909,7 @@ pub async fn goal_reviews_list(
 pub async fn goals_toggle_big_3(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
     is_big_3: bool,
 ) -> Result<GoalRow, String> {
@@ -915,7 +951,9 @@ pub async fn goals_toggle_big_3(
         .await
         .map_err(|e| e.to_string())?;
 
-    fetch_goal(&db, &id).await
+    let goal = fetch_goal(&db, &id).await?;
+    hub.emit_change("goals/list", "updated", json!(&goal)).await;
+    Ok(goal)
 }
 
 // ═══ FOCUS_AREAS_LIST ══════════════════════════════════════════════════════
@@ -952,6 +990,7 @@ pub async fn focus_areas_list(
 pub async fn focus_area_save(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     payload: FocusAreaSavePayload,
 ) -> Result<FocusAreaRow, String> {
     crate::auth::require_billing_tier(&auth, "goals").await?;
@@ -977,25 +1016,28 @@ pub async fn focus_area_save(
             .await
             .map_err(|e| e.to_string())?;
 
-    if existing.is_some() {
+    let row = FocusAreaRow { id, name, position };
+    let event = if existing.is_some() {
         sqlx::query("UPDATE focus_areas SET name = ?, position = ? WHERE id = ?")
-            .bind(&name)
-            .bind(position)
-            .bind(&id)
+            .bind(&row.name)
+            .bind(row.position)
+            .bind(&row.id)
             .execute(&db)
             .await
             .map_err(|e| e.to_string())?;
+        "updated"
     } else {
         sqlx::query("INSERT INTO focus_areas (id, name, position) VALUES (?, ?, ?)")
-            .bind(&id)
-            .bind(&name)
-            .bind(position)
+            .bind(&row.id)
+            .bind(&row.name)
+            .bind(row.position)
             .execute(&db)
             .await
             .map_err(|e| e.to_string())?;
-    }
-
-    Ok(FocusAreaRow { id, name, position })
+        "created"
+    };
+    hub.emit_change("goals/focus-areas", event, json!(&row)).await;
+    Ok(row)
 }
 
 // ═══ FOCUS_AREA_DELETE ═════════════════════════════════════════════════════
@@ -1004,6 +1046,7 @@ pub async fn focus_area_save(
 pub async fn focus_area_delete(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "goals").await?;
@@ -1022,6 +1065,8 @@ pub async fn focus_area_delete(
         .execute(&db)
         .await
         .map_err(|e| e.to_string())?;
+
+    hub.emit_change("goals/focus-areas", "deleted", json!({ "id": &id })).await;
 
     Ok(())
 }

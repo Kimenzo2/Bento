@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 // ═══════════════════════════════════════════════════════════════════════
 // Transcription Commands — Dictation paste + Voice note creation
 // ═══════════════════════════════════════════════════════════════════════
@@ -13,6 +15,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 use serde::Serialize;
+use serde_json::json;
 use tauri::AppHandle;
 use tauri::Manager;
 use tauri_plugin_clipboard_manager::ClipboardExt;
@@ -20,6 +23,7 @@ use uuid::Uuid;
 
 use crate::audio::classifier::generate_note_title;
 use crate::db::BentoAppState;
+use crate::realtime::RealtimeHub;
 
 /// Result of a dictation paste operation.
 #[derive(Debug, Clone, Serialize)]
@@ -91,6 +95,7 @@ pub async fn voice_paste_dictation(
 #[tauri::command]
 pub async fn voice_save_note(
     state: tauri::State<'_, BentoAppState>,
+    hub: tauri::State<'_, RealtimeHub>,
     transcript: String,
     title: Option<String>,
 ) -> Result<VoiceNoteResult, String> {
@@ -199,6 +204,7 @@ pub async fn voice_save_note(
                 .execute(&mut *conn)
                 .await
                 .map_err(|e| format!("Commit error: {e}"))?;
+            hub.emit_change("notes/list", "created", json!({ "id": &val.note_id, "title": &val.title })).await;
             Ok(val)
         }
         Err(e) => {

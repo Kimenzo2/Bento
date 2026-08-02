@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Health Tauri Commands — SQLite-backed, no stubs
 // Tables:
@@ -8,10 +10,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use tauri::State;
 use uuid::Uuid;
 
 use crate::db::BentoAppState;
+use crate::realtime::RealtimeHub;
 use crate::util::time;
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
@@ -73,6 +77,7 @@ pub struct DailyLogRow {
 pub async fn health_log_save(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     entry: DailyLogEntry,
 ) -> Result<DailyLogRow, String> {
     crate::auth::require_billing_tier(&auth, "health").await?;
@@ -111,7 +116,7 @@ pub async fn health_log_save(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(DailyLogRow {
+    let row = DailyLogRow {
         id: stored,
         mood: entry.mood,
         energy: entry.energy,
@@ -121,9 +126,10 @@ pub async fn health_log_save(
         note: entry.note,
         logged_at: now,
         date_key: date,
-    })
+    };
+    hub.emit_change("health/daily", "updated", json!(&row)).await;
+    Ok(row)
 }
-
 /// Load today's check-in (if any).
 #[tauri::command]
 pub async fn health_log_today(
@@ -223,6 +229,7 @@ pub struct VitalsRow {
 pub async fn health_vitals_save(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     entry: VitalsEntry,
 ) -> Result<VitalsRow, String> {
     crate::auth::require_billing_tier(&auth, "health").await?;
@@ -272,7 +279,7 @@ pub async fn health_vitals_save(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(VitalsRow {
+    let row = VitalsRow {
         id,
         bp: entry.bp,
         hr: entry.hr,
@@ -281,13 +288,16 @@ pub async fn health_vitals_save(
         spo2: entry.spo2,
         logged_at: now,
         date_key: date,
-    })
+    };
+    hub.emit_change("health/vitals", "created", json!(&row)).await;
+    Ok(row)
 }
 
 #[tauri::command]
 pub async fn health_vitals_delete(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     vital_id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "health").await?;
@@ -298,6 +308,7 @@ pub async fn health_vitals_delete(
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    hub.emit_change("health/vitals", "deleted", json!({ "id": &vital_id })).await;
     Ok(())
 }
 
@@ -401,6 +412,7 @@ pub async fn health_meds_list(
 pub async fn health_med_add(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     entry: NewMedEntry,
 ) -> Result<MedRow, String> {
     crate::auth::require_billing_tier(&auth, "health").await?;
@@ -427,7 +439,7 @@ pub async fn health_med_add(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(MedRow {
+    let med = MedRow {
         id,
         name: entry.name,
         dose: entry.dose,
@@ -435,13 +447,46 @@ pub async fn health_med_add(
         notes: entry.notes,
         taken_today: false,
         created_at: now,
-    })
+    };
+    hub.emit_change("health/meds", "created", json!(&med)).await;
+    Ok(med)
+}
+
+/// Fetch a medication row and publish an `updated` event for it. Used by
+/// take/untake toggles that change `taken_today`, not the med row itself.
+async fn publish_med_updated(db: &sqlx::SqlitePool, hub: &RealtimeHub, med_id: &str) {
+    let date = today_key();
+    use sqlx::Row;
+    if let Ok(Some(row)) = sqlx::query(
+        "SELECT m.id, m.name, m.dose, m.time_of_day, m.notes, m.created_at, \
+                CASE WHEN d.med_id IS NOT NULL THEN 1 ELSE 0 END AS taken_today \
+         FROM health_meds m \
+         LEFT JOIN health_doses d ON d.med_id = m.id AND d.date_key = ? \
+         WHERE m.id = ?",
+    )
+    .bind(date)
+    .bind(med_id)
+    .fetch_optional(db)
+    .await
+    {
+        let med = MedRow {
+            id: row.try_get("id").unwrap_or_default(),
+            name: row.try_get("name").unwrap_or_default(),
+            dose: row.try_get("dose").unwrap_or_default(),
+            time_of_day: row.try_get("time_of_day").unwrap_or_default(),
+            notes: row.try_get("notes").unwrap_or_default(),
+            taken_today: row.try_get::<i64, _>("taken_today").unwrap_or(0) == 1,
+            created_at: row.try_get("created_at").unwrap_or(0),
+        };
+        hub.emit_change("health/meds", "updated", json!(&med)).await;
+    }
 }
 
 #[tauri::command]
 pub async fn health_med_toggle(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     med_id: String,
 ) -> Result<bool, String> {
     crate::auth::require_billing_tier(&auth, "health").await?;
@@ -465,6 +510,7 @@ pub async fn health_med_toggle(
             .execute(&state.db())
             .await
             .map_err(|e| e.to_string())?;
+        publish_med_updated(&state.db(), &hub, &med_id).await;
         Ok(false)
     } else {
         // Insert — mark taken
@@ -479,6 +525,7 @@ pub async fn health_med_toggle(
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+        publish_med_updated(&state.db(), &hub, &med_id).await;
         Ok(true)
     }
 }
@@ -487,6 +534,7 @@ pub async fn health_med_toggle(
 pub async fn health_med_delete(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     med_id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "health").await?;
@@ -497,6 +545,7 @@ pub async fn health_med_delete(
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    hub.emit_change("health/meds", "deleted", json!({ "id": &med_id })).await;
     Ok(())
 }
 

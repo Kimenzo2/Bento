@@ -1,3 +1,5 @@
+/* ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. */
+
 /* Goals Module — Spacious Card Layout
    Matches the Sleep app's airy card-based design:
    - No borders, no shadows, no accent strips
@@ -2253,19 +2255,19 @@
 }
 
 /* ── Memory image column ─────────────────────────────────────────────
-   Squircle via border-radius — works in all Chromium/WebKit versions.
-   clip-path: shape() with sqrt() inside calc() is NOT supported in the
-   Chromium build embedded in Tauri, producing a broken polygon.
-   The 8-value border-radius below is the correct cross-browser squircle.
+   Apple-style thick rounded rect (20px) with soft border.
    ─────────────────────────────────────────────────────────────────── */
 .gp1-memory {
   position: relative;
-  background: transparent;
+  background: color-mix(in srgb, var(--foreground) 3%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 15%, transparent);
+  border-radius: 20px;
   min-height: 260px;
   height: 260px;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .gp1-memory-photo {
@@ -2275,7 +2277,6 @@
   height: 100%;
   transform: rotate(var(--rot, 0deg));
   transition: transform 300ms ease;
-  border-radius: 38% 38% 38% 38% / 38% 38% 38% 38%;
   overflow: hidden;
 }
 
@@ -2296,10 +2297,9 @@
   justify-content: center;
   gap: 8px;
   border: none;
-  background: color-mix(in srgb, var(--foreground) 4%, transparent);
+  background: transparent;
   color: color-mix(in srgb, var(--foreground) 35%, transparent);
   cursor: pointer;
-  border-radius: 38% 38% 38% 38% / 38% 38% 38% 38%;
 }
 
 .gp1-memory-empty-label {

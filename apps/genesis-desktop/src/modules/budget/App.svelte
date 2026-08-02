@@ -1,5 +1,8 @@
+<!-- ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. -->
+
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
+  import { registerRefresher } from '$lib/realtime/data-changed';
   import {
     Wallet, TrendingUp, TrendingDown, Minus, PiggyBank, Home, ShoppingCart, Car, Zap,
     UtensilsCrossed, Tv, ShoppingBag, Activity, BookOpen, Bot, Ellipsis,
@@ -586,6 +589,19 @@
   $effect(() => { if (selectedSection === 'Bills') { calNow = new Date(); loadingSection = 'Bills'; loadBills().finally(() => { if (loadingSection === 'Bills') loadingSection = null; }); } });
   $effect(() => { if (selectedSection === 'Budgets') { loadingSection = 'Budgets'; loadCategories().finally(() => { if (loadingSection === 'Budgets') loadingSection = null; }); } });
   $effect(() => { if (selectedSection === 'Templates') { loadingSection = 'Templates'; loadTemplates().finally(() => { if (loadingSection === 'Templates') loadingSection = null; }); } });
+
+  // Live-refresh via the realtime data-changed bus: budget/* emits after every
+  // mutation (incl. agent-driven writes), so re-fetch on change.
+  $effect(() => {
+    const offs = [
+      registerRefresher('budget/categories', () => loadCategories()),
+      registerRefresher('budget/transactions', async () => { await Promise.all([loadTransactions(), loadOverview(), loadCategories()]); }),
+      registerRefresher('budget/bills', () => loadBills()),
+      registerRefresher('budget/ai-costs', () => loadAiCosts()),
+      registerRefresher('budget/templates', () => loadTemplates()),
+    ];
+    return () => { offs.forEach((off) => off()); };
+  });
 </script>
 
 <main class="bg-workspace module-root" data-module="budget">
@@ -2110,7 +2126,7 @@
   :global(.subs-day-num) {
     font-size: 13px; font-weight: 600; line-height: 1;
   }
-  :global(.subs-day-num--today) { color: var(--bg-accent); font-weight: 800; }
+  :global(.subs-day-num--today) { color: var(--bg-accent); font-weight: 550; }
   :global(.subs-badges) {
     display: flex; gap: 2px; flex-wrap: wrap; justify-content: center;
   }

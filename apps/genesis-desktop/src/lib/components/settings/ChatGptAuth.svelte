@@ -1,3 +1,5 @@
+<!-- ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. -->
+
 <script lang="ts">
   import { onMount } from "svelte";
   import {
@@ -28,6 +30,8 @@
   import WifiIcon from "@lucide/svelte/icons/wifi";
   import WifiOffIcon from "@lucide/svelte/icons/wifi-off";
   import XIcon from "@lucide/svelte/icons/x";
+
+
 
   let testing = $state(false);
   let testResult = $state<{ ok: boolean; message: string } | null>(null);
@@ -113,67 +117,59 @@
   }
 </script>
 
-<div class="chatgpt-auth">
-  <div class="chatgpt-auth__header">
-    <BotIcon size={20} />
-    <h3>Sign in with ChatGPT</h3>
-  </div>
-  <p class="chatgpt-auth__desc">
-    Use your ChatGPT subscription through your own proxy server. No API key needed.
-  </p>
-
+<div class="cgpt-inner">
   {#if !$chatgptReady}
-    <div class="chatgpt-auth__loading">
-      <Loader2Icon size={16} class="spin" />
+    <div class="cgpt-loading">
+      <Loader2Icon size={14} class="cgpt-spin" />
       <span>Loading...</span>
     </div>
   {:else if $chatgptSession}
     <!-- ── Signed in state ────────────────────────────── -->
-    <div class="chatgpt-auth__signed-in">
-      <div class="chatgpt-auth__status-badge">
-        <CheckCircle2Icon size={14} />
-        <span>Signed in</span>
-      </div>
+    <div class="cgpt-signed">
+      <span class="cgpt-badge cgpt-badge--ok">
+        <CheckCircle2Icon size={11} />
+        Signed in
+      </span>
 
-      <div class="chatgpt-auth__plan">
-        <div class="chatgpt-auth__plan-row">
-          <span class="chatgpt-auth__label">Account</span>
-          <span class="chatgpt-auth__value">
+      <div class="cgpt-info">
+        <div class="cgpt-info__row">
+          <span class="cgpt-info__label">Account</span>
+          <span class="cgpt-info__value">
             {$chatgptSession.user?.name || $chatgptSession.user?.email || $chatgptSession.user?.accountId || 'Connected'}
           </span>
         </div>
         {#if $chatgptSession.user?.plan}
-          <div class="chatgpt-auth__plan-row">
-            <span class="chatgpt-auth__label">Plan</span>
-            <span class="chatgpt-auth__value">{$chatgptSession.user.plan}</span>
+          <div class="cgpt-info__row">
+            <span class="cgpt-info__label">Plan</span>
+            <span class="cgpt-info__value">{$chatgptSession.user.plan}</span>
           </div>
         {/if}
       </div>
 
-      <div class="chatgpt-auth__actions">
-        <button class="chatgpt-auth__btn chatgpt-auth__btn--secondary" onclick={async () => { await loadChatGptSession(); }}>
-          <RefreshCwIcon size={14} />
+      <div class="cgpt-actions">
+        <button class="cgpt-btn cgpt-btn--subtle" onclick={async () => { await loadChatGptSession(); }}>
+          <RefreshCwIcon size={13} />
           Refresh
         </button>
-        <button class="chatgpt-auth__btn chatgpt-auth__btn--danger" onclick={handleSignOut}>
-          <LogOutIcon size={14} />
+        <button class="cgpt-btn cgpt-btn--danger" onclick={handleSignOut}>
+          <LogOutIcon size={13} />
           Sign Out
         </button>
       </div>
     </div>
   {:else if signingIn && $chatgptDeviceFlow}
     <!-- ── Sign-in flow ──────────────────────────────── -->
-    <div class="chatgpt-auth__device-flow">
-      <div class="chatgpt-auth__device-header">
-        <Loader2Icon size={16} class="spin" />
+    <div class="cgpt-flow">
+      <div class="cgpt-flow__header">
+        <Loader2Icon size={14} class="cgpt-spin" />
         <span>Waiting for authorization...</span>
       </div>
 
-      <div class="chatgpt-auth__code-box">
-        <span class="chatgpt-auth__code-label">Enter this code:</span>
-        <div class="chatgpt-auth__code">
+      <div class="cgpt-code">
+        <span class="cgpt-code__label">Enter this code:</span>
+        <div class="cgpt-code__box">
           <code>{$chatgptDeviceFlow.userCode}</code>
-          <button class="chatgpt-auth__copy-btn" onclick={() => handleCopyCode($chatgptDeviceFlow.userCode)}>
+          <button class="cgpt-btn cgpt-btn--icon" onclick={() => handleCopyCode($chatgptDeviceFlow.userCode)}>
             {#if copied}
               <CheckCircle2Icon size={14} />
             {:else}
@@ -183,443 +179,368 @@
         </div>
       </div>
 
-      <p class="chatgpt-auth__device-desc">
+      <p class="cgpt-flow__desc">
         Open the verification page in your browser, sign in, and enter the code above.
       </p>
 
-      <div class="chatgpt-auth__device-actions">
-        <span class="chatgpt-auth__device-link" onclick={() => openExternalUrl(getVerificationUri($chatgptDeviceFlow!))}>
+      <div class="cgpt-flow__actions">
+        <span class="cgpt-link" onclick={() => openExternalUrl(getVerificationUri($chatgptDeviceFlow!))}>
           <ExternalLinkIcon size={12} />
           Open verification page
         </span>
-        <button class="chatgpt-auth__btn chatgpt-auth__btn--ghost" onclick={cancelSignIn}>
-          <XIcon size={14} />
+        <button class="cgpt-btn cgpt-btn--subtle" onclick={cancelSignIn}>
+          <XIcon size={13} />
           Cancel
         </button>
       </div>
 
       {#if signInError}
-        <p class="chatgpt-auth__error">{signInError}</p>
+        <p class="cgpt-error">{signInError}</p>
       {/if}
     </div>
   {:else}
     <!-- ── Sign-in form ──────────────────────────────── -->
-    <div class="chatgpt-auth__signin-form">
-      <div class="chatgpt-auth__field">
-        <label class="chatgpt-auth__field-label" for="server-url">
-          <ServerIcon size={14} />
+    <div class="cgpt-form">
+      <div class="cgpt-field">
+        <label class="cgpt-field__label" for="cgpt-server-url">
+          <ServerIcon size={13} />
           Server URL
         </label>
-        <div class="chatgpt-auth__field-row">
+        <div class="cgpt-field__row">
           <input
-            id="server-url"
+            id="cgpt-server-url"
             type="text"
             bind:value={$chatgptServerUrl}
             oninput={() => { inputError = null; }}
             onkeydown={handleKeydown}
             placeholder="http://localhost:3001"
-            class="chatgpt-auth__input"
-            class:chatgpt-auth__input--error={inputError}
+            class="cgpt-input"
+            class:cgpt-input--error={inputError}
           />
           <button
-            class="chatgpt-auth__btn chatgpt-auth__btn--secondary"
+            class="cgpt-btn cgpt-btn--subtle"
             onclick={handleTestConnection}
             disabled={testing}
           >
             {#if testing}
-              <Loader2Icon size={14} class="spin" />
+              <Loader2Icon size={13} class="cgpt-spin" />
             {:else}
-              <WifiIcon size={14} />
+              <WifiIcon size={13} />
             {/if}
             Test
           </button>
         </div>
         {#if inputError}
-          <p class="chatgpt-auth__field-note chatgpt-auth__field-note--err">
-            <WifiOffIcon size={12} />
+          <p class="cgpt-note cgpt-note--err">
+            <WifiOffIcon size={11} />
             {inputError}
           </p>
         {:else if testResult}
-          <p class="chatgpt-auth__field-note" class:chatgpt-auth__field-note--ok={testResult.ok} class:chatgpt-auth__field-note--err={!testResult.ok}>
+          <p class="cgpt-note" class:cgpt-note--ok={testResult.ok} class:cgpt-note--err={!testResult.ok}>
             {#if testResult.ok}
-              <CheckCircle2Icon size={12} />
+              <CheckCircle2Icon size={11} />
             {:else}
-              <WifiOffIcon size={12} />
+              <WifiOffIcon size={11} />
             {/if}
             {testResult.message}
           </p>
         {/if}
       </div>
 
-      <button class="chatgpt-auth__btn chatgpt-auth__btn--primary" onclick={handleSignIn} disabled={signingIn || !($chatgptServerUrl?.trim())}>
+      <button class="cgpt-btn cgpt-btn--primary" onclick={handleSignIn} disabled={signingIn || !($chatgptServerUrl?.trim())}>
         {#if signingIn}
-          <Loader2Icon size={16} class="spin" />
+          <Loader2Icon size={14} class="cgpt-spin" />
         {:else}
-          <BotIcon size={16} />
+          <BotIcon size={14} />
         {/if}
         Sign in with ChatGPT
       </button>
 
-      <p class="chatgpt-auth__desc-small">
+      <p class="cgpt-hint">
         You need a self-hosted proxy server. See setup instructions in the Bento documentation.
       </p>
 
       {#if signInError}
-        <p class="chatgpt-auth__error">{signInError}</p>
+        <p class="cgpt-error">{signInError}</p>
       {/if}
     </div>
   {/if}
 </div>
 
 <style>
-  .chatgpt-auth {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    max-width: 32rem;
-    padding: 1.25rem;
-    border-radius: 1.15rem;
-    border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
-    background:
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--surface) 96%, var(--background)) 98%,
-        color-mix(in srgb, var(--surface) 96%, var(--background)) 86%
-      );
+  .cgpt-inner {
+    display: grid;
+    gap: 0.85rem;
   }
 
-  .chatgpt-auth__header {
+  .cgpt-loading {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding-bottom: 4px;
-  }
-
-  .chatgpt-auth__header h3 {
-    margin: 0;
-    font-size: 15px;
-    font-weight: 600;
-  }
-
-  .chatgpt-auth__desc {
-    margin: 0;
-    color: var(--muted-foreground);
-    line-height: 1.5;
-  }
-
-  .chatgpt-auth__desc-small {
-    margin: 0;
-    color: var(--muted-foreground);
-    line-height: 1.4;
-  }
-
-  .chatgpt-auth__loading {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    gap: 0.5rem;
     color: var(--muted);
-    padding: 16px 0;
+    font-size: 0.85rem;
+    padding: 0.5rem 0;
   }
 
   /* ── Signed in ───────────────────────────────── */
-  .chatgpt-auth__signed-in {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px;
-    border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
-    border-radius: 10px;
-    background:
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--surface) 96%, var(--background)) 98%,
-        color-mix(in srgb, var(--surface) 96%, var(--background)) 86%
-      );
+  .cgpt-signed {
+    display: grid;
+    gap: 0.75rem;
   }
-
-  .chatgpt-auth__status-badge {
+  .cgpt-badge {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    font-size: 12px;
-    font-weight: 500;
-    color: oklch(0.723 0.192 149.579);
-    padding: 3px 8px;
-    background: color-mix(in srgb, oklch(0.723 0.192 149.579) 12%, transparent);
-    border-radius: 6px;
-    align-self: flex-start;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+    font-weight: 550;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    width: fit-content;
+  }
+  .cgpt-badge--ok {
+    background: color-mix(in srgb, oklch(0.63 0.128 151.4) 12%, transparent);
+    color: oklch(0.63 0.128 151.4);
   }
 
-  .chatgpt-auth__plan {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+  .cgpt-info {
+    display: grid;
+    gap: 0.35rem;
   }
-
-  .chatgpt-auth__plan-row {
+  .cgpt-info__row {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 0.5rem;
   }
-
-  .chatgpt-auth__label {
+  .cgpt-info__label {
+    font-size: 0.82rem;
     color: var(--muted);
   }
-
-  .chatgpt-auth__value {
+  .cgpt-info__value {
+    font-size: 0.85rem;
+    font-weight: 550;
     color: var(--foreground);
-    font-weight: 500;
     text-align: right;
   }
 
-  .chatgpt-auth__actions {
+  .cgpt-actions {
     display: flex;
-    gap: 8px;
+    gap: 0.5rem;
   }
 
   /* ── Device flow ──────────────────────────────── */
-  .chatgpt-auth__device-flow {
-    display: flex;
-    flex-direction: column;
+  .cgpt-flow {
+    display: grid;
+    gap: 0.75rem;
     align-items: center;
-    gap: 12px;
-    padding: 20px 16px;
-    border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
-    border-radius: 10px;
     text-align: center;
-    background:
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--surface) 96%, var(--background)) 98%,
-        color-mix(in srgb, var(--surface) 96%, var(--background)) 86%
-      );
   }
-
-  .chatgpt-auth__device-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--muted);
-  }
-
-  .chatgpt-auth__code-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .chatgpt-auth__code-label {
-    color: var(--muted);
-  }
-
-  .chatgpt-auth__code {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background: color-mix(in srgb, var(--foreground) 6%, transparent);
-    border-radius: 8px;
-    border: 1px dashed color-mix(in srgb, var(--foreground) 25%, transparent);
-  }
-
-  .chatgpt-auth__code code {
-    font-size: 20px;
-    font-weight: 700;
-    letter-spacing: 4px;
-    font-family: "SF Mono", "Fira Code", "Consolas", monospace;
-  }
-
-  .chatgpt-auth__copy-btn {
+  .cgpt-flow__header {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    border: none;
-    border-radius: 6px;
-    background: transparent;
+    gap: 0.5rem;
     color: var(--muted);
-    cursor: pointer;
+    font-size: 0.85rem;
   }
-
-  .chatgpt-auth__copy-btn:hover {
-    background: color-mix(in srgb, var(--foreground) 10%, transparent);
-    color: var(--foreground);
+  .cgpt-code {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
   }
-
-  .chatgpt-auth__device-desc {
+  .cgpt-code__label {
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+  .cgpt-code__box {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+    border: 1px dashed color-mix(in srgb, var(--foreground) 12%, transparent);
+    border-radius: 8px;
+  }
+  .cgpt-code__box code {
+    font-size: 1.15rem;
+    font-weight: 550;
+    letter-spacing: 4px;
+    font-family: var(--font-mono, monospace);
+  }
+  .cgpt-flow__desc {
     margin: 0;
+    font-size: 0.82rem;
     color: var(--muted);
     max-width: 260px;
     line-height: 1.4;
   }
-
-  .chatgpt-auth__device-actions {
+  .cgpt-flow__actions {
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: center;
+    gap: 0.75rem;
   }
-
-  .chatgpt-auth__device-link {
+  .cgpt-link {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    color: var(--accent, oklch(0.623 0.188 259.815));
+    gap: 0.3rem;
+    color: var(--primary);
+    font-size: 0.82rem;
+    font-weight: 550;
     cursor: pointer;
-    text-decoration: none;
   }
-
-  .chatgpt-auth__device-link:hover {
+  .cgpt-link:hover {
     text-decoration: underline;
   }
 
   /* ── Sign in form ──────────────────────────────── */
-  .chatgpt-auth__signin-form {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    padding-top: 4px;
+  .cgpt-form {
+    display: grid;
+    gap: 0.85rem;
   }
-
-  .chatgpt-auth__field {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  .cgpt-field {
+    display: grid;
+    gap: 0.4rem;
   }
-
-  .chatgpt-auth__field-label {
+  .cgpt-field__label {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-weight: 500;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+    font-weight: 550;
     color: var(--muted);
   }
-
-  .chatgpt-auth__field-row {
+  .cgpt-field__row {
     display: flex;
-    gap: 8px;
+    gap: 0.5rem;
     align-items: stretch;
   }
-
-  .chatgpt-auth__input {
+  .cgpt-input {
     flex: 1;
-    padding: 10px 12px;
-    border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
-    border-radius: 10px;
-    background: var(--background);
+    padding: 0.5rem 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+    border-radius: 8px;
+    background: transparent;
     color: var(--foreground);
     font-family: inherit;
+    font-size: 0.85rem;
     outline: none;
     transition: border-color 0.15s ease;
+    box-sizing: border-box;
   }
-
-  .chatgpt-auth__input:focus {
+  .cgpt-input:focus {
     border-color: var(--primary);
   }
-  .chatgpt-auth__input--error {
+  .cgpt-input--error {
     border-color: oklch(0.637 0.208 25.331);
   }
-
-  .chatgpt-auth__input::placeholder {
+  .cgpt-input::placeholder {
     color: var(--muted);
   }
 
-  .chatgpt-auth__field-note {
+  .cgpt-note {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.3rem;
     margin: 0;
-    padding: 4px 8px;
+    font-size: 0.78rem;
+    padding: 0.3rem 0.5rem;
     border-radius: 6px;
   }
-
-  .chatgpt-auth__field-note--ok {
-    color: oklch(0.723 0.192 149.579);
-    background: color-mix(in srgb, oklch(0.723 0.192 149.579) 10%, transparent);
+  .cgpt-note--ok {
+    color: oklch(0.63 0.128 151.4);
+    background: color-mix(in srgb, oklch(0.63 0.128 151.4) 8%, transparent);
+  }
+  .cgpt-note--err {
+    color: oklch(0.637 0.208 25.331);
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 8%, transparent);
   }
 
-  .chatgpt-auth__field-note--err {
+  .cgpt-hint {
+    margin: 0;
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .cgpt-error {
+    margin: 0;
+    font-size: 0.82rem;
     color: oklch(0.637 0.208 25.331);
-    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 10%, transparent);
+    padding: 0.45rem 0.65rem;
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 8%, transparent);
+    border-radius: 8px;
   }
 
   /* ── Buttons ──────────────────────────────────── */
-  .chatgpt-auth__btn {
+  .cgpt-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 10px 16px;
-    border: none;
-    border-radius: 10px;
-    font-weight: 600;
+    gap: 0.35rem;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+    border-radius: 8px;
     font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 550;
     cursor: pointer;
-    transition: background 0.15s ease, opacity 0.15s ease;
+    transition: all 0.12s ease;
     white-space: nowrap;
+    background: transparent;
+    color: var(--foreground);
   }
-
-  .chatgpt-auth__btn:disabled {
-    opacity: 0.5;
-    cursor: default;
+  .cgpt-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
-
-  .chatgpt-auth__btn--primary {
+  .cgpt-btn--primary {
+    border-color: var(--foreground);
     background: var(--foreground);
     color: var(--background);
     align-self: flex-start;
   }
-
-  .chatgpt-auth__btn--primary:hover:not(:disabled) {
+  .cgpt-btn--primary:hover:not(:disabled) {
     opacity: 0.9;
   }
-
-  .chatgpt-auth__btn--secondary {
-    background: color-mix(in srgb, var(--foreground) 10%, transparent);
-    color: var(--foreground);
-  }
-
-  .chatgpt-auth__btn--secondary:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--foreground) 16%, transparent);
-  }
-
-  .chatgpt-auth__btn--danger {
-    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 12%, transparent);
-    color: oklch(0.637 0.208 25.331);
-  }
-
-  .chatgpt-auth__btn--danger:hover:not(:disabled) {
-    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 20%, transparent);
-  }
-
-  .chatgpt-auth__btn--ghost {
+  .cgpt-btn--subtle {
+    border-color: transparent;
     background: transparent;
     color: var(--muted);
-    padding: 4px 8px;
   }
-
-  .chatgpt-auth__btn--ghost:hover:not(:disabled) {
+  .cgpt-btn--subtle:hover:not(:disabled) {
+    color: var(--foreground);
+    background: color-mix(in srgb, var(--foreground) 6%, transparent);
+  }
+  .cgpt-btn--danger {
+    border-color: transparent;
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 10%, transparent);
+    color: oklch(0.637 0.208 25.331);
+  }
+  .cgpt-btn--danger:hover:not(:disabled) {
+    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 18%, transparent);
+  }
+  .cgpt-btn--icon {
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border-color: transparent;
+    background: transparent;
+    color: var(--muted);
+  }
+  .cgpt-btn--icon:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--foreground) 8%, transparent);
     color: var(--foreground);
   }
 
-  .chatgpt-auth__error {
-    margin: 0;
-    color: oklch(0.637 0.208 25.331);
-    padding: 6px 8px;
-    background: color-mix(in srgb, oklch(0.637 0.208 25.331) 10%, transparent);
-    border-radius: 6px;
+  .cgpt-spin {
+    animation: cgpt-spin 0.8s linear infinite;
   }
-
-  .spin {
-    animation: spin 1s linear infinite;
+  @keyframes cgpt-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
   }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    .spin { animation: none; }
+    .cgpt-spin { animation: none; }
   }
 </style>

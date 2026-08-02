@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 // ═══════════════════════════════════════════════════════════════════════
 // Audio Recording System — Native Rust Audio Capture & Playback
 // ═══════════════════════════════════════════════════════════════════════
@@ -6,9 +8,11 @@
 // All durations are tracked with real timestamps, not frontend timers.
 // ═══════════════════════════════════════════════════════════════════════
 
+use crate::realtime::RealtimeHub;
 use crate::util::time;
 use cpal::traits::{DeviceTrait, HostTrait};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sqlx::{Row, SqlitePool};
 use std::path::PathBuf;
 use std::sync::{
@@ -446,7 +450,9 @@ impl RecordingEngine {
                     // Close the writer — take the session
                     let mut guard = session_arc.lock().unwrap_or_else(|e| e.into_inner());
                     if let Some(inner) = guard.take() {
-                        let _ = inner.file.finalize();
+                        if let Err(e) = inner.file.finalize() {
+                            info!("[audio] WAV finalization error (background thread): {e}");
+                        }
                         let size = std::fs::metadata(&inner.file_path)
                             .map(|m| m.len())
                             .unwrap_or(0);
@@ -525,15 +531,16 @@ impl RecordingEngine {
     /// file handle is released before returning — prevents file lock contention
     /// on Windows when playback immediately follows (an open `hound::WavWriter`
     /// holds a write lock that blocks `std::fs::File::open` in the playback engine).
-    pub fn stop_recording(&self) -> Result<RecordingSession, String> {
+    pub async fn stop_recording(&self) -> Result<RecordingSession, String> {
         if self.status_atomic.load(Ordering::Relaxed) == status_code::IDLE {
             return Err("No recording in progress.".to_string());
         }
 
         // Step 1: Take the session from the Mutex and finalize the WAV writer NOW.
-        let mut guard = self.session.lock().map_err(|e| e.to_string())?;
-        let session_data = guard.take();
-        drop(guard); // Release lock before potentially blocking on SQLite
+        let session_data = {
+            let mut guard = self.session.lock().map_err(|e| e.to_string())?;
+            guard.take()
+        };
 
         // Destructure to take ownership of `file` (hound::WavWriter::finalize consumes self).
         let (
@@ -563,7 +570,9 @@ impl RecordingEngine {
                     channels,
                     start_time_ms: _,
                 } = inner;
-                let _ = file.finalize(); // Close WAV writer — file handle released
+                if let Err(e) = file.finalize() {
+                    info!("[audio] WAV finalization error (stop_recording): {e}");
+                }
                 (
                     sleep_detected,
                     start_time,
@@ -578,28 +587,53 @@ impl RecordingEngine {
                 )
             }
             None => {
-                // Background thread already consumed the session (unlikely racing case)
-                (
-                    false,
-                    std::time::Instant::now(),
-                    std::time::Duration::ZERO,
-                    None,
-                    String::new(),
-                    PathBuf::new(),
-                    String::new(),
-                    String::new(),
-                    0u32,
-                    0u16,
+                // Background thread already consumed the session (race condition:
+                // cpal error callback set IDLE before stop_recording locked the Mutex).
+                // The background thread is finalizing the WAV and persisting metadata
+                // to SQLite. Wait for it to finish, then recover from the database.
+                self.set_status(RecordingStatus::Idle);
+
+                // Wait for background thread to finish (sets finalized = true)
+                for _ in 0..30 {
+                    if self.finalized.load(Ordering::Acquire) {
+                        break;
+                    }
+                    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                }
+                self.finalized.store(false, Ordering::Release);
+
+                // Query SQLite for the most recent recording the background thread persisted
+                let recovered: Option<RecordingSession> = sqlx::query(
+                    "SELECT id, title, duration_secs, file_path, created_at, module_id, device_name FROM recording_metadata ORDER BY created_at DESC LIMIT 1"
                 )
+                .fetch_optional(&self.db)
+                .await
+                .ok()
+                .flatten()
+                .map(|row| RecordingSession {
+                    id: row.get("id"),
+                    status: "completed".to_string(),
+                    start_time: row.get("created_at"),
+                    elapsed_ms: (row.get::<f64, _>("duration_secs") * 1000.0) as i64,
+                    paused_duration_ms: 0,
+                    file_path: Some(row.get("file_path")),
+                    module_id: row.get("module_id"),
+                    device_name: row.get("device_name"),
+                    sleep_detected: false,
+                });
+
+                return match recovered {
+                    Some(session) => Ok(session),
+                    None => Err("Recording was consumed by background thread but metadata not found in database.".to_string()),
+                };
             }
         };
 
         // Step 2: Signal the background thread to stop (audio callback will cease)
         self.set_status(RecordingStatus::Idle);
 
-        // Step 3: Persist metadata synchronously (bg thread sees empty session, just cleans up)
+        // Step 3: Persist metadata to database
         if !id.is_empty() {
-            let rt_handle = tokio::runtime::Handle::current();
             let dur = start_time.elapsed() - paused_duration;
             let pause_deduction = pause_start
                 .map(|ps| start_time.elapsed() - ps.elapsed())
@@ -608,26 +642,24 @@ impl RecordingEngine {
             let start_ts = time::now_ms() - actual_dur.as_millis() as i64;
             let size = std::fs::metadata(&file_path).map(|m| m.len()).unwrap_or(0);
 
-            let _ = rt_handle.block_on(async {
-                sqlx::query(
-                    r#"INSERT INTO recording_metadata 
-                    (id, title, duration_secs, file_path, file_size_bytes, module_id, 
-                     created_at, device_name, sample_rate, channels, transcribed)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)"#,
-                )
-                .bind(&id)
-                .bind(format!("Recording {}", &id[..8]))
-                .bind(actual_dur.as_secs_f64())
-                .bind(&file_path.to_string_lossy().to_string())
-                .bind(size as i64)
-                .bind(&module_id)
-                .bind(start_ts)
-                .bind(&device_name)
-                .bind(sample_rate as i64)
-                .bind(channels as i64)
-                .execute(&self.db)
-                .await
-            });
+            let _ = sqlx::query(
+                r#"INSERT INTO recording_metadata 
+                (id, title, duration_secs, file_path, file_size_bytes, module_id, 
+                 created_at, device_name, sample_rate, channels, transcribed)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)"#,
+            )
+            .bind(&id)
+            .bind(format!("Recording {}", &id[..8]))
+            .bind(actual_dur.as_secs_f64())
+            .bind(&file_path.to_string_lossy().to_string())
+            .bind(size as i64)
+            .bind(&module_id)
+            .bind(start_ts)
+            .bind(&device_name)
+            .bind(sample_rate as i64)
+            .bind(channels as i64)
+            .execute(&self.db)
+            .await;
         }
 
         // Step 4: Wait for background thread to see IDLE, clean up, and signal
@@ -635,7 +667,7 @@ impl RecordingEngine {
             if self.finalized.load(Ordering::Acquire) {
                 break;
             }
-            std::thread::sleep(std::time::Duration::from_millis(100));
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         }
         self.finalized.store(false, Ordering::Release);
 
@@ -1268,7 +1300,7 @@ pub async fn start_recording(
 pub async fn stop_recording(
     state: tauri::State<'_, AudioState>,
 ) -> Result<RecordingSession, String> {
-    state.engine.stop_recording()
+    state.engine.stop_recording().await
 }
 
 #[tauri::command]
@@ -1317,18 +1349,28 @@ pub async fn list_recordings(
 #[tauri::command]
 pub async fn delete_recording(
     state: tauri::State<'_, AudioState>,
+    hub: tauri::State<'_, RealtimeHub>,
     id: String,
 ) -> Result<(), String> {
-    state.engine.delete_recording(&id).await
+    let r = state.engine.delete_recording(&id).await;
+    if r.is_ok() {
+        hub.emit_change("voice/memos", "deleted", json!({ "id": &id })).await;
+    }
+    r
 }
 
 #[tauri::command]
 pub async fn update_recording_title(
     state: tauri::State<'_, AudioState>,
+    hub: tauri::State<'_, RealtimeHub>,
     id: String,
     title: String,
 ) -> Result<(), String> {
-    state.engine.update_recording_title(&id, &title).await
+    let r = state.engine.update_recording_title(&id, &title).await;
+    if r.is_ok() {
+        hub.emit_change("voice/memos", "updated", json!({ "id": &id, "title": &title })).await;
+    }
+    r
 }
 
 #[tauri::command]

@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 import type { Store } from "@tauri-apps/plugin-store";
 import { browser } from "$app/environment";
 import { writable, get } from "svelte/store";
@@ -73,6 +75,7 @@ const storeKeys = {
   storeSettingsMigrated: "migration.storeSettingsMigrated",
   dynamicIslandEnabled: "dynamicIslandEnabled",
   agentDockEnabled: "agentDockEnabled",
+  socialAgents: "socialAgents",
 } as const;
 
 const themeModeSchema = z.enum(["light", "dark", "system"]);
@@ -206,6 +209,25 @@ const desktopSettingsSchema = z
     migration: migrationSchema,
     dynamicIslandEnabled: z.boolean().default(false),
     agentDockEnabled: z.boolean().default(false),
+    socialAgents: z
+      .object({
+        enabled: z.boolean().default(false),
+        projectId: z.string().nullable().default(null),
+        projectSecret: z.string().nullable().default(null),
+        platforms: z
+          .record(
+            z.string(),
+            z.object({
+              enabled: z.boolean().default(false),
+              token: z.string().nullable().default(null),
+              botUsername: z.string().nullable().default(null),
+              additionalConfig: z.record(z.string(), z.string()).default({}),
+              connectedAt: z.string().nullable().default(null),
+            }),
+          )
+          .default({}),
+      })
+      .default({ enabled: false, projectId: null, projectSecret: null, platforms: {} }),
     voice: z
       .object({
         inputDeviceId: z.string().default(""),
@@ -223,6 +245,18 @@ const desktopSettingsSchema = z
         autoPasteDictation: true,
         keepAudioRecordings: false,
         wakeWordEnabled: false,
+      }),
+    integrations: z
+      .object({
+        composioApiKeySet: z.boolean().default(false),
+        onboardingDismissed: z.boolean().default(false),
+        composioUserId: z.string().default("bento_user"),
+      })
+      .passthrough()
+      .default({
+        composioApiKeySet: false,
+        onboardingDismissed: false,
+        composioUserId: "bento_user",
       }),
   })
   .passthrough();
@@ -295,6 +329,12 @@ export const defaultDesktopSettings: DesktopSettings = {
   },
   dynamicIslandEnabled: false,
   agentDockEnabled: false,
+  socialAgents: {
+    enabled: false,
+    projectId: null,
+    projectSecret: null,
+    platforms: {},
+  },
   voice: {
     inputDeviceId: "",
     pushToTalkShortcut: "Ctrl+Shift+M",
@@ -302,6 +342,11 @@ export const defaultDesktopSettings: DesktopSettings = {
     autoPasteDictation: true,
     keepAudioRecordings: false,
     wakeWordEnabled: false,
+  },
+  integrations: {
+    composioApiKeySet: false,
+    onboardingDismissed: false,
+    composioUserId: "bento_user",
   },
 };
 
@@ -396,6 +441,7 @@ function storeDefaults() {
     [storeKeys.storeSettingsMigrated]: defaultDesktopSettings.migration.storeSettingsMigrated,
     [storeKeys.dynamicIslandEnabled]: defaultDesktopSettings.dynamicIslandEnabled,
     [storeKeys.agentDockEnabled]: defaultDesktopSettings.agentDockEnabled,
+    [storeKeys.socialAgents]: defaultDesktopSettings.socialAgents,
   };
 }
 
@@ -773,6 +819,8 @@ async function readStoreSettings(): Promise<DesktopSettings> {
     agentDockEnabled:
       (await store.get<boolean>(storeKeys.agentDockEnabled)) ??
       defaultDesktopSettings.agentDockEnabled,
+    socialAgents: (await store.get<typeof defaultDesktopSettings.socialAgents>(storeKeys.socialAgents)) ??
+      defaultDesktopSettings.socialAgents,
     voice: {
       inputDeviceId: defaultDesktopSettings.voice.inputDeviceId,
       pushToTalkShortcut: defaultDesktopSettings.voice.pushToTalkShortcut,
@@ -781,6 +829,7 @@ async function readStoreSettings(): Promise<DesktopSettings> {
       keepAudioRecordings: defaultDesktopSettings.voice.keepAudioRecordings,
       wakeWordEnabled: defaultDesktopSettings.voice.wakeWordEnabled,
     },
+    integrations: defaultDesktopSettings.integrations,
   };
 
   return normalizeSettings(settings);
@@ -832,6 +881,7 @@ async function persistStoreSettings(settings: DesktopSettings) {
   await store.set(storeKeys.storeSettingsMigrated, settings.migration.storeSettingsMigrated);
   await store.set(storeKeys.dynamicIslandEnabled, settings.dynamicIslandEnabled);
   await store.set(storeKeys.agentDockEnabled, settings.agentDockEnabled);
+  await store.set(storeKeys.socialAgents, settings.socialAgents);
   await store.save();
 }
 

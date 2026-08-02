@@ -1,4 +1,6 @@
-﻿<script lang="ts">
+<!-- ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. -->
+
+<script lang="ts">
   import './tasks.css';
   import {
     Plus, ListTodo, Inbox, Calendar, Trash2, CheckSquare,
@@ -17,6 +19,7 @@
   import type { ImportPreview, ImportPreviewEntry, ConflictEntry } from '$lib/services/task-import-service';
   import type { TaskEntry, UpdateTaskParams } from '$lib/services/task-service';
   import { time } from '$lib/utils/time';
+import { registerRefresher } from '$lib/realtime/data-changed';
 import ShareSheet from '$lib/components/ShareSheet.svelte';
 import { formatTasksAsMarkdown } from '$lib/services/share-service';
 import { tooltip } from "$lib/components/Tooltip.svelte";
@@ -299,6 +302,14 @@ import { tooltip } from "$lib/components/Tooltip.svelte";
   }
 
   onMount(() => { loadAll(); });
+
+  // Live-refresh via the realtime data-changed bus: the backend (or an AI
+  // agent) emits `tasks/list` after every mutation, so this view re-fetches
+  // without a manual refresh. Debounced per-topic in the bus.
+  onMount(() => {
+    const unregister = registerRefresher('tasks/list', () => loadAll());
+    return () => { unregister(); };
+  });
 
   /* ═══════════════════════════════════════════════════════════════════
      UNDO TOAST SYSTEM

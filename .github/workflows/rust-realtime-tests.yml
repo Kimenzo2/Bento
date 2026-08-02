@@ -1,0 +1,77 @@
+# ?? ABSOLUTE GIT SAFETY LAW ?? - THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
+name: Rust Realtime Tests
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "release/**"
+      - "Gemini-api-connections"
+    paths:
+      - "apps/genesis-desktop/src-tauri/**"
+      - ".github/workflows/rust-realtime-tests.yml"
+  pull_request:
+    branches: ["**"]
+    paths:
+      - "apps/genesis-desktop/src-tauri/**"
+  workflow_dispatch:
+
+concurrency:
+  group: rust-realtime-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  APP_DIR: apps/genesis-desktop
+
+jobs:
+  realtime-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: ${{ env.APP_DIR }}/src-tauri
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Sccache cache
+        uses: mozilla-actions/sccache-action@054db53350805f83040bf3e6e9b8cf5a139aa7c9 # v0.0.7
+
+      - name: Install Tauri system dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libxdo-dev \
+            libssl-dev \
+            libasound2-dev \
+            libpipewire-0.3-dev \
+            libgbm-dev \
+            libsqlcipher-dev \
+            pkg-config
+
+      - name: Install Rust toolchain
+        run: |
+          rustup set profile minimal
+          rustup toolchain install stable --component rustfmt
+          rustup default stable
+
+      - name: Cache Cargo registry
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles(format('{0}/src-tauri/Cargo.lock', env.APP_DIR)) }}
+          restore-keys: ${{ runner.os }}-cargo-registry-
+
+      - name: Run realtime_hub integration tests
+        env:
+          RUSTC_WRAPPER: sccache
+        run: cargo test --test realtime_hub -- --nocapture

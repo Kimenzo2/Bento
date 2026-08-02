@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 import { invoke } from "@tauri-apps/api/core";
 
 export interface RecordingSession {
@@ -105,4 +107,26 @@ export async function deleteRecording(id: string): Promise<void> {
 
 export async function updateRecordingTitle(id: string, title: string): Promise<void> {
   await invoke("update_recording_title", { id, title });
+}
+
+// ─── Playback (Rust rodio engine) ────────────────────────────────────
+
+export async function startPlayback(filePath: string): Promise<void> {
+  await invoke("playback_start", { filePath });
+}
+
+export async function stopPlayback(): Promise<void> {
+  await invoke("playback_stop");
+}
+
+export async function pausePlayback(): Promise<void> {
+  await invoke("playback_pause");
+}
+
+export async function resumePlayback(): Promise<void> {
+  await invoke("playback_resume");
+}
+
+export async function isPlaying(): Promise<boolean> {
+  return invoke<boolean>("playback_is_playing");
 }

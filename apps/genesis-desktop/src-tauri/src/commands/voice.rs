@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 // ═══════════════════════════════════════════════════════════════════════
 // Voice Commands — Higher-level voice operations wrapping audio engine
 // ═══════════════════════════════════════════════════════════════════════
@@ -14,7 +16,9 @@ use crate::audio::dictation::{
 };
 use crate::audio::AudioState;
 use crate::db::BentoAppState;
+use crate::realtime::RealtimeHub;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use uuid::Uuid;
 
 /// Response returned by voice_start / voice_stop.
@@ -51,7 +55,7 @@ pub async fn voice_start(
 /// Stop the current voice recording.
 #[tauri::command]
 pub async fn voice_stop(state: tauri::State<'_, AudioState>) -> Result<VoiceSessionDto, String> {
-    let session = state.engine.stop_recording()?;
+    let session = state.engine.stop_recording().await?;
 
     Ok(VoiceSessionDto {
         id: session.id,
@@ -120,6 +124,7 @@ pub struct VoiceMemoResult {
 #[tauri::command]
 pub async fn voice_save_memo(
     state: tauri::State<'_, BentoAppState>,
+    hub: tauri::State<'_, RealtimeHub>,
     recording_id: Option<String>,
     title: String,
     transcript: String,
@@ -200,6 +205,9 @@ pub async fn voice_save_memo(
 
         id
     };
+
+    let event = if recording_id.is_some() { "updated" } else { "created" };
+    hub.emit_change("voice/memos", event, json!({ "id": &id, "title": &title })).await;
 
     Ok(VoiceMemoResult {
         success: true,

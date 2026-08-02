@@ -1,10 +1,11 @@
+<!-- ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. -->
+
 <script lang="ts">
   import { onMount } from 'svelte';
   import CheckCircle2Icon from '@lucide/svelte/icons/check-circle-2';
   import ClipboardCheckIcon from '@lucide/svelte/icons/clipboard-check';
   import CopyIcon from '@lucide/svelte/icons/copy';
   import Loader2Icon from '@lucide/svelte/icons/loader-2';
-  import MessageSquareIcon from '@lucide/svelte/icons/message-square';
   import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
   import ServerIcon from '@lucide/svelte/icons/server';
   import ShieldIcon from '@lucide/svelte/icons/shield';
@@ -16,7 +17,6 @@
     aiStatusLoading,
     mcpConnectionInfo,
     mcpLoading,
-    aiPrefsLoading,
     aiPrefsDirty,
     defaultPrefs,
     initAiFeaturesPrefs,
@@ -27,7 +27,6 @@
     resetSystemPrompt,
     fetchModelsForProvider,
     type AiProviderStatus,
-    type McpConnectionInfo,
   } from '$lib/stores/ai-features.store';
 
   import { isTauri } from '@tauri-apps/api/core';
@@ -39,19 +38,13 @@
   import ChatGptAuth from '$lib/components/settings/ChatGptAuth.svelte';
 
   let _t = $derived.by(() => createTranslator($activeBundle));
-
-  // ── Props ──────────────────────────────────────────────────────────────────
   let { surface = 'panel' }: { surface?: 'panel' | 'page' } = $props();
 
-  // ── State ──────────────────────────────────────────────────────────────────
-  let showModelDropdown = $state(false);
   let models = $state<string[]>([]);
   let modelsLoading = $state(false);
   let copiedUrl = $state(false);
   let copiedToken = $state(false);
   let promptSavingStatus = $state<'saved' | 'saving' | 'unsaved' | ''>('');
-
-  // ── Derivation ─────────────────────────────────────────────────────────────
 
   const activeProviderName = $derived($byokSettings.activeProvider);
   const activeModel = $derived($byokSettings.activeModel);
@@ -67,10 +60,8 @@
   );
 
   const hasActiveProvider = $derived(!!activeProviderName);
-
   const mcpUp = $derived(!!$mcpConnectionInfo);
 
-  // Provider color dot helper
   function providerDotColor(provider: string): string {
     const colors: Record<string, string> = {
       openai: '#10a37f',
@@ -82,18 +73,15 @@
     return colors[provider] ?? '#666';
   }
 
-  // ── Lifecycle ──────────────────────────────────────────────────────────────
   onMount(() => {
     void initAiFeaturesPrefs();
     void refreshAiProviderStatus();
     void refreshMcpConnection();
     void loadModels();
 
-    // Flush pending saves on window close (standard web event)
     const handleBeforeUnload = () => { void flushPendingAiPrefsSave(); };
     window.addEventListener('beforeunload', handleBeforeUnload);
 
-    // Tauri-specific: intercept close button, flush async, then resolve
     let unlistenClose: (() => void) | undefined;
     if (isTauri()) {
       getCurrentWindow().onCloseRequested(async (event) => {
@@ -109,8 +97,6 @@
     };
   });
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
-
   async function loadModels() {
     if (!activeProviderName) return;
     modelsLoading = true;
@@ -124,7 +110,6 @@
     }
   }
 
-  // Refresh all data
   async function handleRefresh() {
     await Promise.all([
       refreshAiProviderStatus(),
@@ -133,7 +118,6 @@
     await loadModels();
   }
 
-  // System prompt handlers
   function handleSystemPromptInput(value: string) {
     if (value.length > 2000) { value = value.slice(0, 2000); }
     updateSystemPrompt(value);
@@ -153,7 +137,6 @@
     promptSavingStatus = '';
   }
 
-  // Keyboard shortcut: Cmd+S / Ctrl+S to save prompt
   function handleKeydown(e: KeyboardEvent) {
     if ((e.metaKey || e.ctrlKey) && e.key === 's') {
       e.preventDefault();
@@ -161,16 +144,13 @@
     }
   }
 
-  // Copy handlers
   async function handleCopyUrl() {
     if (!$mcpConnectionInfo?.url) return;
     try {
       await navigator.clipboard.writeText($mcpConnectionInfo.url);
       copiedUrl = true;
       setTimeout(() => (copiedUrl = false), 2000);
-    } catch {
-      // Fallback for non-secure contexts
-    }
+    } catch {}
   }
 
   async function handleCopyToken() {
@@ -179,78 +159,68 @@
       await navigator.clipboard.writeText($mcpConnectionInfo.token);
       copiedToken = true;
       setTimeout(() => (copiedToken = false), 2000);
-    } catch {
-      // Fallback
-    }
+    } catch {}
   }
 </script>
 
 <div class="ai-features" class:ai-features--page={surface === 'page'}>
-  <!-- ── AI Status & Active Provider ──────────────────── -->
+
+  <!-- ── AI Status ──────────────────────────────────── -->
   <div class="ai-card">
-    <div class="ai-card-header">
-      <BotIcon size={16} />
-      <h4>AI Status</h4>
+    <div class="ai-card__header">
+      <h2 class="ai-card__title">AI Status</h2>
     </div>
-
-    <!-- Provider + Model row -->
-    <div class="ai-status-row">
-      {#if $aiStatusLoading}
-        <div class="ai-loading-row">
-          <Loader2Icon size={14} class="ai-spin" />
-          <span>Loading provider status...</span>
+    <div class="ai-card__body">
+      <div class="ai-row">
+        <div class="ai-row__left">
+          {#if $aiStatusLoading}
+            <div class="ai-inline-loading">
+              <Loader2Icon size={14} class="ai-spin" />
+              <span>Loading provider status...</span>
+            </div>
+          {:else if hasActiveProvider && activeProviderStatus}
+            <span
+              class="ai-dot"
+              style="background:{providerDotColor(activeProviderStatus.provider)}"
+            ></span>
+            <div class="ai-row__text">
+              <strong>{providerDisplayName(activeProviderStatus.provider)}</strong>
+              <span>{activeModel ?? 'No model selected'}</span>
+            </div>
+          {:else if configuredProviderStatuses.length > 0}
+            <BotIcon size={16} class="ai-icon-muted" />
+            <div class="ai-row__text">
+              <strong>No active provider</strong>
+              <span>Select one in Credentials to enable AI features</span>
+            </div>
+          {:else}
+            <BotIcon size={16} class="ai-icon-muted" />
+            <div class="ai-row__text">
+              <strong>No provider configured</strong>
+              <span>Add an API key in Credentials to get started</span>
+            </div>
+          {/if}
         </div>
-      {:else if hasActiveProvider && activeProviderStatus}
-        <div class="ai-provider-info">
-          <span
-            class="ai-provider-dot"
-            style="background:{providerDotColor(activeProviderStatus.provider)}"
-          ></span>
-          <div class="ai-provider-details">
-            <strong class="ai-provider-name">{providerDisplayName(activeProviderStatus.provider)}</strong>
-            <span class="ai-provider-label">
-              {#if activeModel}
-                {activeModel}
-              {:else}
-                No model selected
-              {/if}
+        <div class="ai-row__right">
+          {#if $aiStatusLoading}
+            <span class="ai-badge ai-badge--idle">Loading</span>
+          {:else if hasActiveProvider && activeProviderStatus}
+            <span class="ai-badge ai-badge--ok">
+              <CheckCircle2Icon size={11} />
+              Connected
             </span>
-          </div>
+          {:else if configuredProviderStatuses.length > 0}
+            <span class="ai-badge ai-badge--idle">Inactive</span>
+          {:else}
+            <span class="ai-badge ai-badge--off">Off</span>
+          {/if}
         </div>
-        <div class="ai-status-badge ai-status-badge--ok">
-          <CheckCircle2Icon size={12} />
-          <span>Connected</span>
-        </div>
-      {:else if configuredProviderStatuses.length > 0}
-        <div class="ai-provider-info">
-          <BotIcon size={16} class="ai-icon-muted" />
-          <div class="ai-provider-details">
-            <strong class="ai-provider-name">No active provider</strong>
-            <span class="ai-provider-label">Select one in Credentials to enable AI features</span>
-          </div>
-        </div>
-        <div class="ai-status-badge ai-status-badge--idle">
-          <span>Inactive</span>
-        </div>
-      {:else}
-        <div class="ai-provider-info">
-          <BotIcon size={16} class="ai-icon-muted" />
-          <div class="ai-provider-details">
-            <strong class="ai-provider-name">No provider configured</strong>
-            <span class="ai-provider-label">Add an API key in Credentials to get started</span>
-          </div>
-        </div>
-        <div class="ai-status-badge ai-status-badge--off">
-          <span>Off</span>
-        </div>
-      {/if}
+      </div>
     </div>
-
-    <!-- Refresh button -->
-    <div class="ai-card-actions">
+    <div class="ai-card__footer">
       <button
         type="button"
-        class="ai-btn ai-btn--sm ai-btn--ghost"
+        class="ai-btn ai-btn--subtle"
         onclick={() => void handleRefresh()}
         disabled={$aiStatusLoading}
       >
@@ -260,26 +230,24 @@
     </div>
   </div>
 
-
-
   <!-- ── ChatGPT Account ──────────────────────────────── -->
-  <ChatGptAuth />
-
-  <!-- ── System Prompt / Custom Instructions ──────────── -->
   <div class="ai-card">
-    <div class="ai-card-header">
-      <MessageSquareIcon size={16} />
-      <h4>Custom Instructions</h4>
+    <div class="ai-card__header">
+      <h2 class="ai-card__title">Sign in with ChatGPT</h2>
+      <p class="ai-card__desc">Use your ChatGPT subscription through your own proxy server. No API key needed.</p>
     </div>
-
-    <div class="ai-card-description">
-      <p>
-        Tell Bento's AI how to respond. This acts as a system prompt — it's sent with every AI request
-        to guide tone, depth, and behavior.
-      </p>
+    <div class="ai-card__body">
+      <ChatGptAuth />
     </div>
+  </div>
 
-    <div class="ai-prompt-header">
+  <!-- ── Custom Instructions ──────────────────────────── -->
+  <div class="ai-card">
+    <div class="ai-card__header">
+      <h2 class="ai-card__title">Custom Instructions</h2>
+      <p class="ai-card__desc">Tell Bento's AI how to respond. This acts as a system prompt — it's sent with every AI request to guide tone, depth, and behavior.</p>
+    </div>
+    <div class="ai-card__body">
       <div class="ai-textarea-wrap">
         <textarea
           class="ai-textarea"
@@ -292,88 +260,80 @@
         ></textarea>
         <span class="ai-textarea-count">{$aiFeaturesPrefs.systemPrompt.length} / 2000</span>
       </div>
-
-      <div class="ai-prompt-status-row">
+    </div>
+    <div class="ai-card__footer">
+      <div class="ai-prompt-status">
         {#if promptSavingStatus === 'saving'}
-          <span class="ai-prompt-status ai-prompt-status--saving">
-            <Loader2Icon size={12} class="ai-spin" />
+          <span class="ai-status ai-status--saving">
+            <Loader2Icon size={11} class="ai-spin" />
             Saving...
           </span>
         {:else if promptSavingStatus === 'saved'}
-          <span class="ai-prompt-status ai-prompt-status--saved">
-            <CheckCircle2Icon size={12} />
+          <span class="ai-status ai-status--saved">
+            <CheckCircle2Icon size={11} />
             Saved
           </span>
         {:else if promptSavingStatus === 'unsaved'}
-          <span class="ai-prompt-status ai-prompt-status--unsaved">
-            <span class="ai-prompt-unsaved-dot"></span>
+          <span class="ai-status ai-status--unsaved">
+            <span class="ai-unsaved-dot"></span>
             Unsaved changes
           </span>
         {:else if $aiPrefsDirty}
-          <span class="ai-prompt-status ai-prompt-status--unsaved">
-            <span class="ai-prompt-unsaved-dot"></span>
+          <span class="ai-status ai-status--unsaved">
+            <span class="ai-unsaved-dot"></span>
             Saving...
           </span>
         {:else}
-          <span class="ai-prompt-status ai-prompt-status--synced">
-            <CheckCircle2Icon size={12} />
+          <span class="ai-status ai-status--synced">
+            <CheckCircle2Icon size={11} />
             All changes saved
           </span>
         {/if}
-
-        <div class="ai-prompt-actions">
-          <button
-            type="button"
-            class="ai-btn ai-btn--sm ai-btn--ghost"
-            onclick={handleResetPrompt}
-            disabled={$aiFeaturesPrefs.systemPrompt === defaultPrefs.systemPrompt}
-          >
-            <RefreshCwIcon size={13} />
-            Reset
-          </button>
-          <button
-            type="button"
-            class="ai-btn ai-btn--sm"
-            onclick={handleSavePrompt}
-            disabled={promptSavingStatus !== 'unsaved'}
-          >
-            <CheckCircle2Icon size={13} />
-            Save
-          </button>
-        </div>
+      </div>
+      <div class="ai-prompt-actions">
+        <button
+          type="button"
+          class="ai-btn ai-btn--subtle"
+          onclick={handleResetPrompt}
+          disabled={$aiFeaturesPrefs.systemPrompt === defaultPrefs.systemPrompt}
+        >
+          <RefreshCwIcon size={13} />
+          Reset
+        </button>
+        <button
+          type="button"
+          class="ai-btn ai-btn--primary"
+          onclick={handleSavePrompt}
+          disabled={promptSavingStatus !== 'unsaved'}
+        >
+          <CheckCircle2Icon size={13} />
+          Save
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- ── MCP Connection Info ──────────────────────────── -->
+  <!-- ── MCP Server Connection ────────────────────────── -->
   <div class="ai-card">
-    <div class="ai-card-header">
-      <ServerIcon size={16} />
-      <h4>MCP Server Connection</h4>
+    <div class="ai-card__header">
+      <h2 class="ai-card__title">MCP Server Connection</h2>
+      <p class="ai-card__desc">AI clients like Claude Desktop, Codex, and Cursor can connect directly to Bento's local MCP server. Use these details to configure your client.</p>
     </div>
-
-    <div class="ai-card-description">
-      <p>
-        AI clients like Claude Desktop, Codex, and Cursor can connect directly to Bento's local MCP server.
-        Use these details to configure your client.
-      </p>
-    </div>
-
     {#if $mcpLoading}
-      <div class="ai-loading-row">
-        <Loader2Icon size={14} class="ai-spin" />
-        <span>Loading MCP connection info...</span>
+      <div class="ai-card__body">
+        <div class="ai-inline-loading">
+          <Loader2Icon size={14} class="ai-spin" />
+          <span>Loading MCP connection info...</span>
+        </div>
       </div>
     {:else if mcpUp}
-      <div class="ai-mcp-row">
-        <div class="ai-mcp-label">
-          <span>Server URL</span>
-        </div>
-        <div class="ai-mcp-value-row">
-          <code class="ai-mcp-value">{$mcpConnectionInfo!.url}</code>
+      <div class="ai-card__row">
+        <span class="ai-card__row-label">Server URL</span>
+        <div class="ai-card__row-value">
+          <code class="ai-code-value">{$mcpConnectionInfo!.url}</code>
           <button
             type="button"
-            class="ai-btn ai-btn--icon ai-btn--ghost"
+            class="ai-btn ai-btn--icon"
             aria-label="Copy server URL"
             title="Copy server URL"
             onclick={() => void handleCopyUrl()}
@@ -386,21 +346,18 @@
           </button>
         </div>
       </div>
-
-      <div class="ai-mcp-row">
-        <div class="ai-mcp-label">
-          <span>Session Token</span>
-          <span class="ai-mcp-badge">Sensitive</span>
-        </div>
-        <div class="ai-mcp-value-row">
-          <code class="ai-mcp-value ai-mcp-value--token">
-            {#each Array($mcpConnectionInfo!.token.length) as _}
-              &bull;
-            {/each}
+      <div class="ai-card__row">
+        <span class="ai-card__row-label">
+          Session Token
+          <span class="ai-badge-inline">Sensitive</span>
+        </span>
+        <div class="ai-card__row-value">
+          <code class="ai-code-value ai-code-value--masked">
+            {#each Array($mcpConnectionInfo!.token.length) as _}&bull;{/each}
           </code>
           <button
             type="button"
-            class="ai-btn ai-btn--icon ai-btn--ghost"
+            class="ai-btn ai-btn--icon"
             aria-label="Copy session token"
             title="Copy session token"
             onclick={() => void handleCopyToken()}
@@ -413,189 +370,222 @@
           </button>
         </div>
       </div>
-
-      <div class="ai-mcp-health">
-        <span class="ai-mcp-health-dot"></span>
+      <div class="ai-card__row ai-card__row--status">
+        <span class="ai-mcp-status__dot"></span>
         <span>Server running on port {$mcpConnectionInfo!.port}</span>
-        <span class="ai-mcp-version">v{$mcpConnectionInfo!.version}</span>
+        <span class="ai-mcp-status__version">v{$mcpConnectionInfo!.version}</span>
       </div>
     {:else}
-      <div class="ai-mcp-offline">
-        <ServerIcon size={14} />
-        <span>MCP server is not available. AI clients cannot connect right now.</span>
+      <div class="ai-card__body">
+        <div class="ai-mcp-offline">
+          <ServerIcon size={14} />
+          <span>MCP server is not available. AI clients cannot connect right now.</span>
+        </div>
       </div>
     {/if}
   </div>
 
-  <!-- ── Privacy Note ─────────────────────────────────── -->
-  <div class="ai-disclaimer">
-    <ShieldIcon size={16} />
-    <div class="ai-disclaimer__copy">
-      <strong>Privacy & Data</strong>
-      <p>
-        All AI requests go directly from this device to your configured provider.
-        No data passes through Bento servers. Your system prompt and feature preferences
-        are stored locally and never transmitted off-device.
-      </p>
+  <!-- ── Privacy & Data ───────────────────────────────── -->
+  <div class="ai-card ai-card--muted">
+    <div class="ai-card__body">
+      <div class="ai-privacy">
+        <ShieldIcon size={16} />
+        <div class="ai-privacy__text">
+          <strong>Privacy & Data</strong>
+          <p>All AI requests go directly from this device to your configured provider. No data passes through Bento servers. Your system prompt and feature preferences are stored locally and never transmitted off-device.</p>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
 <style>
-  /* ── Layout ───────────────────────────────────────────────────────────────── */
   .ai-features {
     display: grid;
-    gap: 1.75rem;
-  }
-  .ai-features--page {
-    max-width: 48rem;
+    gap: 1.25rem;
+    min-width: 0;
   }
 
-  /* ── Cards ────────────────────────────────────────────────────────────────── */
+  /* ── Card (Whirl pattern) ─────────────────────────────────────── */
   .ai-card {
-    border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
-    box-shadow: none;
-    border-radius: 1.15rem;
-    padding: 1.25rem;
-    background:
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--surface) 96%, var(--background)) 98%,
-        color-mix(in srgb, var(--surface) 96%, var(--background)) 86%
-      );
-    display: grid;
-    gap: 1rem;
-  }
-  .ai-card-header {
     display: flex;
-    align-items: center;
-    gap: 0.55rem;
-    color: var(--foreground);
-    padding-bottom: 0.25rem;
+    flex-direction: column;
+    border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+    border-radius: 14px;
+    background: transparent;
+    min-width: 0;
+    overflow: hidden;
   }
-  .ai-card-header :global(svg) {
-    color: var(--muted);
-    flex-shrink: 0;
+  .ai-card--muted {
+    border-color: color-mix(in srgb, var(--foreground) 5%, transparent);
   }
-  .ai-card-header h4 {
+  .ai-card__header {
+    padding: 16px 20px 0;
+  }
+  .ai-card__title {
     margin: 0;
-    font-size: 0.95rem;
-    font-weight: 700;
+    font-weight: 550;
     color: var(--foreground);
+    letter-spacing: -0.01em;
   }
-  .ai-card-description p {
-    margin: 0;
+  .ai-card__desc {
+    margin: 0.35rem 0 0;
     line-height: 1.5;
     color: var(--muted);
-    padding-bottom: 0.25rem;
   }
-  .ai-card-actions {
-    display: flex;
-    gap: 0.6rem;
+  .ai-card__body {
+    padding: 12px 20px 16px;
+    min-width: 0;
   }
-
-  /* ── Status Row ───────────────────────────────────────────────────────────── */
-  .ai-status-row {
+  .ai-card__footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.75rem;
-    padding: 0.85rem 1rem;
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--foreground) 4%, var(--background));
-    border: none;
-    box-shadow: none;
+    gap: 0.5rem;
+    padding: 10px 20px 12px;
+    border-top: 1px solid color-mix(in srgb, var(--foreground) 5%, transparent);
   }
 
-  .ai-provider-info {
+  /* ── Card rows (sub-border lines) ────────────────────────────── */
+  .ai-card__row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 10px 20px;
+    border-bottom: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+  }
+  .ai-card__row:last-child { border-bottom: none; }
+  .ai-card__row-label {
+    font-weight: 550;
+    color: var(--foreground);
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    white-space: nowrap;
+  }
+  .ai-card__row-value {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .ai-card__row--status {
+    display: flex;
+    color: oklch(0.63 0.128 151.4);
+    font-weight: 550;
+    justify-content: flex-start;
+    gap: 0.45rem;
+  }
+  .ai-card__row--status .ai-mcp-status__version {
+    margin-left: auto;
+  }
+
+  /* ── Row (inline setting) ────────────────────────────────────── */
+  .ai-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .ai-row__left {
     display: flex;
     align-items: center;
     gap: 0.65rem;
     min-width: 0;
     flex: 1;
   }
-  .ai-provider-dot {
-    width: 0.6rem;
-    height: 0.6rem;
-    border-radius: 9999px;
-    flex-shrink: 0;
-  }
-  .ai-provider-details {
+  .ai-row__text {
     display: grid;
     gap: 0.1rem;
     min-width: 0;
   }
-  .ai-provider-name {
-    font-size: 0.9rem;
-    font-weight: 700;
+  .ai-row__text strong {
+    font-weight: 550;
     color: var(--foreground);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .ai-provider-label {
+  .ai-row__text span {
     color: var(--muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .ai-row__right {
+    flex-shrink: 0;
+  }
+
+  .ai-dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 9999px;
+    flex-shrink: 0;
   }
   :global(.ai-icon-muted) {
     color: var(--muted);
     flex-shrink: 0;
   }
 
-  .ai-status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    flex-shrink: 0;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    padding: 0.3rem 0.65rem;
-    border-radius: 999px;
-  }
-  .ai-status-badge--ok {
-    background: color-mix(in srgb, oklch(0.63 0.135 163.337) 12%, var(--background));
-    color: oklch(0.63 0.135 163.337);
-  }
-  .ai-status-badge--idle {
-    background: color-mix(in srgb, oklch(0.769 0.165 70.08) 12%, var(--background));
-    color: oklch(0.666 0.157 58.318);
-  }
-  .ai-status-badge--off {
-    background: color-mix(in srgb, var(--muted) 12%, var(--background));
-    color: var(--muted);
-  }
-
-  .ai-loading-row {
+  .ai-inline-loading {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.65rem 0;
     color: var(--muted);
   }
 
-  /* ── Prompt Header ──────────────────────────────────────────────────────── */
-  .ai-prompt-header {
-    display: grid;
-    gap: 0.85rem;
+  /* ── Badges ───────────────────────────────────────────────────── */
+  .ai-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+    font-weight: 550;
+    letter-spacing: 0.03em;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+  }
+  .ai-badge--ok {
+    background: color-mix(in srgb, oklch(0.63 0.135 163.337) 12%, transparent);
+    color: oklch(0.63 0.135 163.337);
+  }
+  .ai-badge--idle {
+    background: color-mix(in srgb, oklch(0.769 0.165 70.08) 12%, transparent);
+    color: oklch(0.666 0.157 58.318);
+  }
+  .ai-badge--off {
+    background: color-mix(in srgb, var(--muted) 12%, transparent);
+    color: var(--muted);
+  }
+  .ai-badge-inline {
+    font-size: 0.62rem;
+    font-weight: 550;
+    letter-spacing: 0.06em;
+    padding: 0.08rem 0.35rem;
+    border-radius: 4px;
+    background: color-mix(in srgb, oklch(0.769 0.165 70.08) 14%, transparent);
+    color: oklch(0.666 0.157 58.318);
+    text-transform: uppercase;
+    vertical-align: middle;
+    margin-left: 0.35rem;
   }
 
-  /* ── Textarea ────────────────────────────────────────────────────────────── */
+  /* ── Textarea ─────────────────────────────────────────────────── */
   .ai-textarea-wrap {
     position: relative;
   }
   .ai-textarea {
     width: 100%;
-    max-width: 32rem;
-    min-height: 6rem;
-    padding: 0.85rem 1rem;
-    border: none;
-    border-radius: 10px;
-    background: var(--background);
+    min-height: 7rem;
+    padding: 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+    border-radius: 8px;
+    background: transparent;
     color: var(--foreground);
     font-family: inherit;
+    font-size: 0.88rem;
     line-height: 1.6;
     resize: vertical;
     outline: none;
@@ -618,34 +608,23 @@
     pointer-events: none;
   }
 
-  /* ── Prompt Status ──────────────────────────────────────────────────────── */
-  .ai-prompt-status-row {
+  /* ── Prompt Footer ────────────────────────────────────────────── */
+  .ai-prompt-status {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.6rem;
-    min-height: 1.5rem;
   }
-  .ai-prompt-status {
+  .ai-status {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
     font-size: 0.72rem;
-    font-weight: 600;
+    font-weight: 550;
   }
-  .ai-prompt-status--saving {
-    color: var(--muted);
-  }
-  .ai-prompt-status--saved {
-    color: oklch(0.63 0.128 151.4);
-  }
-  .ai-prompt-status--unsaved {
-    color: oklch(0.769 0.165 70.08);
-  }
-  .ai-prompt-status--synced {
-    color: oklch(0.63 0.128 151.4);
-  }
-  .ai-prompt-unsaved-dot {
+  .ai-status--saving { color: var(--muted); }
+  .ai-status--saved { color: oklch(0.63 0.128 151.4); }
+  .ai-status--unsaved { color: oklch(0.769 0.165 70.08); }
+  .ai-status--synced { color: oklch(0.63 0.128 151.4); }
+  .ai-unsaved-dot {
     width: 0.4rem;
     height: 0.4rem;
     border-radius: 9999px;
@@ -658,40 +637,34 @@
     gap: 0.5rem;
   }
 
-  /* ── MCP Connection ──────────────────────────────────────────────────────── */
-  .ai-mcp-row {
+  /* ── Fields ───────────────────────────────────────────────────── */
+  .ai-field {
     display: grid;
-    gap: 0.45rem;
-    max-width: 32rem;
+    gap: 0.4rem;
   }
-  .ai-mcp-label {
+  .ai-field + .ai-field {
+    margin-top: 0.75rem;
+  }
+  .ai-field__label {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-weight: 600;
+    gap: 0.35rem;
+    font-weight: 550;
     color: var(--muted);
   }
-  .ai-mcp-badge {
-    font-size: 0.62rem;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    padding: 0.08rem 0.35rem;
-    border-radius: 4px;
-    background: color-mix(in srgb, oklch(0.769 0.165 70.08) 14%, var(--background));
-    color: oklch(0.666 0.157 58.318);
-    text-transform: uppercase;
-  }
-  .ai-mcp-value-row {
+  .ai-input-row {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    min-width: 0;
   }
-  .ai-mcp-value {
+  .ai-code-value {
     flex: 1;
-    padding: 0.6rem 0.85rem;
-    border: none;
+    min-width: 0;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
     border-radius: 8px;
-    background: color-mix(in srgb, var(--foreground) 4%, var(--background));
+    background: transparent;
     font-family: var(--font-mono, monospace);
     color: var(--foreground);
     white-space: nowrap;
@@ -699,41 +672,41 @@
     text-overflow: ellipsis;
     user-select: all;
   }
-  .ai-mcp-value--token {
+  .ai-code-value--masked {
     letter-spacing: 0.12em;
     color: var(--muted);
     font-size: 0.7rem;
   }
-  .ai-mcp-health {
+
+  .ai-mcp-status {
     display: flex;
     align-items: center;
     gap: 0.45rem;
-    padding: 0.65rem 0.85rem;
+    margin-top: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid color-mix(in srgb, oklch(0.63 0.128 151.4) 25%, transparent);
     border-radius: 8px;
-    background: color-mix(in srgb, oklch(0.63 0.128 151.4) 8%, var(--background));
-    font-weight: 600;
+    font-weight: 550;
     color: oklch(0.63 0.128 151.4);
   }
-  .ai-mcp-health-dot {
-    width: 0.45rem;
-    height: 0.45rem;
+  .ai-mcp-status__dot {
+    width: 0.4rem;
+    height: 0.4rem;
     border-radius: 9999px;
     background: oklch(0.63 0.128 151.4);
     flex-shrink: 0;
   }
-  .ai-mcp-version {
+  .ai-mcp-status__version {
     margin-left: auto;
     font-size: 0.7rem;
     font-weight: 500;
     opacity: 0.7;
   }
+
   .ai-mcp-offline {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.85rem 1rem;
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--muted) 8%, var(--background));
     color: var(--muted);
     line-height: 1.5;
   }
@@ -741,90 +714,91 @@
     flex-shrink: 0;
   }
 
-  /* ── Buttons ─────────────────────────────────────────────────────────────── */
-  .ai-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.35rem;
-    border: none;
-    border-radius: 8px;
-    font-family: inherit;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.12s ease;
-    white-space: nowrap;
-  }
-  .ai-btn--sm {
-    padding: 0.4rem 0.75rem;
-    background: color-mix(in srgb, var(--foreground) 8%, var(--background));
-    color: var(--foreground);
-    border: none;
-  }
-  .ai-btn--sm:hover {
-    background: color-mix(in srgb, var(--foreground) 14%, var(--background));
-  }
-  .ai-btn--ghost {
-    border: none;
-    background: transparent;
-    color: var(--muted);
-  }
-  .ai-btn--ghost:hover {
-    color: var(--foreground);
-    background: color-mix(in srgb, var(--foreground) 6%, transparent);
-  }
-  .ai-btn--icon {
-    width: 2rem;
-    height: 2rem;
-    padding: 0;
-    border-radius: 8px;
-    background: transparent;
-    color: var(--muted);
-  }
-  .ai-btn--icon:hover {
-    background: color-mix(in srgb, var(--foreground) 8%, var(--background));
-    color: var(--foreground);
-  }
-  .ai-btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-
-  /* ── Disclaimer ──────────────────────────────────────────────────────────── */
-  .ai-disclaimer {
+  /* ── Privacy ──────────────────────────────────────────────────── */
+  .ai-privacy {
     display: flex;
-    gap: 0.85rem;
-    padding: 1.15rem;
-    border-radius: 1.15rem;
-    border: none;
-    box-shadow: none;
-    background: var(--surface);
+    gap: 0.75rem;
     align-items: flex-start;
   }
-  .ai-disclaimer :global(svg) {
+  .ai-privacy :global(svg) {
     flex-shrink: 0;
     margin-top: 0.1rem;
     color: var(--muted);
   }
-  .ai-disclaimer__copy {
+  .ai-privacy__text {
     display: grid;
-    gap: 0.4rem;
+    gap: 0.35rem;
     min-width: 0;
+    flex: 1;
   }
-  .ai-disclaimer__copy strong {
+  .ai-privacy__text strong {
     color: var(--foreground);
   }
-  .ai-disclaimer__copy p {
+  .ai-privacy__text p {
     margin: 0;
     line-height: 1.5;
     color: var(--muted);
   }
 
-  /* ── Animations ──────────────────────────────────────────────────────────── */
-  :global(.ai-spin) {
-    animation: spin 0.8s linear infinite;
+  /* ── Buttons ──────────────────────────────────────────────────── */
+  .ai-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+    border-radius: 8px;
+    font-family: inherit;
+    font-weight: 550;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    white-space: nowrap;
+    background: transparent;
+    color: var(--foreground);
+    padding: 0.4rem 0.75rem;
   }
-  @keyframes spin {
+  .ai-btn:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--foreground) 6%, transparent);
+  }
+  .ai-btn--subtle {
+    border-color: transparent;
+    background: transparent;
+    color: var(--muted);
+  }
+  .ai-btn--subtle:hover:not(:disabled) {
+    color: var(--foreground);
+    background: color-mix(in srgb, var(--foreground) 6%, transparent);
+  }
+  .ai-btn--primary {
+    border-color: var(--foreground);
+    background: var(--foreground);
+    color: var(--background);
+  }
+  .ai-btn--primary:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+  .ai-btn--icon {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border-color: transparent;
+    background: transparent;
+    color: var(--muted);
+  }
+  .ai-btn--icon:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--foreground) 8%, transparent);
+    color: var(--foreground);
+  }
+  .ai-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* ── Animations ───────────────────────────────────────────────── */
+  :global(.ai-spin) {
+    animation: ai-spin 0.8s linear infinite;
+  }
+  @keyframes ai-spin {
     from { transform: rotate(0deg); }
     to   { transform: rotate(360deg); }
   }

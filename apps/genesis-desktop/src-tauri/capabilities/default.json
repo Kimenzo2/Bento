@@ -24,6 +24,10 @@
     "global-shortcut:allow-unregister",
     "notification:default",
     "opener:default",
+    "fs:allow-home-write",
+    "fs:allow-home-write-recursive",
+    "fs:allow-download-write",
+    "fs:allow-download-write-recursive",
     "store:default",
     "updater:default",
     "window-state:default",
@@ -45,6 +49,14 @@
         {
           "name": "binaries/chatgpt-proxy",
           "sidecar": true
+        },
+        {
+          "name": "bento-spectrum",
+          "sidecar": true
+        },
+        {
+          "name": "binaries/bento-spectrum",
+          "sidecar": true
         }
       ]
     },
@@ -53,6 +65,10 @@
       "allow": [
         {
           "name": "binaries/chatgpt-proxy",
+          "sidecar": true
+        },
+        {
+          "name": "binaries/bento-spectrum",
           "sidecar": true
         }
       ]

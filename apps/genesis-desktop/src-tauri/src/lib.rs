@@ -30,6 +30,7 @@ pub mod notes;
 pub mod notifications;
 pub mod payments;
 pub mod ping;
+pub mod realtime;
 pub mod runtime;
 pub mod scheduler;
 pub mod search;
@@ -1117,6 +1118,25 @@ pub fn run() {
                 }
             });
         }
+        // ── Realtime hub (managed early so all mutation commands can publish) ─
+        {
+            let hub = crate::realtime::RealtimeHub::new(app.handle().clone());
+            app.manage(hub);
+        }
+
+        // ── Spawn Realtime WebSocket server (LAN sync + phone push) ───
+        {
+            let pool = app.state::<BentoAppState>().inner().db();
+            let app_handle = app.handle().clone();
+            let hub = app.state::<crate::realtime::RealtimeHub>().inner().clone();
+
+            tauri::async_runtime::spawn(async move {
+                match crate::realtime::spawn_realtime_server(app_handle, pool, hub).await {
+                    Ok(port) => info!("[realtime] WebSocket server started on port {port}"),
+                    Err(e) => warn!("[realtime] failed to start WebSocket server: {e}"),
+                }
+            });
+        }
         // ── Spawn ChatGPT proxy sidecar ───────────────────────────────
         {
             let app_handle = app.handle().clone();
@@ -1217,6 +1237,9 @@ pub fn run() {
             uninstall_module,
             // MCP Streamable HTTP Server
             crate::mcp::get_mcp_connection_info,
+            // Realtime WebSocket Server
+            crate::realtime::get_realtime_connection_info,
+            crate::realtime::get_realtime_auth,
             crate::search::service::index_content,
             crate::search::service::search_in_module,
             crate::search::service::rebuild_index,

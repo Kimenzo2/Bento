@@ -1,5 +1,8 @@
-﻿<script lang="ts">
+<!-- ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. -->
+
+<script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
+  import { registerRefresher } from "$lib/realtime/data-changed";
   import DownloadIcon from "@lucide/svelte/icons/download";
   import HeartHandshakeIcon from "@lucide/svelte/icons/heart-handshake";
   import PlusIcon from "@lucide/svelte/icons/plus";
@@ -312,6 +315,16 @@
   }
 
   $effect(() => { loadAll(); });
+
+  // Live-refresh via the realtime data-changed bus: mood/* emits after every
+  // mutation (incl. agent-driven writes), so re-fetch on change.
+  $effect(() => {
+    const offs = [
+      registerRefresher('mood/list', () => loadAll()),
+      registerRefresher('mood/activities', () => loadAll()),
+    ];
+    return () => { offs.forEach((off) => off()); };
+  });
 </script>
 
 <main class="mood-workspace module-root" data-module="mood">

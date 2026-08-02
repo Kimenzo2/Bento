@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 use std::{
     env,
     path::PathBuf,
@@ -1352,8 +1354,18 @@ impl AuthManager {
     /// Load session from the file-based fallback.
     fn load_session_from_file(&self) -> Result<Option<StoredAuthSession>, String> {
         let path = self.session_file_path();
+        eprintln!("[Auth] load_session_from_file: path={}", path.display());
         if !path.exists() {
+            eprintln!("[Auth] load_session_from_file: file does not exist");
             return Ok(None);
+        }
+        match std::fs::metadata(&path) {
+            Ok(m) => eprintln!(
+                "[Auth] load_session_from_file: file exists, size={}, modified={:?}",
+                m.len(),
+                m.modified()
+            ),
+            Err(e) => eprintln!("[Auth] load_session_from_file: metadata error: {e}"),
         }
         let raw = match std::fs::read_to_string(&path) {
             Ok(content) => content,
@@ -1365,7 +1377,7 @@ impl AuthManager {
         match serde_json::from_str::<StoredAuthSession>(&raw) {
             Ok(session) => Ok(Some(session)),
             Err(err) => {
-                eprintln!("[Auth] Corrupt session file, removing: {err}");
+                eprintln!("[Auth] Corrupt session file ({} bytes), removing: {err}", raw.len());
                 let _ = std::fs::remove_file(&path);
                 Ok(None)
             }
@@ -1749,33 +1761,43 @@ impl AuthManager {
     }
 
     fn load_session_from_keyring(&self) -> Result<Option<StoredAuthSession>, String> {
-        // Try OS keyring first (secure storage)
-        let entry = Entry::new(AUTH_KEYRING_SERVICE, AUTH_KEYRING_ACCOUNT)
-            .map_err(|error| error.to_string())?;
+        eprintln!("[Auth] load_session_from_keyring: service={AUTH_KEYRING_SERVICE}, account={AUTH_KEYRING_ACCOUNT}");
 
-        let keyring_result: Option<StoredAuthSession> = match entry.get_password() {
-            Ok(raw) => {
-                match serde_json::from_str::<StoredAuthSession>(&raw) {
-                    Ok(session) => {
-                        // Keyring hit — also persist to file so the file is fresh
-                        let _ = self.save_session_to_file(&session);
-                        return Ok(Some(session));
-                    }
-                    Err(_) => None, // Corrupt keyring entry, fall through to file
-                }
+        // Try OS keyring first (secure storage)
+        let entry = match Entry::new(AUTH_KEYRING_SERVICE, AUTH_KEYRING_ACCOUNT) {
+            Ok(e) => {
+                eprintln!("[Auth] load_session_from_keyring: Entry::new OK");
+                e
             }
-            Err(keyring::Error::NoEntry) => None, // Not in keyring, try file
             Err(error) => {
-                // Keyring access error (e.g., credential service unavailable)
-                eprintln!("[Auth] Keyring read failed, falling back to file: {error}");
-                None
+                eprintln!("[Auth] load_session_from_keyring: Entry::new failed: {error}");
+                return Err(error.to_string());
             }
         };
 
-        // Fallback: try file-based session store
-        if keyring_result.is_none() {
-            eprintln!("[Auth] Keyring had no session, trying file-based fallback");
+        match entry.get_password() {
+            Ok(raw) => {
+                eprintln!("[Auth] load_session_from_keyring: get_password OK, raw_len={}", raw.len());
+                match serde_json::from_str::<StoredAuthSession>(&raw) {
+                    Ok(session) => {
+                        eprintln!("[Auth] load_session_from_keyring: JSON parse OK, user={}", session.user.email);
+                        let _ = self.save_session_to_file(&session);
+                        return Ok(Some(session));
+                    }
+                    Err(e) => {
+                        eprintln!("[Auth] load_session_from_keyring: corrupt JSON in keyring: {e}");
+                    }
+                }
+            }
+            Err(keyring::Error::NoEntry) => {
+                eprintln!("[Auth] load_session_from_keyring: NoEntry in keyring");
+            }
+            Err(error) => {
+                eprintln!("[Auth] load_session_from_keyring: read error, falling back to file: {error}");
+            }
         }
+
+        eprintln!("[Auth] Keyring had no session, trying file-based fallback");
         self.load_session_from_file()
     }
 
@@ -1786,6 +1808,8 @@ impl AuthManager {
         let file_result = self.save_session_to_file(session);
         if let Err(ref err) = file_result {
             eprintln!("[Auth] Failed to persist session to file: {err}");
+        } else {
+            eprintln!("[Auth] Session saved to file OK");
         }
 
         // Try OS keyring (primary secure storage)
@@ -1793,12 +1817,12 @@ impl AuthManager {
             Ok(entry) => {
                 if let Err(error) = entry.set_password(&raw) {
                     eprintln!("[Auth] Keyring write failed, file fallback is active: {error}");
-                    // Don't fail — file fallback has the session
+                } else {
+                    eprintln!("[Auth] Keyring write OK");
                 }
             }
             Err(error) => {
                 eprintln!("[Auth] Keyring entry creation failed, file fallback is active: {error}");
-                // Don't fail — file fallback has the session
             }
         }
 

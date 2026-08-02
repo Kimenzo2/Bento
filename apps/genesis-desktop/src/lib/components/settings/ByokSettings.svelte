@@ -1,3 +1,5 @@
+<!-- ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. -->
+
 <script lang="ts">
   import { onMount } from "svelte";
   import { fade, fly } from "svelte/transition";
@@ -11,7 +13,6 @@
   import Loader2Icon from "@lucide/svelte/icons/loader-2";
   import PlugIcon from "@lucide/svelte/icons/plug";
   import PlusIcon from "@lucide/svelte/icons/plus";
-  import RefreshCwIcon from "@lucide/svelte/icons/refresh-cw";
   import ShieldIcon from "@lucide/svelte/icons/shield";
   import Trash2Icon from "@lucide/svelte/icons/trash-2";
   import XIcon from "@lucide/svelte/icons/x";
@@ -23,7 +24,6 @@
     byokProviders,
     byokReady,
     byokTesting,
-    byokTestResults,
     loadByokSettings,
     refreshProviders,
     saveApiKey,
@@ -33,8 +33,6 @@
     setActiveModel,
     dismissOnboarding,
     updateByokSettings,
-    type ProviderKeyStatus,
-    type ByokSettings as ByokSettingsType,
     type ConnectionTestResult,
     providerDisplayName,
     providerKnownModels,
@@ -61,6 +59,7 @@
   let keyError = $state<string | null>(null);
   let keySuccess = $state<string | null>(null);
   let deletingProvider = $state<string | null>(null);
+  let deleteConfirmProvider = $state<string | null>(null);
   let showProviderMenu = $state<string | null>(null);
 
   // Connection test
@@ -83,11 +82,6 @@
     ($byokProviders ?? []).filter((p) => p.isConfigured)
   );
 
-  const activeProviderData = $derived(
-    $byokSettings.activeProvider
-      ? ($byokProviders ?? []).find((p) => p.provider === $byokSettings.activeProvider)
-      : null
-  );
 
   const availableModels = $derived(
     $byokSettings.activeProvider
@@ -113,6 +107,7 @@
 
   function startAddKey(provider: string) {
     addingKeyProvider = provider;
+    deleteConfirmProvider = null;
     keyInput = "";
     keyConfirm = "";
     keyError = null;
@@ -122,6 +117,7 @@
 
   function cancelAddKey() {
     addingKeyProvider = null;
+    deleteConfirmProvider = null;
     keyInput = "";
     keyConfirm = "";
     keyError = null;
@@ -158,8 +154,16 @@
     }
   }
 
+  function confirmDelete(provider: string) {
+    deleteConfirmProvider = provider;
+  }
+
+  function cancelDelete() {
+    deleteConfirmProvider = null;
+  }
+
   async function handleDeleteKey(provider: string) {
-    if (!confirm(`Delete the API key for ${providerDisplayName(provider)}? This cannot be undone.`)) return;
+    deleteConfirmProvider = null;
     deletingProvider = provider;
     try {
       await deleteApiKey(provider);
@@ -208,16 +212,38 @@
     await updateByokSettings({ baseUrlOverrides: overrides });
   }
 
+  function connectionIcon(result: ConnectionTestResult): typeof AlertCircleIcon {
+    if (result.ok) return CheckCircle2Icon;
+    switch (result.error?.code) {
+      case 'AuthFailed': return ShieldIcon;
+      case 'NoKey': return KeyIcon;
+      default: return AlertCircleIcon;
+    }
+  }
 
+  function connectionCode(result: ConnectionTestResult): string {
+    if (result.ok) return "ok";
+    return result.error?.code ?? "unknown";
+  }
 
-  const providerColors: Record<string, string> = {
-    openai: "oklch(0.637 0.124 169.506)",
-    anthropic: "oklch(0.754 0.085 67.104)",
-    gemini: "oklch(0.63 0.18 259.956)",
-    grok: "oklch(0.682 0.158 243.354)",
-    openrouter: "oklch(0.705 0.193 39.231)",
-    ollama: "oklch(0.577 0.152 315.318)",
-  };
+  function connectionMessage(result: ConnectionTestResult): string {
+    if (result.ok) {
+      let msg = `Connected successfully (${result.latencyMs}ms)`;
+      if (result.availableModels.length > 0) msg += ` — ${result.availableModels.length} models available`;
+      return msg;
+    }
+    switch (result.error?.code) {
+      case 'AuthFailed': return 'Authentication failed: invalid API key';
+      case 'RateLimited': return `Rate limited: too many requests (HTTP ${result.error.statusCode})`;
+      case 'Timeout': return 'Connection timed out — server may be unreachable';
+      case 'DnsFailure': return 'DNS resolution failed — check your network or base URL';
+      case 'SslError': return 'SSL/TLS error — check certificate configuration';
+      case 'ServerError': return `Server error (HTTP ${result.error.statusCode})`;
+      case 'NoKey': return 'No API key configured for this provider';
+      default: return `Connection failed: ${result.error?.message ?? 'Unknown error'}`;
+    }
+  }
+
 </script>
 
 <div class="byok-settings" class:byok-settings--page={surface === "page"}>
@@ -288,168 +314,144 @@
   {:else}
     <!-- ── Main BYOK Panel ──────────────────────────────── -->
     <div class="byok-panel">
-      <!-- ── Active Provider Selector ────────────────────── -->
-        <div class="byok-section">
-          <div class="byok-section__header">
-            <h4>Active AI Provider</h4>
-            <p>Select which provider to use for AI features across Bento.</p>
-          </div>
-
-          <div class="byok-provider-select">
-            <button
-              type="button"
-              class="byok-select-trigger"
-              onclick={() => (showProviderMenu = showProviderMenu ? null : "open")}
-              aria-haspopup="listbox"
-              aria-expanded={showProviderMenu ? 'true' : 'false'}
-            >
-              {#if $byokSettings.activeProvider}
-                {const providerName = $byokSettings.activeProvider}
-                <span class="byok-provider-dot" style={`background:${providerColors[providerName] ?? "#666"}`}></span>
-                <BrandIcon name={providerName} size={16} class="byok-provider-svg" />
-                <span>{providerDisplayName($byokSettings.activeProvider)}</span>
-                {#if $byokSettings.activeModel}
-                  <span class="byok-active-model-badge">{$byokSettings.activeModel}</span>
-                {/if}
-              {:else}
-                <KeyIcon size={16} />
-                <span class="byok-select-placeholder">Select a provider...</span>
-              {/if}
-              <ChevronDownIcon size={14} class={`byok-chevron${showProviderMenu ? ' byok-chevron--open' : ''}`} />
-            </button>
-
-            {#if showProviderMenu}
-              <div class="byok-select-dropdown" role="listbox" transition:fade={{ duration: 100 }} use:clickOutside={() => (showProviderMenu = null)}>
-                {#if configuredProviders.length === 0}
-                  <div class="byok-select-empty">No providers configured. Add an API key below.</div>
-                {:else}
-                  {#each configuredProviders as provider}
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={$byokSettings.activeProvider === provider.provider}
-                      class="byok-select-option"
-                      class:byok-select-option--active={$byokSettings.activeProvider === provider.provider}
-                      onclick={() => void handleSelectProvider(provider.provider)}
-                    >
-                      <span class="byok-provider-dot" style={`background:${providerColors[provider.provider] ?? "#666"}`}></span>
-                      <BrandIcon name={provider.provider} size={14} class="byok-provider-svg" />
-                      <span>{provider.displayName}</span>
-                      {#if provider.provider === "ollama"}
-                        <span class="byok-provider-badge">Local</span>
-                      {/if}
-                    </button>
-                  {/each}
-                {/if}
-              </div>
-            {/if}
-          </div>
-
-          <!-- ── Model Selector ─────────────────────────────── -->
-          {#if $byokSettings.activeProvider && availableModels.length > 0}
-            <div class="byok-model-select">
-              <label class="byok-model-label">Active Model</label>
-              <div class="byok-model-select-wrap">
+      <!-- ── Active Provider Card ──────────────────────── -->
+      <div class="byok-card">
+        <div class="byok-card__header">
+          <h4>Active AI Provider</h4>
+          <p>Select which provider to use for AI features across Bento.</p>
+        </div>
+        <div class="byok-card__body">
+          <!-- Provider row -->
+          <div class="byok-card__row">
+            <div class="byok-card__row-label">Provider</div>
+            <div class="byok-card__row-value">
+              <div class="byok-provider-select">
                 <button
                   type="button"
                   class="byok-select-trigger"
-                  onclick={() => (showModelDropdown = !showModelDropdown)}
+                  onclick={() => (showProviderMenu = showProviderMenu ? null : "open")}
                   aria-haspopup="listbox"
-                  aria-expanded={showModelDropdown}
+                  aria-expanded={showProviderMenu ? 'true' : 'false'}
                 >
-                  <BotIcon size={16} />
-                  <span>{$byokSettings.activeModel || "Select a model..."}</span>
-                  <ChevronDownIcon size={14} class={`byok-chevron${showModelDropdown ? ' byok-chevron--open' : ''}`} />
+                  {#if $byokSettings.activeProvider}
+                    {const providerName = $byokSettings.activeProvider}
+                    <BrandIcon name={providerName} size={16} class="byok-provider-svg" />
+                    <span>{providerDisplayName($byokSettings.activeProvider)}</span>
+                  {:else}
+                    <KeyIcon size={16} />
+                    <span class="byok-select-placeholder">Select a provider...</span>
+                  {/if}
+                  <ChevronDownIcon size={14} class={`byok-chevron${showProviderMenu ? ' byok-chevron--open' : ''}`} />
                 </button>
 
-                {#if showModelDropdown}
-                  <div class="byok-select-dropdown byok-select-dropdown--models" role="listbox" transition:fade={{ duration: 100 }} use:clickOutside={() => (showModelDropdown = false)}>
-                    {#each availableModels as model}
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={$byokSettings.activeModel === model}
-                        class="byok-select-option"
-                        class:byok-select-option--active={$byokSettings.activeModel === model}
-                        onclick={() => void handleSelectModel(model)}
-                      >
-                        <span>{model}</span>
-                        {#if $byokSettings.activeModel === model}
-                          <CheckCircle2Icon size={14} />
-                        {/if}
-                      </button>
-                    {/each}
+                {#if showProviderMenu}
+                  <div class="byok-select-dropdown" role="listbox" transition:fade={{ duration: 100 }} use:clickOutside={() => (showProviderMenu = null)}>
+                    {#if configuredProviders.length === 0}
+                      <div class="byok-select-empty">No providers configured. Add an API key below.</div>
+                    {:else}
+                      {#each configuredProviders as provider}
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={$byokSettings.activeProvider === provider.provider}
+                          class="byok-select-option"
+                          class:byok-select-option--active={$byokSettings.activeProvider === provider.provider}
+                          onclick={() => void handleSelectProvider(provider.provider)}
+                        >
+                          <BrandIcon name={provider.provider} size={14} class="byok-provider-svg" />
+                          <span>{provider.displayName}</span>
+                          {#if provider.provider === "ollama"}
+                            <span class="byok-provider-badge">Local</span>
+                          {/if}
+                        </button>
+                      {/each}
+                    {/if}
                   </div>
                 {/if}
               </div>
             </div>
+          </div>
+
+          <!-- Model row -->
+          {#if $byokSettings.activeProvider && availableModels.length > 0}
+            <div class="byok-card__row">
+              <div class="byok-card__row-label">Active Model</div>
+              <div class="byok-card__row-value">
+                <div class="byok-model-select">
+                  <div class="byok-model-select-wrap">
+                    <button
+                      type="button"
+                      class="byok-select-trigger"
+                      onclick={() => (showModelDropdown = !showModelDropdown)}
+                      aria-haspopup="listbox"
+                      aria-expanded={showModelDropdown}
+                    >
+                      <BotIcon size={16} />
+                      <span>{$byokSettings.activeModel || "Select a model..."}</span>
+                      <ChevronDownIcon size={14} class={`byok-chevron${showModelDropdown ? ' byok-chevron--open' : ''}`} />
+                    </button>
+
+                    {#if showModelDropdown}
+                      <div class="byok-select-dropdown byok-select-dropdown--models" role="listbox" transition:fade={{ duration: 100 }} use:clickOutside={() => (showModelDropdown = false)}>
+                        {#each availableModels as model}
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={$byokSettings.activeModel === model}
+                            class="byok-select-option"
+                            class:byok-select-option--active={$byokSettings.activeModel === model}
+                            onclick={() => void handleSelectModel(model)}
+                          >
+                            <span>{model}</span>
+                            {#if $byokSettings.activeModel === model}
+                              <CheckCircle2Icon size={14} />
+                            {/if}
+                          </button>
+                        {/each}
+                      </div>
+                    {/if}
+                  </div>
+                </div>
+              </div>
+            </div>
           {/if}
 
-          <!-- ── Connection Result ─────────────────────────── -->
+          <!-- Connection Result -->
           {#if connectionResult}
-            <div
-              class="byok-connection-result"
-              class:byok-connection-result--ok={connectionResult.result.ok}
-              class:byok-connection-result--err={!connectionResult.result.ok}
-              transition:fade={{ duration: 150 }}
-            >
-              {#if connectionResult.result.ok}
-                <CheckCircle2Icon size={16} />
-                <span>
-                  Connected successfully ({connectionResult.result.latencyMs}ms)
-                  {#if connectionResult.result.availableModels.length > 0}
-                    — {connectionResult.result.availableModels.length} models available
-                  {/if}
-                </span>
-              {:else}
-                {#if connectionResult.result.error?.code === 'AuthFailed'}
-                  <ShieldIcon size={16} />
-                  <span>Authentication failed: invalid API key</span>
-                {:else if connectionResult.result.error?.code === 'RateLimited'}
-                  <AlertCircleIcon size={16} />
-                  <span>Rate limited: too many requests (HTTP {connectionResult.result.error.statusCode})</span>
-                {:else if connectionResult.result.error?.code === 'Timeout'}
-                  <AlertCircleIcon size={16} />
-                  <span>Connection timed out — server may be unreachable</span>
-                {:else if connectionResult.result.error?.code === 'DnsFailure'}
-                  <AlertCircleIcon size={16} />
-                  <span>DNS resolution failed — check your network or base URL</span>
-                {:else if connectionResult.result.error?.code === 'SslError'}
-                  <AlertCircleIcon size={16} />
-                  <span>SSL/TLS error — check certificate configuration</span>
-                {:else if connectionResult.result.error?.code === 'ServerError'}
-                  <AlertCircleIcon size={16} />
-                  <span>Server error (HTTP {connectionResult.result.error.statusCode})</span>
-                {:else if connectionResult.result.error?.code === 'NoKey'}
-                  <KeyIcon size={16} />
-                  <span>No API key configured for this provider</span>
-                {:else}
-                  <AlertCircleIcon size={16} />
-                  <span>Connection failed: {connectionResult.result.error?.message ?? 'Unknown error'}</span>
-                {/if}
-              {/if}
-              <button type="button" class="byok-result-dismiss" onclick={() => (connectionResult = null)}>
-                <XIcon size={14} />
-              </button>
+            <div class="byok-card__row">
+              <div
+                class="byok-connection-result"
+                class:byok-connection-result--ok={connectionResult.result.ok}
+                class:byok-connection-result--err={!connectionResult.result.ok}
+                data-code={connectionCode(connectionResult.result)}
+                transition:fade={{ duration: 150 }}
+              >
+                {const Icon = connectionIcon(connectionResult.result)}
+                <Icon size={16} />
+                <span>{connectionMessage(connectionResult.result)}</span>
+                <button type="button" class="byok-result-dismiss" onclick={() => (connectionResult = null)}>
+                  <XIcon size={14} />
+                </button>
+              </div>
             </div>
           {/if}
         </div>
+      </div>
 
-        <!-- ── Provider Configuration ──────────────────────── -->
-        <div class="byok-section">
-          <div class="byok-section__header">
-          <h4>Provider Credentials</h4>
-          <p>Add, test, and remove provider keys. Only masked previews are shown in Bento.</p>
-        </div>
-
-          <div class="byok-provider-list">
+        <!-- ── Provider Credentials Card ──────────────────── -->
+        <div class="byok-card">
+          <div class="byok-card__header">
+            <h4>Provider Credentials</h4>
+            <p>Add, test, and remove provider keys. Only masked previews are shown in Bento.</p>
+          </div>
+          <div class="byok-card__body" role="list">
             {#each $byokProviders as provider}
-              <div class="byok-provider-card" class:byok-provider-card--expanded={addingKeyProvider === provider.provider || editingKeyProvider === provider.provider}>
-                <div class="byok-provider-card__main">
-                  <div class="byok-provider-card__info">
-                    <span class="byok-provider-dot byok-provider-dot--lg" style={`background:${providerColors[provider.provider] ?? "#666"}`}></span>
+              <!-- Provider row -->
+              <div class="byok-card__row" role="listitem">
+                <div class="byok-provider-row">
+                  <div class="byok-provider-row__info">
                     <BrandIcon name={provider.provider} size={18} class="byok-provider-svg" />
-                    <div class="byok-provider-card__names">
+                    <div class="byok-provider-row__names">
                       <strong>{provider.displayName}</strong>
                       {#if provider.isConfigured}
                         <span class="byok-provider-status byok-provider-status--configured">
@@ -464,10 +466,26 @@
                     </div>
                   </div>
 
-                  <div class="byok-provider-card__actions">
+                  <div class="byok-provider-row__actions">
                     {#if provider.isConfigured}
                       {#if deletingProvider === provider.provider}
                         <Loader2Icon size={16} class="byok-spin" />
+                      {:else if deleteConfirmProvider === provider.provider}
+                        <button
+                          type="button"
+                          class="byok-btn byok-btn--sm byok-btn--danger-confirm"
+                          onclick={() => void handleDeleteKey(provider.provider)}
+                        >
+                          <Trash2Icon size={13} />
+                          Delete
+                        </button>
+                        <button
+                          type="button"
+                          class="byok-btn byok-btn--sm byok-btn--ghost"
+                          onclick={cancelDelete}
+                        >
+                          Cancel
+                        </button>
                       {:else}
                         <button
                           type="button"
@@ -488,7 +506,7 @@
                           class="byok-btn byok-btn--icon byok-btn--ghost byok-btn--danger"
                           title="Remove API key"
                           aria-label="Remove API key for {provider.displayName}"
-                          onclick={() => void handleDeleteKey(provider.provider)}
+                          onclick={() => confirmDelete(provider.provider)}
                         >
                           <Trash2Icon size={15} />
                         </button>
@@ -503,15 +521,16 @@
                         Add Key
                       </button>
                     {:else}
-                      <!-- Ollama local — no key needed -->
                       <span class="byok-provider-no-key">No key required</span>
                     {/if}
                   </div>
                 </div>
+              </div>
 
-                <!-- ── Key Input Panel ────────────────────────── -->
-                {#if addingKeyProvider === provider.provider}
-                  <div class="byok-key-input-panel" transition:fly={{ y: -8, duration: 200 }}>
+              <!-- Expanded Key Input (inline) -->
+              {#if addingKeyProvider === provider.provider}
+                <div class="byok-card__row byok-card__row--expanded" transition:fly={{ y: -8, duration: 200 }}>
+                  <div class="byok-key-panel">
                     {#if keyError}
                       <p class="byok-key-error" role="alert">{keyError}</p>
                     {/if}
@@ -519,10 +538,10 @@
                       <p class="byok-key-success" role="status">{keySuccess}</p>
                     {:else}
                       <div class="byok-key-input-wrap">
-                        <label class="byok-key-label" for="byok-key-input">API Key</label>
+                        <label class="byok-key-label" for="byok-key-input-{provider.provider}">API Key</label>
                         <div class="byok-key-input-row">
                           <input
-                            id="byok-key-input"
+                            id="byok-key-input-{provider.provider}"
                             type={showKey ? "text" : "password"}
                             class="byok-key-input"
                             placeholder={provider.provider === "gemini" ? "AIza..." : "sk-..."}
@@ -541,9 +560,9 @@
                         </div>
                       </div>
                       <div class="byok-key-input-wrap">
-                        <label class="byok-key-label" for="byok-key-confirm">Confirm Key</label>
+                        <label class="byok-key-label" for="byok-key-confirm-{provider.provider}">Confirm Key</label>
                         <input
-                          id="byok-key-confirm"
+                          id="byok-key-confirm-{provider.provider}"
                           type="password"
                           class="byok-key-input"
                           placeholder="Re-enter the key to confirm"
@@ -578,10 +597,12 @@
                       </div>
                     {/if}
                   </div>
-                {/if}
+                </div>
+              {/if}
 
-                <!-- ── Ollama Base URL Override ───────────────── -->
-                {#if provider.provider === "ollama" && provider.isConfigured}
+              <!-- Ollama Base URL Override (inline row) -->
+              {#if provider.provider === "ollama" && provider.isConfigured}
+                <div class="byok-card__row">
                   <div class="byok-ollama-url">
                     <label class="byok-key-label">Base URL</label>
                     <input
@@ -594,8 +615,8 @@
                       spellcheck="false"
                     />
                   </div>
-                {/if}
-              </div>
+                </div>
+              {/if}
             {/each}
           </div>
         </div>
@@ -675,7 +696,7 @@
   .byok-onboarding__copy h4 {
     margin: 0;
     font-size: 0.95rem;
-    font-weight: 700;
+    font-weight: 550;
     color: var(--foreground);
   }
   .byok-onboarding__copy p {
@@ -716,6 +737,10 @@
   .byok-onboarding__dismiss:hover {
     background: color-mix(in srgb, var(--foreground) 8%, var(--background));
   }
+  .byok-onboarding__dismiss:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--primary) 50%, transparent);
+    outline-offset: 2px;
+  }
 
   /* ── Power Plan Gate ──────────────────────────────────────────────────────── */
   .byok-gate {
@@ -744,7 +769,7 @@
     margin: 0;
     font-family: var(--font-heading);
     font-size: 1.25rem;
-    font-weight: 600;
+    font-weight: 550;
     letter-spacing: -0.02em;
     color: var(--foreground);
   }
@@ -779,24 +804,50 @@
     gap: 1.25rem;
   }
 
-  /* ── Sections ────────────────────────────────────────────────────────────── */
-  .byok-section {
-    display: grid;
-    gap: 0.85rem;
+  /* ── Card ──────────────────────────────────────────────────────────────── */
+  .byok-card {
+    border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+    border-radius: 14px;
+    position: relative;
   }
-  .byok-section__header {
+  .byok-card__header {
     display: grid;
     gap: 0.2rem;
+    padding: 1rem 1.15rem 0.85rem;
   }
-  .byok-section__header h4 {
+  .byok-card__header h4 {
     margin: 0;
     font-size: 0.95rem;
-    font-weight: 700;
+    font-weight: 550;
     color: var(--foreground);
   }
-  .byok-section__header p {
+  .byok-card__header p {
     margin: 0;
     color: var(--muted);
+  }
+  .byok-card__body {
+    display: grid;
+  }
+  .byok-card__row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.8rem 1.15rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
+    position: relative;
+    overflow: visible;
+  }
+  .byok-card__row:last-child {
+    border-bottom: none;
+  }
+  .byok-card__row-label {
+    font-weight: 550;
+    color: var(--muted);
+  }
+  .byok-card__row-value {
+    min-width: 0;
+    flex: 1;
   }
 
   /* ── Provider Select ─────────────────────────────────────────────────────── */
@@ -808,10 +859,10 @@
     align-items: center;
     gap: 0.55rem;
     width: 100%;
-    padding: 0.7rem 1rem;
+    padding: 0.6rem 0.9rem;
     border: none;
-    border-radius: 12px;
-    background: var(--background);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--foreground) 4%, var(--background));
     color: var(--foreground);
     font-family: inherit;
     text-align: left;
@@ -820,6 +871,10 @@
   }
   .byok-select-trigger:hover {
     background: color-mix(in srgb, var(--foreground) 6%, var(--background));
+  }
+  .byok-select-trigger:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--primary) 50%, transparent);
+    outline-offset: 2px;
   }
   .byok-select-placeholder {
     color: var(--muted);
@@ -842,8 +897,8 @@
     margin-top: 0.3rem;
     border-radius: 12px;
     background: var(--background);
-    border: none;
-    box-shadow: none;
+    border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--foreground) 8%, transparent);
     overflow: hidden;
     max-height: 16rem;
     overflow-y: auto;
@@ -873,33 +928,18 @@
   .byok-select-option:hover {
     background: color-mix(in srgb, var(--foreground) 5%, var(--background));
   }
+  .byok-select-option:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--primary) 50%, transparent);
+    outline-offset: -2px;
+  }
   .byok-select-option--active {
     background: color-mix(in srgb, var(--primary) 8%, var(--background));
     color: var(--primary);
-    font-weight: 600;
-  }
-  .byok-provider-dot {
-    width: 0.5rem;
-    height: 0.5rem;
-    border-radius: 9999px;
-    flex-shrink: 0;
-  }
-  .byok-provider-dot--lg {
-    width: 0.65rem;
-    height: 0.65rem;
-  }
-  .byok-active-model-badge {
-    font-size: 0.7rem;
-    font-weight: 700;
-    padding: 0.1rem 0.4rem;
-    border-radius: 6px;
-    background: color-mix(in srgb, var(--primary) 12%, var(--background));
-    color: var(--primary);
-    letter-spacing: -0.01em;
+    font-weight: 550;
   }
   .byok-provider-badge {
     font-size: 0.68rem;
-    font-weight: 700;
+    font-weight: 550;
     padding: 0.1rem 0.4rem;
     border-radius: 6px;
     background: color-mix(in srgb, oklch(0.577 0.152 315.318) 14%, var(--background));
@@ -911,55 +951,45 @@
   /* ── Model Select ────────────────────────────────────────────────────────── */
   .byok-model-select {
     display: grid;
-    gap: 0.4rem;
-  }
-  .byok-model-label {
-    font-weight: 600;
-    color: var(--muted);
   }
   .byok-model-select-wrap {
     position: relative;
   }
 
-  /* ── Provider Cards ──────────────────────────────────────────────────────── */
-  .byok-provider-list {
-    display: grid;
-    gap: 0.5rem;
+  /* ── Provider Row (inside card) ─────────────────────────────────────────── */
+  .byok-card__row:has(.byok-provider-row) {
+    display: block;
+    padding: 0;
   }
-  .byok-provider-card {
-    border: none;
-    box-shadow: none;
-    border-radius: 14px;
-    padding: 0.85rem 1rem;
-    background: color-mix(in srgb, var(--foreground) 3%, var(--background));
-    transition: background 0.15s ease;
-  }
-  .byok-provider-card--expanded {
-    background: color-mix(in srgb, var(--primary) 8%, var(--background));
-  }
-  .byok-provider-card__main {
+  .byok-provider-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
+    width: 100%;
+    padding: 0.8rem 1.15rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
   }
-  .byok-provider-card__info {
+  .byok-provider-row:last-child {
+    border-bottom: none;
+  }
+  .byok-provider-row__info {
     display: flex;
     align-items: center;
     gap: 0.6rem;
     min-width: 0;
     flex: 1;
   }
-  .byok-provider-card__names {
+  .byok-provider-row__names {
     display: grid;
     gap: 0.1rem;
     min-width: 0;
   }
-  .byok-provider-card__names strong {
-    font-weight: 700;
+  .byok-provider-row__names strong {
+    font-weight: 550;
     color: var(--foreground);
   }
-  .byok-provider-card__actions {
+  .byok-provider-row__actions {
     display: flex;
     align-items: center;
     gap: 0.4rem;
@@ -971,7 +1001,7 @@
     align-items: center;
     gap: 0.25rem;
     font-size: 0.72rem;
-    font-weight: 600;
+    font-weight: 550;
     letter-spacing: 0.02em;
   }
   .byok-provider-status--configured {
@@ -994,10 +1024,14 @@
     border: none;
     border-radius: 10px;
     font-family: inherit;
-    font-weight: 700;
+    font-weight: 550;
     cursor: pointer;
     transition: all 0.12s ease;
     white-space: nowrap;
+  }
+  .byok-btn:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--primary) 50%, transparent);
+    outline-offset: 2px;
   }
   .byok-btn--sm {
     padding: 0.45rem 0.85rem;
@@ -1040,28 +1074,35 @@
     color: oklch(0.637 0.208 25.331);
     background: color-mix(in srgb, oklch(0.637 0.208 25.331) 10%, var(--background));
   }
+  .byok-btn--danger-confirm {
+    background: oklch(0.637 0.208 25.331);
+    color: white;
+    border: none;
+  }
+  .byok-btn--danger-confirm:hover {
+    opacity: 0.9;
+  }
   .byok-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
 
-  /* ── Key Input Panel ─────────────────────────────────────────────────────── */
-  .byok-key-input-panel {
+  /* ── Key Panel (inline expanded) ────────────────────────────────────────── */
+  .byok-key-panel {
     display: grid;
     gap: 0.65rem;
-    margin-top: 0.85rem;
-    padding: 1rem;
-    border-radius: 12px;
-    border: none;
-    box-shadow: none;
-    background: color-mix(in srgb, var(--foreground) 4%, var(--background));
+    width: 100%;
+  }
+  .byok-card__row--expanded {
+    padding-top: 0.5rem;
+    padding-bottom: 0.85rem;
   }
   .byok-key-input-wrap {
     display: grid;
     gap: 0.3rem;
   }
   .byok-key-label {
-    font-weight: 600;
+    font-weight: 550;
     color: var(--muted);
   }
   .byok-key-input-row {
@@ -1107,9 +1148,9 @@
 
   /* ── Ollama URL ──────────────────────────────────────────────────────────── */
   .byok-ollama-url {
-    margin-top: 0.75rem;
     display: grid;
     gap: 0.3rem;
+    width: 100%;
   }
 
   /* ── Connection Result ───────────────────────────────────────────────────── */
@@ -1121,7 +1162,7 @@
     border-radius: 10px;
     border: none;
     box-shadow: none;
-    font-weight: 600;
+    font-weight: 550;
     line-height: 1.4;
   }
   .byok-connection-result--ok {
@@ -1189,7 +1230,7 @@
     border-radius: 8px;
     background: color-mix(in srgb, oklch(0.769 0.165 70.08) 10%, var(--background));
     color: oklch(0.666 0.157 58.318) !important;
-    font-weight: 600 !important;
+    font-weight: 550 !important;
   }
   .byok-disclaimer__cost svg {
     color: oklch(0.666 0.157 58.318);

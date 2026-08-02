@@ -1,3 +1,5 @@
+<!-- ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. -->
+
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import { toast } from "svelte-sonner";
@@ -16,6 +18,7 @@
   import SquareIcon from "@lucide/svelte/icons/square";
   import DockButton from "./DockButton.svelte";
   import StreamingMarkdown from "$lib/components/StreamingMarkdown.svelte";
+  import ThinkingOrb from "$lib/components/agent/ThinkingOrb.svelte";
   import { streamAiResponse } from "$lib/desktop/ai";
   import { voiceEngine, type VoiceMode } from "$lib/stores/voice-engine.store.svelte";
 
@@ -71,6 +74,13 @@
   let streamingText = $state("");
   let streamingError = $state<string | null>(null);
   let messagesContainer = $state<HTMLDivElement | null>(null);
+
+  let dockOrbState = $derived.by((): "working" | "searching" | "solving" | "listening" | "composing" | "shaping" => {
+    if (mode === "listening" || mode === "recording") return "listening";
+    if (voiceEngine.status === "processing") return "solving";
+    if (voiceEngine.status === "summarizing") return "shaping";
+    return "working";
+  });
 
   let submitBusy = $state(false);
   let userNearBottom = $state(true);
@@ -812,7 +822,7 @@
           </div>
         {:else if mode === "working" && !streamingText}
           <div class="dock-msg dock-msg--assistant dock-msg--loading">
-            <div class="dock-msg-dots"><span></span><span></span><span></span></div>
+            <ThinkingOrb orbState={dockOrbState} size={20} />
           </div>
         {/if}
         {#if streamingError}

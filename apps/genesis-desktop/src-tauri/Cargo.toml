@@ -1,3 +1,5 @@
+# ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 [package]
 name = "bento-desktop"
 version = "0.2.24"
@@ -35,7 +37,7 @@ secrecy = { version = "0.8", features = ["alloc"] }
 rand = "0.8"
 hex = "0.4"
 
-tauri = { version = "2", features = ["protocol-asset", "tray-icon"] }
+tauri = { version = "2", features = ["protocol-asset", "tray-icon", "test"] }
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-liquid-glass = "0.1"
 tauri-plugin-deep-link = "2"
@@ -57,7 +59,7 @@ tokio = { version = "1", features = [
   "io-util",
 ] }
 base64 = "0.22"
-keyring = "3"
+keyring = { version = "3", features = ["windows-native", "apple-native", "sync-secret-service"] }
 reqwest = { version = "0.12", default-features = false, features = [
   "json",
   "rustls-tls",
@@ -98,6 +100,8 @@ rmcp = { version = "1.7", features = [
 ] }
 tower = { version = "0.5", features = ["util"] }
 xcap = "0.9.6"
+tokio-tungstenite = { version = "0.27", default-features = false, features = ["handshake"] }
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
 axum = { version = "0.7", default-features = false, features = ["json", "tokio", "http1"] }
 schemars = "0.8"
 

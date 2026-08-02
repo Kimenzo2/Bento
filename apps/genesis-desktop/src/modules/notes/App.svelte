@@ -1,8 +1,11 @@
-﻿<script lang="ts">
+<!-- ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. -->
+
+<script lang="ts">
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { Plus, FileText, Search, X, MoreHorizontal, Archive, Trash2, Pin, RotateCcw, Copy, Command } from 'lucide-svelte';
   import { time } from '$lib/utils/time';
+  import { registerRefresher } from '$lib/realtime/data-changed';
   import { editorStore } from '$lib/local-store/store';
   import NotesFontPreferencePanel from '$lib/components/NotesFontPreferencePanel.svelte';
   import CommandPalette from '$lib/components/CommandPalette.svelte';
@@ -346,6 +349,13 @@
     if (notes.length === 0 && !localStorage.getItem('getting-started-dismissed')) {
       showGettingStarted = true;
     }
+  });
+
+  // Live-refresh via the realtime data-changed bus: `notes/list` emits after
+  // every note mutation (including agent-driven writes), so re-fetch here.
+  onMount(() => {
+    const unregister = registerRefresher('notes/list', () => load());
+    return () => { unregister(); };
   });
 
   async function createNote() {

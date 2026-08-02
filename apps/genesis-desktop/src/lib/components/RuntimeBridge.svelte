@@ -1,3 +1,5 @@
+<!-- ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. -->
+
 <script lang="ts">
   import { browser } from "$app/environment";
   import { onMount } from "svelte";
@@ -13,6 +15,7 @@
   import { playAlarmSound, stopAlarmSound, preloadAlarmAudios, type SoundName } from "$lib/services/sounds";
   import type { SoundHandle } from "$lib/services/sounds";
   import { ensureNotificationPermission } from "$lib/services/notifications";
+  import { initDataChangedListener } from "$lib/realtime/data-changed";
 
   const themeTokens = $derived(getThemeTokens($themeState));
   let arabicFontReady = false;
@@ -212,6 +215,10 @@
           })
         );
 
+        // Consume the realtime data-changed event: routes topic-scoped
+        // mutations to registered module refreshers (see realtime/data-changed.ts).
+        unlistenPromises.push(initDataChangedListener());
+
         unlistenPromises.push(
           appWindow.listen<{ message: string; logPath: string; timestamp: string }>(
             "bento://crash",
@@ -310,8 +317,11 @@
       cancelDeferredTasks.forEach((cancel) => cancel());
       if (ringingTimer) { clearTimeout(ringingTimer); ringingTimer = null; }
       if (ringingAlarm) { stopAlarmSound(ringingAlarm.handle); ringingAlarm = null; }
-      void Promise.all(unlistenPromises).then((callbacks) => {
-        callbacks.forEach((callback) => callback());
+      // allSettled so one failed `listen` never prevents the rest from unlistening.
+      void Promise.allSettled(unlistenPromises).then((results) => {
+        for (const r of results) {
+          if (r.status === "fulfilled") r.value();
+        }
       });
     };
   });

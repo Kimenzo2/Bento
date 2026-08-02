@@ -15,11 +15,15 @@
 !macro NSIS_HOOK_PREINSTALL
     nsExec::ExecToLog '$SYSDIR\taskkill.exe /F /T /IM chatgpt-proxy.exe'
     Pop $R0
+    nsExec::ExecToLog '$SYSDIR\taskkill.exe /F /T /IM bento-spectrum.exe'
+    Pop $R0
     Sleep 2000
 !macroend
 
 !macro NSIS_HOOK_PREUNINSTALL
     nsExec::ExecToLog '$SYSDIR\taskkill.exe /F /T /IM chatgpt-proxy.exe'
+    Pop $R0
+    nsExec::ExecToLog '$SYSDIR\taskkill.exe /F /T /IM bento-spectrum.exe'
     Pop $R0
     Sleep 2000
 !macroend

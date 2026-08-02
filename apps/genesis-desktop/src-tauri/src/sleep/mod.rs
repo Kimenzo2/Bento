@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Sleep Tauri Commands — SQLite-backed
 //
@@ -11,6 +13,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use sqlx::Row;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use tauri::{AppHandle, Listener, Manager, State};
@@ -18,6 +21,7 @@ use uuid::Uuid;
 
 use chrono::{TimeZone, Timelike};
 use crate::db::BentoAppState;
+use crate::realtime::RealtimeHub;
 use crate::util::time;
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -226,6 +230,7 @@ pub async fn get_sleep_goal(
 pub async fn update_sleep_goal(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     bedtime: String,
     waketime: String,
     duration: i32,
@@ -253,12 +258,14 @@ pub async fn update_sleep_goal(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(SleepGoal {
+    let goal = SleepGoal {
         target_bedtime: bedtime,
         target_waketime: waketime,
         target_duration_min: clamped_dur,
         updated_at: now,
-    })
+    };
+    hub.emit_change("sleep/goal", "updated", json!(&goal)).await;
+    Ok(goal)
 }
 
 /// Add a manual sleep session (for days when user wants to log manually).
@@ -266,6 +273,7 @@ pub async fn update_sleep_goal(
 pub async fn add_manual_sleep_session(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     input: ManualSessionInput,
 ) -> Result<SleepSession, String> {
     crate::auth::require_billing_tier(&auth, "sleep").await?;
@@ -316,7 +324,7 @@ pub async fn add_manual_sleep_session(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(SleepSession {
+    let session = SleepSession {
         id,
         date: input.date,
         sleep_onset_ts: sleep_ms,
@@ -328,7 +336,9 @@ pub async fn add_manual_sleep_session(
         source: "manual".into(),
         confirmation_pending: false,
         created_at: now,
-    })
+    };
+    hub.emit_change("sleep/sessions", "created", json!(&session)).await;
+    Ok(session)
 }
 
 /// Delete a sleep session by id.
@@ -336,6 +346,7 @@ pub async fn add_manual_sleep_session(
 pub async fn delete_sleep_session(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<bool, String> {
     crate::auth::require_billing_tier(&auth, "sleep").await?;
@@ -348,7 +359,12 @@ pub async fn delete_sleep_session(
         .await
         .map_err(|e| e.to_string())?;
 
-    Ok(result.rows_affected() > 0)
+    if result.rows_affected() > 0 {
+        hub.emit_change("sleep/sessions", "deleted", json!({ "id": &id })).await;
+        Ok(true)
+    } else {
+        Ok(false)
+    }
 }
 
 /// Confirm or discard a pending session (morning confirmation).
@@ -356,6 +372,7 @@ pub async fn delete_sleep_session(
 pub async fn confirm_sleep_session(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
     accept: bool,
 ) -> Result<bool, String> {
@@ -369,6 +386,7 @@ pub async fn confirm_sleep_session(
             .execute(&state.db())
             .await
             .map_err(|e| e.to_string())?;
+        hub.emit_change("sleep/sessions", "updated", json!({ "id": &id })).await;
         Ok(true)
     } else {
         sqlx::query("DELETE FROM sleep_sessions WHERE id = ? AND source = 'auto'")
@@ -376,6 +394,7 @@ pub async fn confirm_sleep_session(
             .execute(&state.db())
             .await
             .map_err(|e| e.to_string())?;
+        hub.emit_change("sleep/sessions", "deleted", json!({ "id": &id })).await;
         Ok(false)
     }
 }
@@ -823,27 +842,30 @@ fn today_key() -> String {
 pub async fn sleep_log_save(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     entry: SleepLogEntry,
 ) -> Result<SleepLogRow, String> {
     crate::auth::require_billing_tier(&auth, "sleep").await?;
 
-    inner_sleep_log_save(state, entry, &today_key()).await
+    inner_sleep_log_save(state, hub, entry, &today_key()).await
 }
 
 #[tauri::command]
 pub async fn sleep_log_save_for_date(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     date_key: String,
     entry: SleepLogEntry,
 ) -> Result<SleepLogRow, String> {
     crate::auth::require_billing_tier(&auth, "sleep").await?;
 
-    inner_sleep_log_save(state, entry, &date_key).await
+    inner_sleep_log_save(state, hub, entry, &date_key).await
 }
 
 async fn inner_sleep_log_save(
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     entry: SleepLogEntry,
     date: &str,
 ) -> Result<SleepLogRow, String> {
@@ -870,7 +892,7 @@ async fn inner_sleep_log_save(
     .bind(&entry.notes).bind(&stages_json).bind(now).bind(now)
     .execute(&state.db()).await.map_err(|e| e.to_string())?;
 
-    Ok(SleepLogRow {
+    let row = SleepLogRow {
         id,
         date_key: date.to_string(),
         bedtime: entry.bedtime,
@@ -882,7 +904,9 @@ async fn inner_sleep_log_save(
         stages: entry.stages,
         created_at: now,
         updated_at: now,
-    })
+    };
+    hub.emit_change("sleep/logs", "updated", json!(&row)).await;
+    Ok(row)
 }
 
 #[tauri::command]
@@ -936,6 +960,7 @@ pub async fn sleep_logs_recent(
 pub async fn sleep_log_delete(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "sleep").await?;
@@ -946,6 +971,7 @@ pub async fn sleep_log_delete(
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    hub.emit_change("sleep/logs", "deleted", json!({ "id": &id })).await;
     Ok(())
 }
 
@@ -978,6 +1004,7 @@ pub async fn sleep_routine_list(
 pub async fn sleep_routine_save(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     input: SleepRoutineInput,
 ) -> Result<SleepRoutine, String> {
     crate::auth::require_billing_tier(&auth, "sleep").await?;
@@ -1003,18 +1030,21 @@ pub async fn sleep_routine_save(
     .execute(&state.db())
     .await
     .map_err(|e| e.to_string())?;
-    Ok(SleepRoutine {
+    let routine = SleepRoutine {
         id,
         title: input.title,
         sort_order: (max_order + 1) as i32,
         created_at: now,
-    })
+    };
+    hub.emit_change("sleep/routines", "created", json!(&routine)).await;
+    Ok(routine)
 }
 
 #[tauri::command]
 pub async fn sleep_routine_delete(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     ids: Vec<String>,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "sleep").await?;
@@ -1026,6 +1056,7 @@ pub async fn sleep_routine_delete(
             .execute(&state.db())
             .await
             .map_err(|e| e.to_string())?;
+        hub.emit_change("sleep/routines", "deleted", json!({ "id": id })).await;
     }
     Ok(())
 }
@@ -1034,6 +1065,7 @@ pub async fn sleep_routine_delete(
 pub async fn sleep_routine_reorder(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     ids: Vec<String>,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "sleep").await?;
@@ -1046,6 +1078,23 @@ pub async fn sleep_routine_reorder(
             .execute(&state.db())
             .await
             .map_err(|e| e.to_string())?;
+    }
+    if let Ok(rows) = sqlx::query("SELECT id, title, sort_order, created_at FROM sleep_routines ORDER BY sort_order ASC")
+        .fetch_all(&state.db())
+        .await
+    {
+        let routines: Vec<Value> = rows
+            .into_iter()
+            .map(|r| {
+                json!({
+                    "id": r.get::<String, _>("id"),
+                    "title": r.get::<String, _>("title"),
+                    "sort_order": r.get::<i64, _>("sort_order"),
+                    "created_at": r.get::<i64, _>("created_at"),
+                })
+            })
+            .collect();
+        hub.emit_change("sleep/routines", "refreshed", json!(routines)).await;
     }
     Ok(())
 }
@@ -1081,6 +1130,7 @@ pub async fn sleep_routine_status(
 pub async fn sleep_routine_toggle(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     routine_id: String,
     date_key: Option<String>,
 ) -> Result<bool, String> {
@@ -1103,12 +1153,14 @@ pub async fn sleep_routine_toggle(
             .execute(&state.db())
             .await
             .map_err(|e| e.to_string())?;
+        hub.emit_change("sleep/routine-status", "deleted", json!({ "routineId": &routine_id, "dateKey": &date })).await;
         Ok(false)
     } else {
         let track_id = Uuid::new_v4().to_string();
         sqlx::query("INSERT INTO sleep_routine_tracking (id, routine_id, date_key, completed, completed_at) VALUES (?, ?, ?, 1, ?)")
             .bind(&track_id).bind(&routine_id).bind(&date).bind(now)
             .execute(&state.db()).await.map_err(|e| e.to_string())?;
+        hub.emit_change("sleep/routine-status", "created", json!({ "routineId": &routine_id, "dateKey": &date, "completed": true })).await;
         Ok(true)
     }
 }
@@ -1142,6 +1194,7 @@ pub async fn sleep_alarm_list(
 pub async fn sleep_alarm_save(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     alarm: SleepAlarmInput,
 ) -> Result<SleepAlarm, String> {
     crate::auth::require_billing_tier(&auth, "sleep").await?;
@@ -1204,7 +1257,7 @@ pub async fn sleep_alarm_save(
     .bind(wake_window_minutes).bind(&sound).bind(now).bind(now)
     .execute(&state.db()).await.map_err(|e| e.to_string())?;
 
-    Ok(SleepAlarm {
+    let alarm_row = SleepAlarm {
         id,
         label: alarm.label,
         time: alarm.time,
@@ -1213,13 +1266,16 @@ pub async fn sleep_alarm_save(
         sound,
         active: true,
         created_at: now,
-    })
+    };
+    hub.emit_change("sleep/alarms", "created", json!(&alarm_row)).await;
+    Ok(alarm_row)
 }
 
 #[tauri::command]
 pub async fn sleep_alarm_delete(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     alarm_id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "sleep").await?;
@@ -1235,6 +1291,7 @@ pub async fn sleep_alarm_delete(
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    hub.emit_change("sleep/alarms", "deleted", json!({ "id": &alarm_id })).await;
     Ok(())
 }
 
@@ -1242,6 +1299,7 @@ pub async fn sleep_alarm_delete(
 pub async fn sleep_alarm_toggle(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     alarm_id: String,
 ) -> Result<bool, String> {
     crate::auth::require_billing_tier(&auth, "sleep").await?;
@@ -1265,6 +1323,7 @@ pub async fn sleep_alarm_toggle(
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    hub.emit_change("sleep/alarms", "updated", json!({ "id": &alarm_id, "active": new == 1 })).await;
     Ok(new == 1)
 }
 
@@ -1273,6 +1332,7 @@ pub async fn sleep_alarm_toggle(
 pub async fn sleep_alarm_update(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
     label: String,
     time: String,
@@ -1362,7 +1422,7 @@ pub async fn sleep_alarm_update(
         .map_err(|e| e.to_string())?;
     }
 
-    Ok(SleepAlarm {
+    let alarm_row = SleepAlarm {
         id,
         label,
         time,
@@ -1371,7 +1431,9 @@ pub async fn sleep_alarm_update(
         sound,
         active: current_active,
         created_at: now,
-    })
+    };
+    hub.emit_change("sleep/alarms", "updated", json!(&alarm_row)).await;
+    Ok(alarm_row)
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

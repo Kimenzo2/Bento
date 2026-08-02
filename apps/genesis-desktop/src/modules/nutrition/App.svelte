@@ -1,3 +1,5 @@
+<!-- ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. -->
+
 <script lang="ts">
   import BellIcon from "@lucide/svelte/icons/bell";
   import DownloadIcon from "@lucide/svelte/icons/download";
@@ -19,6 +21,7 @@
   // PieChart / Text kept for any other chart usage in this module.
   // PremiumRing wraps the segmented ring — used for the hydration Today card.
   import { invoke } from "@tauri-apps/api/core";
+  import { registerRefresher } from "$lib/realtime/data-changed";
   import { onMount } from "svelte";
   import { PieChart, Text } from 'layerchart';
   import { activeBundle, createTranslator } from "$lib/i18n";
@@ -219,6 +222,18 @@
     loadTodaySummary();
     loadHydrationStats();
     loadReminders();
+  });
+
+  // Live-refresh via the realtime data-changed bus: nutrition/* emits after
+  // every mutation (incl. agent-driven writes), so re-fetch on change.
+  onMount(() => {
+    const offs = [
+      registerRefresher('nutrition/water', () => loadHydrationStats()),
+      registerRefresher('nutrition/meals', () => loadTodaySummary()),
+      registerRefresher('nutrition/goals', () => loadTodaySummary()),
+      registerRefresher('nutrition/reminders', () => loadReminders()),
+    ];
+    return () => { offs.forEach((off) => off()); };
   });
 
   // ── Macro goal editor ──

@@ -1,3 +1,5 @@
+**⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.**
+
 ---
 name: bento-life
 description: Access and manage the user's Bento life-OS data — tasks, habits, mood, focus, journal, notes, sleep, meals, and cross-module intelligence. Full CRUD: create, update, delete, complete, undo across all modules. Triggers: "how is my life", "what's my day look like", "review my week", "spot patterns", "compare periods", "what keeps going wrong", "schedule my day", "log/journal/note/track/sleep/meal".

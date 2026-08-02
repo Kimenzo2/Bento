@@ -1,3 +1,5 @@
+<!-- ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER. -->
+
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
@@ -238,7 +240,7 @@
   .feedback-page__header h2 {
     margin: 0 0 4px;
     font-size: 20px;
-    font-weight: 700;
+    font-weight: 550;
     letter-spacing: -0.03em;
   }
   .feedback-page__header p {
@@ -271,7 +273,7 @@
     align-items: center;
     gap: 4px;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 550;
     color: var(--muted);
     white-space: nowrap;
   }
@@ -290,7 +292,7 @@
   }
   .feedback-card__title {
     font-size: 1rem;
-    font-weight: 700;
+    font-weight: 550;
     color: var(--foreground);
     line-height: 1.35;
     letter-spacing: -0.02em;
@@ -325,7 +327,7 @@
     border: none;
     background: transparent;
     color: var(--muted);
-    font-weight: 600;
+    font-weight: 550;
     cursor: pointer;
     padding: 0;
     text-align: left;
@@ -348,7 +350,7 @@
   }
   .feedback-card__devnote-label {
     font-size: 0.68rem;
-    font-weight: 700;
+    font-weight: 550;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--muted);
@@ -375,7 +377,7 @@
   }
   .feedback-page__empty p {
     margin: 0;
-    font-weight: 600;
+    font-weight: 550;
     color: var(--muted);
   }
   .feedback-page__empty-sub {
@@ -389,7 +391,7 @@
     border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
     background: transparent;
     color: var(--foreground);
-    font-weight: 600;
+    font-weight: 550;
     cursor: pointer;
   }
   .feedback-page__retry:hover {

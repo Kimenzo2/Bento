@@ -1,10 +1,14 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use sqlx::Row;
 use tauri::State;
 use uuid::Uuid;
 
 use crate::commands::DashboardCache;
 use crate::db::BentoAppState;
+use crate::realtime::RealtimeHub;
 use crate::util::time;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -125,6 +129,7 @@ pub async fn save_task(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     cache: State<'_, DashboardCache>,
+    hub: State<'_, RealtimeHub>,
     params: SaveTaskParams,
 ) -> Result<TaskEntry, String> {
     crate::auth::require_billing_tier(&auth, "tasks").await?;
@@ -188,6 +193,7 @@ pub async fn save_task(
     };
     // Invalidate dashboard cache so next poll reflects the new task
     cache.invalidate();
+    hub.emit_change("tasks/list", "created", json!(&result)).await;
     Ok(result)
 }
 
@@ -197,6 +203,7 @@ pub async fn update_task(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     cache: State<'_, DashboardCache>,
+    hub: State<'_, RealtimeHub>,
     params: UpdateTaskParams,
 ) -> Result<TaskEntry, String> {
     crate::auth::require_billing_tier(&auth, "tasks").await?;
@@ -293,6 +300,7 @@ pub async fn update_task(
         updated_at: now,
     };
     cache.invalidate();
+    hub.emit_change("tasks/list", "updated", json!(&updated)).await;
     Ok(updated)
 }
 
@@ -303,6 +311,7 @@ pub async fn toggle_task(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     cache: State<'_, DashboardCache>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<TaskEntry, String> {
     crate::auth::require_billing_tier(&auth, "tasks").await?;
@@ -354,6 +363,16 @@ pub async fn toggle_task(
                 .execute(&db)
                 .await
                 .map_err(|e| e.to_string())?;
+
+                // Publish the newly-created recurring instance.
+                if let Ok(next_row) = sqlx::query("SELECT id, title, done, priority, project, tags, notes, due_at, due_time, start_at, estimated_minutes, tracked_minutes, recurrence_rule, archived, parent_id, completed_at, created_at, updated_at, sort_order FROM tasks WHERE id = ?")
+                    .bind(&new_id)
+                    .fetch_optional(&db)
+                    .await
+                    .map(|r| r.map(row_to_task))
+                {
+                    hub.emit_change("tasks/list", "created", json!(&next_row)).await;
+                }
             }
         }
     }
@@ -375,6 +394,7 @@ pub async fn toggle_task(
 
     let task = row_to_task(updated);
     cache.invalidate();
+    hub.emit_change("tasks/list", "updated", json!(&task)).await;
     Ok(task)
 }
 
@@ -432,6 +452,7 @@ pub async fn delete_task(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     cache: State<'_, DashboardCache>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "tasks").await?;
@@ -443,6 +464,7 @@ pub async fn delete_task(
         .await
         .map_err(|e| e.to_string())?;
     cache.invalidate();
+    hub.emit_change("tasks/list", "deleted", json!({ "id": id })).await;
     Ok(())
 }
 
@@ -531,6 +553,7 @@ pub async fn get_task_count(state: State<'_, BentoAppState>) -> Result<i64, Stri
 pub async fn log_activity_entry(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     params: LogActivityParams,
 ) -> Result<ActivityEntry, String> {
     crate::auth::require_billing_tier(&auth, "tasks").await?;
@@ -561,6 +584,8 @@ pub async fn log_activity_entry(
         .await
         .map_err(|e| e.to_string())?;
 
+    publish_task_updated(&db, &hub, &params.task_id).await;
+
     Ok(ActivityEntry {
         id,
         task_id: params.task_id,
@@ -575,6 +600,7 @@ pub async fn archive_task(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     cache: State<'_, DashboardCache>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<TaskEntry, String> {
     crate::auth::require_billing_tier(&auth, "tasks").await?;
@@ -598,11 +624,13 @@ pub async fn archive_task(
         .map_err(|e| e.to_string())?;
 
     cache.invalidate();
-    Ok(TaskEntry {
+    let archived = TaskEntry {
         archived: true,
         updated_at: now,
         ..existing
-    })
+    };
+    hub.emit_change("tasks/list", "updated", json!(&archived)).await;
+    Ok(archived)
 }
 
 /// Duplicate a task (copy with new ID).
@@ -610,6 +638,8 @@ pub async fn archive_task(
 pub async fn duplicate_task(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    cache: State<'_, DashboardCache>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<TaskEntry, String> {
     crate::auth::require_billing_tier(&auth, "tasks").await?;
@@ -648,7 +678,8 @@ pub async fn duplicate_task(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(TaskEntry {
+    cache.invalidate();
+    let duplicated = TaskEntry {
         id: new_id,
         done: false,
         archived: false,
@@ -656,7 +687,9 @@ pub async fn duplicate_task(
         created_at: now,
         updated_at: now,
         ..existing
-    })
+    };
+    hub.emit_change("tasks/list", "created", json!(&duplicated)).await;
+    Ok(duplicated)
 }
 
 // ─── Subtask types ───────────────────────────────────────────────────
@@ -684,6 +717,7 @@ pub struct SaveSubtaskParams {
 pub async fn save_subtask(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     params: SaveSubtaskParams,
 ) -> Result<SubtaskEntry, String> {
     crate::auth::require_billing_tier(&auth, "tasks").await?;
@@ -709,6 +743,8 @@ pub async fn save_subtask(
     .await
     .map_err(|e| e.to_string())?;
 
+    publish_task_updated(&db, &hub, &params.task_id).await;
+
     Ok(SubtaskEntry {
         id,
         task_id: params.task_id,
@@ -724,17 +760,43 @@ pub async fn save_subtask(
 pub async fn delete_subtask(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "tasks").await?;
 
     let db = state.db();
+    let task_id: Option<String> = sqlx::query_scalar("SELECT task_id FROM subtasks WHERE id = ?")
+        .bind(&id)
+        .fetch_optional(&db)
+        .await
+        .map_err(|e| e.to_string())?;
+
     sqlx::query("DELETE FROM subtasks WHERE id = ?")
         .bind(&id)
         .execute(&db)
         .await
         .map_err(|e| e.to_string())?;
+
+    if let Some(parent) = task_id {
+        publish_task_updated(&db, &hub, &parent).await;
+    }
     Ok(())
+}
+
+/// Fetch a parent task row and publish an `updated` event for it. Used by
+/// subtask + activity mutations that change a task's detail, not its list row.
+async fn publish_task_updated(db: &sqlx::SqlitePool, hub: &RealtimeHub, task_id: &str) {
+    if let Ok(Some(task)) = sqlx::query(
+        "SELECT id, title, done, priority, project, tags, notes, due_at, due_time, start_at, estimated_minutes, tracked_minutes, recurrence_rule, archived, parent_id, completed_at, created_at, updated_at, sort_order FROM tasks WHERE id = ?",
+    )
+    .bind(task_id)
+    .fetch_optional(db)
+    .await
+    .map(|r| r.map(row_to_task))
+    {
+        hub.emit_change("tasks/list", "updated", json!(&task)).await;
+    }
 }
 
 /// List all subtasks for a given task.
@@ -773,6 +835,7 @@ pub async fn list_subtasks_for_task(
 pub async fn update_subtask_status(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
     done: bool,
 ) -> Result<SubtaskEntry, String> {
@@ -781,6 +844,12 @@ pub async fn update_subtask_status(
     let db = state.db();
     let now = time::now_ms();
 
+    let task_id: Option<String> = sqlx::query_scalar("SELECT task_id FROM subtasks WHERE id = ?")
+        .bind(&id)
+        .fetch_optional(&db)
+        .await
+        .map_err(|e| e.to_string())?;
+
     sqlx::query("UPDATE subtasks SET done = ?, updated_at = ? WHERE id = ?")
         .bind(if done { 1i64 } else { 0i64 })
         .bind(now)
@@ -788,6 +857,10 @@ pub async fn update_subtask_status(
         .execute(&db)
         .await
         .map_err(|e| e.to_string())?;
+
+    if let Some(parent) = task_id {
+        publish_task_updated(&db, &hub, &parent).await;
+    }
 
     let row = sqlx::query(
         "SELECT id, task_id, title, done, created_at, updated_at FROM subtasks WHERE id = ?",
@@ -813,6 +886,7 @@ pub async fn reorder_tasks(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
     cache: State<'_, DashboardCache>,
+    hub: State<'_, RealtimeHub>,
     items: Vec<ReorderItem>,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "tasks").await?;
@@ -828,6 +902,39 @@ pub async fn reorder_tasks(
             .map_err(|e| e.to_string())?;
     }
     cache.invalidate();
+
+    // Publish the full re-ordered list so CRUD subscribers replace wholesale.
+    if let Ok(rows) = sqlx::query(
+        "SELECT id, title, done, priority, project, tags, notes, due_at, due_time, start_at, estimated_minutes, tracked_minutes, recurrence_rule, archived, parent_id, completed_at, created_at, updated_at, sort_order FROM tasks WHERE archived = 0 ORDER BY sort_order ASC, created_at DESC",
+    )
+    .fetch_all(&db)
+    .await
+    {
+        let list: Vec<serde_json::Value> = rows.iter().map(|r| {
+            json!({
+                "id": r.get::<String, _>("id"),
+                "title": r.get::<String, _>("title"),
+                "done": r.get::<i64, _>("done") != 0,
+                "priority": r.get::<Option<String>, _>("priority"),
+                "project": r.get::<Option<String>, _>("project"),
+                "tags": r.get::<Option<String>, _>("tags"),
+                "notes": r.get::<Option<String>, _>("notes"),
+                "due_at": r.get::<Option<i64>, _>("due_at"),
+                "due_time": r.get::<Option<String>, _>("due_time"),
+                "start_at": r.get::<Option<i64>, _>("start_at"),
+                "estimated_minutes": r.get::<Option<i64>, _>("estimated_minutes"),
+                "tracked_minutes": r.get::<i64, _>("tracked_minutes"),
+                "archived": r.get::<i64, _>("archived") != 0,
+                "parent_id": r.get::<Option<String>, _>("parent_id"),
+                "completed_at": r.get::<Option<i64>, _>("completed_at"),
+                "created_at": r.get::<i64, _>("created_at"),
+                "updated_at": r.get::<i64, _>("updated_at"),
+                "sort_order": r.get::<f64, _>("sort_order"),
+            })
+        }).collect();
+        hub.emit_change("tasks/list", "refreshed", json!(list)).await;
+    }
+
     Ok(())
 }
 

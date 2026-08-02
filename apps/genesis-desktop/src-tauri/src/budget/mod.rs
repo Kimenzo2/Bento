@@ -1,3 +1,5 @@
+// ⚠️ ABSOLUTE GIT SAFETY LAW ⚠️ — THE AGENT MUST NEVER RUN git reset, git stash, git checkout --, git clean -f, git restore, git revert, git rebase, git cherry-pick, git commit --amend, git push --force, OR ANY OTHER DESTRUCTIVE GIT OPERATION WITHOUT EXPLICIT CONSENT FROM THE OWNER. WORKING TREE CHANGES ARE PRECIOUS AND IRREPLACEABLE. THEY MUST NEVER BE STASHED, DISCARDED, REVERTED, RESET, OR OVERWRITTEN. ALWAYS ASK THE OWNER FIRST. NO EXCEPTIONS, EVER.
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Budget / Intelligent Budget Planner — Tauri Commands (SQLite)
 // Tables:
@@ -13,10 +15,12 @@
 
 use chrono::Datelike;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use tauri::State;
 use uuid::Uuid;
 
 use crate::db::BentoAppState;
+use crate::realtime::RealtimeHub;
 use crate::util::time;
 
 // ── Date helpers ────────────────────────────────────────────────────────────
@@ -517,6 +521,7 @@ pub async fn budget_list_categories(
 pub async fn budget_set_category_budget(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     category_id: String,
     monthly_budget: f64,
 ) -> Result<(), String> {
@@ -529,6 +534,7 @@ pub async fn budget_set_category_budget(
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    hub.emit_change("budget/categories", "updated", json!({ "id": &category_id, "monthly_budget": monthly_budget })).await;
     Ok(())
 }
 
@@ -536,6 +542,7 @@ pub async fn budget_set_category_budget(
 pub async fn budget_create_category(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     name: String,
     group_name: Option<String>,
     icon: Option<String>,
@@ -561,7 +568,7 @@ pub async fn budget_create_category(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(BudgetCategory {
+    let category = BudgetCategory {
         id,
         name,
         group_name: group_name.unwrap_or_else(|| "Other".into()),
@@ -569,13 +576,16 @@ pub async fn budget_create_category(
         monthly_budget: 0.0,
         color: color.unwrap_or_else(|| "#6366f1".into()),
         created_at: now,
-    })
+    };
+    hub.emit_change("budget/categories", "created", json!(&category)).await;
+    Ok(category)
 }
 
 #[tauri::command]
 pub async fn budget_update_category(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     category_id: String,
     name: String,
     group_name: Option<String>,
@@ -598,6 +608,7 @@ pub async fn budget_update_category(
     .await
     .map_err(|e| e.to_string())?;
 
+    hub.emit_change("budget/categories", "updated", json!({ "id": &category_id })).await;
     Ok(())
 }
 
@@ -605,6 +616,7 @@ pub async fn budget_update_category(
 pub async fn budget_delete_category(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     category_id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "budget").await?;
@@ -630,6 +642,7 @@ pub async fn budget_delete_category(
         .await
         .map_err(|e| e.to_string())?;
 
+    hub.emit_change("budget/categories", "deleted", json!({ "id": &category_id })).await;
     Ok(())
 }
 
@@ -641,6 +654,7 @@ pub async fn budget_delete_category(
 pub async fn budget_add_transaction(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     tx: NewTransaction,
 ) -> Result<Transaction, String> {
     crate::auth::require_billing_tier(&auth, "budget").await?;
@@ -685,7 +699,7 @@ pub async fn budget_add_transaction(
         None
     };
 
-    Ok(Transaction {
+    let transaction = Transaction {
         id,
         category_id: tx.category_id,
         category_name: cat_name,
@@ -696,7 +710,9 @@ pub async fn budget_add_transaction(
         project: tx.project,
         recurring: tx.recurring,
         created_at: now,
-    })
+    };
+    hub.emit_change("budget/transactions", "created", json!(&transaction)).await;
+    Ok(transaction)
 }
 
 #[tauri::command]
@@ -754,6 +770,7 @@ pub async fn budget_list_transactions(
 pub async fn budget_delete_transaction(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "budget").await?;
@@ -764,6 +781,7 @@ pub async fn budget_delete_transaction(
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    hub.emit_change("budget/transactions", "deleted", json!({ "id": &id })).await;
     Ok(())
 }
 
@@ -771,6 +789,7 @@ pub async fn budget_delete_transaction(
 pub async fn budget_update_transaction(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
     tx: NewTransaction,
 ) -> Result<Transaction, String> {
@@ -819,8 +838,8 @@ pub async fn budget_update_transaction(
         None
     };
 
-    Ok(Transaction {
-        id,
+    let transaction = Transaction {
+        id: id.clone(),
         category_id: tx.category_id,
         category_name: cat_name,
         amount: tx.amount,
@@ -830,7 +849,9 @@ pub async fn budget_update_transaction(
         project: tx.project,
         recurring: tx.recurring,
         created_at,
-    })
+    };
+    hub.emit_change("budget/transactions", "updated", json!(&transaction)).await;
+    Ok(transaction)
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -841,6 +862,7 @@ pub async fn budget_update_transaction(
 pub async fn budget_add_bill(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     bill: NewBill,
 ) -> Result<Bill, String> {
     crate::auth::require_billing_tier(&auth, "budget").await?;
@@ -883,7 +905,7 @@ pub async fn budget_add_bill(
         None
     };
 
-    Ok(Bill {
+    let created = Bill {
         id,
         name: bill.name,
         amount: bill.amount,
@@ -894,7 +916,9 @@ pub async fn budget_add_bill(
         active: true,
         created_at: now,
         paid_this_month: false,
-    })
+    };
+    hub.emit_change("budget/bills", "created", json!(&created)).await;
+    Ok(created)
 }
 
 #[tauri::command]
@@ -945,6 +969,7 @@ pub async fn budget_list_bills(
 pub async fn budget_toggle_bill_paid(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     bill_id: String,
 ) -> Result<bool, String> {
     crate::auth::require_billing_tier(&auth, "budget").await?;
@@ -970,6 +995,7 @@ pub async fn budget_toggle_bill_paid(
             .execute(&state.db())
             .await
             .map_err(|e| e.to_string())?;
+        hub.emit_change("budget/bills", "updated", json!({ "id": &bill_id, "paid_this_month": false })).await;
         Ok(false)
     } else {
         // Mark paid
@@ -991,6 +1017,7 @@ pub async fn budget_toggle_bill_paid(
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+        hub.emit_change("budget/bills", "updated", json!({ "id": &bill_id, "paid_this_month": true })).await;
         Ok(true)
     }
 }
@@ -999,6 +1026,7 @@ pub async fn budget_toggle_bill_paid(
 pub async fn budget_delete_bill(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "budget").await?;
@@ -1014,6 +1042,7 @@ pub async fn budget_delete_bill(
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    hub.emit_change("budget/bills", "deleted", json!({ "id": &id })).await;
     Ok(())
 }
 
@@ -1025,6 +1054,7 @@ pub async fn budget_delete_bill(
 pub async fn budget_add_ai_cost(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     entry: NewAiCostEntry,
 ) -> Result<AiCostEntry, String> {
     crate::auth::require_billing_tier(&auth, "budget").await?;
@@ -1059,7 +1089,7 @@ pub async fn budget_add_ai_cost(
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(AiCostEntry {
+    let ai_cost = AiCostEntry {
         id,
         provider: entry.provider,
         model: entry.model,
@@ -1069,7 +1099,9 @@ pub async fn budget_add_ai_cost(
         date_key: date,
         note: entry.note,
         created_at: now,
-    })
+    };
+    hub.emit_change("budget/ai-costs", "created", json!(&ai_cost)).await;
+    Ok(ai_cost)
 }
 
 #[tauri::command]
@@ -1155,6 +1187,7 @@ pub async fn budget_ai_cost_summary(
 pub async fn budget_delete_ai_cost(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "budget").await?;
@@ -1165,6 +1198,7 @@ pub async fn budget_delete_ai_cost(
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    hub.emit_change("budget/ai-costs", "deleted", json!({ "id": &id })).await;
     Ok(())
 }
 
@@ -1740,6 +1774,7 @@ pub async fn budget_cross_module_spending(
 pub async fn budget_save_template(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     name: String,
     total_income: f64,
     items: Vec<TemplateItem>,
@@ -1776,13 +1811,15 @@ pub async fn budget_save_template(
         .map_err(|e| e.to_string())?;
     }
 
-    Ok(BudgetTemplate {
+    let template = BudgetTemplate {
         id,
         name,
         total_income,
         created_at: now,
         items,
-    })
+    };
+    hub.emit_change("budget/templates", "created", json!(&template)).await;
+    Ok(template)
 }
 
 #[tauri::command]
@@ -1835,6 +1872,7 @@ pub async fn budget_list_templates(
 pub async fn budget_delete_template(
     auth: State<'_, crate::auth::AuthManager>,
     state: State<'_, BentoAppState>,
+    hub: State<'_, RealtimeHub>,
     id: String,
 ) -> Result<(), String> {
     crate::auth::require_billing_tier(&auth, "budget").await?;
@@ -1845,6 +1883,7 @@ pub async fn budget_delete_template(
         .execute(&state.db())
         .await
         .map_err(|e| e.to_string())?;
+    hub.emit_change("budget/templates", "deleted", json!({ "id": &id })).await;
     Ok(())
 }
 
