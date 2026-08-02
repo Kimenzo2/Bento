@@ -51,6 +51,17 @@ pub fn builder() -> Builder<tauri::Wry> {
             crate::commands::finish_background_task,
             crate::commands::consume_pending_deep_link,
             crate::commands::begin_background_task,
+            // Tab session
+            crate::session::tab_open,
+            crate::session::tab_close,
+            crate::session::tab_switch,
+            crate::session::tab_set_foreground,
+            crate::session::tab_list,
+            crate::session::tab_get_foreground,
+            crate::session::tab_get,
+            crate::session::tab_is_module_open,
+            crate::session::tab_restore,
+            crate::session::tab_handle_sync_event,
         ])
         .events(tauri_specta::collect_events![
             crate::typed::LifecycleEvent,

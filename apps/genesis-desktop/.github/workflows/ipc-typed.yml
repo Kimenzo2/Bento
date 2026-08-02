@@ -67,8 +67,8 @@ jobs:
         run: cargo test --profile ci --lib regenerate_typescript_bindings
       - name: Fail if bindings drifted from the annotated source
         run: git diff --exit-code -- ${{ env.BINDINGS_FILE }}
-      - name: Upload generated bindings (artifact)
-        uses: actions/upload-artifact@6f51cc03b4da9822ca683f550c97b1d4e0d5a2a6 # v4
+- name: Upload generated bindings (artifact)
+        uses: actions/upload-artifact@v4
         with:
           name: bento-typed-bindings
           path: ${{ env.BINDINGS_FILE }}

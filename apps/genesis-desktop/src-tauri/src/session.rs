@@ -54,7 +54,7 @@ pub enum TabState {
 }
 
 /// Information about an open tab, serializable to the frontend.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct TabInfo {
     pub id: String,
@@ -65,7 +65,7 @@ pub struct TabInfo {
 }
 
 /// Payload returned after a successful tab switch (3‑phase result).
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct TabSwitchPayload {
     pub from_tab_id: Option<String>,
@@ -440,6 +440,7 @@ pub async fn restore_tabs_from_db(
 // ---------------------------------------------------------------------------
 
 #[tauri::command]
+#[specta::specta]
 pub async fn tab_open(
     app: AppHandle,
     session: tauri::State<'_, ManagedTabSession>,
@@ -493,6 +494,7 @@ pub async fn tab_open(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn tab_close(
     state: tauri::State<'_, BentoAppState>,
     session: tauri::State<'_, ManagedTabSession>,
@@ -508,6 +510,7 @@ pub async fn tab_close(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn tab_switch(
     app: AppHandle,
     session: tauri::State<'_, ManagedTabSession>,
@@ -557,6 +560,7 @@ pub async fn tab_switch(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn tab_set_foreground(
     session: tauri::State<'_, ManagedTabSession>,
     tab_id: String,
@@ -566,6 +570,7 @@ pub async fn tab_set_foreground(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn tab_list(
     session: tauri::State<'_, ManagedTabSession>,
 ) -> Result<Vec<TabInfo>, String> {
@@ -574,6 +579,7 @@ pub async fn tab_list(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn tab_get_foreground(
     session: tauri::State<'_, ManagedTabSession>,
 ) -> Result<Option<TabInfo>, String> {
@@ -582,6 +588,7 @@ pub async fn tab_get_foreground(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn tab_get(
     session: tauri::State<'_, ManagedTabSession>,
     tab_id: String,
@@ -591,6 +598,7 @@ pub async fn tab_get(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn tab_is_module_open(
     session: tauri::State<'_, ManagedTabSession>,
     module_id: String,
@@ -602,6 +610,7 @@ pub async fn tab_is_module_open(
 /// Restore previously saved tabs from the database (after sleep/webview reload).
 /// Returns the restored tab infos, or an empty vec if no persisted tabs exist.
 #[tauri::command]
+#[specta::specta]
 pub async fn tab_restore(
     app: AppHandle,
     session: tauri::State<'_, ManagedTabSession>,
@@ -629,6 +638,7 @@ pub async fn tab_restore(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn tab_handle_sync_event(
     app: AppHandle,
     session: tauri::State<'_, ManagedTabSession>,
