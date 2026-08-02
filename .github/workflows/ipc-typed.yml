@@ -20,6 +20,7 @@ jobs:
   rust-bindings:
     name: Rust typed bindings (regenerate + drift check)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: ${{ env.APP_DIR }}/src-tauri
@@ -80,7 +81,7 @@ jobs:
       - name: Regenerate TypeScript bindings
         env:
           RUSTC_WRAPPER: sccache
-        run: cargo test --profile ci --lib regenerate_typescript_bindings
+        run: timeout 300 cargo test --profile ci --lib regenerate_typescript_bindings
       - name: Fail if bindings drifted from the annotated source
         working-directory: .
         run: git diff --exit-code -- ${{ env.APP_DIR }}/src/lib/bindings.ts
@@ -94,6 +95,7 @@ jobs:
   frontend-typed:
     name: Frontend against generated bindings
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: rust-bindings
     defaults:
       run:
