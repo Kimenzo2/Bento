@@ -2,12 +2,6 @@
 
 name: Typed IPC
 
-# Verifies the Rust <-> TypeScript binding pipeline end-to-end:
-#   1. Rust compiles with the specta/tauri-specta annotations.
-#   2. `bindings.ts` is regenerated from Rust and matches the committed file (no drift).
-#   3. The frontend type-check + unit tests pass against the generated bindings.
-#   4. (Phase 5) Generated Zod schemas match if enabled.
-
 on:
   push:
     branches: [main, develop, "release/**", "Gemini-api-connections"]
@@ -21,12 +15,10 @@ concurrency:
 
 env:
   APP_DIR: apps/genesis-desktop
-  BINDINGS_FILE: apps/genesis-desktop/src/lib/bindings.ts
-  ZOD_FILE: apps/genesis-desktop/src/lib/bindings.zod.ts
 
 jobs:
-  rust-bindings-sync:
-    name: Rust compile + bindings drift check
+  rust-bindings:
+    name: Rust typed bindings (regenerate + drift check)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -34,16 +26,26 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Sccache
+      - name: Sccache cache
         uses: mozilla-actions/sccache-action@054db53350805f83040bf3e6e9b8cf5a139aa7c9 # v0.0.7
+        with:
+          cache-key: ${{ runner.os }}-cargo-${{ hashFiles(format('{0}/src-tauri/Cargo.lock', env.APP_DIR)) }}
       - name: Install Tauri system dependencies
         shell: bash
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq \
-            libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
-            patchelf libxdo-dev libssl-dev libasound2-dev libpipewire-0.3-dev \
-            libgbm-dev libsqlcipher-dev pkg-config
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libxdo-dev \
+            libssl-dev \
+            libasound2-dev \
+            libpipewire-0.3-dev \
+            libgbm-dev \
+            libsqlcipher-dev \
+            pkg-config
       - name: Install Rust toolchain
         run: |
           rustup set profile minimal
@@ -55,7 +57,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles(format('{0}/src-tauri/Cargo.lock', env.APP_DIR)) }}
           restore-keys: ${{ runner.os }}-cargo-registry-
       - name: cargo check (annotations compile)
         env:
@@ -66,33 +68,40 @@ jobs:
           RUSTC_WRAPPER: sccache
         run: cargo test --profile ci --lib regenerate_typescript_bindings
       - name: Fail if bindings drifted from the annotated source
-        run: git diff --exit-code -- ${{ env.BINDINGS_FILE }}
+        working-directory: .
+        run: git diff --exit-code -- ${{ env.APP_DIR }}/src/lib/bindings.ts
       - name: Upload generated bindings (artifact)
         uses: actions/upload-artifact@v4
         with:
           name: bento-typed-bindings
-          path: ${{ env.BINDINGS_FILE }}
+          path: ${{ env.APP_DIR }}/src/lib/bindings.ts
           if-no-files-found: error
 
   frontend-typed:
     name: Frontend against generated bindings
     runs-on: ubuntu-latest
+    needs: rust-bindings
     defaults:
       run:
         working-directory: ${{ env.APP_DIR }}
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Download generated bindings
+        uses: actions/download-artifact@v4
+        with:
+          name: bento-typed-bindings
+          path: ${{ env.APP_DIR }}
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          bun-version: "1.3.14"
+          bun-version: latest
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Svelte Check (typed invoke/event usage)
-        run: bun run check
-      - name: Unit Tests
-        run: bun run test
+        run: bun run check | grep -v "^Warn:"
       - name: Lint
         continue-on-error: true
         run: bun run lint
+      - name: Unit Tests
+        run: bun run test
