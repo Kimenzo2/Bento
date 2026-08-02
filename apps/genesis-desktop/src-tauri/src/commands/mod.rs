@@ -57,14 +57,14 @@ pub struct ExportManifestRequest {
     pipeline: Vec<String>,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct BackgroundTaskRequest {
     #[serde(default)]
     label: Option<String>,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct BackgroundTaskResponse {
     task_id: String,
@@ -132,6 +132,7 @@ fn finish_busy_task(app: &AppHandle) {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn write_debug_log(app: AppHandle, msg: String) {
     let log_path = app
         .path()
@@ -224,6 +225,7 @@ pub fn restore_desktop_settings_backup(app: AppHandle) -> Result<Option<DesktopS
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn pick_export_directory(app: AppHandle) -> Result<Option<String>, String> {
     let path = app
         .dialog()
@@ -315,6 +317,7 @@ pub fn pick_transcription_model(app: AppHandle) -> Result<Option<String>, String
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn get_lifecycle_state(app: AppHandle) -> Result<LifecycleState, String> {
     let runtime = app
         .try_state::<DesktopRuntime>()
@@ -324,6 +327,7 @@ pub fn get_lifecycle_state(app: AppHandle) -> Result<LifecycleState, String> {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn begin_background_task(
     app: AppHandle,
     request: BackgroundTaskRequest,
@@ -339,6 +343,7 @@ pub fn begin_background_task(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn finish_background_task(app: AppHandle, task_id: String) -> Result<LifecycleState, String> {
     let runtime = app
         .try_state::<DesktopRuntime>()
@@ -393,6 +398,7 @@ pub async fn restore_window(app: AppHandle) -> Result<LifecycleState, String> {
 /// Clearing browsing data resets this cache so the next getUserMedia call
 /// will show the browser permission prompt.
 #[tauri::command]
+#[specta::specta]
 pub fn clear_webview_browsing_data(app: AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("agent") {
         window
@@ -409,6 +415,7 @@ pub fn clear_webview_browsing_data(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn quit_app(app: AppHandle) -> Result<(), String> {
     if let Some(runtime) = app.try_state::<DesktopRuntime>() {
         runtime.request_exit();
@@ -461,6 +468,7 @@ pub fn save_export_manifest(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn consume_pending_deep_link(pending: State<'_, PendingDeepLink>) -> Option<String> {
     pending.take()
 }

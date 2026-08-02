@@ -3,5 +3,7 @@
 
 fn main() {
     bento_desktop_lib::install_panic_bootstrap();
+    // Regenerate TypeScript bindings when BENTO_GEN_BINDINGS=1 (dev workflow).
+    let _ = bento_desktop_lib::typed::export_bindings();
     bento_desktop_lib::run();
 }

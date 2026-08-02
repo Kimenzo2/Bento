@@ -13,7 +13,7 @@ use tauri::{tray::TrayIcon, AppHandle, Emitter, Manager};
 
 use crate::settings::DesktopSettings;
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, specta::Type)]
 #[serde(rename_all = "PascalCase")]
 pub enum LifecycleState {
     Idle,

@@ -32,6 +32,8 @@
     "proxy:build:mac-arm64": "bun install --cwd ../../apps/server && bun build --compile --target=bun-darwin-arm64-modern ../../apps/server/src/index.js --outfile ./src-tauri/binaries/chatgpt-proxy-aarch64-apple-darwin",
     "proxy:build:mac-universal": "bun run proxy:build:mac-x64 && bun run proxy:build:mac-arm64 && lipo -create -output ./src-tauri/binaries/chatgpt-proxy-universal-apple-darwin ./src-tauri/binaries/chatgpt-proxy-x86_64-apple-darwin ./src-tauri/binaries/chatgpt-proxy-aarch64-apple-darwin",
     "proxy:dev": "bun run ../../apps/server/src/index.js",
+    "bindings:gen": "cargo test --manifest-path src-tauri/Cargo.toml --lib regenerate_typescript_bindings",
+    "bindings:check": "bun run bindings:gen && git diff --exit-code src/lib/bindings.ts",
     "tauri": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/tauri.ps1"
   },
   "dependencies": {

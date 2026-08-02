@@ -39,6 +39,7 @@ pub mod settings;
 pub mod share;
 pub mod sleep;
 pub mod spectrum;
+pub mod typed;
 pub mod util;
 pub mod window_bounds;
 pub mod window_effects;
