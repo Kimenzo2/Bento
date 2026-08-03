@@ -19,7 +19,7 @@ env:
 jobs:
   rust-bindings:
     name: Rust typed bindings (regenerate + drift check)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
     defaults:
       run:
@@ -68,8 +68,9 @@ jobs:
         # with a correct ELF header are sufficient to satisfy the build.
         shell: bash
         run: |
+          triple="$(rustc -vV | sed -n 's/^host: //p')"
           for name in chatgpt-proxy bento-spectrum; do
-            f="binaries/${name}-x86_64-unknown-linux-gnu"
+            f="binaries/${name}-${triple}"
             printf '\x7fELF' > "$f"   # 4-byte ELF magic
             head -c 64 /dev/zero >> "$f"
           done
@@ -81,7 +82,7 @@ jobs:
       - name: Regenerate TypeScript bindings
         env:
           RUSTC_WRAPPER: sccache
-        run: timeout 300 cargo test --profile ci --lib regenerate_typescript_bindings
+        run: timeout 600 cargo test --profile ci --lib regenerate_typescript_bindings -- --nocapture --test-threads=1
       - name: Fail if bindings drifted from the annotated source
         working-directory: .
         run: git diff --exit-code -- ${{ env.APP_DIR }}/src/lib/bindings.ts

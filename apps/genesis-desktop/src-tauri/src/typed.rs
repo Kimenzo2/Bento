@@ -312,8 +312,11 @@ mod regeneration {
 
     #[test]
     fn regenerate_typescript_bindings() {
+        eprintln!(">>> export begin");
+        let start = std::time::Instant::now();
         builder()
             .export(Typescript::default(), "../src/lib/bindings.ts")
             .expect("failed to export TypeScript bindings");
+        eprintln!(">>> export done in {:?}", start.elapsed());
     }
 }
