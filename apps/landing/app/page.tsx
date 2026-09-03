@@ -92,15 +92,11 @@ export default function HomePage() {
       <Nav platforms={platforms} />
       <main id="main-content">
         <Hero version={version} platforms={platforms} />
-        <div className="section-divider" aria-hidden="true" />
         <HowItWorks />
         <AppShowcase />
-        <div className="section-divider" aria-hidden="true" />
         <SocialProof />
-        <div className="section-divider" aria-hidden="true" />
         <Pricing />
         <FAQ />
-        <div className="section-divider" aria-hidden="true" />
         <DownloadSection version={version} />
       </main>
       <Footer />

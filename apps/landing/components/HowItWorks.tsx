@@ -179,18 +179,22 @@ export default function HowItWorks() {
               lineHeight: 1.2,
               color: tokens.ink,
               margin: '0 0 12px',
+              textWrap: 'balance',
             }}
           >
-            15 mini-apps that work as one.
+            17 mini-apps that work as one.
           </h2>
           <p
             className="text-body"
             style={{
               margin: 0,
+              maxWidth: '65ch',
+              textWrap: 'pretty',
+              overflowWrap: 'break-word',
             }}
           >
-            From tasks and notes to mood, sleep, budgets, passwords, and voice memos &mdash; every
-            module shares context locally, so nothing falls through the cracks.
+            From tasks and notes to mood, sleep, budgets, passwords, and voice memos — every module
+            shares context locally, so nothing falls through the cracks.
           </p>
         </header>
 
@@ -237,6 +241,7 @@ export default function HowItWorks() {
                   color: 'var(--color-ink)',
                   margin: 0,
                   letterSpacing: '-0.01em',
+                  textWrap: 'balance',
                 }}
               >
                 {cat.title}
@@ -248,6 +253,8 @@ export default function HowItWorks() {
                   lineHeight: 1.7,
                   color: 'var(--color-ink-muted)',
                   margin: 0,
+                  textWrap: 'pretty',
+                  overflowWrap: 'break-word',
                 }}
               >
                 {cat.description}
@@ -256,8 +263,7 @@ export default function HowItWorks() {
               <div
                 style={{
                   marginTop: 'auto',
-                  paddingTop: '12px',
-                  borderTop: '1px solid var(--color-border)',
+                  paddingTop: '20px',
                   fontSize: '0.78rem',
                   color: 'var(--color-ink-faint)',
                   lineHeight: 1.5,

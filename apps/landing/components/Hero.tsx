@@ -40,7 +40,8 @@ export default function Hero({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        height: '100dvh',
+        minHeight: 'calc(100dvh - 46px)',
+        paddingTop: '46px',
         background: 'var(--color-bg)',
       }}
       aria-labelledby="hero-heading"
@@ -134,10 +135,12 @@ export default function Hero({
             lineHeight: 1.65,
             color: '#555555',
             maxWidth: '520px',
+            textWrap: 'pretty',
+            overflowWrap: 'break-word',
           }}
         >
-          15 mini-apps &mdash; mood, focus, habits, sleep, budget, tasks, notes, and more &mdash; in
-          one calm desktop app that stays out of your way.
+          17 mini-apps — mood, focus, habits, sleep, budget, tasks, notes, and more — in one calm
+          desktop app that stays out of your way.
         </p>
 
         <div
@@ -308,8 +311,8 @@ export default function Hero({
               height: '28px',
               borderRadius: '0.75rem',
               padding: '0 12px',
-              color: '#8a8a8a',
-              background: 'rgba(0,0,0,0.04)',
+              color: 'var(--color-ink-muted)',
+              background: 'var(--color-highlight)',
               border: 'none',
               display: 'inline-flex',
               alignItems: 'center',
@@ -331,8 +334,8 @@ export default function Hero({
                 height: '28px',
                 borderRadius: '0.75rem',
                 padding: '0 12px',
-                background: platform === key ? '#1a1a1a' : 'rgba(0,0,0,0.04)',
-                color: platform === key ? '#f7f7f7' : '#8a8a8a',
+                background: platform === key ? '#1a1a1a' : 'var(--color-highlight)',
+                color: platform === key ? '#f7f7f7' : 'var(--color-ink-muted)',
                 border: 'none',
                 cursor: 'pointer',
                 textDecoration: 'none',

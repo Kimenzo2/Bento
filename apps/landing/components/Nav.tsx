@@ -160,7 +160,7 @@ export default function Nav({ platforms }: { platforms: Record<Platform, Platfor
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '4px',
+              gap: '12px',
             }}
             className="nav-desktop"
           >
@@ -223,7 +223,8 @@ export default function Nav({ platforms }: { platforms: Record<Platform, Platfor
               type="button"
               disabled={detecting}
               onClick={() => {
-                if (downloadHref) window.location.href = `/download/success?platform=${platform || 'windows'}&dl=${encodeURIComponent(downloadHref)}`;
+                if (downloadHref)
+                  window.location.href = `/download/success?platform=${platform || 'windows'}&dl=${encodeURIComponent(downloadHref)}`;
                 else scrollToDownload();
               }}
               style={{
@@ -246,11 +247,15 @@ export default function Nav({ platforms }: { platforms: Record<Platform, Platfor
             aria-label={open ? 'Close menu' : 'Open menu'}
             aria-expanded={open}
             style={{
+              position: 'relative',
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              padding: '8px',
+              width: '44px',
+              height: '44px',
               display: 'none',
+              placeItems: 'center',
+              padding: 0,
             }}
           >
             <span
@@ -376,7 +381,8 @@ export default function Nav({ platforms }: { platforms: Record<Platform, Platfor
               type="button"
               disabled={detecting}
               onClick={() => {
-                if (downloadHref) window.location.href = `/download/success?platform=${platform || 'windows'}&dl=${encodeURIComponent(downloadHref)}`;
+                if (downloadHref)
+                  window.location.href = `/download/success?platform=${platform || 'windows'}&dl=${encodeURIComponent(downloadHref)}`;
                 else scrollToDownload();
               }}
               style={{

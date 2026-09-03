@@ -42,19 +42,23 @@ export default function AppShowcase() {
               lineHeight: 1.2,
               color: tokens.ink,
               margin: 0,
+              textWrap: 'balance',
             }}
           >
-            15 mini-apps. One desktop.
+            17 mini-apps. One desktop.
           </h2>
           <p
             className="text-body"
             style={{
               marginTop: '16px',
+              maxWidth: '65ch',
+              textWrap: 'pretty',
+              overflowWrap: 'break-word',
             }}
           >
             Log a rough night of sleep and your morning mood check-in will already know. Your focus
-            sessions stack against your habit streaks. Each mini-app talks to the others &mdash; but
-            only on your machine.
+            sessions stack against your habit streaks. Each mini-app talks to the others — but only
+            on your machine.
           </p>
         </header>
 
@@ -73,12 +77,7 @@ export default function AppShowcase() {
             >
               {cat.label}
             </p>
-            <div
-              className="showcase-grid"
-              role="region"
-              aria-label={`${cat.label} mini-apps`}
-              tabIndex={0}
-            >
+            <div className="showcase-grid">
               {cat.indices.map((i) => {
                 const app = bentoApps[i];
                 return (
@@ -108,6 +107,7 @@ export default function AppShowcase() {
                         fontWeight: 500,
                         color: tokens.ink,
                         letterSpacing: '-0.01em',
+                        textWrap: 'balance',
                       }}
                     >
                       {app.name}
@@ -117,6 +117,8 @@ export default function AppShowcase() {
                       style={{
                         maxWidth: '80%',
                         marginTop: '4px',
+                        textWrap: 'pretty',
+                        overflowWrap: 'break-word',
                       }}
                     >
                       {app.desc}

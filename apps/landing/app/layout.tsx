@@ -42,11 +42,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
     default:
-      'Your sleep, mood, and habits affect each other every day. So why are you tracking them in 15 separate places?',
+      'Your sleep, mood, and habits affect each other every day. So why are you tracking them in 17 separate places?',
     template: '%s — Bento',
   },
   description:
-    'Bento brings mood, tasks, habits, sleep, budget, notes, journal, passwords — 15 mini-apps — into one private desktop app. Fully offline. Your data stays on your machine.',
+    'Bento brings mood, tasks, habits, sleep, budget, notes, journal, passwords — 17 mini-apps — into one private desktop app. Fully offline. Your data stays on your machine.',
   keywords: [
     'productivity app',
     'desktop app',
@@ -63,9 +63,9 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title:
-      'Your sleep, mood, and habits affect each other every day. So why are you tracking them in 15 separate places?',
+      'Your sleep, mood, and habits affect each other every day. So why are you tracking them in 17 separate places?',
     description:
-      'Bento brings mood, tasks, habits, sleep, budget, notes, journal, passwords — 15 mini-apps — into one private desktop app. Fully offline. Your data stays on your machine.',
+      'Bento brings mood, tasks, habits, sleep, budget, notes, journal, passwords — 17 mini-apps — into one private desktop app. Fully offline. Your data stays on your machine.',
     type: 'website',
     url: '/',
     siteName: 'Bento',
@@ -75,9 +75,9 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title:
-      'Your sleep, mood, and habits affect each other every day. So why are you tracking them in 15 separate places?',
+      'Your sleep, mood, and habits affect each other every day. So why are you tracking them in 17 separate places?',
     description:
-      'Bento brings mood, tasks, habits, sleep, budget, notes, journal, passwords — 15 mini-apps — into one private desktop app. Fully offline. Your data stays on your machine.',
+      'Bento brings mood, tasks, habits, sleep, budget, notes, journal, passwords — 17 mini-apps — into one private desktop app. Fully offline. Your data stays on your machine.',
     images: [{ url: `${baseUrl}/og-image.png`, width: 1200, height: 630 }],
   },
   alternates: { canonical: '/' },
@@ -99,6 +99,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${inter.variable} ${dmSans.variable} ${instrumentSerif.variable} ${biscotti.variable}`}
       >
+        <a
+          href="#main-content"
+          className="skip-link"
+          style={{
+            position: 'absolute',
+            left: '-9999px',
+            top: '16px',
+            zIndex: 100,
+            padding: '8px 16px',
+            background: 'var(--color-ink)',
+            color: 'var(--color-bg)',
+            borderRadius: '0.75rem',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            textDecoration: 'none',
+          }}
+        >
+          Skip to content
+        </a>
+        <style>{`.skip-link:focus-visible{left:16px !important;outline:2px solid var(--color-accent);outline-offset:2px}html{scroll-behavior:smooth}section[id],div[id]{scroll-margin-top:64px}@media (prefers-reduced-motion: reduce){.stagger-item,.hero-stagger{animation:none !important;transition:none !important}.hero-stagger{opacity:1 !important;transform:none !important}}`}</style>
         {children}
         <Analytics />
         <SpeedInsights />

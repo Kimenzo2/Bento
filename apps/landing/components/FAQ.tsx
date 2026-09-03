@@ -17,7 +17,6 @@ function PlusIcon({ open }: { open: boolean }) {
         flexShrink: 0,
         transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
         transition: 'transform 300ms cubic-bezier(0.23, 1, 0.32, 1)',
-        willChange: 'transform',
       }}
     >
       <span
@@ -90,7 +89,7 @@ function AccordionItem({
         }}
       >
         <PlusIcon open={open} />
-        <span>{question}</span>
+        <span style={{ textWrap: 'pretty', overflowWrap: 'break-word' }}>{question}</span>
       </button>
 
       <div
@@ -109,6 +108,8 @@ function AccordionItem({
             lineHeight: 1.7,
             color: 'var(--color-ink-muted)',
             letterSpacing: '-0.01em',
+            textWrap: 'pretty',
+            overflowWrap: 'break-word',
           }}
         >
           {answer}
@@ -179,6 +180,7 @@ export default function FAQ() {
               lineHeight: 1.2,
               color: tokens.ink,
               margin: '0 0 12px',
+              textWrap: 'balance',
             }}
           >
             Frequently Asked Questions
@@ -190,6 +192,8 @@ export default function FAQ() {
               color: tokens.inkMuted,
               maxWidth: '540px',
               margin: '0 auto',
+              textWrap: 'pretty',
+              overflowWrap: 'break-word',
             }}
           >
             Everything you need to know about Bento.

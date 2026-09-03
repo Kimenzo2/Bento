@@ -110,7 +110,8 @@ function SuccessContent() {
             height: '72px',
             opacity: show ? 1 : 0,
             transform: show ? 'translateY(0) scale(1)' : 'translateY(12px) scale(0.9)',
-            transition: 'opacity 500ms cubic-bezier(0.23, 1, 0.32, 1), transform 500ms cubic-bezier(0.23, 1, 0.32, 1)',
+            transition:
+              'opacity 500ms cubic-bezier(0.23, 1, 0.32, 1), transform 500ms cubic-bezier(0.23, 1, 0.32, 1)',
           }}
         >
           <Image
@@ -156,7 +157,8 @@ function SuccessContent() {
             textAlign: 'center',
             opacity: show ? 1 : 0,
             transform: show ? 'translateY(0)' : 'translateY(12px)',
-            transition: 'opacity 500ms cubic-bezier(0.23, 1, 0.32, 1) 80ms, transform 500ms cubic-bezier(0.23, 1, 0.32, 1) 80ms',
+            transition:
+              'opacity 500ms cubic-bezier(0.23, 1, 0.32, 1) 80ms, transform 500ms cubic-bezier(0.23, 1, 0.32, 1) 80ms',
           }}
         >
           <h1
@@ -198,7 +200,8 @@ function SuccessContent() {
             gap: '16px',
             opacity: show ? 1 : 0,
             transform: show ? 'translateY(0)' : 'translateY(12px)',
-            transition: 'opacity 500ms cubic-bezier(0.23, 1, 0.32, 1) 160ms, transform 500ms cubic-bezier(0.23, 1, 0.32, 1) 160ms',
+            transition:
+              'opacity 500ms cubic-bezier(0.23, 1, 0.32, 1) 160ms, transform 500ms cubic-bezier(0.23, 1, 0.32, 1) 160ms',
           }}
         >
           {info.steps.map((step, i) => (
@@ -267,7 +270,8 @@ function SuccessContent() {
               textAlign: 'center',
               opacity: show ? 1 : 0,
               transform: show ? 'translateY(0)' : 'translateY(8px)',
-              transition: 'opacity 500ms cubic-bezier(0.23, 1, 0.32, 1) 280ms, transform 500ms cubic-bezier(0.23, 1, 0.32, 1) 280ms',
+              transition:
+                'opacity 500ms cubic-bezier(0.23, 1, 0.32, 1) 280ms, transform 500ms cubic-bezier(0.23, 1, 0.32, 1) 280ms',
             }}
           >
             {info.tip}
@@ -281,7 +285,8 @@ function SuccessContent() {
               width: '100%',
               opacity: show ? 1 : 0,
               transform: show ? 'translateY(0)' : 'translateY(8px)',
-              transition: 'opacity 500ms cubic-bezier(0.23, 1, 0.32, 1) 340ms, transform 500ms cubic-bezier(0.23, 1, 0.32, 1) 340ms',
+              transition:
+                'opacity 500ms cubic-bezier(0.23, 1, 0.32, 1) 340ms, transform 500ms cubic-bezier(0.23, 1, 0.32, 1) 340ms',
             }}
           >
             <summary
