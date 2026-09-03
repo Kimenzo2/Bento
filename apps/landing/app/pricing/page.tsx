@@ -6,7 +6,7 @@ import Script from 'next/script';
 import { headers } from 'next/headers';
 import type { CSSProperties } from 'react';
 import { createAdminClient, createClient, getAuthenticatedUser } from '../../lib/supabase/server';
-import { PRICING_PLANS, findPlanByCode, getBillingPeriod, tierRank } from '../../lib/billing';
+import { PRICING_PLANS, findPlanByCode, tierRank } from '../../lib/billing';
 import {
   detectCheckoutCountry,
   getCountryFromHeaders,
@@ -22,11 +22,11 @@ import {
 export const metadata: Metadata = {
   title: 'Pricing',
   description:
-    'Simple, transparent pricing for Bento. Core, Pro, and Power plans. Upgrade or downgrade at any time.',
+    'Simple, transparent pricing for Bento. Lifetime plan. Upgrade or downgrade at any time.',
   robots: { index: true, follow: true },
   openGraph: {
     title: 'Pricing — Bento',
-    description: 'Simple, transparent pricing for Bento. Core, Pro, and Power plans.',
+    description: 'Simple, transparent pricing for Bento. Lifetime plan.',
   },
   alternates: { canonical: '/pricing' },
 };
@@ -52,7 +52,6 @@ export default async function PricingPage({
   searchParams?: Promise<SearchParams> | SearchParams;
 }) {
   const params = await Promise.resolve(searchParams ?? {});
-  const period = getBillingPeriod(firstString(params.billing));
   const selectedPlanCode = firstString(params.plan);
   const desktopEmail = firstString(params.email)?.trim() ?? '';
   const manualCountry = normalizeCountryCode(firstString(params.country));
@@ -99,8 +98,12 @@ export default async function PricingPage({
     profile = data ?? null;
   }
 
+  const lifetimePlan = PRICING_PLANS.find((p) => p.key === 'power') ?? PRICING_PLANS[0];
+  const displayPlans = PRICING_PLANS.filter((p) => p.key === 'power').map((p) =>
+    p.key === 'power' ? { ...p, name: 'Lifetime' } : p
+  );
   const profilePlan = findPlanByCode(profile?.subscription_plan_code);
-  const selectedPlan = findPlanByCode(selectedPlanCode) ?? profilePlan ?? PRICING_PLANS[1];
+  const selectedPlan = findPlanByCode(selectedPlanCode) ?? profilePlan ?? lifetimePlan;
   const currentTierRank = tierRank(profile?.user_tier);
   const activePlan = profilePlan;
   const detectedCountry = detectCheckoutCountry({
@@ -147,23 +150,9 @@ export default async function PricingPage({
             <p className="pricing-page__eyebrow">Pricing</p>
             <h1 className="pricing-page__title">Simple, transparent pricing.</h1>
             <p className="pricing-page__subtitle">
-              Pick the tier that fits you best. Upgrade or downgrade at any time.
+              One Lifetime plan — all 17 apps, 2 years of updates, yours forever. Works on Windows,
+              macOS, and Linux.
             </p>
-          </div>
-
-          <div className="pricing-page__billing-switch" aria-label="Billing period">
-            <Link
-              className={period === 'monthly' ? 'is-active' : ''}
-              href={`/pricing?billing=monthly${selectedPlanCode ? `&plan=${selectedPlanCode}` : ''}${desktopEmail ? `&email=${encodeURIComponent(desktopEmail)}` : ''}`}
-            >
-              Monthly
-            </Link>
-            <Link
-              className={period === 'yearly' ? 'is-active' : ''}
-              href={`/pricing?billing=yearly${selectedPlanCode ? `&plan=${selectedPlanCode}` : ''}${desktopEmail ? `&email=${encodeURIComponent(desktopEmail)}` : ''}`}
-            >
-              Yearly
-            </Link>
           </div>
 
           <div className="pricing-page__method-strip" aria-label="Accepted payment methods">
@@ -185,16 +174,16 @@ export default async function PricingPage({
             <h2 id="pricing-plans-heading">Plans</h2>
             <p className="text-body">
               {activePlan
-                ? `Your current plan is ${activePlan.name}.`
+                ? `Your current plan is ${activePlan.key === 'power' ? 'Lifetime' : activePlan.name}.`
                 : 'Select the plan that fits how you use Bento.'}
             </p>
           </div>
 
           <div className="pricing-page__grid">
-            {PRICING_PLANS.map((plan) => {
+            {displayPlans.map((plan) => {
               const rank = tierRank(plan.key);
               const isCurrent = rank === currentTierRank;
-              const planCode = plan.planCodes[period];
+              const planCode = plan.planCodes.monthly;
               const isSelected =
                 selectedPlan.key === plan.key ||
                 selectedPlan.planCodes.monthly === planCode ||
@@ -216,10 +205,39 @@ export default async function PricingPage({
 
                   <div className="pricing-page__price-row">
                     <div className="pricing-page__price">
-                      <span className="pricing-page__currency">{plan.price[period]}</span>
-                      <span className="pricing-page__period">{plan.period[period]}</span>
+                      <span className="pricing-page__currency">{plan.price.monthly}</span>
+                      <span
+                        style={{
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          letterSpacing: '0.06em',
+                          textTransform: 'uppercase',
+                          color: 'var(--color-accent)',
+                          background: 'var(--color-highlight)',
+                          padding: '3px 8px',
+                          borderRadius: '999px',
+                          marginInlineStart: '8px',
+                        }}
+                      >
+                        one-time
+                      </span>
                     </div>
                     <span className="pricing-page__summary">{plan.summary}</span>
+                  </div>
+
+                  <div
+                    style={{
+                      background: 'var(--color-highlight)',
+                      borderRadius: '0.75rem',
+                      padding: '10px 12px',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      lineHeight: 1.4,
+                      color: 'var(--color-ink)',
+                      textAlign: 'center',
+                    }}
+                  >
+                    💎 Replaces $180+/mo in separate apps — pay once, keep forever
                   </div>
 
                   <ul className="pricing-page__features">
@@ -236,7 +254,7 @@ export default async function PricingPage({
                     className="pricing-page__form"
                   >
                     <input type="hidden" name="planCode" value={planCode} />
-                    <input type="hidden" name="billingPeriod" value={period} />
+                    <input type="hidden" name="billingPeriod" value="monthly" />
                     <input type="hidden" name="country" value={detectedCountry ?? 'GLOBAL'} />
                     <input type="hidden" name="method" value={selectedMethodKey} />
                     <input
@@ -338,6 +356,7 @@ export default async function PricingPage({
           letter-spacing: -0.04em;
           margin: 0;
           color: var(--color-ink);
+          text-wrap: balance;
         }
 
         .pricing-page__subtitle {
@@ -346,29 +365,8 @@ export default async function PricingPage({
           color: var(--color-ink-muted);
           max-width: 52ch;
           margin: 1.25rem auto 0;
-        }
-
-        .pricing-page__billing-switch {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.25rem;
-          margin-top: 2rem;
-        }
-
-        .pricing-page__billing-switch a {
-          text-decoration: none;
-          color: var(--color-ink-muted);
-          padding: 0.5rem 1rem;
-          border-radius: 0.5rem;
-          font-size: 0.9rem;
-          font-weight: 500;
-          transition: color 0.15s ease, background 0.15s ease;
-        }
-
-        .pricing-page__billing-switch a.is-active {
-          color: var(--color-ink);
-          background: var(--color-highlight);
+          text-wrap: pretty;
+          overflow-wrap: break-word;
         }
 
         .pricing-page__plans,
@@ -378,10 +376,13 @@ export default async function PricingPage({
 
         .pricing-page__plans-header {
           display: flex;
-          justify-content: space-between;
-          gap: 1rem;
-          align-items: end;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          gap: 0.6rem;
           margin-bottom: 1.5rem;
+          max-width: 640px;
+          margin-inline: auto;
         }
 
         .pricing-page__plans-header h2,
@@ -390,6 +391,7 @@ export default async function PricingPage({
           font-size: clamp(1.6rem, 3vw, 2.2rem);
           letter-spacing: -0.03em;
           color: var(--color-ink);
+          text-wrap: balance;
         }
 
         .pricing-page__plans-header p {
@@ -399,7 +401,8 @@ export default async function PricingPage({
 
         .pricing-page__grid {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: minmax(320px, 620px);
+          justify-content: center;
           gap: 1rem;
         }
 
@@ -427,11 +430,14 @@ export default async function PricingPage({
           margin: 0;
           font-size: 1.4rem;
           letter-spacing: -0.03em;
+          text-wrap: balance;
         }
 
         .pricing-page__card-top p {
           margin-top: 0.35rem;
           max-width: 28ch;
+          text-wrap: pretty;
+          overflow-wrap: break-word;
         }
 
         .pricing-page__badge {
@@ -465,11 +471,7 @@ export default async function PricingPage({
           font-weight: 700;
           letter-spacing: -0.05em;
           color: var(--color-ink);
-        }
-
-        .pricing-page__period {
-          color: var(--color-ink-muted);
-          font-weight: 700;
+          font-variant-numeric: tabular-nums;
         }
 
         .pricing-page__summary {
@@ -487,13 +489,15 @@ export default async function PricingPage({
 
         .pricing-page__features li {
           position: relative;
-          padding-left: 1.2rem;
+          padding-inline-start: 1.2rem;
+          overflow-wrap: break-word;
+          max-width: 65ch;
         }
 
         .pricing-page__features li::before {
           content: '';
           position: absolute;
-          left: 0;
+          inset-inline-start: 0;
           top: 0.55rem;
           width: 0.45rem;
           height: 0.45rem;
@@ -516,11 +520,18 @@ export default async function PricingPage({
           font-size: 0.875rem;
           height: 36px;
           cursor: pointer;
-          transition: background 0.2s ease, box-shadow 0.15s ease;
+          transition:
+            background 0.2s ease,
+            box-shadow 0.15s ease,
+            transform 160ms cubic-bezier(0.2, 0, 0, 1);
         }
 
         .pricing-page__cta:hover:not(:disabled) {
           background: var(--color-accent-hover);
+        }
+
+        .pricing-page__cta:active:not(:disabled) {
+          transform: scale(0.96);
         }
 
         .pricing-page__cta:disabled {
@@ -528,6 +539,12 @@ export default async function PricingPage({
           cursor: not-allowed;
           background: var(--color-accent);
           color: var(--color-bg);
+        }
+
+        .pricing-page__cta:focus-visible,
+        .pricing-page__note-link:focus-visible {
+          outline: 2px solid var(--color-accent);
+          outline-offset: 2px;
         }
 
         .pricing-page__card.is-current .pricing-page__cta {
@@ -590,10 +607,16 @@ export default async function PricingPage({
 
         @media (max-width: 900px) {
           .pricing-page__grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: minmax(280px, 620px);
+            justify-content: center;
           }
 
-          .pricing-page__plans-header,
+          .pricing-page__plans-header {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+          }
+
           .pricing-page__note-card {
             flex-direction: column;
             align-items: start;

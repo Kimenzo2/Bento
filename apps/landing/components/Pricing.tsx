@@ -4,12 +4,11 @@ import Link from 'next/link';
 import { tokens } from './tokens';
 import { PRICING_PLANS } from '../lib/billing';
 
-const plans = PRICING_PLANS.map((plan) => ({
+const plans = PRICING_PLANS.filter((plan) => plan.key === 'power').map((plan) => ({
   key: plan.key,
-  name: plan.name,
+  name: 'Lifetime',
   description: plan.description,
   price: plan.price.monthly,
-  sub: '/mo',
   accent: plan.accent,
   features: plan.features,
   cta: { label: 'Subscribe', href: '/pricing', ghost: true },
@@ -39,15 +38,23 @@ function CheckIcon({ color }: { color: string }) {
 
 export default function Pricing() {
   return (
-    <section
-      style={{
-        background: tokens.bg,
-        padding: tokens.sectionPad + ' 28px',
-      }}
-      aria-labelledby="pricing-heading"
-    >
+    <>
+      <section
+        style={{
+          background: tokens.bg,
+          padding: `${tokens.sectionPad} 28px`,
+          paddingInline: '28px',
+        }}
+        aria-labelledby="pricing-heading"
+      >
       <div style={{ maxWidth: tokens.contentMax, margin: '0 auto' }}>
-        <header style={{ maxWidth: tokens.textMax, marginBottom: 'clamp(3rem, 5vw, 4.5rem)' }}>
+        <header
+          style={{
+            maxWidth: tokens.textMax,
+            margin: '0 auto clamp(3rem, 5vw, 4.5rem)',
+            textAlign: 'center',
+          }}
+        >
           <p
             style={{
               fontSize: tokens.labelSize,
@@ -69,6 +76,7 @@ export default function Pricing() {
               lineHeight: 1.2,
               color: tokens.ink,
               margin: 0,
+              textWrap: 'balance',
             }}
           >
             Pick the plan that fits you.
@@ -77,16 +85,21 @@ export default function Pricing() {
             className="text-body"
             style={{
               marginTop: '16px',
+              marginInline: 'auto',
+              maxWidth: '52ch',
+              textWrap: 'pretty',
+              overflowWrap: 'break-word',
             }}
           >
-            Every plan works on Windows, macOS, and Linux. Upgrade or downgrade at any time.
+            Works on Windows, macOS, and Linux. One payment — 2 years of updates, yours forever.
           </p>
         </header>
 
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gridTemplateColumns: 'minmax(300px, 560px)',
+            justifyContent: 'center',
             gap: '20px',
           }}
         >
@@ -98,7 +111,8 @@ export default function Pricing() {
                 flex: '1',
                 borderRadius: '1.5rem',
                 background: tokens.surface,
-                padding: '12px 16px',
+                paddingBlock: '12px',
+                paddingInline: '16px',
                 borderTop: '2px solid transparent',
                 display: 'flex',
                 flexDirection: 'column',
@@ -122,14 +136,14 @@ export default function Pricing() {
                   color: tokens.inkMuted,
                   margin: '4px 0 0',
                   lineHeight: 1.5,
+                  textWrap: 'pretty',
+                  overflowWrap: 'break-word',
                 }}
               >
                 {plan.description}
               </p>
 
-              <div
-                style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '12px' }}
-              >
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '12px' }}>
                 <span
                   style={{
                     fontSize: '2.5rem',
@@ -145,11 +159,32 @@ export default function Pricing() {
                 <span
                   style={{
                     fontSize: tokens.smallSize,
-                    color: tokens.inkFaint,
+                    fontWeight: 600,
+                    color: tokens.accent,
+                    background: tokens.highlight,
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    marginInlineStart: '8px',
                   }}
                 >
-                  {plan.sub}
+                  one-time
                 </span>
+              </div>
+
+              <div
+                style={{
+                  background: tokens.highlight,
+                  borderRadius: '0.75rem',
+                  padding: '10px 12px',
+                  marginTop: '14px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  lineHeight: 1.4,
+                  color: tokens.ink,
+                  textAlign: 'center',
+                }}
+              >
+                💎 Replaces $180+/mo in separate apps — pay once, keep forever
               </div>
 
               <div
@@ -181,6 +216,8 @@ export default function Pricing() {
                       fontSize: tokens.smallSize,
                       color: tokens.inkMuted,
                       lineHeight: 1.5,
+                      overflowWrap: 'break-word',
+                      maxWidth: '65ch',
                     }}
                   >
                     <CheckIcon color={plan.accent} />
@@ -241,5 +278,7 @@ export default function Pricing() {
         </p>
       </div>
     </section>
+      <style>{`.btn-accent:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}.btn-accent:active:not(:disabled){transform:scale(0.96)}.pricing-card:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}`}</style>
+    </>
   );
 }

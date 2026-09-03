@@ -3,7 +3,7 @@
 export const faqsLeft = [
   {
     q: 'Is there a free version?',
-    a: 'Bento is a paid app. The Core plan starts at $9/month and includes Tasks, Notes, Journal, Password Vault, and Budget. There is no free tier and no free trial. Every plan works offline and respects your privacy.',
+    a: 'Bento is a paid app. The Lifetime plan unlocks everything — all 17 apps, offline-first, private by design. There is no free tier and no free trial.',
   },
   {
     q: 'Do I need an account to use it?',

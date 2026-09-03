@@ -4,34 +4,13 @@ import Script from 'next/script';
 import { PRICING_PLANS } from '../lib/billing';
 
 function buildOffers() {
-  return PRICING_PLANS.flatMap((plan) => [
-    {
-      '@type': 'Offer',
-      name: `${plan.name} Monthly`,
-      price: plan.price.monthly.replace('$', ''),
-      priceCurrency: 'USD',
-      priceSpecification: {
-        '@type': 'UnitPriceSpecification',
-        billingDuration: 'P1M',
-        price: plan.price.monthly.replace('$', ''),
-        priceCurrency: 'USD',
-      },
-      url: `https://iamazeyou.me/pricing?plan=${plan.planCodes.monthly}`,
-    },
-    {
-      '@type': 'Offer',
-      name: `${plan.name} Yearly`,
-      price: plan.price.yearly.replace('$', ''),
-      priceCurrency: 'USD',
-      priceSpecification: {
-        '@type': 'UnitPriceSpecification',
-        billingDuration: 'P1Y',
-        price: plan.price.yearly.replace('$', ''),
-        priceCurrency: 'USD',
-      },
-      url: `https://iamazeyou.me/pricing?plan=${plan.planCodes.yearly}`,
-    },
-  ]);
+  return PRICING_PLANS.filter((plan) => plan.key === 'power').map((plan) => ({
+    '@type': 'Offer',
+    name: 'Lifetime',
+    price: plan.price.monthly.replace('$', ''),
+    priceCurrency: 'USD',
+    url: `https://iamazeyou.me/pricing?plan=${plan.planCodes.monthly}`,
+  }));
 }
 
 export function SoftwareAppSchema({ version }: { version?: string }) {

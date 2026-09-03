@@ -20,7 +20,6 @@
 
   const canUseTauri = browser && isTauri();
 
-  type BillingPeriod = "monthly" | "yearly";
   type TierName = "free" | "core" | "pro" | "power";
 
   type BillingProfile = {
@@ -31,7 +30,6 @@
     cancelAtPeriodEnd: boolean | null;
   } | null;
 
-  let billingPeriod = $state<BillingPeriod>("monthly");
   let processingPlan = $state<string | null>(null);
   let openingBillingPortal = $state(false);
   let refreshingBilling = $state(false);
@@ -65,53 +63,36 @@
 
   const tiers = [
     {
-      key: "core" as const,
-      name: "Core",
-      description: "The essentials for a calm, focused workflow.",
-      price: { monthly: "$9", yearly: "$90" },
-      period: { monthly: "/mo", yearly: "/yr" },
-      accent: "var(--foreground)",
-      summary: "Five anchor apps",
-      features: [
-        "Tasks, Notes, Journal, Password Vault, Budget",
-        "Local-first desktop experience",
-        "No AI features",
-        "Best for focused personal use",
-      ],
-      planCodes: { monthly: "core_monthly", yearly: "core_yearly" },
-    },
-    {
-      key: "pro" as const,
-      name: "Pro",
-      description: "For people using Bento across work, study, and daily routines.",
-      price: { monthly: "$19", yearly: "$180" },
-      period: { monthly: "/mo", yearly: "/yr" },
-      accent: "var(--foreground)",
-      summary: "All 17 apps",
-      features: [
-        "All 17 apps",
-        "Sync across devices (Coming soon)",
-        "Basic AI features",
-        "Desktop-first continuity",
-      ],
-      planCodes: { monthly: "pro_monthly", yearly: "pro_yearly" },
-      badge: "Most popular",
-    },
-    {
       key: "power" as const,
-      name: "Power",
-      description: "For heavy users who want the full Bento experience.",
-      price: { monthly: "$29", yearly: "$270" },
-      period: { monthly: "/mo", yearly: "/yr" },
+      name: "Lifetime",
+      description: "One payment, yours forever. Replaces $180+/mo in subscriptions.",
+      price: "$29",
       accent: "var(--foreground)",
-      summary: "Everything unlocked",
+      summary: "17 apps in one — 2 years updates included",
       features: [
-        "All 17 apps",
-        "Unlimited devices",
-        "Advanced AI intelligence layer",
-        "Priority support and early access",
+        "Replaces $180+/mo — 17 apps in one, pay once, keep forever",
+        "All 17 apps + every future app free for 2 years",
+        "2 years of updates included — yours to keep forever (no subscription)",
+        "Notes — replaces Notion ($10/mo) / Evernote ($14.99/mo): 8 block types, tags, favorites, Markdown and JSON export, local-first",
+        "Tasks — replaces Todoist Pro ($7/mo): natural language, recurring, My Day / Important / Planned, tags, history and search",
+        "Journal — replaces Day One Gold ($74.99/yr): prompts, mood, photos, streaks, timeline, PDF / CSV / Markdown export",
+        "Habits — replaces Streaks ($5.99) / Productive ($7/mo): unlimited habits, streaks, 90-day heatmap, weekly review",
+        "Focus — replaces Forest: Pomodoro, custom intervals, ambient sounds, site blocking, sessions history and review",
+        "Password vault — replaces 1Password ($3.99/mo): unlimited logins, passkeys, breach alerts, secure notes, travel mode, audit",
+        "Health — vitals (BP/HR/weight/temp/SpO2), meds adherence, insights, AI recap, doctor reports and CSV",
+        "Sleep — replaces Sleep Cycle: scores, smart alarm window, routine, stage balance, weekly trends, snore detection",
+        "Nutrition — replaces MyFitnessPal ($19.99/mo): water + meals, macros, reminders, hydration stats, streaks and export",
+        "Mood — replaces Daylio: one-tap logging, calendar, activity correlation, pattern detection, therapist prep notes",
+        "Budget — replaces YNAB ($14.99/mo): manual transactions, category budgets, bills, forecast, AI cost tracking, CSV export",
+        "Clipboard — replaces Paste ($29.99/yr, $89 lifetime): unlimited history, bookmarks, snippets, images, auto-expire secrets, search by app",
+        "Voice memos — replaces Otter.ai ($17/mo): one-tap record, auto-transcription, speaker labels, searchable tags and export",
+        "Countdown — events, birthdays, milestones, days-since tracker, shareable cards and widgets",
+        "Goals and dashboard — long-term goals, milestones, accountability, quick actions and app health at a glance",
+        "Local-first, offline and private — data never leaves your device (unlike Notion/Evernote cloud)",
+        "Priority support, early access and commercial use — build your life OS without limits",
       ],
       planCodes: { monthly: "power_monthly", yearly: "power_yearly" },
+      badge: undefined as string | undefined,
     },
   ];
 
@@ -125,7 +106,7 @@
   const currentTierRank = $derived(tierOrder[currentTier]);
   const desktopAccountEmail = $derived(($authStore.user?.email ?? "").trim());
   const currentPlanLabel = $derived(
-    currentTier === "free" ? _t('pricingFree') : currentTier.charAt(0).toUpperCase() + currentTier.slice(1)
+    currentTier === "free" ? _t('pricingFree') : currentTier === "power" ? "Lifetime" : currentTier.charAt(0).toUpperCase() + currentTier.slice(1)
   );
   const currentPlanStatus = $derived.by(() => {
     if (!billingProfile) return _t('pricingNotActive');
@@ -266,7 +247,7 @@
     return;
   }
 
-    const planCode = billingPeriod === "yearly" ? tier.planCodes.yearly : tier.planCodes.monthly;
+    const planCode = tier.planCodes.monthly;
     const pricingBase = import.meta.env.DEV ? "http://localhost:3000/pricing" : "https://iamazeyou.me/pricing";
     const emailParam = desktopAccountEmail ? `&email=${encodeURIComponent(desktopAccountEmail)}` : "";
     let countryParam = "";
@@ -438,25 +419,6 @@
     </div>
   {/if}
 
-  <div class="pricing-shell__toggle-wrap">
-    <div class="pricing-shell__toggle">
-      <button
-        class="pricing-shell__toggle-btn"
-        class:pricing-shell__toggle-btn--active={billingPeriod === "monthly"}
-        onclick={() => (billingPeriod = "monthly")}
-      >
-        {_t('pricingMonthly')}
-      </button>
-      <button
-        class="pricing-shell__toggle-btn"
-        class:pricing-shell__toggle-btn--active={billingPeriod === "yearly"}
-        onclick={() => (billingPeriod = "yearly")}
-      >
-        {_t('pricingYearly')}
-      </button>
-    </div>
-  </div>
-
   <div class="pricing-shell__grid">
     {#each tiers as tier, index}
       <Card class={`pricing-shell__card${index === 1 ? " pricing-shell__card--featured" : ""}`}>
@@ -475,8 +437,16 @@
         </CardHeader>
         <CardContent class="pricing-shell__card-content">
           <div class="pricing-shell__price">
-            <span class="pricing-shell__price-value">{tier.price[billingPeriod]}</span>
-            <span class="pricing-shell__price-period">{tier.period[billingPeriod]}</span>
+            <span class="pricing-shell__price-value">{tier.price}</span>
+            <span
+              style="font-size:0.68rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--foreground);background:color-mix(in srgb, var(--accent) 14%, transparent);padding:3px 8px;border-radius:999px;margin-inline-start:8px;vertical-align:middle;"
+              >one-time</span
+            >
+          </div>
+          <div
+            style="background:color-mix(in srgb, var(--accent) 14%, transparent);border-radius:0.75rem;padding:10px 12px;font-size:0.82rem;font-weight:700;line-height:1.4;color:var(--foreground);text-align:center;"
+          >
+            💎 Replaces $180+/mo in separate apps — pay once, keep forever
           </div>
           <div class="pricing-shell__summary">{tier.summary}</div>
           <ul class="pricing-shell__features">
@@ -708,6 +678,7 @@
     line-height: 1.02;
     letter-spacing: -0.04em;
     color: var(--foreground);
+    text-wrap: balance;
   }
 
   .pricing-shell__subtitle {
@@ -716,6 +687,8 @@
     font-size: 1rem;
     line-height: 1.55;
     color: var(--muted);
+    text-wrap: pretty;
+    overflow-wrap: break-word;
   }
 
   .pricing-shell__current {
@@ -765,6 +738,7 @@
   }
 
   .pricing-shell__refresh-btn {
+    position: relative;
     display: grid;
     place-items: center;
     width: 2.25rem;
@@ -774,14 +748,28 @@
     background: transparent;
     color: var(--muted);
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
     flex: 0 0 auto;
     padding: 0;
+  }
+
+  .pricing-shell__refresh-btn::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 9999px;
   }
 
   .pricing-shell__refresh-btn:hover:not(:disabled) {
     background: color-mix(in srgb, var(--border) 18%, transparent);
     color: var(--foreground);
+  }
+
+  .pricing-shell__refresh-btn:focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 2px;
   }
 
   .pricing-shell__refresh-btn:disabled {
@@ -877,38 +865,10 @@
     display: block;
   }
 
-  .pricing-shell__toggle-wrap {
-    display: flex;
-    justify-content: flex-start;
-  }
-
-  .pricing-shell__toggle {
-    display: inline-flex;
-    border-radius: 9999px;
-    padding: 0.25rem;
-    background: color-mix(in srgb, var(--surface) 95%, transparent);
-    border: 1px solid color-mix(in srgb, var(--border) 58%, transparent);
-  }
-
-  .pricing-shell__toggle-btn {
-    border: 0;
-    border-radius: 9999px;
-    padding: 0.8rem 1.25rem;
-    background: transparent;
-    color: var(--muted);
-    font-size: 0.95rem;
-    font-weight: 700;
-    cursor: pointer;
-  }
-
-  .pricing-shell__toggle-btn--active {
-    background: color-mix(in srgb, var(--foreground) 92%, var(--accent) 8%);
-    color: var(--background);
-  }
-
   .pricing-shell__grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(320px, 580px);
+    justify-content: center;
     gap: clamp(1.5rem, 2vw, 2.2rem);
     align-items: stretch;
   }
@@ -951,6 +911,7 @@
     font-size: clamp(2rem, 2.4vw, 3rem);
     font-weight: 500;
     letter-spacing: -0.05em;
+    text-wrap: balance;
   }
 
   .pricing-shell__badge {
@@ -970,6 +931,8 @@
     margin: 0;
     color: var(--muted);
     line-height: 1.45;
+    text-wrap: pretty;
+    overflow-wrap: break-word;
   }
 
   .pricing-shell__card-content {
@@ -991,11 +954,7 @@
     font-size: clamp(2.4rem, 3vw, 3.2rem);
     font-weight: 500;
     letter-spacing: -0.05em;
-  }
-
-  .pricing-shell__price-period {
-    color: var(--muted);
-    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
   }
 
   .pricing-shell__summary {
@@ -1018,6 +977,8 @@
     align-items: flex-start;
     color: var(--muted);
     line-height: 1.45;
+    overflow-wrap: break-word;
+    max-width: 65ch;
   }
 
   .pricing-shell__feature svg {
@@ -1031,6 +992,16 @@
   .pricing-shell__cta {
     margin-top: 0.25rem;
     font-weight: 700;
+    transition: transform 160ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  .pricing-shell__cta:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+
+  .pricing-shell__cta:focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 2px;
   }
 
   @media (max-width: 1200px) {
@@ -1039,7 +1010,8 @@
     }
 
     .pricing-shell__grid {
-      grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+      grid-template-columns: minmax(280px, 580px);
+      justify-content: center;
     }
   }
 
@@ -1157,7 +1129,7 @@
 
   .pricing-shell__pending-badge {
     display: inline-block;
-    margin-left: 0.5rem;
+    margin-inline-start: 0.5rem;
     padding: 0.15rem 0.55rem;
     border-radius: 9999px;
     background: color-mix(in srgb, oklch(0.769 0.165 70.08) 20%, transparent);
